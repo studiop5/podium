@@ -1,0 +1,436 @@
+// +skip
+
+/**
+  Copyright 2025 Glendon Diener
+ 
+  This file is part of Podium.
+ 
+  Podium is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+  Podium is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License along with Podium. If not, see <https://www.gnu.org/licenses/>.
+**/
+
+export { iconPaths };
+// -skip
+
+/**
+iconPaths
+  ...defines the svg paths (rects, ellopses, texts) used for Podium's icons.
+  These paths are rendered to the dom using the function common::iconSvg(...).
+  Many of these paths were created in Inkscape, then "hand copied" from the resulting
+  svg files, while others were created by hand-coding the svg.  As a result, there
+  is some unfortunate inconsistencies with how they are rendered, partcularly as
+  some use css style defs and some don't.
+**/
+
+// This formula creates a circular path segment from 2 arcs.
+
+let circlePath = (r, cx, cy) =>
+  `M${cx} ${cy} m${-r} 0
+        a ${r},${r} 0 1,0 ${r * 2},0 
+        a ${r},${r} 0 1,0 ${-r * 2},0 `;
+
+const iconPaths = {
+
+Alpha:
+  `<circle style="fill:#000;" cx="8" cy="12" r="6"/>
+   <circle style="fill:#8888;" cx="14" cy="12" r="6"/>`,
+
+
+"Blank Page":
+  `<path style="fill:none;stroke:#000;stroke-width:.6" d="M3 3h17v20 h-17Z"/>`,
+
+Bind:
+  `<rect style="x:.5;y:1;width:10;height:16;fill:#aaa;stroke:currentColor;stroke-width=.2;"/>,
+   <rect style="x:12;y:1;width:10;height:16;fill:#aaa0;stroke:currentColor;stroke-width=.2;"/>,
+   <ellipse fill="none" stroke="currentColor" stroke-width=".5" cx="11.25" cy="3" rx="1.4" ry=".6" />
+   <ellipse fill="none" stroke="currentColor" stroke-width=".5" cx="11.25" cy="6" rx="1.4" ry=".6" />
+   <ellipse fill="none" stroke="currentColor" stroke-width=".5" cx="11.25" cy="9" rx="1.4" ry=".6" />
+   <ellipse fill="none" stroke="currentColor" stroke-width=".5" cx="11.25" cy="12" rx="1.4" ry=".6" />
+   <ellipse fill="none" stroke="currentColor" stroke-width=".5" cx="11.25" cy="15" rx="1.4" ry=".6" />` ,
+
+Book:
+  `<path style="fill:#aaa;stroke:currentColor;stroke-width:0.6;" d="M 11.9,21.3 C 15.1,20.4 18.3,19.5 23,20.6 V 6 C 22.4,5.55 19.8,4.56 19,4.31 V 15.1 c -2.4,0.3 -4.8,3.4 -7.1,6.2 z"/>
+  <path style="fill:none;stroke:currentColor;stroke-width:0.6;" d="m 3.46,11.2 c 1.38,-0.6 4.12,-1.8 5.95,0 m -6.3,6.9 C 4.19,17.9 6.76,16.5 9.49,18 M 3.31,14.7 c 1.43,-0.6 3.56,-1.8 5.95,0 M 3.35,8.38 c 1.44,-0.87 3.98,-1.41 6.32,0 M 12,6.14 C 6.99,3.73 3.82,4.29 1.12,6.13 L 1.02,21.4 c 3.46,-1.5 6.99,-2.1 10.78,0 z" />
+  <path style="fill:none;stroke:currentColor;stroke-width:0.6;" d="m 13.6,12.3 c 1,-1.4 2.1,-2.82 3.2,-3.4 m -3,6.8 c 0.3,-0.9 1.4,-2.1 3.1,-3.5 M 13.7,8.93 c 1.2,-1.9 2.2,-2.45 3.5,-3.36 M 11.9,6.14 C 14,4.03 16.4,2.47 19,1.04 V 15 c -2.8,1.1 -5,3.8 -7.2,6.4 z" />`,
+
+Brush:
+  `<path fill="#aaa" stroke="currentColor" stroke-width="0.5" d="m 9.16,13.9 1.64,1.4 M 8.57,14.4 10.3,16 M 8.6,14.3 c -1.18,0.3 -2.27,0.7 -3.33,1.4 -1.39,0.9 -1.6,1.1 -1.41,2.7 -0.1,0.9 -1.05,1.2 -1.77,1.6 2.93,1.4 4.99,1 6.84,0.1 1.17,-0.6 0.91,-2.8 1.27,-4 4.1,-5 10.3,-9.92 12.2,-14 -5.8,2.87 -9.2,8.2 -13.8,12.2 z"/>`,
+
+Cancel:
+  `<path fill="#aaa" stroke="currentColor" stroke-width="1.8" d="${circlePath(10,12, 12)} M6 12.5h12"/>`,
+
+Clock:
+  `<path fill="#ccc" stroke="currentColor" stroke-width="1.2" d="M 3.42,12.9 H 5.13 M 11.8,4.68 V 6.36 M 11.6,19.7 v 1.7 M 18.4,13 H 20 M 8.11,8.11 11.8,13.2 11.2,8.24 M 20.3,13 A 8.57,8.57 0 0 1 11.7,21.6 8.57,8.57 0 0 1 3.13,13 8.57,8.57 0 0 1 11.7,4.43 8.57,8.57 0 0 1 20.3,13 Z" />`,
+
+Clone: 
+   `<path fill="none" stroke-width="0.6" stroke="currentColor" d="${circlePath(2,12,3)} ${circlePath(2,4,10)} ${circlePath(2,20,10)} ${circlePath(2,4,20)} ${circlePath(2,20,20)} M4,10h16v10h-16zM12,10v-6.5" />
+    <rect width="16" height="10" x="7" y="13" style="fill:#aaa;stroke:currentColor;"/>`,
+
+Close:
+  `<path style="fill:#aaa;stroke:currentColor;stroke-width=0.6;transform:scale(1.25,1.25) translate(-3px,-3px);" d="M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z" />`,
+
+"Close Panel":
+  `<path fill="currentColor" d="M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z" />`,
+
+
+"Copy Page":
+  `<path style="transform:translate(-2px,-2px);fill:none;stroke:currentColor;stroke-width:.3" d="M3 2h17v20.5h-17Z"/>
+  <path transform=translate(-2,-2) style="fill:none;stroke:currentColor;stroke-width:0.1" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+  <path transform=translate(2,1) style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+  <path transform=translate(2,1) style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>`,
+
+"Cut":
+  `<text y=20 x=3.5 font-size=20>\u2702</text>`,
+
+"Cut Page":
+  `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+  <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+  <text y=20 x=3.5 font-size=20>\u2702</text>`,
+
+"Copy":
+  `<g style="transform:scale(.6,.6);"><path style="translate(-2px,-2px);fill:none;stroke:currentColor;stroke-width:.3" d="M3 2h17v20.5h-17Z"/>
+  <path transform=translate(4,4) style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/></g>`,
+
+Details:
+  `<defs><mask id="details">
+    <rect x="0" y="0" height="24" width="24" fill="white"></rect>
+    <path stroke="none" fill="black" d="M 5 15 A 8 8  0 0 1 19 15 Z"/></mask></defs>
+    <path mask="url(#details)" fill="#aaa" stroke="currentColor" stroke-width=".6" 
+      d="M 1 18 A 8 8 0 0 1 23 18Z  M 5 15 A 8 8  0 0 1 19 15 Z     M3 18v-1  M6 18v-1.5 M9 18 v-1 M12 18 v-2 M15 18v-1 M18 18 v-1.5 M21 18v-1   M4 15 l-1.5 -.25 M7 11 l-1 -1 M12 10v-2  M17 11l 1 -1 M20 15l1.5 -.25"/>`,
+
+Drive:
+  `<path fill="currentColor" d="M7.71,3.5L1.15,15L4.58,21L11.13,9.5M9.73,15L6.3,21H19.42L22.85,15M22.28,14L15.42,2H8.58L8.57,2L15.43,14H22.28Z" />`,
+
+DropBox:
+  `<path fill="#aaa" stroke="currentColor" stroke-width="2"  d="m 6.48,18.2 0.1,-1.5 1.74,1.2 2.98,-2.6 3.3,2.5 1.7,-1.1 v 1.6 l -5,3.4 z M 6.26,10.9 11.5,7.23 16.7,10.7 11.4,14.3 Z M 3.08,8.12 8.39,4.3 l 3.11,2.89 3,-2.79 5.1,3.55 -2.9,2.75 2.9,2.9 -5,3.4 -3.2,-2.6 -3.12,2.4 -5.4,-3.2 3.39,-2.7 z" />`,
+
+File:
+  `<path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />`,
+
+"Fit Auto": 
+  `<path fill="#aaa" d="M9,11H15V8L19,12L15,16V13H9V16L5,12L9,8V11M2,20V4H4V20H2M20,20V4H22V20H20Z" />
+   <path fill="currentColor" d="M13,9V15H16L12,19L8,15H11V9H8L12,5L16,9H13M4,2H20V4H4V2M4,20H20V22H4V20Z" />`,
+
+"Fit Height":
+  `<path fill="currentColor" d="M13,9V15H16L12,19L8,15H11V9H8L12,5L16,9H13M4,2H20V4H4V2M4,20H20V22H4V20Z" />`,
+
+"Fit None":
+  `<path fill="currentColor" d="M15,5H17V3H15M15,21H17V19H15M11,5H13V3H11M19,5H21V3H19M19,9H21V7H19M19,21H21V19H19M19,13H21V11H19M19,17H21V15H19M3,5H5V3H3M3,9H5V7H3M3,13H5V11H3M3,17H5V15H3M3,21H5V19H3M11,21H13V19H11M7,21H9V19H7M7,5H9V3H7V5Z" />`,
+
+"Fit Width":
+  `<path fill="currentColor" d="M9,11H15V8L19,12L15,16V13H9V16L5,12L9,8V11M2,20V4H4V20H2M20,20V4H22V20H20Z" />`,
+
+"Flute Mirrored":
+  `<path fill="none" stroke="currentColor" stroke-width="0.5" d="m 12.7,12.3 c 0.3,0.7 1.6,0.8 2.8,0.8 1.1,-0.8 1.5,-2.3 1.8,-3.57 L 5.38,8.22 V 7.4 L 17.7,8.56 c 0.2,-0.67 2.1,-0.49 2.5,0.16 L 23.3,9.05 23,10.3 19.9,9.71 c -1.3,2.19 -2.6,5.69 -4.1,5.89 -1.5,-0.1 -3.7,-0.2 -4.5,-1.1 m -1.55,1 C 8.82,17.9 8.5,21.8 8.5,23.1 6.2,23.3 3.41,24.3 1.1,22.6 1.1,17.5 0.939,10 1.25,9.71 4.57,10.4 6.87,11.7 8.82,13.4 10.8,11.8 11.2,9.54 12.7,9.71 c 1.6,0 -1.4,5.79 -2.95,5.79 z M 9.13,8.71 C 7.52,11.7 0.939,7.57 0.618,5.27 0.275,1.64 2.44,0.329 4.72,0.329 8.92,1.15 9.96,4.6 9.23,7.57" />`,
+
+"Flute Flipped":
+  `<path fill="none" stroke="currentColor" stroke-width="0.5" d="M 11.3,12.4 C 11,13.1 9.69,13.2 8.51,13.2 7.41,12.4 7.01,10.9 6.71,9.59 L 18.7,8.28 V 7.46 L 6.31,8.62 C 6.11,7.95 4.21,8.13 3.81,8.78 L 0.706,9.11 1.01,10.4 4.11,9.77 c 1.3,2.23 2.6,5.73 4.1,5.93 1.48,-0.1 3.69,-0.2 4.49,-1.1 m 1.6,1 c 0.9,2.4 1.2,6.3 1.2,7.6 2.3,0.2 5.1,1.2 7.4,-0.5 0,-5.1 0.2,-12.6 -0.1,-12.93 -3.3,0.73 -5.6,2.03 -7.6,3.73 -2,-1.6 -2.4,-3.9 -3.9,-3.73 -1.61,0 1.4,5.83 3,5.83 z M 14.9,8.77 C 16.5,11.8 23.1,7.63 23.4,5.33 23.8,1.7 21.6,0.392 19.3,0.392 15.1,1.21 14.1,4.66 14.8,7.63" />`,
+
+Folder:
+  `<path fill="#aaa" stroke="currentColor" stroke-width="1.0" d="M 2.3,18.8 4.96,9.88 22.8,10.1 19.9,19 m 0,0 L 2.2,18.9 V 5.14 h 5.89 c 2.11,0 1.19,1.42 1.84,1.46 l 9.97,0.1 v 3.11" />`,
+
+Free:
+  `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M4 12 C9 0 14 24 19 12"/>`,
+
+"Full Screen":
+  `<path fill="#aaa" stroke="currentColor" stroke-width="0.9"  d="m 4.99,18.9 3.1,-3.3 m -3.1,0 v 3.3 h 3.1 m 10.21,0 -3.1,-3.3 m 3.1,0 v 3.3 H 15.2 M 5.06,5.18 8.16,8.42 M 4.99,8.3 V 5.06 h 3.1 m 10.21,0 -3.1,3.24 m 3.1,0 V 5.06 H 15.2 M 8.99,9.01 a 0.4,0.4 0 0 0 -0.4,0.4 v 5.39 a 0.4,0.4 0 0 0 0.4,0.4 h 5.41 a 0.4,0.4 0 0 0 0.4,-0.4 V 9.41 a 0.4,0.4 0 0 0 -0.4,-0.4 z" />`,
+
+Grid:
+  `<text font-size="25px" y="12" x="-12" font-family="Bravura">\uee37</text>`,
+
+
+Help:
+  ` <g style="fill:none;stroke:currentColor;stroke-width:.6px">
+  <circle cx=12 cy=12 r=10 /><circle cx=12 cy=12 r=7>
+  </g><defs>
+  <mask id="help"><circle style="fill:none;stroke:white;stroke-width:4" cx=12 cy=12 r=9 />
+  </mask></defs><path mask="url(#help)" style="fill:none;stroke:#888;stroke-width:4;stroke-linecap:butt;" d="M5 5L19 19M19 5L5 19"/>
+  <text font-family="Bravura" font-size="12" x="9.5" y="16">?</text>`,
+
+
+"Horizontal Scroll":
+  `<path fill="#888" stroke="currentColor" stroke-width="0.6" d="M 16.7,9.6 H 7.48 m 9.22,5.2 H 7.48 m 9.22,2.5 H 7.37 M 16.7,12.2 H 7.48 M 16.7,6.98 H 7.37 M 1.44,20.2 a 0.545,0.519 0 0 0 0.53,0.5 0.545,0.519 0 0 0 0.52,-0.5 H 1.97 Z m 20.46,0.1 a 0.545,0.519 0 0 0 0.6,0.5 0.545,0.519 0 0 0 0.5,-0.5 H 22.5 Z M 1.55,3.92 A 0.545,0.519 0 0 1 2.07,3.4 0.545,0.519 0 0 1 2.6,3.92 H 2.07 Z M 21.8,4.03 a 0.545,0.519 0 0 1 0.5,-0.52 0.545,0.519 0 0 1 0.6,0.52 H 22.3 Z M 21.4,20 C 15.1,19.3 9.01,19.4 3.12,20 M 21.4,4.35 C 15,5.16 9.01,4.75 3.02,4.35 M 23.4,4 V 20.3 H 21.5 V 4.06 Z M 3.02,3.92 V 20.2 H 1.13 V 3.98 Z" />`,
+
+Inch:
+  `<path stroke="currentColor" stroke-width="1.0" d="M 1 1 h22 M 1 1 v 24 M 6 1 v 6 M 12 1 v 12 M 18 1 v 6 M 23 1 v 23 ">`,
+
+
+Info:
+  `<text y="15" x="7" fill="none" stroke="currentColor" font-size="16px">?</text>`,
+
+Ink:
+  `<path style="fill:#aaa;stroke:currentColor;stroke-width:0.6;stroke-linecap:butt;stroke-linejoin:miter;" d="m 13.5,16.7 c 1.3,0.4 3.3,0.5 4.4,0 m -6.3,1.6 c 2.1,0.9 6.3,0.9 8.1,0 M 16.8,17.9 C 14.8,13.9 14.2,10.2 4.5,2.98 8.43,6.49 12.7,11 16.8,17.9 Z M 14,13.6 C 11.8,13.2 10.4,12.2 9.55,11 L 9.87,10.3 8.48,10.1 C 5.05,7.72 4.04,3.78 3.08,1.77 5.26,2.68 7.43,3.63 9.43,4.9 L 9.57,5.78 10.1,5.41 c 1.7,1.12 3.5,2.34 4.2,4.12 l 0.1,1.77 0.5,-0.4 c 0.5,1.2 0.5,2.1 -0.2,2.6 m -2.3,8 c -1.6,-0.2 -1.1,-2.3 -0.8,-3.2 0.3,-0.9 1.1,-1.5 1.9,-1.6 0,-1 0.2,-1.4 0.4,-1.6 1,-0.1 2.2,-0.2 3.5,0 0.5,0.5 0.4,1 0.5,1.6 0.9,0 1.5,0.7 1.8,1.6 0.3,0.9 0.6,3.1 -0.8,3.2 -1.4,0.1 -4.9,0.2 -6.5,0 z"/>`,
+
+
+Jpg:
+  `<rect width="24" height="24" rx="2" fill="#aaa" />
+   <text y="14" x="6" font-family="Bravura" font-size="12px">\ueb1b</text>
+   <text y="22" x="4.5" font-size="6px">JPEG</text>`,
+
+Layout:
+  `<path fill="none" stroke="currentColor" stroke-width="0.8" d="m 12.1,1.82 v 2.13 m 0,8.35 v 3.9 M 16.8,11 A 3.88,4.91 86.2 0 1 11.9,14.3 3.88,4.91 86.2 0 1 7.09,11.1 M 11.4,8.08 C 10.3,7.89 9.88,6.88 9.99,5.76 10.1,4.65 11.1,3.81 12.2,3.84 c 1.1,0 2,0.92 2.1,2.04 0,1.11 -0.4,2 -1.5,2.13 M 4.97,21 12.2,7.03 19.8,21"/>`,
+
+
+Local:
+  `<path fill-rule="evenodd" fill="#aaa" stroke="currentColor" stroke-width="1.2" d="m 6.22,13.5 v 2.8 M 5.39,13.5 v 2.8 M 6.35,5.65 V 8.47 M 5.5,5.66 v 2.85 m 5.4,3.99 -2.03,2 m 7.43,-7.19 -2,2 m -0.2,3.19 2,2 M 8.87,7.29 10.9,9.25 m 3.7,1.55 a 2.09,2.22 0 0 1 -2.1,2.2 2.09,2.22 0 0 1 -2.1,-2.2 2.09,2.22 0 0 1 2.1,-2.22 2.09,2.22 0 0 1 2.1,2.22 m -9.51,9.5 v 1.8 h 2.2 V 20.3 M 5.97,4.49 H 19 V 17.8 H 5.73 Z M 3.57,20.1 V 2.13 H 21.5 V 20.2 Z m 14.23,0.2 v 1.8 H 20 v -1.8" />`,
+
+
+
+"L-R":
+  `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M4 12h21 M8 8l-4 4l4 4M19 8l4 4l-4 4"/>`,
+
+Merge:
+  `<text transform="rotate(0) skewX(0)" y="4" x="5" font-size="13px" font-family="Bravura">\ue1d4</text>
+  <text transform="translate(19 15) rotate(130) skewX(40)" y="0" x="0" font-size="12px" font-family="Bravura">\ue1d4</text>
+  <path stroke="currentColor" fill="#9998" stroke-width=".6" d="M4 12  L0 20 L24 20 L20 12Z">
+  <path fill="none" stroke="currentColor" stroke-width=".5" d="m8 6 l0 4">`,
+
+Metric:
+  `<path stroke="currentColor" stroke-width="1.0" d="M 1 1 h22 M 1 1 v 24 M 5 1 v 6 M 9 1 v 6 M 13 1 v 6 M 17 1 v 6 M 21  1 v 12">`,
+
+Metronome:
+  `<path fill="#ccc" stroke="currentColor" stroke-width="1.0" d="M 11.6,15 6.85,6.9 M 11.1,3.92 h 2.8 v 0 0 M 12.6,14 12.5,4.64 v 0 m 3.4,16.16 v 0.8 H 17 V 20.8 Z M 8,20.9 h 1.13 v 0.7 H 7.96 Z m 0,-5.1 h 2.47 c 1.6,-1.5 3,-1.3 4.3,0 h 2 m -9.99,5 4.19,-17.09 1.6,-0.98 1.4,1 4.1,17.07 z" />`,
+
+Mike:
+  `<path fill="none" stroke="currentColor" stroke-width="0.6" d="m 16.5,20.1 c 0,0.8 -1.8,1.2 -4.4,1.2 -2.7,0 -4.7,-0.4 -4.7,-1.2 0,-0.7 2,-1.1 4.7,-1.1 2.6,0 4.4,0.4 4.4,1.1 z M 12.3,15.6 V 20 m 3.8,-9.8 h 1.5 m -10.61,0 H 8.62 M 15.2,4.37 c -0.8,1.22 -5.1,1.07 -5.92,0 m 6.82,4.92 c -1.3,1.51 -6.42,1.31 -7.48,0 m 7.48,1.51 c -1.3,1.5 -6.42,1.3 -7.48,0 M 17.2,8.49 c 0,2.61 -0.4,5.21 -1,6.01 -1.3,1.5 -6.66,1.3 -7.85,0 C 7.69,13.9 7.42,11.2 7.42,8.56 m 1.86,5.34 c -0.93,-1.1 -0.93,-8.44 0,-9.71 0.92,-1.29 4.92,-1.33 5.92,0 1.3,1.32 1.1,8.61 0,9.71 -0.8,1 -5,0.9 -5.92,0 z"/>`,
+
+Mirror:
+  `<path fill="none" stroke="currentColor" stroke-width="1.2" d="M 18.5,9.3 H 22 M 2.53,9.3 H 5.6 M 8.2,21.6 H 16 M 7.1,22 H 17 M 12.1,17.6 V 22 M 20,6.8 c 1.2,3.4 0,7.2 -3,9.2 -2.8,2 -6.6,2 -9.4,0 C 4.61,14 3.34,10.2 4.5,6.8 m 13.8,2.24 c 0.1,3.66 -3,6.56 -6.5,6.36 -3.32,-0.1 -5.96,-2.9 -5.91,-6.36 0,-3.3 2.63,-6 5.91,-6.1 3.5,-0.2 6.5,2.6 6.5,6.1 z"/>`,
+
+More:
+  `<circle style="fill:currentColor;" cx="12" cy="6" r="2"/>
+   <circle style="fill:currentColor;" cx="12" cy="12" r="1.75"/>
+   <circle style="fill:currentColor;" cx="12" cy="18" r="1.5"/>`,
+
+"New Folder":
+  `<path fill="#aaa" stroke="currentColor" stroke-width="1.0" d="M 15.3,12.7 A 4.42,4.06 0 0 1 10.9,16.8 4.42,4.06 0 0 1 6.48,12.7 4.42,4.06 0 0 1 10.9,8.64 4.42,4.06 0 0 1 15.3,12.7 Z M 10.9,9.73 V 15.7 M 7.98,12.6 H 14 M 2.2,18.9 V 5.14 h 5.89 c 2.11,0 1.19,1.42 1.84,1.46 l 9.97,0.1 v 12.1 z" />`,
+
+"New Page":
+  `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+  <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>`,
+
+"New Score":
+  `<path fill="none" stroke="currentColor" stroke-width=".4" stroke-linecap="square" d="m 8.45,15.1 v 0.2 m 0,0.8 v 0.2 M 6.12,15.7 c -0.68,0.4 -0.68,-1.1 0.48,-0.9 0.83,0 0.96,0.4 1.04,0.9 0.13,1 -0.9,2 -2.1,2.6 v 0 M 6.79,9.67 c 0.8,-0.2 1.3,-0.8 0.9,-1.6 -0.5,-0.8 -1.1,-0.7 -1.6,-0.3 -0.7,0.6 -0.1,1.3 0.2,1.3 v 0 M 5.69,11 c 0.3,1.3 1.3,0.8 1.3,0 -0.2,-2.03 -0.4,-3.93 -0.4,-5.93 0,-0.4 0.3,-0.9 0.5,-1 0.9,0.2 0.4,1.9 -0.5,2.3 -2.3,1 -2.2,3.2 0.3,3.3 M 2.82,18.7 c 19.98,0 19.98,0 19.98,0 v -0.1 0 M 2.82,17.7 c 19.98,0 19.98,0 19.98,0 v -0.1 0 M 2.82,16.8 c 19.98,0 19.98,0 19.98,0 v -0.2 0 M 2.82,15.7 c 19.98,0 19.98,0 19.98,0 v -0.2 0 M 2.82,14.7 c 19.98,0 19.98,0 19.98,0 v -0.2 0 M 3.04,9.57 c 19.76,0 19.76,0 19.76,0 v -0.11 0 M 3.03,8.75 c 19.77,0 19.77,0 19.77,0 v -0.29 0 M 3.03,7.65 c 19.77,0 19.77,0 19.77,0 v -0.21 0 M 3.03,6.6 c 19.77,0 19.77,0 19.77,0 v -0.21 0 M 3.03,5.51 c 19.77,0 19.77,0 19.77,0 v -0.19 0 m -19.71,0 c 0,13.38 0,13.38 0,13.38 H 2.97 v 0 M 2.12,4.72 c -1.795,2.14 0.76,3.34 -0.86,7.68 1.6,4.5 -0.859,6.3 1.03,7.5" />`,
+
+"Next Mark":
+  `<path fill="#aaa" stroke="currentColor" stroke-width=".6" d="M 5.92,15.9 H 14.9 M 5.92,12.3 H 15 M 5.92,8.63 H 15 M 5.92,5 H 15 M 17.3,1.88 V 18.4 L 3.83,18.3 3.71,1.89 Z m 0.2,1.59 h 2.4 V 20 L 6.43,19.9 V 18.6 M 19.9,5.18 h 2.5 V 21.8 L 8.76,21.6 v -1.5" />,
+  <text y="15" x="7" style="font-size:33px;transform:translate(-12px,2px);">\u2194</text>`,
+
+"Next Page":
+  `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+  <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>,
+ <text y="15" x="7" style="font-size:33px;transform:translate(-12px,2px);">\u2194</text>`,
+
+"No Ink":
+  `<path style="fill:none;stroke:currentColor;stroke-width:0.6;stroke-linecap:butt;stroke-linejoin:miter;" d="m 13.5,16.7 c 1.3,0.4 3.3,0.5 4.4,0 m -6.3,1.6 c 2.1,0.9 6.3,0.9 8.1,0 M 16.8,17.9 C 14.8,13.9 14.2,10.2 4.5,2.98 8.43,6.49 12.7,11 16.8,17.9 Z M 14,13.6 C 11.8,13.2 10.4,12.2 9.55,11 L 9.87,10.3 8.48,10.1 C 5.05,7.72 4.04,3.78 3.08,1.77 5.26,2.68 7.43,3.63 9.43,4.9 L 9.57,5.78 10.1,5.41 c 1.7,1.12 3.5,2.34 4.2,4.12 l 0.1,1.77 0.5,-0.4 c 0.5,1.2 0.5,2.1 -0.2,2.6 m -2.3,8 c -1.6,-0.2 -1.1,-2.3 -0.8,-3.2 0.3,-0.9 1.1,-1.5 1.9,-1.6 0,-1 0.2,-1.4 0.4,-1.6 1,-0.1 2.2,-0.2 3.5,0 0.5,0.5 0.4,1 0.5,1.6 0.9,0 1.5,0.7 1.8,1.6 0.3,0.9 0.6,3.1 -0.8,3.2 -1.4,0.1 -4.9,0.2 -6.5,0 z"/>`,
+
+
+"Not Pdf":
+  `<path fill="#aaa" stroke="currentColor" stroke-width=".2" d="m 7.52,16.6 v 1.5 h 0.76 q 0.41,0 0.64,-0.2 0.23,-0.2 0.23,-0.6 0,-0.4 -0.23,-0.5 -0.23,-0.2 -0.64,-0.2 z m -0.6,-0.5 h 1.36 q 0.73,0 1.12,0.4 0.38,0.3 0.38,0.8 0,0.6 -0.38,0.9 -0.39,0.2 -1.12,0.2 H 7.52 V 20 h -0.6 z m 4.28,0.5 v 3 h 0.7 q 1,0 1.4,-0.4 0.4,-0.3 0.4,-1.1 0,-0.8 -0.4,-1.2 -0.4,-0.3 -1.4,-0.3 z m -0.6,-0.5 h 1.2 q 1.3,0 1.9,0.6 0.7,0.4 0.7,1.4 0,1 -0.7,1.5 -0.6,0.4 -1.9,0.4 h -1.2 z m 4.7,0 h 2.5 v 0.5 h -1.9 v 1.1 h 1.8 v 0.5 H 15.9 V 20 H 15.3 Z M 4.25,2.07 H 19.8 c 1.2,0 2.1,0.95 2.1,2.13 V 19.8 C 21.9,21 21,22 19.8,22 H 4.25 C 3.07,22 2.12,21 2.12,19.8 V 4.2 c 0,-1.18 0.95,-2.13 2.13,-2.13 z"/><path stroke-width="1" stroke="currentColor" d="M0 0L24 24M 24 0 l -24 24" /><text y="12" x="5" font-family="Bravura" font-size="6px">\ue01a\ue01a\ue01a</text><text y="10.5" x="5" font-family="Bravura" font-size="6px">\ue050</text>`,
+
+"Normal Screen":
+  `<path fill="#aaa" stroke="currentColor" stroke-width="0.9" d="M 8.04,15.7 4.94,19 m 3.1,0 v -3.3 h -3.1 m 10.36,0 3.1,3.3 m -3.1,0 v -3.3 h 3.1 M 8.03,8.24 4.93,5 M 8.1,5.12 V 8.36 H 5 M 15.3,8.24 18.4,5 m -3.1,0 v 3.24 h 3.1 M 8.99,9.01 a 0.4,0.4 0 0 0 -0.4,0.4 v 5.39 a 0.4,0.4 0 0 0 0.4,0.4 h 5.41 a 0.4,0.4 0 0 0 0.4,-0.4 V 9.41 a 0.4,0.4 0 0 0 -0.4,-0.4 z" />`,
+
+
+Numbers:
+  `<text y=19 x=5.5 font-size=20>#</text>`,
+
+OneDrive:
+  `<path fill="#aaa"stroke="currentColor" stroke-width="1.8"  d="M 5.94,7.85 22.4,16.4 M 18.3,9.79 C 18,10 1.44,16.7 1.44,16.7 M 18.4,9.88 C 15.5,1.7 8.84,4.65 5.9,7.77 3.34,8.38 -1.13,10.4 1.37,16.6 c 1.14,1.2 2.41,1.9 3.65,2.7 H 18.9 c 6.5,-2.6 5.2,-8.9 -0.5,-9.42 z" />`, 
+
+"Open":
+  `<path style="fill:#aaa;fill-rule:nonzero;stroke:currentColor;stroke-width:0.6;" d="M 3.48,2.04 9.64,3.99 21.1,3.03 14.8,1.29 Z M 3.55,2.1 3.84,16.5 9.78,21.2 9.63,3.98 Z M 9.8,21.3 9.58,21.7 v 1.1 L 21.4,20.3 v -1 L 21.1,18.9 Z M 3.85,16.5 3.56,17 v 0.8 l 6,5 V 21.7 L 9.77,21.2 Z M 9.64,3.99 21.1,3.06 V 18.9 L 9.89,21.2 Z" />
+  <path style="fill:#bbb;fill-rule:nonzero;stroke:currentColor;stroke-width:0.6;" d="m 10.7,4.94 v 7.36 l 9.9,-1.6 -0.1,-6.66 z m 4.1,9.86 c 0.1,0.4 0.6,0.7 1.4,0.5 0.7,-0.2 1.1,-0.5 1.1,-0.9 0,-0.3 -0.6,-0.6 -1.4,-0.4 -0.7,0.1 -1.1,0.5 -1.1,0.8 z m -4.1,-1.7 v 7 l 9.8,-2 v -6.7 z" />
+  <path style="fill:#bbb;fill-rule:nonzero;stroke:currentColor;stroke-width:0.6;"  d="m 16.9,8.13 c 0.1,0.4 0.6,0.7 1.4,0.5 0.7,-0.2 1.1,-0.5 1.1,-0.9 0,-0.3 -0.6,-0.6 -1.4,-0.4 -0.7,0.1 -1.1,0.5 -1.1,0.8 z M 12.8,5.84 v 7.46 l 9.9,-1.6 V 4.68 Z M 10.7,7.89 V 11 l 2.1,1 V 8.72 Z m 0.1,0 2,0.78 V 7.76 Z"/>`,
+    
+Options:
+  `<path fill="#aaa" stroke="currentColor" stroke-width="0.8" d="M 14.8,11.7 A 2.68,2.68 0 0 1 12,14.4 2.68,2.68 0 0 1 9.28,11.7 2.68,2.68 0 0 1 12,9.38 2.68,2.68 0 0 1 14.8,11.7 Z M 13.1,3.29 10.8,3.32 10.5,6.09 8.71,6.8 6.55,5.05 4.9,6.65 6.66,8.86 5.97,10.2 3.14,10.6 v 2.2 l 2.82,0.4 0.72,1.7 -1.78,2.1 1.65,1.7 2.19,-1.8 1.76,0.8 c 0,0 0.4,2.7 0.3,2.7 -0.1,0.1 2.3,0.1 2.3,0.1 l 0.4,-2.8 1.8,-0.8 2.1,1.8 1.7,-1.7 -1.7,-2.1 0.6,-1.7 2.8,-0.4 V 10.6 L 18,10.2 17.2,8.91 19.1,6.69 17.5,5.06 15.3,6.81 13.5,6.08 Z" />`,
+
+Page:
+  `<path fill="#aaa" stroke="currentColor" stroke-width=".6" d="M 5.92,15.9 H 14.9 M 5.92,12.3 H 15 M 5.92,8.63 H 15 M 5.92,5 H 15 M 17.3,1.88 V 18.4 L 3.83,18.3 3.71,1.89 Z m 0.2,1.59 h 2.4 V 20 L 6.43,19.9 V 18.6 M 19.9,5.18 h 2.5 V 21.8 L 8.76,21.6 v -1.5" />`,
+
+Paste:
+  `<g style="transform:translate(-3px,-3px) scale(1.2,1.2);">
+  <path style="fill:#aaa;stroke:currentColor;stroke-width:.6;"
+  d="m 10.5,10.2 h 3.2 v 4.9 H 10.5 Z M 11,8.62 C 10.5,8.75 9.93,8.6 9.56,9.22 V 16.4 H 14.6 V 9.24 C 14.3,8.66 13.7,8.69 13.1,8.61 Z M 11,7.4 h 2.1 V 8.63 H 11 Z m 1.1,-2.22 c 0.3,-0.1 0.7,2.11 0.6,2.22 H 11.5 C 11.4,7.24 11.8,5.07 12.1,5.18 Z" /></g>`,
+
+"Paste Page":
+  `<g style="transform:translate(-3px,-3px) scale(1.2,1.2);">
+  <path style="fill:#aaa;stroke:currentColor;stroke-width:.6;fill-rule:evenodd;"
+  d="m 14.6,16 h 2.3 M 7.15,16 H 9.5 m 5,-4 H 17 M 6.95,12 H 9.57 M 13.1,8.02 h 3.8 m -9.94,0 H 11 m 1.5,-2 H 17 M 7.01,18 H 17 M 14.6,14 H 17 M 14.6,10 H 17 M 4.9,2.97 H 19 V 21 H 4.96 Z M 6.98,6 H 11.6 M 7.03,14 H 9.46 M 6.99,10 h 2.58" />
+  <path style="fill:#bbb;stroke:currentColor;stroke-width:.6;"
+  d="m 10.5,10.2 h 3.2 v 4.9 H 10.5 Z M 11,8.62 C 10.5,8.75 9.93,8.6 9.56,9.22 V 16.4 H 14.6 V 9.24 C 14.3,8.66 13.7,8.69 13.1,8.61 Z M 11,7.4 h 2.1 V 8.63 H 11 Z m 1.1,-2.22 c 0.3,-0.1 0.7,2.11 0.6,2.22 H 11.5 C 11.4,7.24 11.8,5.07 12.1,5.18 Z" /></g>`,
+
+Pause:
+  `<path fill="currentColor" d="M14,19H18V5H14M6,19H10V5H6V19Z" />`,
+
+Pdf: 
+  `<rect width="24" height="24" rx="2" fill="#aaa" />
+  <text y="12" x="5" font-family="Bravura" font-size="6px">\ue01a\ue01a\ue01a</text>
+  <text y="10.5" x="5" font-family="Bravura" font-size="6px">\ue050</text>
+  <text y="22" x="7" font-size="6px">PDF</text>`,
+
+Pedal:
+  `<text y="17" x="5" font-size="16px" font-family="Bravura">\ue650</text>`,
+
+"Pedal Up":
+  `<text y="17" x="8" font-size="20px" font-family="Bravura">\ue655</text>`,
+
+Pen:
+  `<path fill="#aaa" stroke="currentColor" stroke-width="0.5" d="m 14.9,3.18 1.4,-1.25 5.4,5.26 -1.3,1.29 z M 2.21,20.5 C 4.18,18.1 5.33,14.7 5.99,10.7 9.09,8.87 12.2,7.09 14.8,4.6 L 19,8.77 c -2.3,2.33 -4.2,5.63 -6.2,8.93 -5.34,0.5 -7.49,2.1 -9.78,3.6 l 7.08,-7.1 c 1,0.1 1.5,-0.9 0.8,-1.6 -0.7,-0.6 -1.75,0 -1.49,0.9 z"  />`,
+
+
+Pencil:
+  `<path style="pointer-events:none;", fill="#aaa" stroke="currentColor" stroke-width="0.5" d="M 2.36,21.4 2.22,21.8 2.61,21.6 M 18.7,3.37 20.6,5.39 m -2.5,-1.5 2,1.98 M 17.7,4.33 19.6,6.32 M 17.2,4.8 19.1,6.77 m -2.7,-1.17 2,1.99 M 3.41,18.6 h 1.07 v 0.8 h 0.85 v 1.1 M 2.08,21.9 3.42,18.5 19.7,2.26 c 1.3,-0.1 2,0.41 2,1.99 L 5.4,20.5 Z" />`,
+
+Piano:
+  `<path fill="currentColor" d="M 9.74,8.98 H 13.5 L 13.3,10.9 H 9.92 Z M 4.05,13.3 V 12.7 H 19.1 v 0.6 z M 3.88,10.6 14.2,4.17 18.5,10.4 15.3,10.5 V 8.31 H 7.99 v 2.19 z m -0.6,4.3 0.29,7.4 h 1.16 l 0.33,-7.4 3.36,0.2 0.51,6 h 0.74 l 0.43,-5.9 8,-0.2 0.5,7.1 0.9,-0.1 0.4,-7.1 h 0.5 V 10.4 H 18.9 L 14.6,4.05 17.7,1.98 17.5,1.49 2.84,9.96 2.8,14.9 Z" />`,
+
+Play:
+  `<path fill="currentColor" d="M8,5.14V19.14L19,12.14L8,5.14Z" />`,
+
+Png:
+  `<rect width="24" height="24" rx="2" fill="#aaa" />
+   <text y="14" x="6" font-family="Bravura" font-size="12px">\ueb1b</text>
+   <text y="22" x="6" font-size="6px">PNG</text>`,
+
+Podium:
+  `<path fill="#aaa" stroke="currentColor" stroke-width=".6" stroke-linejoin="round"
+  d="M4 23v-3h16v3h1.5h-19Z M7 20v-14h10v14 M7 12h-2l-3 -10 h20l-3 10h-2"/>
+  <text x="10" y="14" font-family="Bravura" font-size="12px">\ue520</text>`,
+
+Print:
+  `<path fill="#aaa" stroke="currentColor" stroke-width=".5" d="m14.3,12h2.2 M 18.6,15.6 17.5,13 M 6.18,12 H 7.97 M 3.37,15.6 5.17,13 M 11.1,1.96 h 1 M 10.7,3.13 11.4,2.57 11.1,2 M 11.8,3.12 12.4,2.53 12.1,1.96 M 11.1,6.91 10.6,6.28 11.2,5.88 10.6,5.19 11.1,4.75 10.7,4.18 M 12.4,6.86 12,6.23 12.6,5.82 12,5.13 12.4,4.69 12.1,4.12 m 0.8,2.85 H 9.85 V 8.83 H 12.9 V 8.28 L 20.8,8.15 V 7.69 L 12.9,7.58 Z M 7.02,8.82 H 15.7 V 10.3 H 7.01 Z M 8.19,11.6 6.63,14.4 H 15.3 L 14.1,11.6 Z M 3.56,22.9 V 15.6 H 18.4 V 23 H 16.5 V 18.6 H 15.6 V 17 H 6.03 v 1.6 H 5.14 v 4.3 z M 16.6,8.23 V 13 h 0.9 L 17.6,8.24 Z M 5.14,13 V 2.1 H 6.16 V 3.15 H 16.6 v -1.1 h 1.1 l -0.1,5.57 h -1 V 4.09 H 6.16 V 13 Z" />`,
+
+
+Rastrum:
+  `<path fill="#aaa" stroke="currentColor" stroke-width=".6" d="M 15.6,2.74 17,1.48 22.4,6.75 21.1,8.04 Z M 0.472,17.8 6.59,10 C 9.69,8.18 12.9,6.65 15.5,4.16 l 4.2,4.17 C 17.4,10.7 15.5,14 13.5,17.3 l -7.55,6.2 6.15,-7.6 -7.56,6 C 4.31,22.1 11.1,14 10.6,14.4 l -7.49,6.1 6.21,-7.6 -7.65,6.2 c -0.59,0.5 6.51,-8.2 6.06,-7.8 z"/>`,
+
+
+Recent:
+  `<path transform="translate(0,-2)" fill="#aaa" stroke="currentColor" stroke-width="1.2" d="M 3.42,12.9 H 5.13 M 11.8,4.68 V 6.36 M 11.6,19.7 v 1.7 M 18.4,13 H 20 M 8.11,8.11 11.8,13.2 11.2,8.24 M 20.3,13 A 8.57,8.57 0 0 1 11.7,21.6 8.57,8.57 0 0 1 3.13,13 8.57,8.57 0 0 1 11.7,4.43 8.57,8.57 0 0 1 20.3,13 Z" />`,
+
+Replace:
+  `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M 2.28,16.6 12.3,5.33 11.2,3.9 h 5.4 v 5.72 l -1.3,-1.1 -5.55,5.98 -1.51,-1.3 0.11,6.1 5.15,-0.1 -1,-1.6 9.9,-11.03"/>`,
+
+Replay:
+  `<text y="22" x="2" font-family="Bravura" font-size="21px">\ueb18</text>`,
+
+Reset:
+  `<path fill="none" stroke="currentColor" stroke-width="1.5" d="${circlePath(9,12,12)} M10 2 l4 0 M12 12 l0 -7 M7 5 l-1.75 -2.25"/>`,
+
+Review:
+  `<path fill="none" stroke="currentColor" stroke-width="0.8" d="m 14.5,6.73 c -1,-1.34 -1.9,-0.78 -2.5,0 m -7.97,0.5 c 0,2.48 1.73,4.47 3.99,4.47 2.18,0 4.08,-1.95 4.08,-4.47 0,-2.51 -1.9,-4.52 -4.08,-4.47 -2.26,0 -3.99,2 -3.99,4.47 z M 14.5,7.03 c 0,2.52 2,4.57 4.2,4.47 2.2,0 4,-2.01 4,-4.47 0,-2.47 -1.8,-4.48 -4,-4.48 -2.2,-0.11 -4.2,1.95 -4.2,4.48 z m -10.57,0 H 1.4 L 10,22.7 c 0.5,0 0.8,-0.2 0.9,-0.6 L 1.4,7.05" />`,
+
+Row:
+  `<path fill="currentColor" d="M22 20V4C22 2.9 21.1 2 20 2H4C2.9 2 2 2.9 2 4V20C2 21.1 2.9 22 4 22H20C21.1 22 22 21.1 22 20M4 6.5V4H20V6.5H4M4 11V8.5H20V11H4M4 15.5V13H20V15.5H4M4 20V17.5H20V20H4Z" />`,
+
+Save:
+  `<path style="fill:#aaa;stroke:currentColor;stroke-width:0.5;fill-rule:nonzero" d="m 9.8,21.3 -0.22,0.4 v 1 L 21.4,20.3 v -1 L 21.1,18.9 Z M 3.55,2.04 9.64,3.99 21.1,3.03 14.8,1.29 Z M 3.85,16.5 3.56,17 v 0.8 l 5.98,4.9 v -1 L 9.75,21.2 Z M 3.58,2.06 3.84,16.5 9.78,21.2 9.68,3.97 Z M 9.77,4.02 9.89,21.2 21.1,18.9 V 3.06 Z m 7.43,2.35 c 0,0.4 -0.3,0.76 -1.1,0.86 -0.7,0.13 -1.3,-0.16 -1.4,-0.53 0,-0.33 0.5,-0.67 1.1,-0.78 0.8,-0.12 1.4,0.12 1.4,0.45 z M 10.9,5.06 20.3,4.18 v 6.72 l -9.4,1.4 z m 0,8.34 9.4,-1.5 V 18 l -9.4,1.9 z m 6.3,0.9 c 0,0.3 -0.3,0.6 -1.1,0.8 -0.7,0.1 -1.5,0 -1.5,-0.5 0,-0.3 0.6,-0.8 1.2,-0.9 0.8,-0.1 1.4,0.1 1.4,0.6 z "/>`,
+
+Score:
+  `<path fill="#aaa" stroke="currentColor" stroke-width="0.8" d="m 14.309339,12.611855 v 0 m -2.543782,-3.2802594 3.122609,-0.01247 M 1.6649238,22.289353 21.865783,22.478636 M 18.366179,22.221781 18.066257,3.5141062 20.086952,3.4646895 20.102136,22.20106 Z m -1.51175,0.05511 -0.560058,-17.6242436 1.367543,0.014358 0.16507,17.6551636 z m -6.050171,-0.19639 0.300854,-16.1871633 4.813427,-0.031453 0.02069,16.3211033 z M 6.1506929,22.108151 11.756662,2.5432418 8.2865928,1.7325439 2.6529156,20.947044 Z"/>`,
+
+Slope:
+  `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M5 5l19 19M5 10v-5h5M18 23h5v-5"/>`,
+
+Snap:
+  `<text y="12" x="4" font-family="Bravura" font-size="30px">\ueab7</text>`,
+
+Speaker:
+  `<path fill="none" stroke="currentColor" stroke-width="0.6" d="m 10.9,18.3 6.6,-0.2 m -2.4,-5 c 0,0.7 -0.5,1.2 -1.1,1.2 -0.6,0 -1.1,-0.5 -1.1,-1.2 0,-0.7 0.5,-1.2 1.1,-1.2 0.6,0 1.1,0.5 1.1,1.2 z m 2.1,0.1 c 0,1.8 -1.3,3.3 -3,3.3 -1.7,0 -3,-1.5 -3,-3.3 0,-1.8 1.3,-3.32 3,-3.3 1.7,-0 3,1.5 3,3.3 z M 15.1,6.61 c 0,0.49 -0.4,0.87 -0.8,0.87 -0.4,-0.1 -0.7,-0.42 -0.7,-0.87 0,-0.46 0.3,-0.86 0.7,-0.91 0.4,0 0.8,0.4 0.8,0.91 z m 0.7,0 c 0,0.94 -0.7,1.69 -1.5,1.66 -0.8,-0 -1.4,-0.77 -1.4,-1.66 0,-0.89 0.6,-1.63 1.4,-1.66 0.8,-0 1.5,0.72 1.5,1.66 z M 11.1,9.8 c 1.5,-0.84 3.7,-0.95 6,0.1 0.8,1.7 1.3,4.2 0.2,6.7 -1.9,0.9 -3.8,0.6 -6.2,0.1 -0.9,-1.9 -1.12,-3.9 0,-6.9 z M 9.13,19.3 5.54,18.4 V 6.16 L 9.27,3.3 m 0.1,0 9.23,1.25 0.2,14.55 -9.55,0.2 z"/>`,
+
+Split:
+  `<path fill="none" stroke="currentColor" stroke-width="1.5" d="${circlePath(9,12,12)} M10 2 l4 0 M12 12 l-3 5.5 M12 12 l-2 -6 M12 12 l4 0 M17 5 l1.75 -2.25" />`,
+
+Start:
+  `<path fill="currentColor" d="M13,3H11V13H13V3M17.83,5.17L16.41,6.59C18.05,7.91 19,9.9 19,12A7,7 0 0,1 12,19C8.14,19 5,15.88 5,12C5,9.91 5.95,7.91 7.58,6.58L6.17,5.17C2.38,8.39 1.92,14.07 5.14,17.86C8.36,21.64 14.04,22.1 17.83,18.88C19.85,17.17 21,14.65 21,12C21,9.37 19.84,6.87 17.83,5.17Z" />`,
+
+Stop:
+  `<path fill="currentColor" d="M15,16H13V8H15V16M11,16H9V8H11V16M15.73,3L21,8.27V15.73L15.73,21H8.27L3,15.73V8.27L8.27,3H15.73M14.9,5H9.1L5,9.1V14.9L9.1,19H14.9L19,14.9V9.1L14.9,5Z" />`,
+
+Stopwatch:
+  `<path fill="#ccc" stroke="currentColor" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" d="m 11.9,13 3.2,1.7 M 8.35,7.28 7.74,5.99 M 6.04,9.72 4.8,8.96 M 5.82,16.3 4.77,16.9 M 8.3,18.7 7.7,20 m 7.2,-1.1 0.6,1 m 1.9,-3.6 1.2,0.7 M 17.4,9.8 18.7,9.05 M 15.1,7.33 15.8,6.08 m -4,-2.16 V 4.46 M 3.7,12.9 H 5.13 M 11.8,4.93 V 6.36 M 11.6,19.7 v 1.4 M 18.4,13 h 1.4 m -8,-7.23 V 13 L 6.42,17.9 M 9.49,3.85 V 2.13 H 13.9 V 3.9 Z M 17.3,6.43 18,5.6 19.2,6.63 18.3,7.61 M 5.1,7.6 4.15,6.68 5.36,5.51 6.25,6.4 M 20.3,13 A 8.57,8.57 0 0 1 11.7,21.6 8.57,8.57 0 0 1 3.13,13 8.57,8.57 0 0 1 11.7,4.43 8.57,8.57 0 0 1 20.3,13 Z" />`,
+
+Stretch:
+  `<text y="10" x="7" font-size="14px" font-family="Bravura">\ue512</text>
+   <text y="22" x="1" font-size="24px">\u21d4</text>`,
+
+Symbols:
+  `<text y="15" x="7" font-size="13px" font-family="Bravura">\ue050</text>`,
+
+Table:
+  `<path fill="#999" stroke="currentColor" stroke-width="0.5" fill-rule="nonzero" d="M 22.8,3.78 C 22.6,4.12 22.3,4.46 22.4,4.8 M 17,5.25 V 6.02 M 2.4,4.17 C 2.49,3.91 2.22,3.65 2.04,3.39 L 7.79,2.03 22.9,3.81 17,5.12 2.09,3.45 v 0 M 20.5,7.44 c -0.4,1.58 0.6,7.66 0.4,11.26 0.2,0.5 -0.4,1.2 0.4,1.5 0.5,0.3 0.5,0.7 1.2,-0.4 0.3,-0.4 -0.2,-0.7 -0.5,-1.5 -0.5,-4 1.2,-8 0.4,-11.4 M 17,6.21 2.41,4.19 V 6.52 M 17,8.51 22.4,6.84 V 4.82 L 17,6.16 Z M 14.9,8.26 c 0.7,0.47 1,1.15 1.1,2.44 0.8,3.6 0.6,7.1 0.7,10.7 -0.1,0.7 0.3,0.7 0.7,0.8 0.4,-0.1 0.4,-0.3 0.5,-0.5 C 17.8,19 17.1,18.3 18.4,10.6 18.5,10.1 18.6,8.88 19,7.91 M 9.01,7.63 C 8.45,10 8.51,13.1 8.6,15.8 c 0,1.1 -0.1,1.1 -0.76,1 C 7.46,16.8 7.6,16.1 7.6,15.6 7.39,12.8 7.29,8.91 6.11,6.92 M 5.09,6.81 C 4.35,8.45 4.4,13.9 4.39,17.4 c 0,1.2 0.89,1.2 -1.1,1.3 -0.37,0 -0.55,-0.9 0.18,-1.5 C 3.8,12.1 1.75,8.65 2.53,6.48 l 14.37,2.1">`,
+
+
+ Transform: 
+  `<path fill="#aaa" stroke-width="0.6" stroke="currentColor" d="${circlePath(2,12,3)} ${circlePath(2,4,10)} ${circlePath(2,20,10)} ${circlePath(2,4,20)} ${circlePath(2,20,20)} M4,10h16v10h-16zM12,10v-6.5" />`,
+
+Text:
+  `<text x="0" y="16" font-size="14px">Abc</text>` ,
+
+"Title Page":
+  `<path style="fill:none;stroke:#000;stroke-width:.6" d="M3 3h17v20 h-17ZM5 8H18M8 12H15"/>`,
+
+Trash:
+  `<path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.6) translate(6,8)" fill="#aaa" stroke-linecap="round" stroke="currentColor" stroke-width="0.8" d="m 13.7,7.93 -1.5,0.6 h 4.4 l 1.8,-3.2 -1.2,0.5 -1.2,-1.1 c -0.3,-0.3 -0.6,-0.6 -0.8,-0.6 l -4.4,-0.3 0.9,0.9 z M 6.97,7.33 8.65,4.77 C 9.82,3.57 11.2,4.62 11.4,5 L 12,6.14 10,9.33 Z M 8.67,12.4 10,12.9 7.87,9.33 h -3.9 l 1.5,0.97 -0.9,1.8 c -0.3,0.3 -0.3,0.8 -0.3,1.1 l 2.1,3.9 0.3,-1.2 z m 3.03,6.1 -3.33,0.3 c -1.7,-0.6 -1.7,-2.3 -1.4,-2.6 l 0.8,-1.5 h 3.93 z m 3.2,-3.8 v -1.5 l -2.1,3.6 2.1,3.4 v -1.4 h 2 c 0.6,0 0.6,-0.3 0.9,-0.6 l 2.1,-3.8 -0.9,0.3 z m 3.8,-5.87 1.8,2.97 c 0.5,1.7 -0.9,2.6 -1.5,2.6 h -1.5 l -2.3,-3.8 z   M -4 -2 h 32 l -4 32 h -24 l -4 -32 l -1 -2 h34 l -1 2"/>`,
+
+TuningFork:
+  `<path style="fill:currentColor;transform:scale(.7) translate(5px,6px)" d="M 1.102562,22.391872 6.8926979,15.709595 6.4539927,13.040411 C 10.3489,8.9372266 14.277758,6.993404 18.138714,0.73085919 L 19.512348,1.8269521 9.6277644,12.418518 c -1.0080639,1.850254 1.3131146,2.290741 1.8170396,1.541383 L 21.384356,3.4582128 22.59468,4.5620395 C 18.53232,6.6557468 14.903386,13.08682 11.057739,17.349209 L 8.3613917,16.885233 2.0669863,23.230394 C 1.6842162,23.407502 1.017983,22.79385 1.1025502,22.391852 Z" />`,
+
+
+"T-B":
+  `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M12 4v21 M8 8l4 -4l4 4M8 19l4 4l4 -4"/>`,
+
+Undo:
+  `<text font-size="20px" y="16" x="6" fill="currentColor" stroke="currentColor" font-family="Bravura">\uedf0</text>`,
+
+Upload:
+  `<path fill="#aaa" stroke="currentColor" stroke-width=".2" d="M 12.4,17.9 C 19.2,1.58 11.5,1.8 11.1,1.02 13.2,4.76 12.3,11.2 11.4,17.9 Z m -2.79,0 C 2.91,1.57 10.7,1.79 11.1,1.02 8.91,4.74 9.71,11.2 10.8,17.9 Z" />`,
+
+"Vertical Scroll":
+  `<path fill="#888" stroke="currentColor" stroke-width="0.6" d="M 6.63,14.7 H 17.5 M 6.63,9.85 H 17.5 M 6.63,7.4 H 17.6 M 6.63,12.3 H 17.5 M 6.63,17.2 H 17.6 m 4,5.2 a 0.607,0.519 0 0 0 0.6,-0.5 0.607,0.519 0 0 0 -0.6,-0.5 v 0.5 z M 21.7,2.95 A 0.607,0.519 0 0 0 22.3,2.43 0.607,0.519 0 0 0 21.7,1.91 V 2.43 Z M 2.52,22.3 A 0.607,0.519 0 0 1 1.9,21.8 0.607,0.519 0 0 1 2.52,21.3 v 0.5 z M 2.64,3.05 A 0.607,0.519 0 0 1 2.04,2.53 0.607,0.519 0 0 1 2.64,2.01 V 2.53 Z M 21.4,3.38 c -0.9,6.05 -0.8,11.82 0,17.42 M 3.02,3.42 c 0.94,6.09 0.46,11.78 0,17.48 M 2.61,1.55 H 21.7 V 3.33 H 2.67 Z M 2.52,20.9 H 21.6 v 1.8 H 2.58 Z"/>`,
+
+
+Volume:
+   `<text y="13" x="6" font-size="20px" font-family="Bravura">\ue52d</text>`,
+
+Vertical:
+  `<path fill="currentColor" d="M17.45,17.55L12,23L6.55,17.55L7.96,16.14L11,19.17V4.83L7.96,7.86L6.55,6.45L12,1L17.45,6.45L16.04,7.86L13,4.83V19.17L16.04,16.14L17.45,17.55Z" />`,
+
+Video:
+  `<path fill="none" stroke="currentColor" stroke-width="0.6" d="m 14,16.6 3.8,-0.9 M 10.3,3.42 c 1.5,0.44 2.3,0.5 2.4,1.18 L 16.3,4.11 C 15.9,3.58 14.8,3.16 13.4,3.15 Z M 7.92,14.9 8.2,14.2 9.38,15.1 9.29,16 Z M 4.31,6.48 C 4.27,7.12 3.85,7.6 3.38,7.56 2.92,7.52 2.59,6.99 2.63,6.37 c 0,-0.63 0.45,-1.12 0.92,-1.08 0.46,0 0.8,0.56 0.76,1.19 z M 3.9,11.6 2.39,11.5 v 1.7 l 1.61,1.3 2.27,1 v -2 z M 18.6,9.78 V 8.6 l -5.9,1.1 v 9.7 l 5.9,-1.7 V 15 M 16,5.92 13.3,6.3 V 8.99 L 16,8.49 Z m 4.9,9.48 c -1.4,-0.2 -2.8,-0.3 -4.5,-1 m 5.7,-3.6 C 20.9,10.3 19.9,10 18.4,9.8 m 3.6,1.4 c -0.6,-0.1 -1.1,0.2 -1.5,0.5 -0.3,0.5 -0.5,1 -0.5,1.5 0,0.4 0.1,0.8 0.3,1.2 0.2,0.3 0.5,0.6 0.9,0.6 0.9,0 1.7,-0.8 1.7,-1.8 0,-0.4 0,-0.9 -0.2,-1.3 0,-0.3 -0.4,-0.6 -0.7,-0.7 z m 0,0.2 c 0.3,0 0.5,0.3 0.7,0.6 0,0.3 0,0.8 0,1.2 0,0.8 -0.8,1.6 -1.5,1.6 -0.4,0 -0.7,-0.1 -0.8,-0.5 -0.2,-0.3 -0.2,-0.7 -0.2,-1.1 0,-0.4 0.2,-0.9 0.5,-1.3 0.2,-0.4 0.8,-0.6 1.3,-0.5 z m 0,-0.7 c -0.7,-0.1 -1.3,0.2 -1.8,0.7 -0.4,0.6 -0.7,1.2 -0.7,1.8 0,0.6 0.1,1.1 0.4,1.6 0.3,0.4 0.7,0.7 1.2,0.7 1.1,0 2.1,-1 2.2,-2.2 0,-0.6 0,-1.2 -0.2,-1.7 -0.2,-0.4 -0.6,-0.8 -1.1,-0.9 z m 0,0.2 c 0.4,0.1 0.7,0.4 0.9,0.8 0.2,0.4 0.2,1 0.2,1.6 -0.1,1 -1.1,2 -2,2 -0.5,0 -0.8,-0.2 -1,-0.6 -0.3,-0.4 -0.4,-1 -0.4,-1.5 0,-0.5 0.3,-1.1 0.7,-1.6 0.4,-0.5 1,-0.8 1.6,-0.7 z m -5.4,3.6 C 15.4,13.9 15.1,12.4 15.5,11.1 16,10 17.1,9.5 18.4,9.8 m 0.7,5.3 v 3.1 C 19,18.5 19,18.6 18.9,18.6 l -7.4,2.3 M 19,4.64 V 9.89 M 1.7,3.35 9.35,2.03 M 19,4.69 11.5,5.72 M 9.31,2.03 c 3.09,0.93 8.89,0 9.69,2.63 M 11.5,5.72 V 20.8 C 11,21.8 4.84,17.3 1.71,15.5 V 3.39 C 4.94,4.32 10.7,3.16 11.5,5.72 Z"/>`,
+
+Wave:
+  `<defs><mask id="scope"><rect x="0" y="0" height="24" width="24" fill="white"></rect>
+    <rect x="0" y="16" height="8" width="24" fill="black"/></mask></defs>
+    </def>
+    <text mask="url(#scope)" y="24" x="2" font-family="Bravura" font-size="22px">\ueb4a</text>`,
+
+Webcam:
+  `<path fill="none" stroke="currentColor" stroke-width="0.6" d="M 8.3,18.8 C 8.48,19.8 6.55,20.9 3.74,22 8.77,20.9 14,20.7 20.2,22 18,21.1 15.8,20.2 15.1,19.1 M 20,11.5 c 0,4.5 -3.7,8.2 -8.2,8.2 -4.29,0 -7.96,-3.7 -7.96,-8.2 0,-4.62 3.67,-8.29 7.96,-8.29 4.5,0 8.2,3.67 8.2,8.29 z m -2.7,0.3 a 2.95,2.95 0 0 1 -3,3 2.95,2.95 0 0 1 -2.9,-3 2.95,2.95 0 0 1 2.9,-2.69 2.95,2.95 0 0 1 3,2.69 z m 1.4,0 a 4.51,4.63 0 0 1 -4.5,4.6 4.51,4.63 0 0 1 -4.38,-4.6 4.51,4.63 0 0 1 4.38,-4.4 4.51,4.63 0 0 1 4.5,4.4 z"/>`,
+};
+
+// following code generates a data url to create the podium favicon...uncomment it
+// to have it written to console...then copy it to the <head> section of the html.
+/*
+import { delay, helm } from "./common.js";
+let src =
+  "data:image/svg+xml;base64," +
+  window.btoa(`<svg width=`12` height=`12` viewBox=`0 0 24 24` xmlns=`http:/\/www.w3.org/2000/svg`>
+               <path fill="#fff" stroke="black" stroke-width="1"
+              d="M4 23v-3h16v3h1.5h-19.5, M7 20v-14h10v14 M7 12h-2l-3 -10 h20l-3 10h-2"/></svg>`);
+let img = helm(`<img src="${src}"></img>`);
+document.body.append(img);
+delay(50, () => {
+  let c = helm(`<canvas style="width:12px;height:12px" height="12" width="12"></canvas>`);
+  let ctx = c.getContext("2d");
+  document.body.append(c);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(img, 0, 0, 12, 12, 0, 0, 12, 12);
+  delay(50, () => console.log(`<link rel="icon" type="image/png"  href="` + c.toDataURL(`image/png`, 1.0) + `">`));
+});
+*/

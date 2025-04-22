@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+
+<!-- 
+     Copyright 2025 Glendon Diener
+     
+     This file is part of Podium.
+     
+     Podium is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+     Podium is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+     You should have received a copy of the GNU Affero General Public License along with Podium. If not, see <https://www.gnu.org/licenses/>.
+-->
+
+
+<html lang="en-US">
+  <head>
+    <title>Podium Authenticator</title>
+  </head>
+  <body style="background-color:#c9c9c9;opacity:0;transition:opacity 1.685s;">
+      <div style="font-size:3em;text-align:center;left:24vw;top:18vh;width:52vw;height:64vh;position:absolute;">
+          Authentication Complete<br>
+          <svg viewBox="0 0 24 26">
+        <path fill="#aaa" stroke="currentColor" stroke-width=".6" stroke-linejoin="round"
+          d="M4 23v-3h16v3h1.5h-19.5 M7 20v-14h10v14 M7 12h-2l-3 -10 h20l-3 10h-2"/>
+        <text x="10.7" y="14" font-size="6" font-style="italic">p</text>
+      </svg>
+      <b>Tap anywhere to return to Podium</b>
+    </div>
+    <script>
+      document.body.addEventListener("pointerup", () => window.close()) ;
+      setTimeout(() => document.body.style.opacity=1, .618) ;
+    </script>
+  </body>
+</html>
