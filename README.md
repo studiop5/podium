@@ -7,19 +7,19 @@ Built for Google Chrome, but runs (fingers crossed) in any modern desktop/tablet
 - Alternative to generic PDF viewers, customized for the layout and annotation of scores in PDF format.
 - Not a music library: works with PDF files stored locally or in the cloud. 
 - Uses PDF annotations and embedded document metadata to store user edits.
-...that runs on: 
+that runs on: 
 - Touch screens devices (laptops, Chromebooks, tablets, smartphones) plus conventional desktops.
 ...with input devices:
 - S-Pen, Apple Pencil, USI styli, fingers and thumbs.
 - Mouse, track pad, computer keyboard, Bluetooth page turners.
-...and  practice tools:
+and  practice tools:
 - Metronome, with experimental animated conducting hand.
 - On-screen piano keyboard, with functions for assisted tuning.
 - Replay tool for instant replay of last 1 minute(configurable) of audio/video.
 - Stopwatch and clock.
-...app:
+app:
 - https://studiop5.org/podium
-...doc:
+doc:
 - https://studiop5.org/GuideBook.pdf
 
 
