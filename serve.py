@@ -84,7 +84,7 @@ pargs = parser.parse_args()
 crossOrigin = pargs.cross_origin
 address = ('0.0.0.0', pargs.port)
 context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-context.load_cert_chain("./cert.pem", keyfile="privkey.pem") # put YOUR cert.pem here
+context.load_cert_chain("./cert.pem", keyfile="key.pem") 
 handler_class = PodiumHandler
 
 while True:

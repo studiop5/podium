@@ -12,7 +12,44 @@
   You should have received a copy of the GNU Affero General Public License along with Podium. If not, see <https://www.gnu.org/licenses/>.
 **/
 
-export { animate, css, cssIndex, flung, saveLocal, Schedule, schedule, Spot, clamp, helm, dataIndex, clearChildren, delay, delayMs, pxToEm, fontMap, fontUnmap, getBox, hide, iconSvg, inflate, listen, dialog, mvmt, pnToDiv, pnToString, rotatePoint, ptrMsg, unlisten, strToHash, toast, ButtonGroup, SliderGroup, TabView, Timer, ColorPicker };
+export {
+  animate,
+  css,
+  cssIndex,
+  flung,
+  saveLocal,
+  Schedule,
+  schedule,
+  Spot,
+  clamp,
+  helm,
+  dataIndex,
+  clearChildren,
+  delay,
+  delayMs,
+  pxToEm,
+  fontMap,
+  fontUnmap,
+  getBox,
+  hide,
+  iconSvg,
+  inflate,
+  listen,
+  dialog,
+  mvmt,
+  pnToDiv,
+  pnToString,
+  rotatePoint,
+  ptrMsg,
+  unlisten,
+  strToHash,
+  toast,
+  ButtonGroup,
+  SliderGroup,
+  TabView,
+  Timer,
+  ColorPicker,
+};
 import { iconPaths } from "./icon.js";
 // -skip
 
@@ -25,14 +62,17 @@ Element.prototype["replace"] = function (newElm) {
 // properties defined on the window "global" namespace
 // are distinguished using the convention of leading+trailing underscores:
 
-window._podiumVersion_ = "0.9";
+window._podiumVersion_ = "1.0";
 window._body_ = document.body;
 window._dvPxRt_ = 1 + (window.devicePixelRatio - 1) * 0.3;
 window._gs_ = 0.618; // golden section
 window._gsgs_ = _gs_ * _gs_; // shorter golden section!
 window._longPressMs_ = 750;
-window._mobile_ = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-window._frMs_ = .06 ; // initial estimate of number of frames per millisecond (60fps)
+window._mobile_ =
+  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+window._frMs_ = 0.06; // initial estimate of number of frames per millisecond (60fps)
 window._pxPerEm_ = 25; // initial document.body's font size value: defines pixels in 1 em
 
 //  svg textures used as background images:
@@ -40,20 +80,20 @@ let sandSvg =
   // Note: you must escape second / in a url, otherwise builder.py will parse
   // them as comments.
   "url('data:image/svg+xml;base64," +
-    window.btoa(`
+  window.btoa(`
       <svg width='3em' height='3em' viewBox='0 0 175 175' xmlns='http:/\/www.w3.org/2000/svg'>
         <filter id='noiseFilter'>
           <feTurbulence type='turbulence' baseFrequency='0.5' numOctaves='5' stitchTiles='stitch'/>
         </filter>  
         <g><rect width='100%' height='100%' filter='url(#noiseFilter)'/></g>
       </svg>`) +
-    "')";
+  "')";
 
 let paperSvg =
   // Note: you must escape second / in a url, otherwise builder.py will parse
   // them as comments.
   "url('data:image/svg+xml;base64," +
-    window.btoa(`
+  window.btoa(`
       <svg width='3em' height='3em' viewBox='0 0 100 100' xmlns='http:/\/www.w3.org/2000/svg'>
         <filter id='noiseFilter'>
            <feTurbulence type="fractalNoise" baseFrequency='0.05' result='noise' numOctaves="3" />
@@ -63,7 +103,7 @@ let paperSvg =
         </filter>  
         <rect width='100%' height='100%' filter='url(#noiseFilter)'/>
       </svg>`) +
-    "')";
+  "')";
 
 // css helpers:
 // Podium uses css extensively, but does not use css files: other than some common css definitions,
@@ -81,7 +121,8 @@ function cssIndex(name = null, selector = null, key = null) {
     if (sheet.ownerNode.dataset.tag == name) {
       if (!selector) return sheet;
       for (let rule of sheet.rules) {
-        if (rule.selectorText == selector) return new RegExp(`${key}: ([^;]*);`).exec(rule.cssText)[1];
+        if (rule.selectorText == selector)
+          return new RegExp(`${key}: ([^;]*);`).exec(rule.cssText)[1];
       }
     }
   }
@@ -89,7 +130,10 @@ function cssIndex(name = null, selector = null, key = null) {
 
 let css = (name, rules) => {
   // define a named css style sheet
-  document.head.insertAdjacentHTML("beforeend", `<style data-tag="${name}">` + rules + "</style>");
+  document.head.insertAdjacentHTML(
+    "beforeend",
+    `<style data-tag="${name}">` + rules + "</style>"
+  );
   return cssIndex(name);
 };
 
@@ -299,7 +343,8 @@ class ButtonGroup {
       this.iconElms[tag] = iconElm;
       // Add buttonElm to this.elm, unless it is a toggle for a property
       // that we've already added a button for.
-      if (!toggle || !(property in dataIndex("property", this.elm))) this.elm.append(elm);
+      if (!toggle || !(property in dataIndex("property", this.elm)))
+        this.elm.append(elm);
     }
     this.dataIndex = dataIndex("button", this.elm);
     listen(this.elm, ["pointerdown", "pointerup"], this.handle.bind(this));
@@ -412,7 +457,8 @@ class ColorPicker {
     let recentColors = _menu_.rings.ink.stash.recentColors;
     let elm = _menu_.recentColors;
     clearChildren(elm);
-    for (let hexColor of recentColors) elm.append(helm(`<option value="${hexColor}"></option>`));
+    for (let hexColor of recentColors)
+      elm.append(helm(`<option value="${hexColor}"></option>`));
   }
 
   // Push given 7-digit hex color code onto the recentColors
@@ -486,10 +532,22 @@ class ColorPicker {
     this.alphaCircle.style.fill = rgb;
     this.alphaCircle.style.opacity = alpha;
 
-    let alphaSlider = new SliderGroup(stash, { alpha: { min: 0, max: 1, step: 0.01, value: `${rgb}`, msg: (tag, value) => `Opacity: ${Math.round(value * 100)}%` } }, () => {
-      this.alphaCircle.style.opacity = stash.alpha;
-      if (handler) handler(stash.rgb, stash.alpha);
-    });
+    let alphaSlider = new SliderGroup(
+      stash,
+      {
+        alpha: {
+          min: 0,
+          max: 1,
+          step: 0.01,
+          value: `${rgb}`,
+          msg: (tag, value) => `Opacity: ${Math.round(value * 100)}%`,
+        },
+      },
+      () => {
+        this.alphaCircle.style.opacity = stash.alpha;
+        if (handler) handler(stash.rgb, stash.alpha);
+      }
+    );
 
     alphaSlider.elm.classList.add("ColorPicker__alphaSlider", "void");
     this.alphaSlider.replaceWith(alphaSlider.elm);
@@ -502,8 +560,15 @@ class ColorPicker {
 
     listen(this.alpha, "pointerup", () => {
       if (!alphaSlider.elm.classList.toggle("void"))
-         delay(1, () => listen(_body_, "pointerup", () => alphaSlider.elm.classList.add("void"), { once: true }));
-      alphaSlider.refresh() ; 
+        delay(1, () =>
+          listen(
+            _body_,
+            "pointerup",
+            () => alphaSlider.elm.classList.add("void"),
+            { once: true }
+          )
+        );
+      alphaSlider.refresh();
     });
   }
 }
@@ -578,7 +643,10 @@ class PodiumSlider extends HTMLElement {
   constructor() {
     super();
     // turn attributes into instance vars:
-    let setAttr = (key) => (this[key] = this.hasAttribute(key) ? parseFloat(this.getAttribute(key)) : this[key]);
+    let setAttr = (key) =>
+      (this[key] = this.hasAttribute(key)
+        ? parseFloat(this.getAttribute(key))
+        : this[key]);
     ["min", "max", "value", "step"].forEach((attr) => setAttr(attr));
     this.disabled = this.hasAttribute("disabled") ? true : this.disabled;
 
@@ -590,10 +658,10 @@ class PodiumSlider extends HTMLElement {
       this.adjusting = true;
       this.indicator.classList.add("Slider__knob__indicator-active");
       this.updateGeometry();
-      let {knobBox, sliderBox} = this ;
+      let { knobBox, sliderBox } = this;
       this.knob.setPointerCapture(e.pointerId);
 
-      let origin = e.clientX ;
+      let origin = e.clientX;
       // This function converts pointer position into a value in 0,1
       // used in  call of this.setPos(pos). The also allows a user to gain
       // increased precision by moving the pointer further away,
@@ -601,42 +669,51 @@ class PodiumSlider extends HTMLElement {
       // delta is absulute value of pixel distance between clientY and
       // middle of sliderBox
       let set = (clientPos, delta) => {
-        if(delta / knobBox.height <= 1) origin = clientPos ;
-        let mvm = clientPos - origin ;
+        if (delta / knobBox.height <= 1) origin = clientPos;
+        let mvm = clientPos - origin;
         // the "* 5" in following increases the "sensitivity" of the slider as
         // delta increases
-        delta = Math.max(1, (delta / knobBox.height) * 5)  ;
-        let posPx = origin + (mvm / delta);
-        let posFrac = (posPx - sliderBox.x) / sliderBox.width ;
-        this.setPos(clamp(posFrac, 0, 1)) ;
-      }
+        delta = Math.max(1, (delta / knobBox.height) * 5);
+        let posPx = origin + mvm / delta;
+        let posFrac = (posPx - sliderBox.x) / sliderBox.width;
+        this.setPos(clamp(posFrac, 0, 1));
+      };
 
-      set(e.clientX, Math.abs(e.clientY - sliderBox.top - sliderBox.height/2));
+      set(
+        e.clientX,
+        Math.abs(e.clientY - sliderBox.top - sliderBox.height / 2)
+      );
 
       let mv = listen(this.knob, "pointermove", (emv) => {
         e.stopImmediatePropagation();
 
-        mvmt(e,emv) ;
-        if(e.moved) {
-          set(emv.clientX, Math.abs(emv.clientY - sliderBox.top - sliderBox.height/2)); 
-          let ein = new Event("input", {bubbles:true}) ;
-          ein.clientX = emv.clientX ; ein.clientY = emv.clientY ;
-          this.dispatchEvent(ein) ;
+        mvmt(e, emv);
+        if (e.moved) {
+          set(
+            emv.clientX,
+            Math.abs(emv.clientY - sliderBox.top - sliderBox.height / 2)
+          );
+          let ein = new Event("input", { bubbles: true });
+          ein.clientX = emv.clientX;
+          ein.clientY = emv.clientY;
+          this.dispatchEvent(ein);
         }
       });
 
-      listen(this.knob, "pointerup",(eup) => {
-        e.stopImmediatePropagation();
-        unlisten(mv);
-        this.adjusting = false;
-        this.indicator.classList.remove("Slider__knob__indicator-active");
-        // notify listeners that slider is finished
-        this.dispatchEvent(new Event("change", { bubbles: true }));
-      },
-      { once: true }
-    );
-  });
-
+      listen(
+        this.knob,
+        "pointerup",
+        (eup) => {
+          e.stopImmediatePropagation();
+          unlisten(mv);
+          this.adjusting = false;
+          this.indicator.classList.remove("Slider__knob__indicator-active");
+          // notify listeners that slider is finished
+          this.dispatchEvent(new Event("change", { bubbles: true }));
+        },
+        { once: true }
+      );
+    });
   }
 
   connectedCallback() {
@@ -739,7 +816,8 @@ class Schedule {
     this.runTime = performance.now() + this.delta;
     let loop = (() => {
       if (this.cancelled) return;
-      if (this.paused || performance.now() < this.runTime) this.af = requestAnimationFrame(loop);
+      if (this.paused || performance.now() < this.runTime)
+        this.af = requestAnimationFrame(loop);
       else this.callable();
     }).bind(this);
     loop();
@@ -750,21 +828,20 @@ class Schedule {
     // Cancel the next run. After this, call run(...) again to restart, if desired.
     this.cancelled = true;
   }
-///
+  ///
   elapsed() {
-    // Return number of msecs this Schedule has been running. 
-    return performance.now() - (this.runTime - this.delta) ;
+    // Return number of msecs this Schedule has been running.
+    return performance.now() - (this.runTime - this.delta);
   }
 
   pause() {
-    this.paused = performance.now() ;
+    this.paused = performance.now();
   }
 
   resume() {
-    if(this.paused) this.runTime += performance.now() - this.paused ;
-    this.paused = 0 ;
+    if (this.paused) this.runTime += performance.now() - this.paused;
+    this.paused = 0;
   }
-
 }
 
 /**
@@ -845,7 +922,9 @@ class Shade {
   pop() {
     if (this.msgStack.length == 0) return;
     this.msgStack.pop();
-    this.msgStack.length == 0 ? this.hide() : this.show(this.msgStack[this.msgStack.length - 1]);
+    this.msgStack.length == 0
+      ? this.hide()
+      : this.show(this.msgStack[this.msgStack.length - 1]);
   }
 }
 
@@ -910,7 +989,9 @@ class SliderGroup {
       );
       defs[tag] = tagDef;
       let elm = helm(
-        `<div class="SliderGroup__SliderBlock" data-tag="${tag}">${this.formatMsg(tag)}
+        `<div class="SliderGroup__SliderBlock" data-tag="${tag}">${this.formatMsg(
+          tag
+        )}
              <pod-slider class="SliderGroup__SliderBlock__Slider" data-tag="${tag}_slider"
                min="${tagDef.min}" max="${tagDef.max}" step="${tagDef.step}" value="${tagDef.value}">
           </pod-slider></div>`
@@ -955,7 +1036,10 @@ class SliderGroup {
     if (this.defs[tag].throttle > 0) {
       let def = this.defs[tag];
       if (def.throttler) def.throttler.run();
-      else def.throttler = new Schedule(def.throttle, () => this.handler(e, tag, sliderElm.value, this)).run();
+      else
+        def.throttler = new Schedule(def.throttle, () =>
+          this.handler(e, tag, sliderElm.value, this)
+        ).run();
     } else if (this.handler) this.handler(e, tag, sliderElm.value, this);
     // Create a ptrMsg...but only once per pointerDown...pointerUp. We use this.ptrMsg to know if we've already
     // created one, and set it to null when we get the "sliderDone" msg sent when the slider gets a pointerup.
@@ -980,7 +1064,8 @@ class SliderGroup {
       // slider(s) attached to dom, but PodiumSliders need to be attached
       // to work properly:
       delay(5, () => sliderElm.setAttribute("value", this.props[tag]));
-      if (tagDef.disabled) elm.classList.add("SliderGroup__SliderBlock__Slider-disabled");
+      if (tagDef.disabled)
+        elm.classList.add("SliderGroup__SliderBlock__Slider-disabled");
       else elm.classList.remove("SliderGroup__SliderBlock__Slider-disabled");
       elm.firstChild.data = this.formatMsg(tag);
     }
@@ -1082,8 +1167,15 @@ class TabView {
       // Title is a string to diplay on the tag. If iconPaths[title] exists,
       // the tag will display that icon to the left of title.
       this.tag.textContent = title;
-      if (iconPaths[title]) this.tag.prepend(helm(
-          `${iconSvg(title, { style: "pointer-events:none;height:1.5em;top:.5em;position:relative;padding-right:.3em;" })}`));
+      if (iconPaths[title])
+        this.tag.prepend(
+          helm(
+            `${iconSvg(title, {
+              style:
+                "pointer-events:none;height:1.5em;top:.5em;position:relative;padding-right:.3em;",
+            })}`
+          )
+        );
       this.face.dataset.tag = title + "_face";
     }
 
@@ -1114,7 +1206,7 @@ class TabView {
 
   // Pass a reference to the panel this tabView is attached to
   constructor(panel, ...tabNames) {
-    this.panel = panel ;
+    this.panel = panel;
     Object.assign(this, dataIndex("tag", this.elm));
     for (let name of tabNames) {
       let tab = new TabView.Tab(name);
@@ -1123,22 +1215,34 @@ class TabView {
       this.tabs[name] = tab;
     }
 
-    listen(this.sash, "pointerup", (e) => e.target.classList.contains("Tab__tag") ? this.selectTab(e.target) : null) ;
+    listen(this.sash, "pointerup", (e) =>
+      e.target.classList.contains("Tab__tag") ? this.selectTab(e.target) : null
+    );
 
-    if(this.draggable) delay(5, () => 
-      this.panel.listeners.push(
-        listen(this.sash, "pointerdown", (e) => {
-          let offsetX = e.clientX - this.sash.offsetLeft ;
-          let limit = this.sash.offsetWidth - this.frame.offsetWidth ;
-          let mv = listen(this.sash, "pointermove", (emv) => {
-             if(mvmt(e,emv,8,1000)) this.sash.setPointerCapture(e.pointerId);
-              this.sash.style.left = clamp(emv.clientX - offsetX, -limit, 0) + "px";
-              e.emv = emv ;
-          }) ;
-          listen(this.sash, "pointerup", (eup) => {
-            unlisten(mv)},
-         {once:true}) ;
-      }))) ;
+    if (this.draggable)
+      delay(5, () =>
+        this.panel.listeners.push(
+          listen(this.sash, "pointerdown", (e) => {
+            let offsetX = e.clientX - this.sash.offsetLeft;
+            let limit = this.sash.offsetWidth - this.frame.offsetWidth;
+            let mv = listen(this.sash, "pointermove", (emv) => {
+              if (mvmt(e, emv, 8, 1000))
+                this.sash.setPointerCapture(e.pointerId);
+              this.sash.style.left =
+                clamp(emv.clientX - offsetX, -limit, 0) + "px";
+              e.emv = emv;
+            });
+            listen(
+              this.sash,
+              "pointerup",
+              (eup) => {
+                unlisten(mv);
+              },
+              { once: true }
+            );
+          })
+        )
+      );
   }
 
   selectTab(tagOrName) {
@@ -1148,7 +1252,9 @@ class TabView {
     };
 
     for (let [name, tab] of Object.entries(this.tabs)) {
-      tagOrName === tab.tag || tagOrName == tab.tag.textContent ? select(tab) : tab.deselect();
+      tagOrName === tab.tag || tagOrName == tab.tag.textContent
+        ? select(tab)
+        : tab.deselect();
     }
   }
 }
@@ -1167,7 +1273,11 @@ class Timer {
 
   lap(tag = "") {
     let now = performance.now();
-    console.log(`Timer ${this.title}/${tag}  lap: ${now - this.prevTime} et: ${now - this.startTime}`);
+    console.log(
+      `Timer ${this.title}/${tag}  lap: ${now - this.prevTime} et: ${
+        now - this.startTime
+      }`
+    );
     this.prevTime = now;
   }
 }
@@ -1189,7 +1299,10 @@ function animate(elm, from, to, transition, finalize) {
   delay(2, () => {
     for (let [k, v] of Object.entries(to)) elm.style[k] = v;
   });
-  listen(elm, "transitionend",() => {
+  listen(
+    elm,
+    "transitionend",
+    () => {
       elm.style.transition = "unset";
       if (finalize) finalize();
     },
@@ -1221,27 +1334,30 @@ function dataIndex(key, elm) {
 
 function delay(frameCount, func) {
   // delay execution of a function a given number of animation frames
-//console.log(frameCount, func) ;
+  //console.log(frameCount, func) ;
   if (frameCount <= 0) return func();
   requestAnimationFrame(() => delay(frameCount - 1, func));
 }
 
-function delayMs(msec=-1, func) {
+function delayMs(msec = -1, func) {
   // delay execution of a function the given number of @msecs.
   // Initially, this runs assuming 60 frames/second. However,
-  // to "recalibrate" this value, call this function with 
+  // to "recalibrate" this value, call this function with
   // @msec < 0: in this case,  both @func and @args are ignored,
   // and the frame rate will be (re) calibrated by measuring the mean
   // time between frames over 60 frames.
-  if(msec >= 0) return delay(Math.round(msec * _frMs_), func) ;
-  let now = performance.now() ;
-  delay(60, () => _frMs_ = 60 / (performance.now() - now)) ;
+  if (msec >= 0) return delay(Math.round(msec * _frMs_), func);
+  let now = performance.now();
+  delay(60, () => (_frMs_ = 60 / (performance.now() - now)));
 }
 
-delayMs() ; // force initial calibration of _frMs_ (frames per millisecond)
+delayMs(); // force initial calibration of _frMs_ (frames per millisecond)
 
-
-function dialog(innerHtml, buttonsDef = { Cancel: { svg: "Cancel" } }, handler = (e, _x, _y, args) => args.close()) {
+function dialog(
+  innerHtml,
+  buttonsDef = { Cancel: { svg: "Cancel" } },
+  handler = (e, _x, _y, args) => args.close()
+) {
   // Create a dialog displaying a message plus a ButtonGroup.
   // example:
   //  let dialog = dialog("close me", { Close: { svg:"Split"}}, (e,prop,tag,args) => {
@@ -1255,10 +1371,16 @@ function dialog(innerHtml, buttonsDef = { Cancel: { svg: "Cancel" } }, handler =
   // undefined in the call.
   let elm = helm(`<dialog class="dialog"><div>${innerHtml}</div></dialog>`);
   let buttonsElm = new ButtonGroup(
-    { close: () => { elm.close() ; elm.remove() ;},
-      elm:elm,
+    {
+      close: () => {
+        elm.close();
+        elm.remove();
+      },
+      elm: elm,
     },
-    buttonsDef, handler).elm;
+    buttonsDef,
+    handler
+  ).elm;
   buttonsElm.style.marginTop = "1em";
   elm.append(buttonsElm);
   _body_.append(elm);
@@ -1287,26 +1409,74 @@ function flung(emv, eup) {
   return false;
 }
 
-let fontMap =
-  {
-    // map pdf font names to html canvas font structures.
-    "Courier":               { fontFamily: "Courier",     fontStyle: "normal",  fontWeight: "normal" },
-    "Courier-Bold":          { fontFamily: "Courier",     fontStyle: "normal",  fontWeight: "bold"   },
-    "Courier-Oblique":       { fontFamily: "Courier",     fontStyle: "oblique", fontWeight: "normal" },
-    "Courier-BoldOblique":   { fontFamily: "Courier",     fontStyle: "oblique", fontWeight: "bold"   },
-    "Helvetica":             { fontFamily: "Helvetica",   fontStyle: "normal",  fontWeight: "normal" },
-    "Helvetica-Bold":        { fontFamily: "Helvetica",   fontStyle: "normal",  fontWeight: "bold"   },
-    "Helvetica-Oblique":     { fontFamily: "Helvetica",   fontStyle: "oblique", fontWeight: "normal" },
-    "Helvetica-BoldOblique": { fontFamily: "Helvetica",   fontStyle: "oblique", fontWeight: "bold"   },
-    "Times-Roman":           { fontFamily: "Times Roman", fontStyle: "normal",  fontWeight: "normal" },
-    "Times-Bold":            { fontFamily: "Times Roman", fontStyle: "normal",  fontWeight: "bold"   },
-    "Times-Italic":          { fontFamily: "Times Roman", fontStyle: "italic",  fontWeight: "normal" },
-    "Times-BoldItalic":      { fontFamily: "Times Roman", fontStyle: "italic",  fontWeight: "bold"   },
-    "Bravura":               { fontFamily: "Bravura",     fontStyle: "normal",  fontWeight: "normal"   },
-  };
+let fontMap = {
+  // map pdf font names to html canvas font structures.
+  Courier: { fontFamily: "Courier", fontStyle: "normal", fontWeight: "normal" },
+  "Courier-Bold": {
+    fontFamily: "Courier",
+    fontStyle: "normal",
+    fontWeight: "bold",
+  },
+  "Courier-Oblique": {
+    fontFamily: "Courier",
+    fontStyle: "oblique",
+    fontWeight: "normal",
+  },
+  "Courier-BoldOblique": {
+    fontFamily: "Courier",
+    fontStyle: "oblique",
+    fontWeight: "bold",
+  },
+  Helvetica: {
+    fontFamily: "Helvetica",
+    fontStyle: "normal",
+    fontWeight: "normal",
+  },
+  "Helvetica-Bold": {
+    fontFamily: "Helvetica",
+    fontStyle: "normal",
+    fontWeight: "bold",
+  },
+  "Helvetica-Oblique": {
+    fontFamily: "Helvetica",
+    fontStyle: "oblique",
+    fontWeight: "normal",
+  },
+  "Helvetica-BoldOblique": {
+    fontFamily: "Helvetica",
+    fontStyle: "oblique",
+    fontWeight: "bold",
+  },
+  "Times-Roman": {
+    fontFamily: "Times Roman",
+    fontStyle: "normal",
+    fontWeight: "normal",
+  },
+  "Times-Bold": {
+    fontFamily: "Times Roman",
+    fontStyle: "normal",
+    fontWeight: "bold",
+  },
+  "Times-Italic": {
+    fontFamily: "Times Roman",
+    fontStyle: "italic",
+    fontWeight: "normal",
+  },
+  "Times-BoldItalic": {
+    fontFamily: "Times Roman",
+    fontStyle: "italic",
+    fontWeight: "bold",
+  },
+  Bravura: { fontFamily: "Bravura", fontStyle: "normal", fontWeight: "normal" },
+};
 
 let fontUnmap = // reverse dict to look up pdf font name given string of form "fontFamily/fontStyle/fontWeight"
-  Object.fromEntries(Object.entries(fontMap).map(([k, v]) => [`${v.fontFamily}/${v.fontStyle}/${v.fontWeight}`, k]));
+  Object.fromEntries(
+    Object.entries(fontMap).map(([k, v]) => [
+      `${v.fontFamily}/${v.fontStyle}/${v.fontWeight}`,
+      k,
+    ])
+  );
 
 function getBox(elm) {
   // cover for the overly sententious built-in getBoundingClientRect()
@@ -1331,16 +1501,18 @@ function hide(elm, onElm) {
   else elm.hiding = true; // prevent hiding until schedule(350...) has run
   // ensure left/top are in pixels: transition is wacky with calc or % sizes
   let { left, top } = getComputedStyle(elm);
-  let fontSize = elm.style.fontSize ; // this MUST come from style, NOT from getComputedStyle
+  let fontSize = elm.style.fontSize; // this MUST come from style, NOT from getComputedStyle
   elm.style.left = left;
   elm.style.top = top;
   elm.style.transition = "top 0.309s, left 0.309s,font-size 0.309s";
   delay(2, () => {
-    let elmBox = getBox(elm) ;
-    let onElmBox = getBox(onElm) ;
-    elm.style.left = (elm.offsetLeft - elmBox.x) + onElmBox.x + onElmBox.width / 2  +  "px" ;
-    elm.style.top = (elm.offsetTop - elmBox.y) + onElmBox.y + onElmBox.height / 2  +  "px" ;
-    elm.style.fontSize = 0 ;
+    let elmBox = getBox(elm);
+    let onElmBox = getBox(onElm);
+    elm.style.left =
+      elm.offsetLeft - elmBox.x + onElmBox.x + onElmBox.width / 2 + "px";
+    elm.style.top =
+      elm.offsetTop - elmBox.y + onElmBox.y + onElmBox.height / 2 + "px";
+    elm.style.fontSize = 0;
   });
   schedule(400, () => {
     elm.style.left = left;
@@ -1405,8 +1577,14 @@ function listen(elms, events, func, options = {}) {
   // @returns an object that can be passed to unlisten to
   //   stop listening for the event(s)
   let listeners = [];
-  if (Array.isArray(elms)) elms.forEach((elm) => listeners.push(...listen(elm, events, func, options)));
-  else if (Array.isArray(events)) events.forEach((event) => listeners.push(...listen(elms, event, func, options)));
+  if (Array.isArray(elms))
+    elms.forEach((elm) =>
+      listeners.push(...listen(elm, events, func, options))
+    );
+  else if (Array.isArray(events))
+    events.forEach((event) =>
+      listeners.push(...listen(elms, event, func, options))
+    );
   else {
     // elms is now a single elm
     options.passive = false; // ALWAYS set passive false: preventDefault option needs to work
@@ -1446,7 +1624,11 @@ function mvmt(e, emv, xLimit = 8, yLimit = 6) {
   if (!e.moved) {
     e.sumX = (e.sumX = e.sumX || 0) + Math.abs(emv.movementX);
     e.sumY = (e.sumY = e.sumY || 0) + Math.abs(emv.movementY);
-    e.moved = e.sumX > xLimit || e.sumX < -xLimit || e.sumY > yLimit || e.sumY < -yLimit;
+    e.moved =
+      e.sumX > xLimit ||
+      e.sumX < -xLimit ||
+      e.sumY > yLimit ||
+      e.sumY < -yLimit;
   }
   return e.moved;
 }
@@ -1466,12 +1648,15 @@ function pnToDiv(pn, div, autoSize = true) {
 
   if (autoSize) {
     // Determine font size is needed so str will fit within 90% of the div's width
-    let elm = helm(`<div style="visibility:hidden;position:absolute">${str}</div>`);
+    let elm = helm(
+      `<div style="visibility:hidden;position:absolute">${str}</div>`
+    );
     elm.style.fontFamily = div.style.fontFamily;
     elm.style.fontStyle = div.style.fontStyle;
     elm.style.fontSize = 30 / _dvPxRt_ + "px"; // max font size we allow
     _body_.append(elm);
-    while (elm.offsetWidth > div.offsetWidth * 0.9) elm.style.fontSize = parseInt(elm.style.fontSize) - 0.5 + "px";
+    while (elm.offsetWidth > div.offsetWidth * 0.9)
+      elm.style.fontSize = parseInt(elm.style.fontSize) - 0.5 + "px";
     div.style.fontSize = elm.style.fontSize;
     elm.remove();
   }
@@ -1503,9 +1688,19 @@ function pnToString(pn, useSMuFL = false) {
   let str = "";
   if (pn <= prelim) {
     let roman = {
-      m: 1000, cm: 900, d: 500, cd: 400, c: 100,
-      xc: 90, l: 50, xl: 40, x: 10, ix: 9,
-      v: 5, iv: 4, i: 1,
+      m: 1000,
+      cm: 900,
+      d: 500,
+      cd: 400,
+      c: 100,
+      xc: 90,
+      l: 50,
+      xl: 40,
+      x: 10,
+      ix: 9,
+      v: 5,
+      iv: 4,
+      i: 1,
     };
 
     for (let i of Object.keys(roman)) {
@@ -1568,7 +1763,8 @@ function ptrMsg(e, msgFunc, styles) {
     top = clamp(top, 0, window.innerHeight - hg);
     // prevent readout from going offscreen or under pointer
     if (top < hg) {
-      if (ev.clientX < window.innerWidth / 2) left += ((1 - top / hg) * _pxPerEm_ * 10) / 2;
+      if (ev.clientX < window.innerWidth / 2)
+        left += ((1 - top / hg) * _pxPerEm_ * 10) / 2;
       else left -= ((1 - top / hg) * _pxPerEm_ * 10) / 2;
     }
     Object.assign(div.style, {
@@ -1618,7 +1814,9 @@ function saveLocal(fileName, blob) {
   // @fileName
   // @blob
   let url = window.URL.createObjectURL(blob);
-  let link = helm(`<a download="${fileName}" href="${url}" style="visibility:none"></a>`);
+  let link = helm(
+    `<a download="${fileName}" href="${url}" style="visibility:none"></a>`
+  );
   _body_.append(link);
   link.click();
   window.URL.revokeObjectURL(url);
@@ -1631,7 +1829,10 @@ String.prototype.format = function () {
   let str = this.toString();
   if (arguments.length) {
     let t = typeof arguments[0];
-    var args = "string" === t || "number" === t ? Array.prototype.slice.call(arguments) : arguments[0];
+    var args =
+      "string" === t || "number" === t
+        ? Array.prototype.slice.call(arguments)
+        : arguments[0];
     for (let key in args) {
       str = str.replace(new RegExp("\\{" + key + "\\}", "gi"), args[key]);
     }
@@ -1641,7 +1842,8 @@ String.prototype.format = function () {
 
 function strToHash(str) {
   let hash = 0;
-  for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+  for (let i = 0; i < str.length; i++)
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
   return Math.abs(hash);
 }
 
@@ -1649,9 +1851,13 @@ function toast(innerHtml) {
   // display a "toast", i.e. a brief modal that automatically dismisses
   // after _gs_ seconds.
   // @param innerHtml the html content of the toast.
-  let elm = helm(`<dialog class="dialog" style="opacity:0;transition: opacity .25s";>${innerHtml}</dialog>`);
+  let elm = helm(
+    `<dialog class="dialog" style="opacity:0;transition: opacity .25s";>${innerHtml}</dialog>`
+  );
   _body_.append(elm);
   elm.showModal();
   animate(elm, null, { opacity: 1 }, `opacity ${_gs_}s`);
-  schedule(1685, () => animate(elm, null, { opacity: 0 }, `opacity ${_gs_}s`, () => elm.remove()));
+  schedule(1685, () =>
+    animate(elm, null, { opacity: 0 }, `opacity ${_gs_}s`, () => elm.remove())
+  );
 }

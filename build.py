@@ -11,7 +11,7 @@ import pdb
 import sys
 
 if len(sys.argv) == 1:
-   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True) ;
+   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, cert=False) ;
 else:
   parser = argparse.ArgumentParser()
   parser.add_argument('-s','--sample', action='store_true', help='(re)build build/sample.js')

@@ -12,11 +12,40 @@
   You should have received a copy of the GNU Affero General Public License along with Podium. If not, see <https:/\/www.gnu.org/licenses/>.
 **/
 
-import { clamp, css, dialog, delay, flung, fontMap, getBox, helm, hide, iconSvg, listen, pnToString, unlisten, dataIndex, clearChildren, ButtonGroup, ColorPicker, SliderGroup, saveLocal, schedule, Schedule, TabView, toast } from "./common.js";
+import {
+  clamp,
+  css,
+  dialog,
+  delay,
+  flung,
+  fontMap,
+  getBox,
+  helm,
+  hide,
+  iconSvg,
+  listen,
+  pnToString,
+  unlisten,
+  dataIndex,
+  clearChildren,
+  ButtonGroup,
+  ColorPicker,
+  SliderGroup,
+  saveLocal,
+  schedule,
+  Schedule,
+  TabView,
+  toast,
+} from "./common.js";
 import { Score } from "./score.js";
 import { Layout } from "./layout.js";
 import { iconPaths } from "./icon.js";
-import { FileSrc, FileListView, FileSystemView, LocalFileView } from "./file.js";
+import {
+  FileSrc,
+  FileListView,
+  FileSystemView,
+  LocalFileView,
+} from "./file.js";
 import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
 import { smuflTable } from "./smufl.js";
 export { panels };
@@ -126,7 +155,9 @@ class Panel {
     this.elm.dataset.tag = this.constructor.name;
     this.setIcon(cell.svgPath);
     this.setTitle(cell.name);
-    this.listeners.push(listen(this.closer, "pointerdown", (e) => this.close()));
+    this.listeners.push(
+      listen(this.closer, "pointerdown", (e) => this.close())
+    );
     this.listeners.push(
       listen(this.header, "pointerdown", (e) => {
         let { header, elm } = this;
@@ -149,7 +180,8 @@ class Panel {
           (eup) => {
             header.classList.remove("Panel__header-selected");
             unlisten(mv);
-            if (flung(e.emv, eup)) hide(this.elm, dataIndex("tag", this.cell.elm).cellIcon);
+            if (flung(e.emv, eup))
+              hide(this.elm, dataIndex("tag", this.cell.elm).cellIcon);
           },
           { once: true }
         );
@@ -176,7 +208,9 @@ class Panel {
   }
 
   setIcon(svgPath) {
-    let newIcon = helm(`<svg data-tag="icon" class="Panel__icon" viewBox="0 0 24 24">${svgPath}</svg>`);
+    let newIcon = helm(
+      `<svg data-tag="icon" class="Panel__icon" viewBox="0 0 24 24">${svgPath}</svg>`
+    );
     this.icon.replaceWith(newIcon);
     this.icon = newIcon;
   }
@@ -212,12 +246,20 @@ class Panel {
     let elm = this.elm;
     let box = getBox(otherElm);
     let mid = box.x + box.width / 2;
-    mid > window.innerWidth / 2 ? (elm.style.left = mid - elm.offsetWidth + "px") : (elm.style.left = mid + "px");
+    mid > window.innerWidth / 2
+      ? (elm.style.left = mid - elm.offsetWidth + "px")
+      : (elm.style.left = mid + "px");
     mid = box.y - box.height / 2;
-    mid > window.innerHeight / 2 ? (elm.style.top = mid - elm.offsetHeight / 2 + "px") : (elm.style.top = mid + "px");
+    mid > window.innerHeight / 2
+      ? (elm.style.top = mid - elm.offsetHeight / 2 + "px")
+      : (elm.style.top = mid + "px");
     box = getBox(elm);
-    if (box.top < 0 || box.bottom > window.innerHeight) elm.style.top = Math.max(window.innerHeight / 2 - box.height / 2, 0) + "px";
-    if (box.left < 0 || box.right > window.innerWidth) elm.style.left = Math.max(window.innerWidth / 2 - box.width / 2, 0) + "px";
+    if (box.top < 0 || box.bottom > window.innerHeight)
+      elm.style.top =
+        Math.max(window.innerHeight / 2 - box.height / 2, 0) + "px";
+    if (box.left < 0 || box.right > window.innerWidth)
+      elm.style.left =
+        Math.max(window.innerWidth / 2 - box.width / 2, 0) + "px";
   }
 }
 
@@ -236,8 +278,10 @@ class AddPanel extends Panel {
     Object.assign(this, dataIndex("tag", this.content));
     let stash = cell.stash;
 
-    this.pageTypeGroup = new ButtonGroup(stash, 
-      { Blank: { svg: "Blank Page", radio: "type" },
+    this.pageTypeGroup = new ButtonGroup(
+      stash,
+      {
+        Blank: { svg: "Blank Page", radio: "type" },
         Title: { svg: "Title Page", radio: "type" },
       },
       null
@@ -246,12 +290,16 @@ class AddPanel extends Panel {
     this.type.replaceWith(this.pageTypeGroup.elm);
     this.pageTypeGroup.refresh();
 
-    let picker = new ColorPicker("Color:", stash.fillRgb, stash.fillAlpha, (rgb, alpha) => {
-      stash.fillRgb = rgb;
-      stash.fillAlpha = alpha;
-    });
+    let picker = new ColorPicker(
+      "Color:",
+      stash.fillRgb,
+      stash.fillAlpha,
+      (rgb, alpha) => {
+        stash.fillRgb = rgb;
+        stash.fillAlpha = alpha;
+      }
+    );
     this.picker.replaceWith(picker.elm);
-
   }
 }
 
@@ -289,23 +337,38 @@ class DetailsPanel extends Panel {
     this.body.replaceWith(this.content);
 
     this.qualityGroup = new SliderGroup(
-      this.cell.stash, {
-        quality: { min: 0.5,  max: 4, step: 0.1, value: 2, throttle: 750,
-        msg: () => {
-          let q = cell.stash.quality;
-          let qualities = ["Low", "Medium", "High", "Extreme"];
-          let desc = q < 1.1 ? "Low" : q < 2.1 ? "Medium" : q < 3.1 ? "High" : "Extreme";
-          return "Display Quality: " + desc + ` (${parseInt(q * 100)}%)`;
-        }},
+      this.cell.stash,
+      {
+        quality: {
+          min: 0.5,
+          max: 4,
+          step: 0.1,
+          value: 2,
+          throttle: 750,
+          msg: () => {
+            let q = cell.stash.quality;
+            let qualities = ["Low", "Medium", "High", "Extreme"];
+            let desc =
+              q < 1.1
+                ? "Low"
+                : q < 2.1
+                ? "Medium"
+                : q < 3.1
+                ? "High"
+                : "Extreme";
+            return "Display Quality: " + desc + ` (${parseInt(q * 100)}%)`;
+          },
+        },
       },
       async (e, tag, value) => {
         this.cell.stash.tag = value;
         let score = Score.activeScore;
         if (score) {
           score.quality = value;
-          for (let pg of score.pgs) 
-            if (pg.inflated) await pg.renderPdf();
-        }});
+          for (let pg of score.pgs) if (pg.inflated) await pg.renderPdf();
+        }
+      }
+    );
 
     this.refresh();
   }
@@ -336,31 +399,65 @@ class DetailsPanel extends Panel {
     if (Score.activeScore) {
       let score = Score.activeScore;
 
-      this.content.append(helm(`<div style="font-size:1.5em;text-align:center;margin-bottom:.5em;">${score.name.replace(/\.pdf/i, "")}</div>`));
-      let source = score.source ? `<div style="text-align:right;">Source:&nbsp;</div><div>${score.source}</div>` : "";
-      let path = score.path ? `<div style="text-align:right;">Path:&nbsp;</div><div>${score.path} </div>` : "";
-      let size = score.size ? `<div style="text-align:right;">Size:&nbsp;</div><div>${Number(score.size).toLocaleString()} B</div>` : "";
+      this.content.append(
+        helm(
+          `<div style="font-size:1.5em;text-align:center;margin-bottom:.5em;">${score.name.replace(
+            /\.pdf/i,
+            ""
+          )}</div>`
+        )
+      );
+      let source = score.source
+        ? `<div style="text-align:right;">Source:&nbsp;</div><div>${score.source}</div>`
+        : "";
+      let path = score.path
+        ? `<div style="text-align:right;">Path:&nbsp;</div><div>${score.path} </div>`
+        : "";
+      let size = score.size
+        ? `<div style="text-align:right;">Size:&nbsp;</div><div>${Number(
+            score.size
+          ).toLocaleString()} B</div>`
+        : "";
       this.content.append(
         helm(`<div style="display:grid;grid-template-columns:40% 60%;font-size:.8em;">
-          <div style="text-align:right;">Name:&nbsp;</div><div>${score.name}</div>
+          <div style="text-align:right;">Name:&nbsp;</div><div>${
+            score.name
+          }</div>
           ${source} ${path} ${size}
-          <div style="text-align:right;">Pages:&nbsp;</div><div>${score.pgs.length}</div>
-          <div style="text-align:right;">Created:&nbsp;</div><div>${new Date(score.created).toLocaleString()}</div>
-          <div style="text-align:right;">Modified:&nbsp;</div><div>${new Date(score.modified).toLocaleString()}</div>
+          <div style="text-align:right;">Pages:&nbsp;</div><div>${
+            score.pgs.length
+          }</div>
+          <div style="text-align:right;">Created:&nbsp;</div><div>${new Date(
+            score.created
+          ).toLocaleString()}</div>
+          <div style="text-align:right;">Modified:&nbsp;</div><div>${new Date(
+            score.modified
+          ).toLocaleString()}</div>
           </div>`)
       );
 
       this.content.append(this.qualityGroup.elm);
 
       if (score.pdfInfo) {
-        this.content.append(helm(`<div style="font-size:1em;text-align:center;padding:.5em;">PDF Metadata:</div>`));
+        this.content.append(
+          helm(
+            `<div style="font-size:1em;text-align:center;padding:.5em;">PDF Metadata:</div>`
+          )
+        );
         let infoHtml = "";
         for (let [k, v] of Object.entries(score.pdfInfo)) {
           if (!k) continue;
           infoHtml += `<div style="text-align:right">${k}:&nbsp;&nbsp;</div><div>${v}</div>`;
-          if (typeof v === "string" && v.startsWith("D:")) infoHtml += `<div></div><div>\u27a1${new Date(this.parseTs(v)).toLocaleString()}</div>`;
+          if (typeof v === "string" && v.startsWith("D:"))
+            infoHtml += `<div></div><div>\u27a1${new Date(
+              this.parseTs(v)
+            ).toLocaleString()}</div>`;
         }
-        this.content.append(helm(`<div style="display:grid;grid-template-columns:40% 60%;font-size:.8em;">${infoHtml}</div>`));
+        this.content.append(
+          helm(
+            `<div style="display:grid;grid-template-columns:40% 60%;font-size:.8em;">${infoHtml}</div>`
+          )
+        );
       }
     }
   }
@@ -407,7 +504,12 @@ class OpenPanel extends FilePanel {
           try {
             if (title == "Recent") tab.view = new FileListView(this);
             else if (title == "Local") tab.view = new LocalFileView(this);
-            else tab.view = new FileSystemView(title, await FileSrc.get(title), this);
+            else
+              tab.view = new FileSystemView(
+                title,
+                await FileSrc.get(title),
+                this
+              );
             tab.face.append(tab.view.elm);
           } catch (err) {
             tab.view = null;
@@ -451,7 +553,12 @@ class SavePanel extends FilePanel {
         if (!tab.view) {
           try {
             if (title == "Local") tab.view = new LocalFileView(this);
-            else tab.view = new FileSystemView(title, await FileSrc.get(title), this);
+            else
+              tab.view = new FileSystemView(
+                title,
+                await FileSrc.get(title),
+                this
+              );
             tab.face.append(tab.view.elm);
           } catch (err) {
             tab.view = null;
@@ -480,7 +587,10 @@ class GridPanel extends Panel {
 
     let setUnits = (units) => {
       let currentSliders = this.sliders;
-      this.sliders = { Inch: this.inchSliders.elm, Metric: this.metricSliders.elm }[units];
+      this.sliders = {
+        Inch: this.inchSliders.elm,
+        Metric: this.metricSliders.elm,
+      }[units];
       currentSliders.replaceWith(this.sliders);
     };
 
@@ -494,34 +604,43 @@ class GridPanel extends Panel {
     );
     this.options.replaceWith(options.elm);
 
-    { // inches
+    {
+      // inches
       let steps = ["1", "1/2", "1/4", "1/8"];
-      let xStepMsg = (tag, value) => "X Step: " + steps[value] + ' inch';
-      let yStepMsg = (tab, value) => "Y Step: " + steps[value] + ' inch';
-      this.inchSliders = new SliderGroup(this.cell.stash, {
-        xStep:  { min: 0, max: 3,  step:  1, value: 0,  msg: xStepMsg},
-        yStep:  { min: 0, max: 3,  step:  1, value: 0,  msg: yStepMsg},
-      }, () => {});
+      let xStepMsg = (tag, value) => "X Step: " + steps[value] + " inch";
+      let yStepMsg = (tab, value) => "Y Step: " + steps[value] + " inch";
+      this.inchSliders = new SliderGroup(
+        this.cell.stash,
+        {
+          xStep: { min: 0, max: 3, step: 1, value: 0, msg: xStepMsg },
+          yStep: { min: 0, max: 3, step: 1, value: 0, msg: yStepMsg },
+        },
+        () => {}
+      );
       this.inchSliders.elm.classList.add("GridPanel__sliders");
     }
 
-    { // metric
-      let steps = [4, 2, 1, .5];
+    {
+      // metric
+      let steps = [4, 2, 1, 0.5];
       let xStepMsg = (tag, value) => "X Step: " + steps[value] + " cm";
       let yStepMsg = (tab, value) => "Y Step: " + steps[value] + " cm";
 
-      this.metricSliders = new SliderGroup(this.cell.stash, {
-        xStep:  { min: 0, max: 3,  step:  1, value: 0,  msg: xStepMsg},
-        yStep:  { min: 0, max: 3,  step:  1, value: 0,  msg: yStepMsg},
-      }, () => {});
+      this.metricSliders = new SliderGroup(
+        this.cell.stash,
+        {
+          xStep: { min: 0, max: 3, step: 1, value: 0, msg: xStepMsg },
+          yStep: { min: 0, max: 3, step: 1, value: 0, msg: yStepMsg },
+        },
+        () => {}
+      );
       this.metricSliders.elm.classList.add("GridPanel__sliders");
     }
 
-    let numbers = new ButtonGroup(
-       this.cell.stash, 
-      { On: { svg: "Numbers", radio: "numbers" },
-        Off: { svg: "Close", radio: "numbers" },
-      });
+    let numbers = new ButtonGroup(this.cell.stash, {
+      On: { svg: "Numbers", radio: "numbers" },
+      Off: { svg: "Close", radio: "numbers" },
+    });
     this.numbers.replaceWith(numbers.elm);
 
     setUnits(this.cell.stash.units); // current units from prefs
@@ -538,14 +657,11 @@ class HelpPanel extends Panel {
      `
   );
 
-
   helpFace = helm(`
       <object type="application/pdf" data="https:/\/www.studiop5.org/Guidebook.pdf" 
        style="padding:1em;width:100%;height:100%;overflow:auto;"></object>
       `);
 
-
-//  licenseFace = helm(`<div style="margin:2em;padding:1em;width:100%;height:100%;overflow:auto;text-align:center;">
   licenseFace = helm(`<p style="padding:2em;overflow:auto;text-align:center;">
   <br><b>Podium</b><br><br>
   Copyright 2025 Glendon Diener<br><br>
@@ -556,8 +672,6 @@ class HelpPanel extends Panel {
       <a target="_blank" rel="noopener noreferrer" href="https:/\/www.gnu.org/licenses/agpl-3.0-standalone.html">GNU Affero Public License</a>
 for more details.</p>
       `);
-
-
 
   creditsFace = helm(`<div>
         <div class="Credit">
@@ -583,12 +697,14 @@ for more details.</p>
      </div>`);
 
   aboutFace = helm(
-    `<div style="display:flex;align-items:center;flex-direction:column;justify-content:center;padding:1em;font-size:2em;">
+    `<div style="display:flex;align-items:center;flex-direction:column;justify-content:center;padding:1em;font-size:1.5em;">
+        <div>Podium</div>        
         ${iconSvg("Podium", { style: "width:4em;" })}
-        <div>Podium</div>
         <div>Version ${_podiumVersion_}</div>
         <div style="margin-top:1em;">Factory Reset:</div>
-        <div data-tag="buttons"></div>
+        <div data-tag="buttons"></div><br>
+        <a href="https://github.com/studiop5/podium">Github</a>
+        <a href="mailto:glen@studiop5.org">Contact \u2709</a>
      <div>`
   );
 
@@ -608,16 +724,20 @@ for more details.</p>
     Object.assign(this, dataIndex("tag", this.aboutFace));
     let buttons = dataIndex("tag", this.aboutFace).buttons;
     buttons.replaceWith(
-      new ButtonGroup(cell, { Menu: { svg: "Ink" }, Recent: { svg: "Recent" } }, (e, prop, tag) => {
-        if (tag == "Menu") {
-          _menu_.stashFromJson(_menu_.stashDefaults);
-          localStorage.setItem("menu", _menu_.stashToJson());
-          toast("Menu reset");
-        } else if (tag == "Recent") {
-          localStorage.setItem("recent", []);
-          toast("Recent list cleared");
+      new ButtonGroup(
+        cell,
+        { Menu: { svg: "Ink" }, Recent: { svg: "Recent" } },
+        (e, prop, tag) => {
+          if (tag == "Menu") {
+            _menu_.stashFromJson(_menu_.stashDefaults);
+            localStorage.setItem("menu", _menu_.stashToJson());
+            toast("Menu reset");
+          } else if (tag == "Recent") {
+            localStorage.setItem("recent", []);
+            toast("Recent list cleared");
+          }
         }
-      }).elm
+      ).elm
     );
     tabView.tabs["Help"].face.append(this.helpFace);
     tabView.tabs["Credits"].face.append(this.creditsFace);
@@ -699,9 +819,21 @@ class LayoutPanel extends Panel {
     };
 
     let scrollSlidersGroupDef = {
-      pgShow: { min: 1, max: 8, step: 1, msg: "Show: {value} pages", throttle: 750 },
+      pgShow: {
+        min: 1,
+        max: 8,
+        step: 1,
+        msg: "Show: {value} pages",
+        throttle: 750,
+      },
       pgSnap: { min: 0, max: 8, step: 1, msg: msgCallback, throttle: 750 },
-      gap: { min: 0, max: 100, step: .5, msg: "Gap: {value} %", throttle: 750 },
+      gap: {
+        min: 0,
+        max: 100,
+        step: 0.5,
+        msg: "Gap: {value} %",
+        throttle: 750,
+      },
     };
 
     let pnGroupDef = {
@@ -710,7 +842,13 @@ class LayoutPanel extends Panel {
     };
 
     let tableSlidersGroupDef = {
-      pages: { min: 1, max: 50, msg: "Pages per row: {value}", step: 1, throttle: 750 },
+      pages: {
+        min: 1,
+        max: 50,
+        msg: "Pages per row: {value}",
+        step: 1,
+        throttle: 750,
+      },
       horizontalGap: {
         min: -100,
         max: 100,
@@ -738,21 +876,35 @@ class LayoutPanel extends Panel {
 
     // build horizontal face
     stash = _menu_.rings.layout.cells.horizontal.stash;
-    tags.fitHorizontal.replaceWith(new ButtonGroup(stash, fitGroupDef, handler).elm);
-    tags.fitHorizontalSliders.replaceWith(new SliderGroup(stash, scrollSlidersGroupDef, handler).elm);
-    tags.pnHorizontal.replaceWith(new ButtonGroup(stash, pnGroupDef, handler).elm);
+    tags.fitHorizontal.replaceWith(
+      new ButtonGroup(stash, fitGroupDef, handler).elm
+    );
+    tags.fitHorizontalSliders.replaceWith(
+      new SliderGroup(stash, scrollSlidersGroupDef, handler).elm
+    );
+    tags.pnHorizontal.replaceWith(
+      new ButtonGroup(stash, pnGroupDef, handler).elm
+    );
 
     // build vertical face
     stash = _menu_.rings.layout.cells.vertical.stash;
-    tags.fitVertical.replaceWith(new ButtonGroup(stash, fitGroupDef, handler).elm);
-    tags.fitVerticalSliders.replaceWith(new SliderGroup(stash, scrollSlidersGroupDef, handler).elm);
-    tags.pnVertical.replaceWith(new ButtonGroup(stash, pnGroupDef, handler).elm);
+    tags.fitVertical.replaceWith(
+      new ButtonGroup(stash, fitGroupDef, handler).elm
+    );
+    tags.fitVerticalSliders.replaceWith(
+      new SliderGroup(stash, scrollSlidersGroupDef, handler).elm
+    );
+    tags.pnVertical.replaceWith(
+      new ButtonGroup(stash, pnGroupDef, handler).elm
+    );
 
     // build table face
     stash = _menu_.rings.layout.cells.table.stash;
     let def = { Width: fitGroupDef.Width, Height: fitGroupDef.Height };
     tags.fitTable.replaceWith(new ButtonGroup(stash, def, handler).elm);
-    tags.tableFlowSliders.replaceWith(new SliderGroup(stash, tableSlidersGroupDef, handler).elm);
+    tags.tableFlowSliders.replaceWith(
+      new SliderGroup(stash, tableSlidersGroupDef, handler).elm
+    );
     tags.pnTable.replaceWith(new ButtonGroup(stash, pnGroupDef, handler).elm);
   }
 
@@ -940,10 +1092,14 @@ class NewPanel extends Panel {
 
     let disable = this.cell.stash.size != "Custom:";
 
-    this.customGroup = new SliderGroup(this.cell.stash,
-    { Width: { min: 1, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
-      Height: { min: 1, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
-     }, null);
+    this.customGroup = new SliderGroup(
+      this.cell.stash,
+      {
+        Width: { min: 1, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
+        Height: { min: 1, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
+      },
+      null
+    );
     this.custom.replaceWith(this.customGroup.elm);
 
     listen(this.presets, ["input", "change"], (e) => {
@@ -956,7 +1112,14 @@ class NewPanel extends Panel {
       } else {
         let [unit, width, height] = e.target.value.split("/");
         // stash the page size in pdf pts
-        let toPts = unit == "in" ? 72 : unit == "mm" ? 2.8346456693 : unit == "pt" ? 1 : 1;
+        let toPts =
+          unit == "in"
+            ? 72
+            : unit == "mm"
+            ? 2.8346456693
+            : unit == "pt"
+            ? 1
+            : 1;
         cell.stash.Width = width * toPts;
         cell.stash.Height = height * toPts;
         // disable user interaction with sliders:
@@ -969,7 +1132,9 @@ class NewPanel extends Panel {
     this.pagesGroup.refresh();
     this.customGroup.refresh();
 
-    let size = [...this.presets.children].find((option) => option.textContent == this.cell.stash.size);
+    let size = [...this.presets.children].find(
+      (option) => option.textContent == this.cell.stash.size
+    );
     if (size) size.selected = true;
   }
 }
@@ -1026,7 +1191,12 @@ class NumbersPanel extends Panel {
         throttle: 500,
       },
     };
-    this.pnSliderGroup = new SliderGroup(this.cell.stash, defs, (e, tag, value) => _body_.dispatchEvent(new CustomEvent("PnChanged", { detail: this })));
+    this.pnSliderGroup = new SliderGroup(
+      this.cell.stash,
+      defs,
+      (e, tag, value) =>
+        _body_.dispatchEvent(new CustomEvent("PnChanged", { detail: this }))
+    );
 
     this.sliders.replaceWith(this.pnSliderGroup.elm);
 
@@ -1088,7 +1258,14 @@ class PencilPanel extends Panel {
   );
 
   slidersDef = {
-    width: { min: 0.2, max: 60, step: 0.1, value: 1, throttle: 250, msg: "Line Width: {value} px" },
+    width: {
+      min: 0.2,
+      max: 60,
+      step: 0.1,
+      value: 1,
+      throttle: 250,
+      msg: "Line Width: {value} px",
+    },
   };
 
   buttonsDef = {
@@ -1115,30 +1292,44 @@ class PencilPanel extends Panel {
 
     // This code block is delayed so that it runs after any subclass constructor:
     delay(1, () => {
-      if (this.buttonsDef) this.sliders.after(helm(`<div style="font-size:.8em">Styles:</div>`));
+      if (this.buttonsDef)
+        this.sliders.after(helm(`<div style="font-size:.8em">Styles:</div>`));
 
-      let picker = new ColorPicker("Color:", stash.rgb, stash.alpha, (rgb, alpha) => {
-        stash.rgb = rgb;
-        stash.alpha = alpha;
-        this.update();
-      });
+      let picker = new ColorPicker(
+        "Color:",
+        stash.rgb,
+        stash.alpha,
+        (rgb, alpha) => {
+          stash.rgb = rgb;
+          stash.alpha = alpha;
+          this.update();
+        }
+      );
       this.picker.replaceWith(picker.elm);
       this.picker = picker.elm;
 
       if (this.slidersDef) {
-        let sliders = new SliderGroup(this.cell.stash, this.slidersDef, (e, tag, value) => {
-          this.cell.stash.tag = value;
-          this.update();
-        });
+        let sliders = new SliderGroup(
+          this.cell.stash,
+          this.slidersDef,
+          (e, tag, value) => {
+            this.cell.stash.tag = value;
+            this.update();
+          }
+        );
         this.sliders.replaceWith(sliders.elm);
         this.sliders = sliders;
       }
 
       if (this.buttonsDef) {
-        let buttons = new ButtonGroup(this.cell.stash, this.buttonsDef, (e, tag, value) => {
-          this.cell.stash.tag = value;
-          this.update();
-        });
+        let buttons = new ButtonGroup(
+          this.cell.stash,
+          this.buttonsDef,
+          (e, tag, value) => {
+            this.cell.stash.tag = value;
+            this.update();
+          }
+        );
         this.buttons.replaceWith(buttons.elm);
         this.buttons = buttons;
       }
@@ -1151,10 +1342,13 @@ class PencilPanel extends Panel {
     let { alpha, rgb, style, width } = this.cell.stash;
     clearChildren(this.preview);
     let path =
-       style == "Free"  ? "M10 50C66 -50 132 150 190 50"
-      :style == "L-R"   ? "M10 50h180"
-      :style == "T-B"   ? "M100 10v80"
-      :                   "M10 10L180 90";
+      style == "Free"
+        ? "M10 50C66 -50 132 150 190 50"
+        : style == "L-R"
+        ? "M10 50h180"
+        : style == "T-B"
+        ? "M100 10v80"
+        : "M10 10L180 90";
     this.preview.append(
       helm(
         `<svg viewBox="0 0 200 100">
@@ -1196,9 +1390,16 @@ class PencilPanel extends Panel {
 class PenPanel extends PencilPanel {}
 
 class TextPanel extends PencilPanel {
-  slidersDef = 
-     { size: { min: 1, max: 100, step: 1, value: 1, msg: "Font Size: {value} px" },
-       height: { min: 1, max: 100, step: 1, value: 1, msg: "Line Height: {value} px" } } ;
+  slidersDef = {
+    size: { min: 1, max: 100, step: 1, value: 1, msg: "Font Size: {value} px" },
+    height: {
+      min: 1,
+      max: 100,
+      step: 1,
+      value: 1,
+      msg: "Line Height: {value} px",
+    },
+  };
 
   buttonsDef = null;
 
@@ -1244,26 +1445,54 @@ class TextPanel extends PencilPanel {
       color.setAlpha(alpha);
       active.canvas.requestRenderAll();
       active.fill = color.toRgba();
-      active.fontSize = size-1 ;
-      active.lineHeight = height /size ;
-      Object.assign(active, fontMap[font]);  
+      active.fontSize = size - 1;
+      active.lineHeight = height / size;
+      Object.assign(active, fontMap[font]);
       active.canvas.requestRenderAll();
       delay(1, () => {
         // work around as fabricjs bug...fill doesn't change
         // unless/until fontsize changes, (or some such breakage)
-        active.fontSize = size ;
+        active.fontSize = size;
         active.canvas.requestRenderAll();
-      })
+      });
     }
   }
 }
 
 class RastrumPanel extends PencilPanel {
   slidersDef = {
-    lines: { throttle: 250, min: 1, max: 30, step: 1, value: 5, msg: "Lines: {value}" },
-    width: { throttle: 250, min: 0.1, max: 10, step: 0.1, value: 1, msg: "Line Width: {value} px" },
-    gap: { throttle: 250, min: 1, max: 25, step: 1, value: 6, msg: "Line Spacing: {value} px" },
-    bars: { throttle: 250, min: 0, max: 20, step: 1, value: 4, msg: "Bars: {value}" },
+    lines: {
+      throttle: 250,
+      min: 1,
+      max: 30,
+      step: 1,
+      value: 5,
+      msg: "Lines: {value}",
+    },
+    width: {
+      throttle: 250,
+      min: 0.1,
+      max: 10,
+      step: 0.1,
+      value: 1,
+      msg: "Line Width: {value} px",
+    },
+    gap: {
+      throttle: 250,
+      min: 1,
+      max: 25,
+      step: 1,
+      value: 6,
+      msg: "Line Spacing: {value} px",
+    },
+    bars: {
+      throttle: 250,
+      min: 0,
+      max: 20,
+      step: 1,
+      value: 4,
+      msg: "Bars: {value}",
+    },
   };
 
   buttonsDef = {
@@ -1276,28 +1505,33 @@ class RastrumPanel extends PencilPanel {
   }
 
   update() {
-    let { alpha, rgb, style, lines, width, gap, bars, barsWidth } = this.cell.stash;
+    let { alpha, rgb, style, lines, width, gap, bars, barsWidth } =
+      this.cell.stash;
     clearChildren(this.preview);
-    let linePath = ""
+    let linePath = "";
     let barPath = "";
     let staffHeight = (lines - 1) * gap;
     if (style == "L-R") {
       let staffY = (100 - staffHeight) / 2;
-      for (let i = 0, y = staffY; i < lines; i++, y += gap) linePath += `M10 ${y}h180 `;
+      for (let i = 0, y = staffY; i < lines; i++, y += gap)
+        linePath += `M10 ${y}h180 `;
       if (bars > 0) {
         let barWidth = 180 / bars;
         staffY -= width / 2;
         staffHeight += width;
-        for (let i = 0, x = 10; i <= bars; i++, x += barWidth) barPath += `M${x} ${staffY}v${staffHeight} `;
+        for (let i = 0, x = 10; i <= bars; i++, x += barWidth)
+          barPath += `M${x} ${staffY}v${staffHeight} `;
       }
     } else {
       let staffX = (200 - staffHeight) / 2;
-      for (let i = 0, x = staffX; i < lines; i++, x += gap) linePath += `M${x} ${10}v80 `;
+      for (let i = 0, x = staffX; i < lines; i++, x += gap)
+        linePath += `M${x} ${10}v80 `;
       if (bars > 0) {
         let barWidth = 80 / bars;
         staffX -= barsWidth / 2;
         staffHeight += barsWidth;
-        for (let i = 0, y = 10; i <= bars; i++, y += barWidth) barPath += `M${staffX} ${y}h${staffHeight} `;
+        for (let i = 0, y = 10; i <= bars; i++, y += barWidth)
+          barPath += `M${staffX} ${y}h${staffHeight} `;
       }
     }
 
@@ -1341,7 +1575,7 @@ class ReviewPanel extends Panel {
 
   destructor() {
     super.destructor();
-    this.review.destructor() ;
+    this.review.destructor();
   }
 
   async show() {
@@ -1390,7 +1624,9 @@ class SymbolsPanel extends PencilPanel {
 
   groups = helm(`<select></select>`);
 
-  slidersDef = { size: { min: 1, max: 100, step: 1, value: 1, msg: "Font Size: {value} px" } };
+  slidersDef = {
+    size: { min: 1, max: 100, step: 1, value: 1, msg: "Font Size: {value} px" },
+  };
 
   buttonsDef = null;
 
@@ -1398,15 +1634,27 @@ class SymbolsPanel extends PencilPanel {
     super(cell);
     this.preview.after(helm(`<div>Symbols Group:</div>`));
     for (let group of Object.keys(smuflTable)) {
-       let len = group.length ;
-       this.groups.append(helm(`<option ${cell.stash.group == group ? "selected" : ""}>${group}</option>`));
+      let len = group.length;
+      this.groups.append(
+        helm(
+          `<option ${
+            cell.stash.group == group ? "selected" : ""
+          }>${group}</option>`
+        )
+      );
     }
-    this.picker.before(this.groups) ;
+    this.picker.before(this.groups);
 
-    Object.assign(this, dataIndex("tag", helm(`
+    Object.assign(
+      this,
+      dataIndex(
+        "tag",
+        helm(`
        <div data-tag="symbolsFrame" class="PencilPanel__preview SymbolsPanel__preview">
           <div data-tag="symbolsList" class="SymbolsPanel__symbolsList"></div>
-       </div>`)));
+       </div>`)
+      )
+    );
 
     this.preview.replaceWith(this.symbolsFrame);
     let dragListener = null;
@@ -1415,7 +1663,9 @@ class SymbolsPanel extends PencilPanel {
       clearChildren(this.symbolsList);
 
       for (let codePoint of smuflTable[this.groups.value]) {
-        let symbol = helm(`<div class="SymbolsPanel__symbol ${codePoint == cell.stash.codePoint ? "SymbolsPanel__symbol-active" : ""}">{codePoint}</div>`);
+        let symbol = helm(
+          `<div class="SymbolsPanel__symbol ${codePoint == cell.stash.codePoint ? "SymbolsPanel__symbol-active": "" }">{codePoint}</div>`
+        );
         symbol.textContent = `${codePoint}`;
         this.symbolsList.append(symbol);
         this.symbolsList.style.left = "0";
@@ -1423,28 +1673,41 @@ class SymbolsPanel extends PencilPanel {
       unlisten(dragListener);
 
       this.dragListener = listen(this.symbolsList, "pointerdown", (e) => {
-          this.symbolsList.setPointerCapture(e.pointerId);
-          let offsetX = e.clientX - this.symbolsList.offsetLeft ;
-          let limit = this.symbolsList.offsetWidth - this.panel.offsetWidth ;
-          let mv = listen(this.symbolsList, "pointermove", (emv) => {
-              this.symbolsList.style.left = clamp(emv.clientX - offsetX, -limit, 0) + "px";
-          }) ;
-          listen(this.symbolsList, "pointerup", (eup) => {
-            unlisten(mv)},
-         {once:true}) ;
-      }) ;
+        this.symbolsList.setPointerCapture(e.pointerId);
+        let offsetX = e.clientX - this.symbolsList.offsetLeft;
+        let limit = this.symbolsList.offsetWidth - this.panel.offsetWidth;
+        let mv = listen(this.symbolsList, "pointermove", (emv) => {
+          this.symbolsList.style.left =
+            clamp(emv.clientX - offsetX, -limit, 0) + "px";
+        });
+        listen(
+          this.symbolsList,
+          "pointerup",
+          (eup) => {
+            unlisten(mv);
+          },
+          { once: true }
+        );
+      });
       this.cell.stash.group = this.groups.value;
     });
 
     listen(this.symbolsList, "pointerdown", (e) => {
-      Array.from(this.symbolsList.children).forEach((child) => child.classList.remove("SymbolsPanel__symbol-active"));
+      Array.from(this.symbolsList.children).forEach((child) =>
+        child.classList.remove("SymbolsPanel__symbol-active")
+      );
       e.target.classList.add("SymbolsPanel__symbol-active");
       this.cell.stash.codePoint = e.target.textContent;
-      _menu_.activateCell(cell) ;
-      listen(this.symbolsList, "pointerup", (eup) => {
-         if(eup.timeStamp - e.timeStamp > _longPressMs_) 
-           _menu_.activateCell(cell, true);
-      }, {once:true}) ;
+      _menu_.activateCell(cell);
+      listen(
+        this.symbolsList,
+        "pointerup",
+        (eup) => {
+          if (eup.timeStamp - e.timeStamp > _longPressMs_)
+            _menu_.activateCell(cell, true);
+        },
+        { once: true }
+      );
     });
     this.groups.dispatchEvent(new Event("change"));
   }
@@ -1478,7 +1741,10 @@ class PianoPanel extends Panel {
     super(cell);
     this.piano = new Piano(this, cell);
     this.body.replaceWith(this.piano.elm);
-    this.panel.style.width = window.innerWidth / _pxPerEm_ / parseFloat(this.elm.style.fontSize) - 4 + "em";
+    this.panel.style.width =
+      window.innerWidth / _pxPerEm_ / parseFloat(this.elm.style.fontSize) -
+      4 +
+      "em";
     this.listeners.push(listen(window, "resize", () => this.show()));
   }
 
@@ -1507,8 +1773,12 @@ class PrintPanel extends Panel {
         "No Ink": { svg: "No Ink" },
       },
       async (e, tag, value) => {
-        let data = await Score.activeScore.toPdf(value == "Inked" ? "pdf" : "none");
-        let dataUrl = window.URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
+        let data = await Score.activeScore.toPdf(
+          value == "Inked" ? "pdf" : "none"
+        );
+        let dataUrl = window.URL.createObjectURL(
+          new Blob([data], { type: "application/pdf" })
+        );
         window.open(dataUrl).print();
       }
     );
@@ -1565,7 +1835,7 @@ class StopwatchPanel extends Panel {
 }
 
 let panels = {
-  // This structure maps every Panel to its class. 
+  // This structure maps every Panel to its class.
   // Panels are instantiated on demand, and the
   // singletons are stored here as well, keyed by
   // their cell's key: its the name of the class,

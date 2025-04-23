@@ -17,9 +17,9 @@ Built for Google Chrome, but runs (fingers crossed) in any modern desktop/tablet
 - On-screen piano keyboard, with functions for assisted tuning.
 - Replay tool for instant replay of last 1 minute(configurable) of audio/video.
 - Stopwatch and clock.
-** app:**
+...app:
 - https://studiop5.org/podium
-** doc:**
+...doc:
 - https://studiop5.org/GuideBook.pdf
 
 
