@@ -1108,7 +1108,7 @@ class Metronome extends Surface {
       name: "six",
       background: "",
       marker: this.conductor,
-      paths: ["m 267.49902,581.87503 c 13.95648,6.41218 27.92331,13.92614 41.70899,2.14118 134.17928,-68.21655 194.07653,-206.22909 197.22543,-231.35532 l -3.17343,318.24762", "m 503.26001,670.90851 c 17.21164,-35.14343 53.30776,-45.01018 80.3864,-0.96755", "m 583.64641,669.94096 c 22.00066,-45.35491 37.25197,-44.97481 77.96339,4.9612", "M 661.6098,674.90216 C 737.13215,527.23351 482.78179,534.1961 441.99445,662.5065", "M 441.99445,662.5065 C 387.69865,618.6899 335.08632,626.46228 302.98419,665.112", "m 302.98419,665.112 c 14.56048,-29.52995 -0.94459,-38.12573 -35.48517,-83.23697"],
+      pathsg: ["m 267.49902,581.87503 c 13.95648,6.41218 27.92331,13.92614 41.70899,2.14118 134.17928,-68.21655 194.07653,-206.22909 197.22543,-231.35532 l -3.17343,318.24762", "m 503.26001,670.90851 c 17.21164,-35.14343 53.30776,-45.01018 80.3864,-0.96755", "m 583.64641,669.94096 c 22.00066,-45.35491 37.25197,-44.97481 77.96339,4.9612", "M 661.6098,674.90216 C 737.13215,527.23351 482.78179,534.1961 441.99445,662.5065", "M 441.99445,662.5065 C 387.69865,618.6899 335.08632,626.46228 302.98419,665.112", "m 302.98419,665.112 c 14.56048,-29.52995 -0.94459,-38.12573 -35.48517,-83.23697"],
       ticks: [900, 600, 600, 800, 600, 600],
     },
   ];
@@ -1336,7 +1336,6 @@ class Clip and class Recorder
     }
 
     async stop() {
-console.log("clip stop") ;
       delay(1, () => this.recorder.stop()) ;
       return new Promise((resolve) => this.resolve = resolve) ;
     }
@@ -1587,7 +1586,6 @@ class Review {
     this.recorder.destructor() ;
   }
 
-
   async build() {
     if(!await this.buildOptions()) return this.panel.close() ; // no media device(s)
 
@@ -1779,8 +1777,17 @@ class Review {
         if (e.type == "change") {
           if(this.state == "Live") this.replay(value) ;
           else { // this.state == "Replay" 
-           this.setPlayButton("Replay") ;
-           this.video.currentTime = value / 1000;
+           if(scrubber.dataIndex["time_slider"].pos == 1)
+           {  // Invoked when state is  Replay, and scrubber dragged all the way to the right.
+              // Set logic s.t. a subsequent play button press will transition to live.
+             this.setPlayButton("Live") ;
+             this.mediaControls.props.state = "Pause" ;
+             this.mediaControls.refresh() ;
+           }
+           else {
+             this.setPlayButton("Replay") ;
+             this.video.currentTime = value / 1000;
+           }
           }       
         }
      }) ;
@@ -1884,7 +1891,6 @@ class Review {
     this.state = "live" ;
     this.live() ;
   }
-
 
   wave() {
     // update spectrogram display and (re)generate wave display
