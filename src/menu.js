@@ -459,7 +459,7 @@ class Menu {
         rastrum: {
           name: "Rastrum",
           svgPath: iconPaths["Rastrum"],
-          stash: {  alpha:"1", gap:5, bars:1, rgb: "#000000", style:"L-R", width: .75, bars:1,barsWidth:.75}, // "L-R" or "T-B"
+            stash: {  alpha:"1", gap:5, bars:1, lines: 5, rgb: "#000000", style:"L-R", width: .75, bars:1,barsWidth:.75}, // "L-R" or "T-B"
         },
         text: {
           name: "Text",
