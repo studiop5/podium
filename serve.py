@@ -9,8 +9,9 @@ MIME_MAP = {
    "": "text/html",
    ".html": "text/html",
    ".js": "application/javascript",
-   ".pdf": "application/pdf",
    ".otf": "application/font-otf",
+   ".pdf": "application/pdf",
+   ".png": "image/png",
 }
 
 class PodiumHandler(http.server.SimpleHTTPRequestHandler):

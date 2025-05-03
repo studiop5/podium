@@ -18,7 +18,7 @@
 // python3 build.py --podium.  All text  between +/- skip fill be stripped out,
 // and all the following // #include files will be  textually included.
 
-import { animate, clamp, css, cssIndex, dialog, delay, getBox, helm, iconSvg, listen, schedule, Schedule, toast, unlisten } from "./common.js";
+import { animate, dialog, delay,  helm, listen, Schedule, toast, unlisten } from "./common.js";
 import "./font.js";
 import { Score } from "./score.js";
 import { Menu } from "./menu.js";
