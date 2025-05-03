@@ -703,14 +703,18 @@ for more details.</p>
         <div>Version ${_podiumVersion_}</div>
         <div style="margin-top:1em;">Factory Reset:</div>
         <div data-tag="buttons"></div><br>
-        <a href="https://github.com/studiop5/podium">Github</a>
-        <a href="mailto:glen@studiop5.org">Contact \u2709</a>
+        <span>
+          <a target="_blank" rel="noopener noreferrer" href="https:/\/www.studiop5.org/privacy.html">Privacy</a>&nbsp;
+          <a target="_blank" rel="noopener noreferrer" href="https:/\/www.studiop5.org/terms.html">Terms</a>&nbsp;
+          <a target="_blank" rel="noopener noreferrer" href="https:/\/github.com/studiop5/podium">Github</a>&nbsp;
+          <a href="mailto:glen@studiop5.org">Contact \u2709</a>
+        </span>       
      <div>`
   );
 
   constructor(cell) {
     super(cell);
-    let tabView = new TabView(this, "Help", "About", "Credits", "License");
+    let tabView = new TabView(this, "About", "Help", "Credits", "License");
     Object.assign(this.body.style, {
       margin: 0,
       width: "90vw",
@@ -743,7 +747,7 @@ for more details.</p>
     tabView.tabs["Credits"].face.append(this.creditsFace);
     tabView.tabs["License"].face.append(this.licenseFace);
     this.body.append(tabView.elm);
-    tabView.tabs["Help"].select();
+    tabView.tabs["About"].select();
   }
 }
 
