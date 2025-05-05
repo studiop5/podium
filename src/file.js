@@ -349,7 +349,7 @@ class CachedSrc extends FileSrc {
   redirectUri = encodeURIComponent(`${window.location.origin}/podauth.html`);
   token = null;
   tokenExpiry = performance.now();
-  authTimeout = 90000;
+  authTimeout = 180000;
 
   popupSizes = {};
 
