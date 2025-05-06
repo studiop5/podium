@@ -345,7 +345,8 @@ class Menu {
       );
     });
 
-    this.listen("score/close/up", () => {
+    this.listen("score/close/up", async () => {
+      if(!await(checkUnsaved("Warning: current score has unsaved changes. Close anyway?", true))) return ;
       Layout.activeLayout.destructor() ;
       Layout.activeLayout.elm.remove();
       Layout.activeLayout = null ;

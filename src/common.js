@@ -772,6 +772,7 @@ class PodiumInput extends HTMLInputElement {
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
+     debugger ;
     /*unused */
   }
 }
