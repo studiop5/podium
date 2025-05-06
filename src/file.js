@@ -51,16 +51,18 @@ let errDialog = (error, stack, msg) => {
 };
 
 
-let checkUnsaved = async (msg = "Warning: current score has unsaved changes. Open anyway?") => {
+let checkUnsaved = async (msg = "Warning: current score has unsaved changes. Open anyway?", close = false) => {
   // Display a confirm dialog if there is a dirty Score.activeScore that would be overriden
   // without saving by opening a new Score. Return promise that resolves to true iff user clicks "Open".
+  // When close if true, "Open" is replaced with "Close".
   return new Promise(async (accept, reject) => {
     if(Score.activeScore && Score.activeScore.dirty) {
       dialog(msg,
-        { Open: { svg: "Open" }, Cancel: { svg: "Cancel" } },
+        close ?  { Close: { svg: "Close"}, Cancel: { svg: "Cancel" } }:
+                 { Open: { svg: "Open" }, Cancel: { svg: "Cancel" } },
         (e, prop, tag, args) => {
           args.close();
-          accept(tag == "Open") ;
+          accept(tag == "Open" || tag == "Close") ;
         }
       )}
     else accept(true) ;
@@ -1592,8 +1594,8 @@ class FileListView {
              ${modified ? "Modified: "+ modified + "<br>" : ""}
            </div>
            <div>
-             ${source == "Local" ? "" : iconSvg("Pencil", {tag: "rename", style: "width:2.75em;padding:.5em;"})}
-             ${source == "Local" ? "" :iconSvg("Trash", {tag: "trash", style: "width:3em;padding:.5em;"})} </div>
+             ${source == "Local" ? "" : this.mode == "copy" ? "" : iconSvg("Pencil", {tag: "rename", style: "width:2.75em;padding:.5em;"})}
+             ${source == "Local" ? "" : this.mode == "copy" ? "" : iconSvg("Trash", {tag: "trash", style: "width:3em;padding:.5em;"})} </div>
            </div>
        </div>`);
     elm.style.background = color;
@@ -1649,7 +1651,7 @@ class FileListView {
   }
 
   async getFile(source, requestedPath, requestedName) {
-    if(!await checkUnsaved())
+    if(this.mode != "copy" && !await checkUnsaved())
       return ;
     _shade_.show("Downloading file");
     return new Promise(async (accept, reject) => {

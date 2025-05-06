@@ -252,6 +252,7 @@ async function main() {
         as well.
      **/
     listen(document, "keydown", (e) => {
+      if(e.target.type == "text") return ;  // ignore keydown from a text input
       let layout = Layout.activeLayout;
       let { forward, reverse } = _menu_.rings.page.cells.numbers.stash;
       if (!layout) return;
