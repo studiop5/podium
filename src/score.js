@@ -570,7 +570,7 @@ class Score {
   static sources = Object.freeze({
     local: "Local",
     gdrive: "Drive",
-    dbx: "DropBox",
+    dbx: "Dropbox",
     odrive: "OneDrive",
   });
 
