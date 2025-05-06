@@ -77,7 +77,7 @@ class FileSrc
   file systems implementing hierarchical (tree-structured) file
   storage systems. Data from each cloud-based system is manipulated
   through a corresponding "Src" class that makes calls on that
-  system's native api. Currently, Google Drive, DropBox, and Microsoft
+  system's native api. Currently, Google Drive, Dropbox, and Microsoft
   OneDrive are implemented.
 
   Note: whenever the term "path" is used in this module, it refers to
@@ -829,7 +829,7 @@ class GDriveSrc extends CachedSrc {
 }
 
 /**
-class DbxSrc (i.e. DropBox)
+class DbxSrc (i.e. Dropbox)
 */
 class DbxSrc extends CachedSrc {
   source = Score.sources.dbx;
