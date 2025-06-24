@@ -696,7 +696,6 @@ class Menu {
     let dxdy = [e.clientX - box.x, e.clientY - box.y];
 
     let [ringKey, cellKey] = keys.split("/");
-
     // Allow user interaction to spin the disk or ring only when pointer is within 20% of edge of disk or ring
     let ptrOffset = Math.hypot(e.clientX - this.elm.offsetLeft, e.clientY - this.elm.offsetTop) / (_pxPerEm_ * parseFloat(this.elm.style.fontSize));
     let canSpin = true;
@@ -729,6 +728,7 @@ class Menu {
     let ringRadiusPx = op.ring.elm.offsetWidth / 2;
     op.turn = op.turn0 = Math.atan2(dxdy[1] - ringRadiusPx, dxdy[0] - ringRadiusPx) / (Math.PI * 2) + 1.25;
     this.startAngle = op.turn;
+
     switch (op.state) {
       case "ring": {
         op.turnOffset = op.turn - op.ring.turn;
@@ -755,6 +755,7 @@ class Menu {
       case "grip": {
         this.notify("down");
         this.grip.classList.add("Menu__grip-selected");
+
         op.schedule.run(
           _longPressMs_,
           () => {
@@ -762,7 +763,6 @@ class Menu {
             this.notify("long");
             this.grip.classList.remove("Menu__grip-selected");
           },
-          this
         );
       }
     }
@@ -986,7 +986,7 @@ class Menu {
     let version = stashJsonObj.version;
     if (!version) return;
     if (version != _podiumVersion_) {
-      toast("Podium version mismatch, ignoring stash");
+      console.log("Podium version mismatch, ignoring stash");
       return;
     }
     for (let [ringKey, ringValue] of Object.entries(stashJsonObj)) {

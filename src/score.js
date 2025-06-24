@@ -203,6 +203,7 @@ class Pg {
         this.thumbElm = null;
         this.json = null;
       } else this.json = this.toJson();
+      this.canvas.clear() ;
       this.canvas.dispose();
       this.canvas = null;
       this.mozCanvas?.remove();

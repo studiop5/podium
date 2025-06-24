@@ -781,9 +781,9 @@ class BookLayout extends Layout {
       this.inOp = false;
       return;
     }
-    // If distance from x to toX <= .3em, go directly to toX. Otherwise
+    // If distance from x to toX <= 1em, go directly to toX. Otherwise
     // move towards toX by 1/2 of the distance...ditto for y.
-    let minD = 0.3 * _pxPerEm_;
+    let minD =  _pxPerEm_;
     let dX = Math.abs((toX - x) / 2.5);
     let dY = Math.abs((toY - y) / 2.5);
     x = dX <= minD ? toX : toX > x ? x + dX : x - dX;
@@ -1161,16 +1161,15 @@ class ScrollLayout extends Layout {
     g.pgShow = Math.min(pgShow, g.pgCount) ; // g.pgShow must be <= total page count
     g.pgSnap = Math.min(pgSnap, g.pgCount) ; // g.pgSnap must be <= total page count
 
-    if (fit == "Auto") fit = window[INNERHEIGHT] > window[INNERWIDTH] ? WIDTH : HEIGHT ;
-    else fit = fit.toLowerCase() ;
+    if(fit == "Auto") fit = window[INNERHEIGHT] > window[INNERWIDTH] ? WIDTH : HEIGHT ;
 
-    if (fit == "none") {
+    if (fit == "None") {
       g.pg[WIDTH] = score[MAXWIDTH] ;
       g.gap = gap * g.pg[WIDTH];
       g.pg[HEIGHT] = score[MAXHEIGHT] ;
       g.scroll[WIDTH] = g.rollGirth + g.gap + (g.pg[WIDTH] + g.gap) * g.pgShow + g.rollGirth;
       g.scroll[HEIGHT] = g.gap + g.pg[HEIGHT] + g.gap;
-    } else if (fit == WIDTH) {
+    } else if (fit.toLowerCase() == WIDTH) { 
       g.scroll[WIDTH] = window[INNERWIDTH] - Layout.margin - Layout.margin ;
       g.pg[WIDTH] = ((g.scroll[WIDTH] - g.rollGirth - g.rollGirth) / g.pgShow) / (1 + gap + gap/g.pgShow) ;
       g.gap = gap * g.pg[WIDTH] ;
@@ -1296,7 +1295,7 @@ class ScrollLayout extends Layout {
     );
 
     listen(
-      this.sash,
+      this.frame, 
       "pointerup",
       (async (eup) => {
         unlisten(mv);

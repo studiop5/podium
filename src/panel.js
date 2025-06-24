@@ -1056,8 +1056,6 @@ class NewPanel extends Panel {
         Size:<br>
         <select class="FontPanel__select" data-tag="presets">
           <option value="custom">Custom:</option>
-          <option value="pt/100/100">Test1</option>
-          <option value="pt/1000/1000">Test2</option>
           <option value="mm/279/420">A3</option>
           <option value="mm/210/297">A4</option>
           <option value="mm/250/353">B4</option>
