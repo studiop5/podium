@@ -106,7 +106,6 @@ async function main() {
     );
 
     listen(_body_, "pointerdown", (e) => {
-
         if (e.isPrimary) {
           if(e.target == _body_) {
             // Gestures are potentially initiated by pointerdown on body.
@@ -371,3 +370,5 @@ async function main() {
 
 
 main();
+
+import {} from "./demo.js"

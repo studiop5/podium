@@ -772,8 +772,7 @@ class PodiumInput extends HTMLInputElement {
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
-     debugger ;
-    /*unused */
+    /*unused */ 
   }
 }
 
@@ -1094,7 +1093,7 @@ class Spot {
   constructor(color, parent) {
     this.parent = parent;
     this.elm = helm(`<div style=
-      "pointer-events:none;position:absolute;width:.5em;height:.5em;background:${color};visibility:hidden;"
+      "z-index:100000;pointer-events:none;position:absolute;width:.5em;height:.5em;background:${color};visibility:hidden;"
     ></div>`);
     this.parent.append(this.elm);
   }

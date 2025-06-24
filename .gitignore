@@ -3,3 +3,5 @@ GH
 cert.pem
 key.pem
 notes
+.aider*
+CLAUDE.md
