@@ -45,24 +45,27 @@ class Pg {
 
     this.background = background;
     this.canvas = null; // fabricjs canvas
-    this.domCanvas = null; // html dom canvas
+    this.deferred = false; // true while pdf rendering deferred for non-blocking
     this.editable = false;
     this.elm = null; // shortcut for this.canvas.wrapperEl: the base element of the fabric canvas dom
     this.grid = null; // Grid instance, if any
     this.inflated = false; // true iff a fabricjs canvas is currently available
+    this.inflateAborted = false ; // flag to cancel inflation promise
     this.inUse = false; // marker for class Score's caching algorithm
     this.score = score;
     this.height = height;
     this.json = json;
+    this.mozCanvas = null ; 
     this.mozPn = mozPn;
     this.thumbUrl = null;
     this.width = width;
     this.paddingColor = null;
     this.undoStack = [];
+    this.zoom = 1 ;
     return this;
   }
 
-  async renderPdf() {
+  async renderPdf(canvas) {
     // If this page is used to display pdf content (the usual case),
     // then this function renders that pdf to a dom canvas instance
     // referenced as this.mozCanvas (short for mozilla pdf library
@@ -78,9 +81,8 @@ class Pg {
     let mozCanvas = helm(`<canvas width="${viewport.width}" height="${viewport.height}" 
       style="width:${w / _pxPerEm_}em;height:${h / _pxPerEm_}em;font-size:1em"></canvas>`);
     if (this.mozCanvas) this.mozCanvas.replaceWith(mozCanvas);
-    else this.canvas.wrapperEl.append(mozCanvas);
+    else canvas.wrapperEl.append(mozCanvas);
     this.mozCanvas = mozCanvas;
-    this.setZoom(this.zoom);
     let ctx = mozCanvas.getContext("2d");
     await mozPg.render({
       // render *without* annotations
@@ -100,9 +102,11 @@ class Pg {
       };
       this.paddingColor = "#" + toHex(p[0]) + toHex(p[1]) + toHex(p[2]);
     }
+    this.rendering = false ;
+    this.setZoom(this.zoom);
   }
 
-  async inflate(render = true) {
+  async inflate(render = true, nonblocking = true) {
     // To conserve memory, Pg instances are stored "deflated", and only
     // "inflated" when they are to be actively displayed on screen in
     // a layout.
@@ -110,16 +114,41 @@ class Pg {
     // actually rendered.  This is used when a Pg that is currenly  not
     // on-screen needs to be inflated for serialization of for printing:
     // in this case, there is no need to actually render the Pg.
+    // @nonblocking when true, this.canvas is immediately set to a div,
+    //   and the inflation will be deferred. After
+    //   the inflation finishes, the div is replaced by the fabric
+    //   canvas's container div.
     if (this.inflated) return this;
+    this.inflateAborted = false ;
+    if(this.mozPn && nonblocking) {
+      // Pages backed by mozilla pdf pages can take a long time to render, blocking the ui.
+      // To improve the ui experience, if nonblocking is true (the default), pdf rendering
+      // if done s.t. it doesn't block the ui. In this case, we immediately create a "fake" canvas (really,
+      // a simple div-within-a-div  (so we can set the font-size without effecting the size of the outer div)) to show,
+      // leaving the rendering of pdf to a true canvas until after inflatePromise resolves.
+      this.deferred = true ;
+      this.canvas = helm(`<div style="text-align:center;color:#eee;background:white;font-family:Bravura"><div style="font-size:5em;">\uE4C4<div></div>`) ;
+      this.elm = this.canvas ;
+      this.elm.pg = this; // convenience for accesing pg from dom
+      this.style = this.elm.style; // convenient shorthand
+      this.inflatePromise = this.inflateAux(render).catch(err => console.warn(`Failed to background load/render page ${this.mozPn}:`, err)) ;
+    } else await this.inflateAux(render) ;
+  }
+
+  async inflateAux(render) {
+    if(this.inflateAborted) return ;
+    if(!this.inUse) { // yield to inUse pages
+       await new Promise(resolve => delay(1, resolve));
+      if(this.inflateAborted) return ;
+    }
+
     let score = this.score;
-    this.domCanvas = document.createElement("canvas");
+    let domCanvas = document.createElement("canvas");
     let canvas = new fabric.Canvas(this.domCanvas, {
         enablePointerEvents: true,
         allowTouchScrolling: true,
         imageSmoothingEnabled: false,
     });
-    this.domCanvas = null ;
-    this.canvas = canvas;
     // Setting both *without* cssOnly (in implicit px's), then *with* cssOnly
     // (in explicit em's) creates a canvas that can be resized by simply changing
     // its font size. Not sure why, seems to be a fabricjs oddity.
@@ -134,8 +163,8 @@ class Pg {
     },  { cssOnly: true }   );
 
     if (this.json) await new Promise((resolve, reject) => 
-        this.canvas.loadFromJSON(this.json, () => resolve()));
-    if (render && this.mozPn) await this.renderPdf();
+        canvas.loadFromJSON(this.json, () => resolve()));
+    if (render && this.mozPn) await this.renderPdf(canvas);
     else if (this.background) canvas.setBackgroundColor(this.background);
 
     canvas.requestRenderAll();
@@ -143,6 +172,17 @@ class Pg {
     this.elm = canvas.wrapperEl; // convenience shortcut
     this.elm.pg = this; // convenience for accesing pg from dom
     this.style = this.elm.style; // convenient shorthand
+
+    if(this.deferred) {
+      // We've deferred inflation, so the ui is using a
+      // temporary elm. Copy relevant styles from that elm to the fabric
+      // canvas elm, then replace the temporary elm.
+      ["left","right", "top","bottom","position","clipPath"].forEach((style) => 
+        this.elm.style[style] = this.canvas.style[style]) ;
+      this.canvas.replaceWith(this.elm) ;
+      this.deferred = false ;
+    }
+    this.canvas = canvas ;
 
     // handlers that, together with login in _menu_, help to add, delete,
     // select, etc. fabricjs objects used to annotate pages:
@@ -187,16 +227,19 @@ class Pg {
     canvas.on("object:removed", ((obj) => pushState(obj)).bind(this));
     canvas.on("object:modified", ((obj) => pushState(obj)).bind(this));
     if (this.undoStack.length == 0) // initialize undo stack on first inflate
-       this.undoStack.push(this.canvas.toDatalessObject());
+       this.undoStack.push(canvas.toDatalessObject());
+
 
     this.inflated = true;
     this.setEditable(this.editable); // indicate pg is editable. note: called AFTER setting this.inflated
+    this.setZoom(this.zoom) ;
   }
 
   deflate(full = false) {
     // Deflate's a Pg, releasing its resources for garbage collection.
     // @full boolean: iff true, any thumbElm is not deleted during
     //   deflation.
+    this.inflateAborted = true ;
     if (this.inflated) {
       if (full) {
         this.thumbElm?.remove();
@@ -231,7 +274,7 @@ class Pg {
     // -  the two object URLs are revoked on after a delay of 10 animation frames
     if (!this.thumbElm || force) {
       let deflated = !this.inflated;
-      if (deflated) await this.inflate();
+      if (deflated) await this.inflate(true, false);
       let scale = 192 / Math.max(this.width, this.height);
       let w = this.width * scale, h = this.height * scale;
       this.thumbElm = helm(`<div class="TableLayout__pg" style="width:${w / _pxPerEm_}em;height:${h / _pxPerEm_}em;"></div>`);
@@ -260,7 +303,7 @@ class Pg {
     // @inflate when true, the clone is inflated, otherwise not.
     let theClone = new Pg(this.score, this.width, this.height, this.toJson() || this.json, this.mozPn, null);
     if (this.thumbElm) theClone.thumbElm = this.thumbElm.cloneNode();
-    if (inflate) await theClone.inflate();
+    if (inflate) await theClone.inflate(true, false);
     return theClone;
   }
 
@@ -280,14 +323,23 @@ class Pg {
     // @zoom to a value other than 1 will scale the element uniformally
     //  in width/height.
     this.zoom = zoom;
-    if (!this.inflated) return;
-    this.canvas.setDimensions({ width: (this.width * zoom) / _pxPerEm_ + "em", height: (this.height * zoom) / _pxPerEm_ + "em" }, { cssOnly: true });
-    if (this.grid) this.grid.setZoom(zoom);
-    if (this.mozCanvas) {
-      this.mozCanvas.style.width = (this.width / _pxPerEm_) * zoom + "em";
-      this.mozCanvas.style.height = (this.height / _pxPerEm_) * zoom + "em";
+    if(this.deferred) { 
+      // When deferred, where actually resizing a temporary "fake" canvas which is actually a div
+      this.canvas.style.width = this.width * zoom / _pxPerEm_ + "em" ;
+      this.canvas.style.height = this.height * zoom / _pxPerEm_ + "em" ;
+      this.canvas.style.lineHeight = this.canvas.style.height ;
     }
-    return this.canvas.requestRenderAll();
+    else if(this.inflated) {
+      let emWidth = this.width * zoom / _pxPerEm_ + "em" ;
+      let emHeight = this.height * zoom / _pxPerEm_ + "em" ;
+      this.canvas.setDimensions({ width: emWidth, height: emHeight}, { cssOnly: true });
+      if (this.grid) this.grid.setZoom(zoom);
+      if (this.mozCanvas) {
+        this.mozCanvas.style.width = emWidth ;
+        this.mozCanvas.style.height = emHeight ;
+      }
+      return this.canvas.requestRenderAll();
+    }
   }
 
   toJson() {
@@ -351,7 +403,7 @@ class Pg {
     };
 
     let wasInflated = this.inflated;
-    if (!wasInflated) await this.inflate(false); // temporarily re-inflate, but skip  unnecessary rendering
+    if (!wasInflated) await this.inflate(false, false); // temporarily re-inflate, but skip  unnecessary rendering
     // delete all existing annotations
     let annots = pLibPg.node.Annots();
     if (annots) annots.array.splice(0, annots.array.length);
@@ -471,7 +523,7 @@ class Pg {
           break ;
         }
         default: {
-          console.log("Unsupported fabric obj:", obj.type);
+          console.warn("Unsupported fabric obj:", obj.type);
         }
       }
     }
@@ -586,17 +638,18 @@ class Score {
       let pg = new Pg(score, width, height, null, null, "#fff");
       /*
         // for testing only, add a page number to each page:
-        pg.inflate();
+        await pg.inflate();
         pg.canvas.add(new fabric.Textbox("pg " + i));
         pg.deflate();
-      */
-
+       */
       /*
-        // For testing, onall add a small and large pages to test the
+        // For testing only, add a small and large pages to test the
         // Pg padding mechanism provided by layouts:
-      if (i == 1) pg = new Pg(score, width / 10, height / 10, null, null, "#f00");
-      if (i == 3) pg = new Pg(score, width * 2, height * 2, null, null, "#f00");
-      if (i == 5) pg = new Pg(score, width * 2, height * 2, null, null, "#0f0"); */
+        if (i == 1) pg = new Pg(score, width / 10, height / 10, null, null, "#f00");
+        else if (i == 3) pg = new Pg(score, width * 2, height * 2, null, null, "#f00");
+        else if (i == 5) pg = new Pg(score, width * 3, height * 3, null, null, "#0f0"); 
+        else pg = new Pg(score, width, height, null, null, "#000") ;
+      */
       await score.pgAdd(pg, i);
     }
     // don't init score until after pgs are added, or layouts will fail
@@ -862,8 +915,10 @@ class Score {
       let newPgCount = mergedScore.pgs.length;
       for (let i = pgCount; i < newPgCount; i++) {
         let pn = i - pgCount + 1;
-        mergedScore.pages[i].json = pages[pn];
+        mergedScore.pgs[i].json = pages[pn];
     } }
+
+    mergedScore.setDirty() ;
     return;
   }
 
@@ -914,18 +969,21 @@ class Score {
     _menu_.enableCells(["page/cut", "page/copy", "page/merge"], this.pgs.length > 0);
   }
 
-  async pgUse(pn) {
+  async pgUse(pn, nonblocking=true) {
     // Layouts "use" a Pg when they want to actively display it,
     // and "unuse" when they are done actively displaying it.
     // A Pg is inflated (if not inflated) when it is
     // marked inUse, and has its lastUsed timestamp updated.
     // @pn  1-based pg number to be used. Can also be a Pg
     //    instance: if so, its pn is determined.
+    // @nonblocking when true, if the pg is backed by a mozilla
+    //    pdf page, the pg's elm will be a tmp div, and the pg's pdf rendering 
+    //    will happen after this call returns, eventually replacing the tmp div
     // @return that Pg.
     pn = parseInt(pn);
     if (pn > this.pgs.length || pn < 1) return null;
     let pg = this.pgs[pn - 1]; // this.pgs is 0-based
-    await pg.inflate();
+    await pg.inflate(true, nonblocking);
     pg.inUse = true;
     pg.lastUsed = performance.now();
     return pg;
@@ -933,12 +991,12 @@ class Score {
 
   pgUnuse(pg) {
     // "unuse" the given @pg, making it a candidate for deflation
-    if (pg.inUse) return;
+    if (!pg.inUse) return;
     pg.inUse = false;
     // We don't immediately deflate an unused pg: instead, deflate least recently
     // used unused pg's, allowing at most Score.MAX_INFLATED inflated but unused pg's.
     let deflatable = this.pgs.filter((pg) => pg.inflated && !pg.inUse);
-    deflatable.sort((a, b) => a.lastUsed - b.lastUsed);
+    deflatable.sort((a, b) => b.lastUsed - a.lastUsed);
     while (deflatable.length > Score.MAX_INFLATED) {
       deflatable.pop().deflate();
     }
@@ -957,4 +1015,5 @@ class Score {
     // from given object's properties
     Object.assign(this, props);
   }
+
 }

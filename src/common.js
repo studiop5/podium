@@ -1334,7 +1334,6 @@ function dataIndex(key, elm) {
 
 function delay(frameCount, func) {
   // delay execution of a function a given number of animation frames
-  //console.log(frameCount, func) ;
   if (frameCount <= 0) return func();
   requestAnimationFrame(() => delay(frameCount - 1, func));
 }
@@ -1740,7 +1739,6 @@ css(
       border: var(--border) ;
       border-radius: var(--borderRadius) ;
       background-color: #eee ;
-      transition: left .2s;
    }`
 );
 

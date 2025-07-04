@@ -321,7 +321,8 @@ async function main() {
   {
     /**
         If url query parameter "file" defined, open it. This is
-        experimental code for running podium as a browser extension.
+        experimental code for running podium as a browser extension:
+        not currently called by anything.
      **/
     if (window.location.search) {
       //    let file = new URLSearchParams(window.location.search).get("file");
@@ -371,4 +372,3 @@ async function main() {
 
 main();
 
-import {} from "./demo.js"
