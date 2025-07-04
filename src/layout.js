@@ -389,6 +389,9 @@ class Layout {
     // Individual pages can be smaller than their scores largest page, but
     // layouts require all pages to be the same size. When a page as shorter and/or narrower
     // than the score's max height/width, add a border to pad it out.
+    if(pg.deferred) // reschedule the padding...
+      return delay(5, () => this.pgPad(pg)) ;
+
     if (!pg.inflated || (pg.width == this.score.maxWidth && pg.height == this.score.maxHeight)) return;
     let horz = ((this.score.maxHeight - pg.height) * pg.zoom) / 2;
     let vert = ((this.score.maxWidth - pg.width) * pg.zoom) / 2;
@@ -789,10 +792,10 @@ class BookLayout extends Layout {
     x = dX <= minD ? toX : toX > x ? x + dX : x - dX;
     y = dY <= minD ? toY : toY > y ? y + dY : y - dY;
     this.pgMove(x, y, advancing);
-    this.pgFlipAnimator.run(45, () => this.pgFlip(x, y, toX, toY, advancing, func));
+    this.pgFlipAnimator.run(60, () => this.pgFlip(x, y, toX, toY, advancing, func));
   }
 
-  async pgMount(pn, slot) {
+  async pgMount(pn, slot, nonblocking=true) {
     // First, remove all children of this.slots[slot]. When
     // that child is a Page elm, return it to the score.
     for (let child of [...this.slots[slot].children]) {
@@ -801,7 +804,7 @@ class BookLayout extends Layout {
     }
     // mount the given pg (1-based page number) on the given
     // slot (an index into this.slots)
-    let pg = await this.score.pgUse(pn);
+    let pg = await this.score.pgUse(pn, nonblocking);
     if (pg) {
       pg.setZoom(this.cell.geo.zoom);
       this.pgPad(pg);
@@ -948,7 +951,7 @@ class BookLayout extends Layout {
     // be pgC and pgD.  Re-assign the pg instance variables
     // and tags to correct their roles by circularly shifting
     // them left (advancing) or right (when not advancing) 2 positions.
-    // This frees up 2 pages, requires and loading 2 pages.
+    // This frees up 2 pages, and requires loading 2 pages.
     if (advancing) {
       this.pn0 += 2;
       // left circular shift slots
@@ -974,19 +977,29 @@ class BookLayout extends Layout {
     pn = clamp(pn, 1, this.score.pgs.length);
     let pn0 = pn - (pn & 0x01 ? 3 : 2);
     this.pgFlipAnimator.cancel();
-    let advancing = pn0 > this.pn0;
-    if (advancing) pn0 -= 2; // mount 2 pages before, then flip forward
-    else pn0 += 2; // mount 2 pages after, then flip backward
-    this.pn0 = pn0;
-    for (let i = 0; i < 6; i++) await this.pgMount(pn0++, i);
-    delay(8, () => {
-      let {pgWidth, pgHeight} = this.cell.geo ;
-      if (advancing) this.pgFlip(pgWidth, 0, -pgWidth, pgHeight / 2, true,
-        async () => await this.pgShift(true, false));
-      else this.pgFlip(-pgWidth, pgHeight, pgWidth, pgHeight /2, false,
-        async() => await this.pgShift(false, false)) ;
-      this.pnPost(pn, true) ;
-    }) ;
+    let advancing = pn > this.pn0;
+    if(pn == 1) advancing = false ; // can't advance into 1st page
+
+    if(advancing) { 
+      await this.pgMount(pn0+2, 4, false) ;
+      await this.pgMount(pn0+3, 5, false) ;
+      await this.pgMount(pn0  , 2, true) ;
+      await this.pgMount(pn0+1, 3, true) ;
+      this.pn0 = pn0 - 2;
+    }
+    else {
+      await this.pgMount(pn0+2, 0, false) ;
+      await this.pgMount(pn0+3, 1, false) ;
+      await this.pgMount(pn0+4, 2, true) ;
+      await this.pgMount(pn0+5, 3, true) ;
+      this.pn0 = pn0 + 2 ;
+    }
+    let {pgWidth, pgHeight} = this.cell.geo ;
+    if (advancing) this.pgFlip(pgWidth, 0, -pgWidth, pgHeight / 2, true,
+      async () => await this.pgShift(true, false));
+    else this.pgFlip(-pgWidth, pgHeight, pgWidth, pgHeight /2, false,
+      async() => await this.pgShift(false, false)) ;
+    this.pnPost(pn, true) ;
     return pn;
   }
 
@@ -1013,6 +1026,15 @@ class BookLayout extends Layout {
     }
     this.shadow.remove();
   }
+
+ show() {
+  // for debugging only
+  this.slots.forEach((slot, idx) => {
+     console.log("slot " + idx + " " + slot.dataset.slot + 
+         " pg " + (slot.firstElementChild? slot.firstElementChild.dataset.pg : "empty")) ;
+    })
+  }
+
 }
 
 /**
@@ -1696,7 +1718,7 @@ class TableLayout extends Layout {
     }
 
     // now build the new active page
-    let pg = await this.score.pgUse(pn);
+    let pg = await this.score.pgUse(pn, false);
     pg.elm.style.display = "block";
     let h = (pg.height / this.score.maxHeight) * this.pgHeight;
     let w = (pg.width / this.score.maxWidth) * this.pgWidth;

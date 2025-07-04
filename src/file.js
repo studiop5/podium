@@ -32,7 +32,7 @@ let bytesToBase64DataUrl = async (bytes, type = "application/octet-stream") => {
 };
 
 let err = (call, msg) => {
-  console.log(`**** Podium FileSrc error in call: ${call}`, msg);
+  console.warn(`**** Podium FileSrc error in call: ${call}`, msg);
   console.trace();
   throw new Error(msg, { cause: "fileSrc" });
 };
@@ -45,7 +45,7 @@ let errDialog = (error, stack, msg) => {
   else if (error.cause == "security") dialog(`<em>Security Error</em><br><br><strong>${error.message}</strong>`);
   else if (error.cause == "fileSrc") dialog(`<em>${msg}</em><br><br><strong>${error.message}</strong>`);
   else {
-    console.log(`*** Unexpected Podium Error: ${stack}`);
+    console.warn(`*** Unexpected Podium Error: ${stack}`);
     dialog(`<em>Unexpected Error</em><br><br><strong>${error}</strong><br><br>Details in console.`);
   }
 };

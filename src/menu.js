@@ -331,10 +331,9 @@ class Menu {
     }) ;
 
     this.listen(["score/details/out", "score/open/out","score/save/out","score/new/out","score/print/out", "score/bind/out"], (cell) => this.openPanel(cell)) ;
-
-    // The print and bind cells have no /up functionality, so we let /up their cells also open their panel:
+    // The print and bind cells have no /up functionality, so we let the up action  open their panels:
     this.listen("score/print/up", (cell) => panels.PrintPanel.get(cell).show().setPosition(this.grip)) ;
-    this.listen("score/bind/up", (cell) => panels.PrintPanel.get(cell).show().setPosition(this.grip)) ;
+    this.listen("score/bind/up", (cell) => panels.BindPanel.get(cell).show().setPosition(this.grip)) ;
 
     this.listen("score/new/up", async (cell) => {
       if(!await checkUnsaved()) return ;
@@ -698,11 +697,6 @@ class Menu {
     let [ringKey, cellKey] = keys.split("/");
     // Allow user interaction to spin the disk or ring only when pointer is within 20% of edge of disk or ring
     let ptrOffset = Math.hypot(e.clientX - this.elm.offsetLeft, e.clientY - this.elm.offsetTop) / (_pxPerEm_ * parseFloat(this.elm.style.fontSize));
-    let canSpin = true;
-    if (ringKey != "grip") {
-      if (cellKey) canSpin = ptrOffset / this.sizes.ringRadius > 0.80;
-      else canSpin = ptrOffset / this.sizes.diskRadius > 0.80;
-    }
 
     Object.assign(op, {
       e: e,
@@ -715,7 +709,6 @@ class Menu {
       origin: { x: e.clientX, y: e.clientY },
       ring: this.activeRing,
       out: false,
-      canSpin: canSpin,
       spun: false, // set to true when ring or disk is spun a minimal amount
       turn0: null, // initial turn on pointerDown
       turn: null, // current turn, updates with rotation
@@ -736,11 +729,6 @@ class Menu {
         if (op.cell.enabled == false) break;
         op.cell.elm.classList.add("Menu__cell-selected");
         this.notify(`${ringKey}/${cellKey}/down`);
-        op.schedule.run(_longPressMs_, () => {
-          op.completed = true;
-          this.notify(`${ringKey}/${cellKey}/long`);
-          op.cell.elm.classList.remove("Menu__cell-selected");
-        });
         break;
       }
       case "disk": {
@@ -798,9 +786,9 @@ class Menu {
     // we keep op.turn positive by adding on 1.25
     op.turn = Math.atan2(dxdy[1] - ringRadiusPx, dxdy[0] - ringRadiusPx) / (Math.PI * 2) + 1.25;
     // how much has either disk been spun? ... want to ignore jitter
-    if (op.state != "grip" && Math.abs(op.turn - op.turn0) > 0.05) {
-      op.schedule.cancel();
-      op.spun = true;
+    if(Math.abs(op.turn - op.turn0) > 0.03) {
+      op.schedule.cancel() ;
+      op.spun = true ;
     }
     // how much has the menu been dragged?
     if (!op.moved && (Math.abs(e.clientX - op.origin.x) > 25 || Math.abs(e.clientY - op.origin.y) > 25)) {
@@ -810,8 +798,7 @@ class Menu {
 
     switch (op.state) {
       case "ring": {
-        if (op.canSpin) {
-          ///
+        if (op.spun) {
           op.ring.turn = op.turn - op.turnOffset;
           op.ring.elm.style.transform = `rotate(${op.ring.turn}turn)`;
           let rotation = 1 / op.ring.elm.childElementCount;
@@ -824,7 +811,7 @@ class Menu {
         break;
       }
       case "disk": {
-        if (op.canSpin) {
+        if (op.spun) {
           this.disk.turn = op.turn - this.disk.turnOffset;
           this.disk.style.transform = `rotate(${this.disk.turn}turn)`;
           let rotation = 1 / this.disk.childElementCount;
@@ -986,7 +973,7 @@ class Menu {
     let version = stashJsonObj.version;
     if (!version) return;
     if (version != _podiumVersion_) {
-      console.log("Podium version mismatch, ignoring stash");
+      console.warn("Podium version mismatch, ignoring stash");
       return;
     }
     for (let [ringKey, ringValue] of Object.entries(stashJsonObj)) {
