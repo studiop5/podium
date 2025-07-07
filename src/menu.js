@@ -325,9 +325,10 @@ class Menu {
     }) ;
 
     this.listen(["score/details/out", "score/open/out","score/save/out","score/new/out","score/print/out", "score/bind/out"], (cell) => this.openPanel(cell)) ;
-    // The print and bind cells have no /up functionality, so we let the up action  open their panels:
+    // The print, details, bind cells have no /up functionality, so we let the up action  open their panels:
     this.listen("score/print/up", (cell) => panels.PrintPanel.get(cell).show().setPosition(this.grip)) ;
     this.listen("score/bind/up", (cell) => panels.BindPanel.get(cell).show().setPosition(this.grip)) ;
+    this.listen("score/details/up", (cell) => panels.DetailsPanel.get(cell).show().setPosition(this.grip)) ;
 
     this.listen("score/new/up", async (cell) => {
       if(!await checkUnsaved()) return ;
@@ -592,6 +593,15 @@ class Menu {
 
     paths = Object.keys(rings.more.cells).map((path) => `more/${path}/`) ;
     this.listen(paths.map((path) => path + "out"),  (cell) => this.openPanel(cell)) ;
+
+    // more cells have no functionality except their panels, so allow .../up to open the panel
+   this.listen("more/metronome/up", (cell) => panels.MetronomePanel.get(cell).show().setPosition(this.grip)) ;
+   this.listen("more/stopwatch/up", (cell) => panels.StopwatchPanel.get(cell).show().setPosition(this.grip)) ;
+   this.listen("more/clock/up", (cell) => panels.ClockPanel.get(cell).show().setPosition(this.grip)) ;
+   this.listen("more/piano/up", (cell) => panels.PianoPanel.get(cell).show().setPosition(this.grip)) ;
+   this.listen("more/review/up", (cell) => panels.ReviewPanel.get(cell).show().setPosition(this.grip)) ;
+   this.listen("more/volume/up", (cell) => panels.VolumePanel.get(cell).show().setPosition(this.grip)) ;
+   this.listen("more/help/up", (cell) => panels.HelpPanel.get(cell).show().setPosition(this.grip)) ;
 
     // grip: no cells here, just handlers
     this.listen("up", () => this.collapse());

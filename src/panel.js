@@ -465,6 +465,7 @@ class DetailsPanel extends Panel {
   show() {
     super.show();
     this.refresh();
+    return this ;
   }
 }
 
@@ -1578,10 +1579,6 @@ class ReviewPanel extends Panel {
   destructor() {
     super.destructor();
     this.review.destructor();
-  }
-
-  async show() {
-    super.show();
   }
 
   hide() {
