@@ -219,7 +219,7 @@ class Layout {
   async onDown(e) {
     // Subclasses should call this at the beginning of their own onDown function:
     // the convention for the mouseDown || touchDown || pointerDown event handler.
-    //  If this method returns true, they should not continue processing the event.
+    // If this method returns true, they should not continue processing the event.
     // @param e event, the subclass event handler event argument
     // @return boolean, true if this method handles this event and the subclass
     //     should not process it further.
@@ -230,7 +230,6 @@ class Layout {
     if (_menu_.activeRing?.key == "page") {
       let pageCell = _menu_.activeRing.activeCell;
       if (!pageCell) return false;
-      if (!pageCell.elm.classList.contains("Menu__cell-locked")) _menu_.activateCell(null);
       let pageKey = pageCell.key;
       let layoutKey = _menu_.rings.layout.activeCell.key;
       let pasteCell = _menu_.rings.page.cells.paste;
@@ -238,8 +237,7 @@ class Layout {
       let score = this.score;
       if (score.pgs.length == 0) pn = 1;
       else {
-        // determine the effective pn (page number)
-        // add/paste ops insert before page when event is in left (or top) half of e.target,
+        // The add/paste ops insert before page when event is in left (or top) half of e.target,
         // and after page when clicked in right (or bottom) half. We use left/right for
         // for most layouts, but VerticalLayout uses top/bottom.
         pg = e.target.pg || e.target.closest(".canvas-container")?.pg;
