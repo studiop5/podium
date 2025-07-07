@@ -64,12 +64,6 @@ class Menu {
     .Menu__cell-active {
       background: radial-gradient(#fff 64%, #ccc 73%) ;
     } 
-    .Menu__cell-locked {
-      background: radial-gradient(#fff 64%, #ccc 73%) ;
-      text-decoration: underline;
-      font-style: italic;
-      font-weight: bold;
-    } 
     .Menu__cell-panel {
     }
     .Menu__cell-panel::after {
@@ -537,11 +531,14 @@ class Menu {
     };
 
     // actions:
+
     this.listen("page/up", () => this.activateRing(rings.page));
     paths = Object.keys(rings.page.cells).map((path) => `page/${path}/`) ;
     this.listen(paths.map((path) => path + "up"), (cell) => this.activateCell(rings.page.activeCell === cell ? null :cell)) ;
     this.listen(paths.map((path) => path + "long"), (cell) => this.activateCell(cell, true)) ;
     this.listen(paths.map((path) => path + "out"), (cell) =>  this.openPanel(cell)) ;
+    // numbers panel has no functionality except its panel, so allow up to open the panel
+    this.listen("page/numbers/up", (cell) => panels.NumbersPanel.get(cell).show().setPosition(this.grip)) ;
 
 
     // More ring
@@ -888,17 +885,15 @@ class Menu {
     if(Score.activeScore) Score.activeScore.setEditable(ring.key == "ink" && ring.activeCell) ;
   }
 
-  activateCell(cell, lock = false) {
+  activateCell(cell) {
     // Overlay a div onto given cell of active ring visually mark it as active.
-    // If lock is true, cell is marked as active and locked.
     // Call with cell = null to deactivate active cell (if any) on the active ring
     // Only 1 cell per ring can be active at a time, so if the ring
     // had an active cell before this call, it will be deactivated.
     let ring = this.activeRing;
-    if (!lock && ring?.activeCell == cell) return;
-    if (ring?.activeCell) ring.activeCell.elm.classList.remove("Menu__cell-active", "Menu__cell-locked");
+    if (ring?.activeCell) ring.activeCell.elm.classList.remove("Menu__cell-active");
     if (cell) {
-      cell.elm.classList.add(lock ? "Menu__cell-locked" : "Menu__cell-active");
+      cell.elm.classList.add("Menu__cell-active");
       ring.activeCell = cell;
       ring.stash.active = cell.key;
     } else ring.activeCell = null;
@@ -1099,12 +1094,9 @@ class Menu {
 
   async pgDownEvent(options, pg) {
     let addObj = (obj) => {
-      pg.canvas.add(obj);
       this.added = obj;
+      pg.canvas.add(obj);
       pg.canvas._target = obj;
-      // Prevent canvas._onMouseDown from recursively calling this.pgDownEvent:
-      options.e.disarm = true;
-      delay(1, () => pg.canvas._onMouseDown(options.e));
     };
 
     if (this.activeRing.key != "ink") return;
@@ -1237,7 +1229,6 @@ class Menu {
       this.added = null;
     }
     for (let pg of Score.activeScore.pgs) if (pg.inflated) pg.canvas.isDrawingMode = false;
-    if (!this.activeRing?.activeCell?.elm.classList.contains("Menu__cell-locked")) this.activateCell(null);
   }
 
   setPasteObj(dataUrl, type) {

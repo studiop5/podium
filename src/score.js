@@ -184,28 +184,21 @@ class Pg {
     }
     this.canvas = canvas ;
 
+
     // handlers that, together with login in _menu_, help to add, delete,
     // select, etc. fabricjs objects used to annotate pages:
 
     canvas.on("mouse:down:before", (opts) => {
-        // If opts.e.disarm  true, a no-op: prevents recursion for some algorithms in _menu_.pgDownEvent
-        if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) {
-            if (opts.e.disarm) return;
-            if (_menu_.activeRing.activeCell.key != "transform") _menu_.pgDownEvent(opts, this);
-        }
+      if(_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) _menu_.pgDownEvent(opts, this);
     });
 
     canvas.on("mouse:up", (opts) => {
-        if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) {
-            this.score.setDirty() ;
-            if (_menu_.activeRing.activeCell.key != "transform") _menu_.pgUpEvent(opts, this);
-            if (!_menu_.activeRing?.activeCell?.elm.classList.contains("Menu__cell-locked")) _menu_.activateCell(null);
-        }
+      if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) _menu_.pgUpEvent(opts, this); 
     });
 
     canvas.on("selection:created", (opts) => {
         // Podium only allows one active object (or group), even across multiple pg's, so discard from all other pg's:
-        Pg.clear = false; // disable recursive calls to selection:cleared handler from running
+        Pg.clear = false; // prevent recursive calls to selection:cleared handler from running
         for (let pg of score.pgs) if (pg.inflated && pg != this) pg.canvas.discardActiveObject().requestRenderAll();
         Pg.clear = true;
     });
@@ -214,21 +207,24 @@ class Pg {
         if (Pg.clear) for (let pg of score.pgs) if (pg.inflated && pg != this) pg.canvas.discardActiveObject().requestRenderAll();
     });
 
-    // each pg instances has its own undo stack:
+    // Each pg instance has its own undo stack. Initially, the
+    // stack has 1 entry: its state *before* anything has been
+    // pushed on it.  We need this so that we'll have a state
+    // to undo to.
+    if(this.undoStack.length == 0) // initialize undo stack on first inflate
+      this.undoStack.push(canvas.toDatalessObject());
+
     let pushState = (obj) => {
-        let stack = this.undoStack;
-        if (this.undoing) return;
-        stack.push(this.canvas.toDatalessObject());
-        while (stack.length > 20) stack.shift(); // prune
-        _menu_.enableCells(["ink/undo"], true);
+      if (this.undoing) return;
+      let stack = this.undoStack;
+      stack.push(this.canvas.toDatalessObject());
+      while (stack.length > 10) stack.shift(); // prune
+      _menu_.enableCells(["ink/undo"], true);
     };
 
     canvas.on("object:added", ((obj) => pushState(obj)).bind(this));
     canvas.on("object:removed", ((obj) => pushState(obj)).bind(this));
     canvas.on("object:modified", ((obj) => pushState(obj)).bind(this));
-    if (this.undoStack.length == 0) // initialize undo stack on first inflate
-       this.undoStack.push(canvas.toDatalessObject());
-
 
     this.inflated = true;
     this.setEditable(this.editable); // indicate pg is editable. note: called AFTER setting this.inflated
@@ -348,21 +344,24 @@ class Pg {
     return this.canvas.toJSON();
   }
 
-  async undo() {
+  async undo( ) {
     // pop an entry from the undo stack, resetting pg's state
-    this.setDirty(true) ;
+    this.score.setDirty(true) ;
     let stack = this.undoStack;
     if (stack.length > 1) {
       this.undoing = true;
       stack.pop();
       await new Promise((resolve, reject) => this.canvas.loadFromJSON(stack[stack.length - 1], () => resolve()));
-      if (this.image) await new Promise((resolve, reject) => this.canvas.setBackgroundImage(this.image, () => resolve()));
       this.canvas.requestRenderAll();
       this.undoing = false;
-    } else {
-      _menu_.enableCells("ink/undo", false);
-      _menu_.activateCell(null);
+    } 
+    // If there's nothing left to undo in any pg, disable ink/undo
+    for(let pg of this.score.pgs) {
+      if(pg.undoStack?.length > 1)
+        return ;
     }
+    _menu_.enableCells("ink/undo", false);
+    _menu_.activateCell(null);
   }
 
   mergeObjects() {
