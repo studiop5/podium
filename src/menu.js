@@ -883,6 +883,8 @@ class Menu {
     //        any previous active ring cell will be deactivated.
     if (ring.cellElm.classList.contains("Menu__cell-disabled")) return; // ring cell disabled -> ignore
     if (this.activeRing == ring) return; // no change
+    // special case: if currently editing a fabric text object, exit text editing
+    this.checkEditing() ;
     if (this.activeRing) {
       // Deactivate current active ring
       this.activeRing.elm.style.visibility = "hidden";
@@ -900,6 +902,8 @@ class Menu {
     // Call with cell = null to deactivate active cell (if any) on the active ring
     // Only 1 cell per ring can be active at a time, so if the ring
     // had an active cell before this call, it will be deactivated.
+    // special case: if currently editing a fabric text object, exit text editing
+    this.checkEditing() ;
     let ring = this.activeRing;
     if (ring?.activeCell) ring.activeCell.elm.classList.remove("Menu__cell-active");
     if (cell) {
@@ -1104,9 +1108,10 @@ class Menu {
 
   async pgDownEvent(options, pg) {
     let addObj = (obj) => {
-      this.added = obj;
+      this.newlyCreated = obj;
       pg.canvas.add(obj);
-      pg.canvas._target = obj;
+      pg.canvas._target = obj;  // this makes it "moveable"
+      obj.hasControls = false ; 
     };
 
     if (this.activeRing.key != "ink") return;
@@ -1114,9 +1119,21 @@ class Menu {
 
     if (!activeCell) return;
 
+    if(this.checkEditing()) return ;
+
+    this.newlyCreated = null ;
     switch (activeCell.key) {
+
+      case "transform":
+        if(options.target && !options.target.hasControls) {
+          options.target.hasControls = true ;
+          pg.canvas.requestRenderAll() ;
+        }
+        return ;
+
       case "undo":
         return await pg.undo();
+
       case "pencil":
       case "pen": {
         let { alpha, rgb, width, style } = activeCell.stash;
@@ -1146,8 +1163,8 @@ class Menu {
         let color = fabric.Color.fromHex(rgb);
         color.setAlpha(alpha);
         let rgba = color.toRgba();
-        this.added = new fabric.RastrumBrush(pg.canvas, activeCell.stash, rgba);
-        pg.canvas.freeDrawingBrush = this.added;
+        this.newlyCreated = new fabric.RastrumBrush(pg.canvas, activeCell.stash, rgba);
+        pg.canvas.freeDrawingBrush = this.newlyCreated;
         return (pg.canvas.isDrawingMode = true);
       }
 
@@ -1166,6 +1183,7 @@ class Menu {
           left: options.absolutePointer.x,
           top: options.absolutePointer.y,
           hasControls: false,
+          podiumType: "text", 
         };
         Object.assign(config, fontMap[font]);
         return addObj(new fabric.Textbox("Abc", config));
@@ -1186,6 +1204,7 @@ class Menu {
           left: options.absolutePointer.x,
           top: options.absolutePointer.y,
           hasControls: false,
+          podiumType: "symbols", 
         };
         Object.assign(config, fontMap["Bravura"]);
         return addObj(new fabric.Textbox(codePoint, config));
@@ -1207,7 +1226,7 @@ class Menu {
       case "copy": {
         if (options.target) {
           pg.canvas.discardActiveObject();
-          options.target.clone((clone) => (this.pasteObj = this.added = clone));
+          options.target.clone((clone) => (this.pasteObj = this.newlyCreated = clone));
           this.enableCells("ink/paste", true);
         }
         return;
@@ -1231,14 +1250,25 @@ class Menu {
   pgUpEvent(opts, pg) {
     Score.activeScore.setDirty(true) ;
     if (pg) {
-      if (this.added) {
-        pg.canvas.discardActiveObject(this.added).requestRenderAll();
-        this.added.hasControls = true;
-        if (this.added.type == "Text") this.added.selectAll();
+      if (this.newlyCreated && this.newlyCreated.podiumType == "text") {
+        // For text objects, immediately enter editing:
+        this.newlyCreated.enterEditing() ;
+        this.newlyCreated.selectAll() ; 
       }
-      this.added = null;
     }
     for (let pg of Score.activeScore.pgs) if (pg.inflated) pg.canvas.isDrawingMode = false;
+  }
+
+  checkEditing() {
+    // When called, this method checks if we are currently editing a fabric text object. If so, it
+    // deactivates editing.
+    // @return true iff editing was deactivated
+    if(this.newlyCreated && this.newlyCreated.podiumType == "text" && this.newlyCreated.isEditing) {
+      this.newlyCreated.exitEditing() ;
+      this.newlyCreated = null ;
+      return true ;
+    }
+    return false ;
   }
 
   setPasteObj(dataUrl, type) {

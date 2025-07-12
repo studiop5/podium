@@ -297,11 +297,11 @@ function initFabric() {
         stroke: color,
         strokeLineCap: "butt",
         strokeWidth: width,
+        hasControls: false,
       });
       canvas.clearContext(canvas.contextTop);
       canvas.fire("before:path:created", { path: this.path });
       canvas.add(this.path);
-      this.canvas.setActiveObject(this.path) ;
     }
   });
   
@@ -355,6 +355,7 @@ function initFabric() {
         stroke: color,
         strokeLineCap: "round",
         strokeWidth: width,
+        hasControls: false,
         podiumType: "podPath", // used by PencilPanel and PenPanel to identify 
       });
       canvas.clearContext(canvas.contextTop);

@@ -58,6 +58,7 @@ class Pg {
     this.mozCanvas = null ; 
     this.mozPn = mozPn;
     this.thumbUrl = null;
+    this.suppressStateChange = false ;
     this.width = width;
     this.paddingColor = null;
     this.undoStack = [];
@@ -185,15 +186,18 @@ class Pg {
     this.canvas = canvas ;
 
 
-    // handlers that, together with login in _menu_, help to add, delete,
-    // select, etc. fabricjs objects used to annotate pages:
+  let stateChanged = false ; // flag to indicate canvas state has changed s.t. it needs to be pushed to the undoStack
 
-    canvas.on("mouse:down:before", (opts) => {
-      if(_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) _menu_.pgDownEvent(opts, this);
-    });
+  canvas.on("mouse:down:before", async (opts) => {
+    if(_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) 
+       _menu_.pgDownEvent(opts, this);
+  });
 
-    canvas.on("mouse:up", (opts) => {
-      if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) _menu_.pgUpEvent(opts, this); 
+   canvas.on("mouse:up", (opts) => {
+      if(stateChanged) pushState() ;
+      stateChanged = false ;
+      if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) 
+          _menu_.pgUpEvent(opts, this); 
     });
 
     canvas.on("selection:created", (opts) => {
@@ -214,17 +218,16 @@ class Pg {
     if(this.undoStack.length == 0) // initialize undo stack on first inflate
       this.undoStack.push(canvas.toDatalessObject());
 
-    let pushState = (obj) => {
-      if (this.undoing) return;
+    let pushState = () => {
       let stack = this.undoStack;
       stack.push(this.canvas.toDatalessObject());
       while (stack.length > 10) stack.shift(); // prune
       _menu_.enableCells(["ink/undo"], true);
     };
 
-    canvas.on("object:added", ((obj) => pushState(obj)).bind(this));
-    canvas.on("object:removed", ((obj) => pushState(obj)).bind(this));
-    canvas.on("object:modified", ((obj) => pushState(obj)).bind(this));
+    canvas.on("object:added", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
+    canvas.on("object:removed", ((obj) => { if(!this.suppressStateChange) stateChanged = true;})) ;
+    canvas.on("object:modified", ((obj) => { if(!this.suppressStateChange) stateChanged = true;})) ;
 
     this.inflated = true;
     this.setEditable(this.editable); // indicate pg is editable. note: called AFTER setting this.inflated
@@ -349,11 +352,11 @@ class Pg {
     this.score.setDirty(true) ;
     let stack = this.undoStack;
     if (stack.length > 1) {
-      this.undoing = true;
+      this.suppressStateChange = true;
       stack.pop();
       await new Promise((resolve, reject) => this.canvas.loadFromJSON(stack[stack.length - 1], () => resolve()));
       this.canvas.requestRenderAll();
-      this.undoing = false;
+      this.suppressStateChange = false; 
     } 
     // If there's nothing left to undo in any pg, disable ink/undo
     for(let pg of this.score.pgs) {
