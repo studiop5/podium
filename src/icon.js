@@ -83,7 +83,7 @@ Close:
   <path transform=translate(2,1) style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>`,
 
 "Cut":
-  `<text y=20 x=3.5 font-size=20>\u2702</text>`,
+  `<text y=20 x=3.5 font-size=20>\u2702\uFE0E</text>`,
 
 "Cut Page":
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
