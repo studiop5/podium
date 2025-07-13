@@ -94,16 +94,19 @@ let paperSvg =
   // them as comments.
   "url('data:image/svg+xml;base64," +
   window.btoa(`
-      <svg width='3em' height='3em' viewBox='0 0 100 100' xmlns='http:/\/www.w3.org/2000/svg'>
-        <filter id='noiseFilter'>
-           <feTurbulence type="fractalNoise" baseFrequency='0.05' result='noise' numOctaves="3" />
-           <feDiffuseLighting in='noise' lighting-color='#F4D6AE' surfaceScale='3'>
-              <feDistantLight azimuth='45' elevation='70' />
-           </feDiffuseLighting>
+    <svg width='3em' height='3em' viewBox='0 0 100 100' xmlns='http:/\/www.w3.org/2000/svg'>
+      <filter id='paperFilter'>
+        <feTurbulence type="fractalNoise" baseFrequency='0.15' 
+         result='noise' numOctaves="4" stitchTiles='stitch' seed='42'/>
+        <feColorMatrix in='noise' type='saturate' values='0'/>
+        <feComponentTransfer>
+          <feFuncA type='linear' slope='0.3' intercept='0.1'/>
+          </feComponentTransfer>
+          <feComposite in2='SourceGraphic' operator='multiply' result='textured'/>
         </filter>  
-        <rect width='100%' height='100%' filter='url(#noiseFilter)'/>
+        <rect width='100%' height='100%' fill='#CD853F' filter='url(#paperFilter)'/>
       </svg>`) +
-  "')";
+    "')";
 
 // css helpers:
 // Podium uses css extensively, but does not use css files: other than some common css definitions,

@@ -466,7 +466,7 @@ class BookLayout extends Layout {
             position:absolute;
             box-shadow: .25em .25em 1.5em #888;
             border-radius: var(--borderRadius);
-            border: ${BookLayout.borderSize}rem solid #DABF9B;
+            border: ${BookLayout.borderSize}em solid #8B4513;
             background-image: var(--layoutTexture) ;
             box-sizing: border-box ;
             font-size: 1em ;
@@ -480,10 +480,10 @@ class BookLayout extends Layout {
            }
           .BookLayout__binding {
              height:100%; 
-             width:.4rem;
-             left:calc(50% - .2rem);
+             width:1.8em;
+             left:calc(50% - .9em);
              top:0%;
-             background: #DABF9B;
+             background: #A0522D ; 
              position:absolute;
              pointer-events: none ;
           }
@@ -1067,6 +1067,8 @@ class ScrollLayout extends Layout {
         .ScrollLayout__sash {
           position: relative;
           overflow: hidden; 
+          border: .1em solid #8B4513;
+          box-sizing: border-box ;
         }
         .ScrollLayout__roll {
           position:absolute;
@@ -1136,7 +1138,15 @@ class ScrollLayout extends Layout {
     this.elm.cell = cell ;
     _body_.append(this.elm);
     this.pointerListener = listen(this.elm, ["pointerdown"], this.onDown.bind(this));
-    this.props = cell.key == "horizontal" ? NORMAL_PROPS : ORTHO_PROPS;
+
+    if(cell.key == "horizontal") {
+      this.sash.style.borderRight = this.sash.style.borderLeft = "unset" ;
+      this.props = NORMAL_PROPS ;
+    }
+    else {
+      this.sash.style.borderBottom = this.sash.style.borderTop = "unset" ;
+      this.sash.style.borderRight = this.sash.style.borderBottom = "unset" ;
+    }
 
     // Create left/right (top/bottom) pager instances:
     this.pagerLeft = new Pager(this.props.LEFT, (stash, adjusting, cursor) => 
@@ -1504,7 +1514,7 @@ class TableLayout extends Layout {
           border-radius: var(--borderRadius);
           background-image: var(--layoutTexture);
           overflow:hidden;
-          border: .1em solid #DABF9B;
+          border: .1em solid #8B4513;
         }
         .TableLayout__grid {
           margin: ${TableLayout.gridMargin};
