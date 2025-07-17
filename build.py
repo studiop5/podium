@@ -33,7 +33,8 @@ if args.font:
     outFileName = 'build/font.js'
     with open(outFileName, 'wb') as outFile:
         outFile.write(b"""
-{ let fontFile = new FontFace("Bravura", "url(data:font/otf;charset=utf-8;base64,""") ;
+{ window.fontData = {} ;
+  let fontFile = new FontFace("Bravura", "url(data:font/otf;charset=utf-8;base64,""") ;
 
         with open(fontFileName,'rb') as inFile:
           outFile.write(base64.b64encode(inFile.read()))
