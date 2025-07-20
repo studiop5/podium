@@ -5,11 +5,19 @@
  
   This file is part of Podium.
  
-  Podium is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+  Podium is free software: you can redistribute it and/or modify it
+  under the terms of the GNU Affero General Public License as
+  published by the Free Software Foundation, either version 3 of the
+  License, or (at your option) any later version.
 
-  Podium is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+  Podium is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  Affero General Public License for more details.
 
-  You should have received a copy of the GNU Affero General Public License along with Podium. If not, see <https://www.gnu.org/licenses/>.
+  You should have received a copy of the GNU Affero General Public
+  License along with Podium. If not, see
+  <https://www.gnu.org/licenses/>.
 **/
 
 export { checkUnsaved, FileSrc, FileListView, FileSystemView, LocalFileView };
@@ -775,43 +783,62 @@ class GDriveSrc extends CachedSrc {
     if (!response.ok) err(`renameFileSrc(${path},${name},${newName},...) failed: ${await response.text()}`);
   }
 
+
   async putFileSrc(path, name, data, dir, file) {
+    const CHUNK_SIZE = 5 * 1024 * 1024;
+
     if (!file) {
-      // won't exist if creating...
-      // create new empty file with metadata and get its id from the response.
-      let url = this.filesUrl;
-      let fetchPromise = fetch(url, {
+      // Won't exist if creating, so create new empty file with metadata and get its id from the response.
+      let response = await fetch(this.filesUrl, {
         method: "POST",
         headers: {
           Authorization: "Bearer " + this.token,
-          Accept: "application/json",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           name: name,
-          mimeType: "application/octet-stream",
           parents: [`${dir.id}`],
         }),
       });
-      let response = await fetchPromise;
-      if (response.ok) {
-        file = await response.json();
-      } else err(`putFileSrc(${path},${name},...) failed: ${await response.text()}.`);
+      file = await response.json();
     }
-    // now write to the (existing or newly created) file:
-    let url = this.uploadUrl + file.id;
-    let fetchPromise = fetch(url, {
-      method: "PATCH",
-      headers: {
-        Authorization: "Bearer " + this.token,
-        "Content-Type": "application/octet-stream",
-        "Content-Length": data.length,
-      },
-      body: data,
-    });
-    let response = await fetchPromise;
-    if (!response.ok) err(`putFileSrc(${path},${name},...) failed: ${await response.text()}`);
+
+    if (data.byteLength > CHUNK_SIZE) {
+      let sessionResponse = await fetch(this.uploadUrl + file.id + "?uploadType=resumable", {
+        method: "PATCH",
+        headers: {
+          Authorization: "Bearer " + this.token,
+          "Content-Length": "0",
+        },
+      });
+
+      let uploadUrl = sessionResponse.headers.get("Location");
+
+      for (let offset = 0; offset < data.byteLength; offset += CHUNK_SIZE) {
+        let chunk = data.slice(offset, Math.min(offset + CHUNK_SIZE, data.byteLength));
+        let endByte = offset + chunk.byteLength - 1;
+
+        await fetch(uploadUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Length": chunk.byteLength,
+            "Content-Range": `bytes ${offset}-${endByte}/${data.byteLength}`,
+          },
+          body: chunk,
+        });
+      }
+    } else {
+      await fetch(this.uploadUrl + file.id, {
+        method: "PATCH",
+        headers: {
+          Authorization: "Bearer " + this.token,
+          "Content-Type": "application/octet-stream",
+        },
+        body: data,
+      });
+    }
   }
+
 
   async trashFileSrc(path, name, dir, file) {
     let url = this.filesUrl + file.id;
