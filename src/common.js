@@ -5,11 +5,19 @@
  
   This file is part of Podium.
  
-  Podium is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+  Podium is free software: you can redistribute it and/or modify it
+  under the terms of the GNU Affero General Public License as
+  published by the Free Software Foundation, either version 3 of the
+  License, or (at your option) any later version.
 
-  Podium is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+  Podium is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  Affero General Public License for more details.
 
-  You should have received a copy of the GNU Affero General Public License along with Podium. If not, see <https://www.gnu.org/licenses/>.
+  You should have received a copy of the GNU Affero General Public
+  License along with Podium. If not, see
+  <https://www.gnu.org/licenses/>.
 **/
 
 export {
@@ -145,10 +153,10 @@ css(
   "common",
   `
   :root {
-    --textShadow: .15em .15em .2em #2228; 
+    --textShadow: .5px .5px white,-1px -1px white,.5px -1px white,-1px .5px white; 
     --bodyShadow: drop-shadow(.1em .125em .2em #6668);
     --borderRadius: .8em;
-    --border: .2em solid white;
+    --border: .1em solid white;
     --bodyColor: #c9c9c9;
     --panTexture: ${sandSvg};
     --layoutTexture: ${paperSvg};
@@ -831,7 +839,7 @@ class Schedule {
     // Cancel the next run. After this, call run(...) again to restart, if desired.
     this.cancelled = true;
   }
-  ///
+
   elapsed() {
     // Return number of msecs this Schedule has been running.
     return performance.now() - (this.runTime - this.delta);
@@ -1394,7 +1402,7 @@ function dialog(
   return elm;
 }
 
-function flung(emv, eup) {
+function flungorig(emv, eup) {
   // flung (past tense of fling!) is used to decide
   // when user has "flung" a div.
   // Its passed two events:
@@ -1410,6 +1418,21 @@ function flung(emv, eup) {
   }
   return false;
 }
+
+
+function flung(emv, eup) {
+  // flung (past tense of fling!) is used to decide
+  // when user has "flung" a div.
+  // Its passed two events:
+  //  @emv a pointermove event, assumed to be the last
+  //    pointermove event before the passed eup event
+  //  @eup a pointerup event
+  //  Returns true iff emv and eup are less than 60 msec apart apart
+  return emv && eup?.timeStamp - emv.timeStamp < 60 ;
+}
+
+
+
 
 let fontMap = {
   // map pdf font names to html canvas font structures.
@@ -1506,7 +1529,7 @@ function hide(elm, onElm) {
   let fontSize = elm.style.fontSize; // this MUST come from style, NOT from getComputedStyle
   elm.style.left = left;
   elm.style.top = top;
-  elm.style.transition = "top 0.309s, left 0.309s,font-size 0.309s";
+  elm.style.transition = "top 0.5s, left 0.5s,font-size 0.5s";
   delay(2, () => {
     let elmBox = getBox(elm);
     let onElmBox = getBox(onElm);
@@ -1516,7 +1539,7 @@ function hide(elm, onElm) {
       elm.offsetTop - elmBox.y + onElmBox.y + onElmBox.height / 2 + "px";
     elm.style.fontSize = 0;
   });
-  schedule(400, () => {
+  schedule(500, () => {
     elm.style.left = left;
     elm.style.top = top;
     elm.style.visibility = "hidden";
@@ -1617,8 +1640,8 @@ function unlisten(...listenerArgs) {
 function mvmt(e, emv, xLimit = 8, yLimit = 6) {
   // Helper function used when dragging div's: purpose is to ignore
   // jitter that occuring when a user uses as a  finger as a pointer.
-  // It takes two events: a downevent
-  // @e, and a moveevent:
+  // It takes two events: a down event
+  // @e, and a move event:
   // @emv, and sets e.moved to true when the total of movement in either
   //   x or y exceeds the corresponding limit:
   // @xLimit in px,
@@ -1739,8 +1762,6 @@ css(
       text-shadow: var(--textShadow);
       transition: opacity ease-out .5s ;
       z-index:1000 ;
-      border: var(--border) ;
-      border-radius: var(--borderRadius) ;
       background-color: #eee ;
    }`
 );
@@ -1751,7 +1772,7 @@ function ptrMsg(e, msgFunc, styles) {
   // obscured by the pointer: normally, above the pointer, but
   // to the left or right of the pointer as the pointer approaches
   // the top of the screen, etc.
-  let div = helm(`<div class="ptrMsg" style="${styles}"></div>`);
+  let div = helm(`<div class="ptrMsg raisedEdge" style="${styles}"></div>`);
   _body_.append(div);
   let wd = div.offsetWidth;
   let hg = div.offsetHeight * 2;

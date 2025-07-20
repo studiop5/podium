@@ -5,14 +5,22 @@
  
   This file is part of Podium.
  
-  Podium is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+  Podium is free software: you can redistribute it and/or modify it
+  under the terms of the GNU Affero General Public License as
+  published by the Free Software Foundation, either version 3 of the
+  License, or (at your option) any later version.
 
-  Podium is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+  Podium is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  Affero General Public License for more details.
 
-  You should have received a copy of the GNU Affero General Public License along with Podium. If not, see <https://www.gnu.org/licenses/>.
+  You should have received a copy of the GNU Affero General Public
+  License along with Podium. If not, see
+  <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, flung, Schedule, schedule, toast, clamp, css, delay, fontMap, getBox, helm, dataIndex, clearChildren, listen, unlisten } from "./common.js";
+import { Spot, animate, clamp, clearChildren, css, dataIndex, delay, flung, fontMap, getBox, helm, listen, mvmt, Schedule, schedule, toast, unlisten } from "./common.js";
 import { Grid, Score } from "./score.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
@@ -694,7 +702,6 @@ class Menu {
   opDown(e) {
     if (e.ctrlKey || e.shiftKey) return;
     let op = this.op;
-    op.schedule.cancel();
     let keys = e.target.dataset.key || "grip";
     if (!keys) return;
     let { ringRadius, diskRadius, gripRadius } = this.sizes;
@@ -706,8 +713,8 @@ class Menu {
     let ptrOffset = Math.hypot(e.clientX - this.elm.offsetLeft, e.clientY - this.elm.offsetTop) / (_pxPerEm_ * parseFloat(this.elm.style.fontSize));
 
     Object.assign(op, {
-      e: e,
-      emv: null,
+      e: e, // initial event
+      emv: null, // lasttest mv event, or initial event if none
       ringKey: ringKey,
       cellKey: cellKey,
       completed: false,
@@ -715,27 +722,36 @@ class Menu {
       moved: false,
       origin: { x: e.clientX, y: e.clientY },
       ring: this.activeRing,
+      ringRadiusPx: this.activeRing.elm.offsetWidth / 2,
       out: false,
       spun: false, // set to true when ring or disk is spun a minimal amount
       turn0: null, // initial turn on pointerDown
       turn: null, // current turn, updates with rotation
     });
+
     this.elm.setPointerCapture(e.pointerId);
     // op.turn will be in  "turns", with range (.75, 1.75),
     // and with 1 at the top.  This allows us to turn without
     // the value going negative.
 
-    let ringRadiusPx = op.ring.elm.offsetWidth / 2;
-    op.turn = op.turn0 = Math.atan2(dxdy[1] - ringRadiusPx, dxdy[0] - ringRadiusPx) / (Math.PI * 2) + 1.25;
+    op.turn = op.turn0 = Math.atan2(dxdy[1] - op.ringRadiusPx, dxdy[0] - op.ringRadiusPx) / (Math.PI * 2) + 1.25;
     this.startAngle = op.turn;
+
 
     switch (op.state) {
       case "ring": {
         op.turnOffset = op.turn - op.ring.turn;
         op.cell = this.rings[ringKey].cells[cellKey];
+
+        let ringTransform = op.ring.elm.style.transform || "rotate(0turn)" ; 
+        let ringAngle = parseFloat(ringTransform.substring(7,ringTransform.length - 5))  ;
+        let cellTransform = op.cell.elm.style.transform ;
+        op.cellAngle = parseFloat(cellTransform.split('(')[1]) + ringAngle   ;
+
         if (op.cell.enabled == false) break;
         op.cell.elm.classList.add("Menu__cell-selected");
         this.notify(`${ringKey}/${cellKey}/down`);
+ 
         break;
       }
       case "disk": {
@@ -750,15 +766,6 @@ class Menu {
       case "grip": {
         this.notify("down");
         this.grip.classList.add("Menu__grip-selected");
-
-        op.schedule.run(
-          _longPressMs_,
-          () => {
-            op.completed = true;
-            this.notify("long");
-            this.grip.classList.remove("Menu__grip-selected");
-          },
-        );
       }
     }
     op.moveListener = listen(this.elm, "pointermove", this.opMove.bind(this));
@@ -767,40 +774,49 @@ class Menu {
 
   opMove(e) {
     let op = this.op;
-
     op.emv = e;
-    if (op.completed) return;
 
-    // Test if we have a move out operation
-    if (!op.spun) {
-      let hyp = Math.hypot(e.clientX - this.elm.offsetLeft, e.clientY - this.elm.offsetTop);
-      if (op.state == "ring" && (op.out || hyp > this.menuHolder.offsetWidth / 2 || hyp < this.diskHolder.offsetWidth / 2)) {
-        op.schedule.cancel();
-        op.out = true;
-        return this.notify(`${op.ringKey}/${op.cellKey}/out`);
-      } else if (op.state == "disk" && (op.out || hyp > this.diskHolder.offsetWidth / 2 || hyp < this.grip.offsetWidth / 2)) {
-        op.schedule.cancel();
-        op.out = true;
-        return this.notify(`${op.ringKey}/out`);
-      }
-    }
+    if (op.completed) return; // ignore moves after the long-press timer has run
+    if (op.out) return this.notify(`${op.ringKey}/${op.cellKey}/out`); // if cell has panel, then this wil pass move operation to it
 
-    if (op.out) return;
-    let ringRadiusPx = this.sizes.ringRadius * parseFloat(this.elm.style.fontSize) * _pxPerEm_;
     let elm = this.menuHolder;
     let box = getBox(elm);
     let dxdy = [e.clientX - box.x, e.clientY - box.y];
-    // we keep op.turn positive by adding on 1.25
-    op.turn = Math.atan2(dxdy[1] - ringRadiusPx, dxdy[0] - ringRadiusPx) / (Math.PI * 2) + 1.25;
-    // how much has either disk been spun? ... want to ignore jitter
-    if(Math.abs(op.turn - op.turn0) > 0.03) {
-      op.schedule.cancel() ;
-      op.spun = true ;
-    }
-    // how much has the menu been dragged?
-    if (!op.moved && (Math.abs(e.clientX - op.origin.x) > 25 || Math.abs(e.clientY - op.origin.y) > 25)) {
-      op.schedule.cancel();
-      op.moved = true;
+    // keep op.turn positive, with axis at the top, by adding on 1.25
+    op.turn = Math.atan2(dxdy[1] - op.ringRadiusPx, dxdy[0] - op.ringRadiusPx) / (Math.PI * 2) + 1.25;
+
+    // Was there significant pointer motion in either ring?
+    op.moved = mvmt(op.e, e) ; 
+    if(op.moved && !op.spun) { 
+      if(op.state == "disk")
+        op.spun = true ; // Significant mvmt in a disk cell is always interpreted as a spin
+      else if(op.state == "ring") {
+        // Significant mvmt in a ring cell is a "spin" iff the movement is approximately tangental to the circumference.
+        // We test this by comparing the rotational angle of  ring cell to the angle of the pointer gesture
+        let ptrAngle = (Math.atan2(e.clientY - op.e.clientY, e.clientX - op.e.clientX) + Math.PI )/ (Math.PI * 2) + .75 ;
+        let diff = ptrAngle - op.cellAngle ;
+        if(diff < 0) diff += 1 ;
+        else if(diff > 1) diff -= 1 ;
+
+        // Different "sensitivity" for asserting op.spun:
+        // if(diff > 0.125 && diff <= 0.375) op.spun = true ;
+        //    else if(diff > 0.625 && diff <= 0.875) op.spun = true ;
+
+        // if(diff > 0.2 && diff <= 0.3) op.spun = true ;
+        //else if(diff > 0.7 && diff <= 0.8) op.spun = true ;
+
+        if(diff > 0.175 && diff <= 0.325) op.spun = true ;
+        else if(diff > 0.675 && diff <= 0.825) op.spun = true ;
+
+
+        else { // Significant mvmt where pointer moves out of ring triggers "out" state and event
+          let hyp = Math.hypot(e.clientX - this.elm.offsetLeft, e.clientY - this.elm.offsetTop);
+          if (op.out || hyp > this.menuHolder.offsetWidth / 2 || hyp < this.diskHolder.offsetWidth / 2) {
+            op.out = true;
+            return this.notify(`${op.ringKey}/${op.cellKey}/out`);
+          }
+        }
+      }
     }
 
     switch (op.state) {
@@ -809,7 +825,8 @@ class Menu {
           op.ring.turn = op.turn - op.turnOffset;
           op.ring.elm.style.transform = `rotate(${op.ring.turn}turn)`;
           let rotation = 1 / op.ring.elm.childElementCount;
-          [...op.ring.elm.children].forEach((elm, i) => (elm.firstElementChild.style.transform = `rotate(${-rotation * i - op.ring.turn}turn)`));
+          [...op.ring.elm.children].forEach((elm, i) => (elm.firstElementChild.style.transform =
+            `rotate(${-rotation * i - op.ring.turn}turn)`));
           if (!op.spun) return; // insufficient movement
           // issue spin notification, i.e. spin in progress
           this.notify(`${op.ringKey}/${op.cellKey}/spin`);
@@ -822,7 +839,8 @@ class Menu {
           this.disk.turn = op.turn - this.disk.turnOffset;
           this.disk.style.transform = `rotate(${this.disk.turn}turn)`;
           let rotation = 1 / this.disk.childElementCount;
-          [...this.disk.children].forEach((elm, i) => (elm.firstElementChild.style.transform = `rotate(${-rotation * i - this.disk.turn}turn)`));
+          [...this.disk.children].forEach((elm, i) => (elm.firstElementChild.style.transform = 
+            `rotate(${-rotation * i - this.disk.turn}turn)`));
           if (!op.spun) return; // insufficient movement
           this.notify(`${op.ringKey}/spin`);
           op.ring.cellElm.classList.remove("Menu__diskCell-selected");
@@ -835,7 +853,6 @@ class Menu {
         this.elm.style.left = clamp(e.clientX, 0, window.innerWidth) + "px";
         this.elm.style.top = clamp(e.clientY, 0, window.innerHeight) + "px";
         this.notify("move");
-        op.schedule.cancel();
         break;
       }
       default:
@@ -850,10 +867,12 @@ class Menu {
     op.cell && op.cell.elm.classList.remove("Menu__cell-selected");
     op.ring && op.ring.cellElm.classList.remove("Menu__diskCell-selected");
     this.grip.classList.remove("Menu__grip-selected");
+
     if (op.spun) return;
     // if a long press handler has run, it will have issued an
     // appropriate notification and set op.completed to true.
     if (op.out || op.completed) return;
+
     switch (op.state) {
       case "ring":
         this.notify(`${op.ringKey}/${op.cellKey}/up`);
@@ -862,14 +881,30 @@ class Menu {
         this.notify(`${op.ringKey}/up`);
         break;
       case "grip":
-        if (flung(op.emv, e)) {
+        if(op.moved) {
+          if (flung(op.emv, e)) {
           // fling
           if (!this.collapsed) this.collapse();
           this.elm.style.transition = "left .5s, top .5s";
-          this.elm.style.left = e.clientX > op.e.clientX ? "100vw" : "0vw";
-          this.elm.style.top = e.clientY > op.e.clientY ? "100vh" : "0vh";
+          // Calculate direction and position using array lookup
+          let dx = e.clientX - op.e.clientX;
+          let dy = e.clientY - op.e.clientY;
+          let angle = Math.atan2(dy, dx);
+          let direction = Math.round(((angle + Math.PI) / (Math.PI /  4))) % 8;
+          let positions = [
+            ["0vw", "50vh"],    // left edge
+            ["0vw", "0vh"],     // top-left corner
+            ["50vw", "0vh"],    // top edge
+            ["100vw", "0vh"] ,  // top-right corner
+            ["100vw", "50vh"],  // right edge
+            ["100vw", "100vh"], // bottom-right corner
+            ["50vw", "100vh"],  // bottom edge
+            ["0vw", "100vh"],   // bottom-left corner
+          ];
+          [this.elm.style.left, this.elm.style.top] = positions[direction];
           schedule(500, () => (this.elm.style.transition = "none"));
-        } else if (!op.moved) this.notify("up");
+        }
+      } else if(e.timeStamp - op.e.timeStamp < 200) this.notify("up");
     }
   }
 
@@ -1112,6 +1147,7 @@ class Menu {
       pg.canvas.add(obj);
       pg.canvas._target = obj;  // this makes it "moveable"
       obj.hasControls = false ; 
+return obj ;
     };
 
     if (this.activeRing.key != "ink") return;
@@ -1186,7 +1222,13 @@ class Menu {
           podiumType: "text", 
         };
         Object.assign(config, fontMap[font]);
-        return addObj(new fabric.Textbox("Abc", config));
+        let textbox = addObj(new fabric.Textbox("Abc", config));
+        // Handle double-click on the textbox to enter editing mode
+        textbox.on('mousedblclick', function() {
+          this.enterEditing();
+          this.selectAll();
+        });
+        return textbox ;
       }
 
       case "symbols": {

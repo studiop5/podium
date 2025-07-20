@@ -5,11 +5,19 @@
  
   This file is part of Podium.
  
-  Podium is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+  Podium is free software: you can redistribute it and/or modify it
+  under the terms of the GNU Affero General Public License as
+  published by the Free Software Foundation, either version 3 of the
+  License, or (at your option) any later version.
 
-  Podium is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+  Podium is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  Affero General Public License for more details.
 
-  You should have received a copy of the GNU Affero General Public License along with Podium. If not, see <https://www.gnu.org/licenses/>.
+  You should have received a copy of the GNU Affero General Public
+  License along with Podium. If not, see
+  <https://www.gnu.org/licenses/>.
 **/
 
 import { pxToEm, animate, Spot, toast, clamp, clearChildren, css, cssIndex, delay, getBox, listen, pnToDiv, pnToString, unlisten, helm, dataIndex, dialog, mvmt, rotatePoint, Schedule, schedule, ptrMsg } from "./common.js";
@@ -24,8 +32,8 @@ let randomColor;
   randomColor = () => {
     // Generate random 3-hex color string with fixed alpha used for styling bookmarks.
     let color = "#";
-    for (let i = 0; i < 3; i++) color += hexDigits[Math.floor(Math.random() * 16)];
-    return color + "c";
+    for (let i = 0; i < 2; i++) color += hexDigits[Math.floor(Math.random() * 16)];
+    return color + "0";
   };
 }
 
@@ -608,27 +616,42 @@ class BookLayout extends Layout {
     Object.assign(this, this.cell.stash);
     this.pn0 = -2;
     let { fit, gap, score, pgShow } = this;
+    fit = fit.toLowerCase() ;
 
     // Layout scroll g((eo)metry) in units of css pixels
-
     let g = (this.cell.geo = this.cell.geo || {});
     g.gap = .8 * _pxPerEm_ ;  // for a border-radius of .8 em
     g.pgCount = this.score.pgs.length;
     g.pagerWidth = this.pnShow == "On" ? Pager.width - g.gap/2 : 0
-
-    if (fit == "Auto") fit = window.innerHeight > window.innerWidth ? "Width" : "Height" ;
-
-    if (fit == "None") {
+      
+    if (fit == "none") {
       g.pgWidth = score.maxWidth;
       g.pgHeight = score.maxHeight;
       g.bookWidth = g.pagerWidth + g.gap + g.pgWidth + g.pgWidth + g.gap + g.pagerWidth;
       g.bookHeight = g.gap + g.pgHeight + g.gap;
-    } else if (fit == "Width") {
+    } 
+
+    if (fit == "auto" || fit == "width") {
       g.bookWidth = window.innerWidth - Layout.margin - Layout.margin;
       g.pgWidth = (g.bookWidth - g.pagerWidth - g.gap - g.gap - g.pagerWidth) / 2;
       g.pgHeight = Math.floor(g.pgWidth * (score.maxHeight / score.maxWidth));
       g.bookHeight = g.gap + g.pgHeight + g.gap;
-    } else if (fit == "Height") {
+
+      if(fit == "auto") {
+        // Check if layout will fit entirely within window. If not, recalculate with fit = HEIGHT ;
+        fit = "width" ; // assume width
+        // if either dimension doesn't fit window, change fit to HEIGHT ;
+        let layoutWidth = Math.round(Layout.margin * 2 + (g.pgWidth + g.gap) * 2 + g.pagerWidth * 2) ;
+        if(layoutWidth > window.innerWidth)
+          fit = "height" ;
+        else {
+          let layoutHeight = Math.round(Layout.margin * 2 + g.pgHeight + g.gap * 2) ;
+          if(layoutHeight > window.innerHeight) fit = "height" ;
+        } 
+      }
+    }
+
+    if (fit == "height") {
       g.bookHeight = window.innerHeight - Layout.margin - Layout.margin;
       g.pgHeight = g.bookHeight - g.gap - g.gap;
       g.pgWidth = Math.floor(g.pgHeight * (score.maxWidth / score.maxHeight));
@@ -1146,6 +1169,7 @@ class ScrollLayout extends Layout {
     else {
       this.sash.style.borderBottom = this.sash.style.borderTop = "unset" ;
       this.sash.style.borderRight = this.sash.style.borderBottom = "unset" ;
+      this.props = ORTHO_PROPS ;
     }
 
     // Create left/right (top/bottom) pager instances:
@@ -1177,7 +1201,7 @@ class ScrollLayout extends Layout {
     Object.assign(this, this.cell.stash);
     let { fit, gap, pgSnap, sash, score, scroll, pgShow } = this;
     let { LEFT, RIGHT, TOP, WIDTH, HEIGHT, MAXWIDTH, MAXHEIGHT, INNERWIDTH, INNERHEIGHT } = this.props;
-
+    fit = fit.toLowerCase() ;
     clearChildren(sash);
 
     // Layout scroll g((eo)metry) in units of css pixels, and "as if"
@@ -1186,32 +1210,53 @@ class ScrollLayout extends Layout {
     // property names.
     let g = (this.cell.geo = this.cell.geo || {scroll: {},sash: {},pg: {}});
     gap /= 100 ; // gap % as fraction
+
+
     g.rollGirth = this.pnShow == "On" ? Pager.width : Layout.margin ;
     g.pgCount = this.score.pgs.length ;
     g.pgShow = Math.min(pgShow, g.pgCount) ; // g.pgShow must be <= total page count
     g.pgSnap = Math.min(pgSnap, g.pgCount) ; // g.pgSnap must be <= total page count
 
-    if(fit == "Auto") fit = window[INNERHEIGHT] > window[INNERWIDTH] ? WIDTH : HEIGHT ;
-
-    if (fit == "None") {
+    console.log("fit 1", fit) ;
+    if (fit == "none") {
       g.pg[WIDTH] = score[MAXWIDTH] ;
       g.gap = gap * g.pg[WIDTH];
       g.pg[HEIGHT] = score[MAXHEIGHT] ;
       g.scroll[WIDTH] = g.rollGirth + g.gap + (g.pg[WIDTH] + g.gap) * g.pgShow + g.rollGirth;
       g.scroll[HEIGHT] = g.gap + g.pg[HEIGHT] + g.gap;
-    } else if (fit.toLowerCase() == WIDTH) { 
+    } 
+
+    if (fit == "auto" || fit == WIDTH) {
       g.scroll[WIDTH] = window[INNERWIDTH] - Layout.margin - Layout.margin ;
       g.pg[WIDTH] = ((g.scroll[WIDTH] - g.rollGirth - g.rollGirth) / g.pgShow) / (1 + gap + gap/g.pgShow) ;
       g.gap = gap * g.pg[WIDTH] ;
       g.pg[HEIGHT] = Math.floor(g.pg[WIDTH] * (score[MAXHEIGHT] / score[MAXWIDTH]));
       g.scroll[HEIGHT] = g.gap + g.pg[HEIGHT] + g.gap ;
-    } else /* if (fit == HEIGHT) */ {
+
+      if(fit == "auto") {
+        // Check if layout will fit entirely within window. If not, recalculate with fit = HEIGHT ;
+        fit = WIDTH ; // assume width
+        // if either dimension doesn't fit window, change fit to HEIGHT ;
+        let layoutWidth = Math.round(Layout.margin * 2 + (g.pg[WIDTH] + g.gap) * g.pgShow + g.gap + g.rollGirth * 2) ;
+        if(layoutWidth > window[INNERWIDTH])
+          fit = HEIGHT ;
+        else {
+          let layoutHeight = Math.round(Layout.margin * 2 + g.pg[HEIGHT] + g.gap * 2) ;
+          if(layoutHeight > window[INNERHEIGHT]) fit = HEIGHT ;          
+        } 
+      }
+    }
+
+    if (fit == HEIGHT) {
       g.scroll[HEIGHT] = window[INNERHEIGHT] - Layout.margin - Layout.margin ;
       g.pg[HEIGHT] = g.scroll[HEIGHT] / (1 + gap + gap) ;
       g.gap = gap * g.pg[HEIGHT] ;
+
       g.pg[WIDTH] = g.pg[HEIGHT] * score[MAXWIDTH] / score[MAXHEIGHT] ;
       g.scroll[WIDTH] = g.rollGirth + g.gap + (g.gap + g.pg[WIDTH]) * g.pgShow + g.rollGirth ;
-    }
+    } 
+console.log("fit 2", fit) ;
+
     g.sash[WIDTH] = (g.pg[WIDTH] + g.gap) * g.pgCount + g.gap;
     // We round sashLimit because we want to compare it to event[CLIENTX], which is always int, see this.onDown()
     g.sashLimit = Math.round(-g.sash[WIDTH] + g.pgShow * (g.pg[WIDTH] + g.gap) + g.gap);
@@ -1229,7 +1274,7 @@ class ScrollLayout extends Layout {
       [HEIGHT]: toEm(g.scroll[HEIGHT]),
       // Not that scroll's WIDTH is set by adding rollGirth in px, then subtracting rollGirth in em's.
       // Initially, they are equal, so contribute nothing, but if/when the scroll is resized through em change,
-      // their difference will account for delta between the pagers, which don't sacle, and
+      // their difference will account for delta between the pagers, which don't scale, and
       // the scroll, which does.
       [WIDTH]: `calc(${toEm(g.scroll[WIDTH])} + ${g.rollGirth * 2}px - ${toEm(g.rollGirth * 2)})`,
     });
@@ -1834,12 +1879,10 @@ class Pager {
      }
      .Pager__cursor {
        position:absolute;
-       color:#444;
        text-shadow: var(--textShadow);
        z-Index:1 ;
        border-radius: .4em ;
-       background-color: #eee2 ;
-       transition: background .1s, top .1s, left .1s;
+       background-color: #0000 ;
        width:100% ;
      }
      .Pager__cursor-active {
@@ -1954,11 +1997,8 @@ class Pager {
       pnStash.pn = clamp(1, Math.floor((newPos / pagerBox[HEIGHT]) * pgCount) + 1, pgCount) ;
       // are we at a bookmark? 
       let bkCl = bookmarks[pnStash.pn] ;
-      if(bkCl) cursor.style.background = ptrDiv.style.background = bkCl ;
-      else { 
-         cursor.style.background = this.cursorBackground ;
-         ptrDiv.style.background = this.ptrMsgBackground ;
-      }
+      if(bkCl) cursor.style.color = ptrDiv.style.color = bkCl ;
+      else cursor.style.color = ptrDiv.style.color = "black" ;
       clearChildren(cursor);
       clearChildren(this.cursor);
 
@@ -1971,12 +2011,12 @@ class Pager {
       let pn = pnStash.pn;
       if (bookmarks[pn]) {
          delete bookmarks[pn];
-         cursor.style.background = this.cursorBackground ;
-         ptrDiv.style.background = this.ptrMsgBackground ;
+         cursor.style.color = "black" ;
+         ptrDiv.style.color = "black" ;
 
       }
       else { let bkCl = bookmarks[pn] = randomColor();
-         cursor.style.backgroundColor = ptrDiv.style.backgroundColor = bkCl ;
+         cursor.style.color = ptrDiv.style.color = bkCl ;
       }
       _body_.dispatchEvent(new CustomEvent("BookmarkChanged"));
     });

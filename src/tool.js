@@ -5,11 +5,19 @@
  
   This file is part of Podium.
  
-  Podium is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+  Podium is free software: you can redistribute it and/or modify it
+  under the terms of the GNU Affero General Public License as
+  published by the Free Software Foundation, either version 3 of the
+  License, or (at your option) any later version.
 
-  Podium is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+  Podium is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  Affero General Public License for more details.
 
-  You should have received a copy of the GNU Affero General Public License along with Podium. If not, see <https://www.gnu.org/licenses/>.
+  You should have received a copy of the GNU Affero General Public
+  License along with Podium. If not, see
+  <https://www.gnu.org/licenses/>.
 **/
 
 import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, flung, getBox, helm, hide, iconSvg, listen, mvmt, unlisten, saveLocal, schedule, Schedule, SliderGroup, TabView, pxToEm } from "./common.js";
@@ -708,7 +716,9 @@ class Surface {
       _body_.setPointerCapture(e.pointerId);
       longPresser.run(_longPressMs_,() => this.onSurfaceEvent("press")) ;
       let dX = e.offsetX, dY = e.offsetY ; // warning: e can be gc'ed before mv references it.
+      let lastEmv = null ;
       let mv = listen(_body_, "pointermove", (emv) => {
+        lastEmv = emv ;
         if(surface.parentElement == _body_) {
           surface.style.left = emv.clientX - dX + "px";
           surface.style.top = emv.clientY - dY + "px";
@@ -722,7 +732,7 @@ class Surface {
           surface.classList.add("pz"); // this makes it pan-zoomable 
           _body_.append(surface);
           _pzTarget_ = surface; // this allows pan-zooming without having to reselect
-          hide(this.panel.elm, _menu_.elm);
+          hide(this.panel.elm, dataIndex("tag", this.panel.cell.elm).cellIcon);
           surface.style.left = emv.clientX - dX + "px";
           surface.style.top = emv.clientY - dY  + "px";
 
@@ -733,7 +743,8 @@ class Surface {
           longPresser.cancel() ;
           unlisten(mv) ;
           let downTime = eup.timeStamp - e.timeStamp ;
-          if (e.moved && downTime < 250) hide(surface, _menu_.elm) ; // fling
+          if (lastEmv && flung(lastEmv,eup)) 
+             hide(surface, dataIndex("tag", this.panel.cell.elm).cellIcon);
           else if(downTime < _longPressMs_) this.onSurfaceEvent("click") ;
         },  { once: true }) ;
     }));
