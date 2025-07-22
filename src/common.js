@@ -24,11 +24,11 @@ export {
   animate,
   css,
   cssIndex,
+  dialog,
   flung,
   saveLocal,
   Schedule,
   schedule,
-  Spot,
   clamp,
   helm,
   dataIndex,
@@ -43,12 +43,12 @@ export {
   iconSvg,
   inflate,
   listen,
-  dialog,
   mvmt,
   pnToDiv,
   pnToString,
   rotatePoint,
   ptrMsg,
+  Spot,
   unlisten,
   strToHash,
   toast,
@@ -73,6 +73,7 @@ Element.prototype["replace"] = function (newElm) {
 window._podiumVersion_ = "1.0";
 window._body_ = document.body;
 window._dvPxRt_ = 1 + (window.devicePixelRatio - 1) * 0.3;
+window._frMs_ = 0.06; // initial estimate of number of frames per millisecond (60fps)
 window._gs_ = 0.618; // golden section
 window._gsgs_ = _gs_ * _gs_; // shorter golden section!
 window._longPressMs_ = 750;
@@ -80,7 +81,8 @@ window._mobile_ =
   /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
     navigator.userAgent
   );
-window._frMs_ = 0.06; // initial estimate of number of frames per millisecond (60fps)
+window._moveEvents_ = [] ; // see flung() below
+window._maxMoveEvents_ = 5 ; // see flung() below
 window._pxPerEm_ = 25; // initial document.body's font size value: defines pixels in 1 em
 
 //  svg textures used as background images:
@@ -1402,36 +1404,39 @@ function dialog(
   return elm;
 }
 
-function flungorig(emv, eup) {
-  // flung (past tense of fling!) is used to decide
+
+
+function flung(emv, eup=null) {
+  // flung(eup) (past tense of fling!) is used to decide
   // when user has "flung" a div.
-  // Its passed two events:
-  //  @emv a pointermove event, assumed to be the last
-  //    pointermove event before the passed eup event
-  //  @eup a pointerup event
-  //  Returns true iff emv and eup are less than 100 msec
-  //    apart, and the movement of the last pointermove
-  //    is neither to little (jitter), or too much.
-  if (emv && eup?.timeStamp - emv.timeStamp < 100) {
-    let delta = Math.hypot(emv.movementX, emv.movementY);
-    return delta > _pxPerEm_ / 4 && delta < _pxPerEm_ * 3;
+  // Assumes caller populates _moveEvents_ with pointermove events from
+  // same pointerdown/pointermove/pointerup sequence as eup.
+  // @emv is a movement event that, when non-null, is pushed onto the _moveEvents_ array,
+  //    to be used in a subsequent call to flung.
+  // @eup: pointerup event. When non-null, triggers logic to determine if this
+  //     was a user fling.
+
+  if(emv) {
+    _moveEvents_.push(emv) ;
+    if(_moveEvents_.length > _maxMoveEvents_) _moveEvents_.shift() ;
+    return ;
   }
-  return false;
+
+  // Calculate velocity over the last 200ms window
+  let recent = _moveEvents_.filter(e => eup.timeStamp - e.timeStamp <= 200);
+  _moveEvents_.length = 0 ; // done with _moveEvents, so clear
+  if (recent.length > 1) {
+    let last = recent[recent.length - 1];
+    let first = recent[0];
+    let dT = last.timeStamp - first.timeStamp ;
+    if (dT) {
+      let dXY = Math.hypot(last.clientX - first.clientX, last.clientY - first.clientY) ;
+      let velocity = dXY / dT; // pixels per ms
+      return velocity > 0.5; // threshold for "flung" - adjust as needed
+    }
+    return false ;
+  }
 }
-
-
-function flung(emv, eup) {
-  // flung (past tense of fling!) is used to decide
-  // when user has "flung" a div.
-  // Its passed two events:
-  //  @emv a pointermove event, assumed to be the last
-  //    pointermove event before the passed eup event
-  //  @eup a pointerup event
-  //  Returns true iff emv and eup are less than 60 msec apart apart
-  return emv && eup?.timeStamp - emv.timeStamp < 60 ;
-}
-
-
 
 
 let fontMap = {
@@ -1870,16 +1875,16 @@ function strToHash(str) {
 }
 
 function toast(innerHtml) {
-  // display a "toast", i.e. a brief modal that automatically dismisses
-  // after _gs_ seconds.
+  // display a "toast", i.e. a brief message that automatically dismisses
+  // after _gs_ seconds. 
   // @param innerHtml the html content of the toast.
   let elm = helm(
-    `<dialog class="dialog" style="opacity:0;transition: opacity .25s";>${innerHtml}</dialog>`
+    `<div style="position:absolute;display:flex;justify-content:center;align-items: center;height: 100vh;width:100vw;">
+       <div class="raisedEdge" style="z-index:1000;position:absolute;width:fit-content;height:fit-content;padding:1em;opacity:0;transition:opacity ${_gs_}s ease-in">${innerHtml}</div>
+     </div>`
   );
   _body_.append(elm);
-  elm.showModal();
-  animate(elm, null, { opacity: 1 }, `opacity ${_gs_}s`);
-  schedule(1685, () =>
-    animate(elm, null, { opacity: 0 }, `opacity ${_gs_}s`, () => elm.remove())
-  );
+  delay(1, () => elm.firstElementChild.style.opacity = "1") ;
+  delayMs(_gs_ * 2500, () => elm.firstElementChild.style.opacity = "0") ;
+  delayMs(_gs_ * 3500, () => elm.remove()) ;
 }

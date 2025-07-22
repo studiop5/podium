@@ -177,6 +177,7 @@ class Panel {
 
         let mv = listen(header, "pointermove", (emv) => {
           if (e.pointerId != emv.pointerId) return;
+          flung(emv) ; // store event for fling detection
           elm.style.left = emv.clientX - e.offsetX + middleX + "px";
           elm.style.top = emv.clientY - e.offsetY + middleY + "px";
           e.emv = emv;
@@ -188,7 +189,7 @@ class Panel {
           (eup) => {
             header.classList.remove("Panel__header-selected");
             unlisten(mv);
-            if (flung(e.emv, eup))
+            if (flung(null, eup))  // fling detected
               hide(this.elm, dataIndex("tag", this.cell.elm).cellIcon);
           },
           { once: true }

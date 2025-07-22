@@ -487,12 +487,13 @@ class Piano {
         let offsetX = e.clientX - optionsView.frame.offsetLeft ;
         let limit = this.body.offsetWidth - optionsView.frame.offsetWidth ;
         let mv = listen(optionsView.frame, "pointermove", (emv) => {
+           _moveEvents_.push(emv) ;
            if(emv.movementX) optionsView.sash.setPointerCapture(e.pointerId);
             optionsView.frame.style.left = clamp(emv.clientX - offsetX, 0, limit) + "px";
             e.emv = emv ;
         }) ;
         listen(optionsView.sash, "pointerup", (eup) => {
-          if(flung(e.emv, eup)) {
+          if(flung(eup)) {
             hide(elm, this.optionsButton) ;
             delay(10, () => this.optionsButton.classList.remove("Piano__button-active"));
           }
@@ -718,7 +719,7 @@ class Surface {
       let dX = e.offsetX, dY = e.offsetY ; // warning: e can be gc'ed before mv references it.
       let lastEmv = null ;
       let mv = listen(_body_, "pointermove", (emv) => {
-        lastEmv = emv ;
+        flung(emv) ; // store event for fling detection
         if(surface.parentElement == _body_) {
           surface.style.left = emv.clientX - dX + "px";
           surface.style.top = emv.clientY - dY + "px";
@@ -743,7 +744,7 @@ class Surface {
           longPresser.cancel() ;
           unlisten(mv) ;
           let downTime = eup.timeStamp - e.timeStamp ;
-          if (lastEmv && flung(lastEmv,eup)) 
+          if (flung(null, eup))  // fling detected
              hide(surface, dataIndex("tag", this.panel.cell.elm).cellIcon);
           else if(downTime < _longPressMs_) this.onSurfaceEvent("click") ;
         },  { once: true }) ;

@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { Spot, animate, clamp, clearChildren, css, dataIndex, delay, flung, fontMap, getBox, helm, listen, mvmt, Schedule, schedule, toast, unlisten } from "./common.js";
+import { Spot, animate, clamp, clearChildren, css, dataIndex, delay, flung, fontMap, getBox, helm, hide, listen, mvmt, Schedule, schedule, toast, unlisten } from "./common.js";
 import { Grid, Score } from "./score.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
@@ -717,7 +717,6 @@ class Menu {
       emv: null, // lasttest mv event, or initial event if none
       ringKey: ringKey,
       cellKey: cellKey,
-      completed: false,
       state: ringKey == "grip" ? "grip" : cellKey ? "ring" : "disk",
       moved: false,
       origin: { x: e.clientX, y: e.clientY },
@@ -772,45 +771,38 @@ class Menu {
     op.upListener = listen(this.elm, "pointerup", this.opUp.bind(this));
   }
 
-  opMove(e) {
+  opMove(emv) {
     let op = this.op;
-    op.emv = e;
+    op.emv = emv;
 
-    if (op.completed) return; // ignore moves after the long-press timer has run
-    if (op.out) return this.notify(`${op.ringKey}/${op.cellKey}/out`); // if cell has panel, then this wil pass move operation to it
+    if (op.out) {
+      flung(emv) ;
+      return this.notify(`${op.ringKey}/${op.cellKey}/out`); // if cell has panel, then this wil pass move operation to it
+    }
 
     let elm = this.menuHolder;
     let box = getBox(elm);
-    let dxdy = [e.clientX - box.x, e.clientY - box.y];
+    let dxdy = [emv.clientX - box.x, emv.clientY - box.y];
     // keep op.turn positive, with axis at the top, by adding on 1.25
     op.turn = Math.atan2(dxdy[1] - op.ringRadiusPx, dxdy[0] - op.ringRadiusPx) / (Math.PI * 2) + 1.25;
 
     // Was there significant pointer motion in either ring?
-    op.moved = mvmt(op.e, e) ; 
+    op.moved = mvmt(op.e, emv) ; 
     if(op.moved && !op.spun) { 
       if(op.state == "disk")
         op.spun = true ; // Significant mvmt in a disk cell is always interpreted as a spin
       else if(op.state == "ring") {
         // Significant mvmt in a ring cell is a "spin" iff the movement is approximately tangental to the circumference.
         // We test this by comparing the rotational angle of  ring cell to the angle of the pointer gesture
-        let ptrAngle = (Math.atan2(e.clientY - op.e.clientY, e.clientX - op.e.clientX) + Math.PI )/ (Math.PI * 2) + .75 ;
+        let ptrAngle = (Math.atan2(emv.clientY - op.e.clientY, emv.clientX - op.e.clientX) + Math.PI )/ (Math.PI * 2) + .75 ;
         let diff = ptrAngle - op.cellAngle ;
         if(diff < 0) diff += 1 ;
         else if(diff > 1) diff -= 1 ;
-
-        // Different "sensitivity" for asserting op.spun:
-        // if(diff > 0.125 && diff <= 0.375) op.spun = true ;
-        //    else if(diff > 0.625 && diff <= 0.875) op.spun = true ;
-
-        // if(diff > 0.2 && diff <= 0.3) op.spun = true ;
-        //else if(diff > 0.7 && diff <= 0.8) op.spun = true ;
-
+        // Sensitivity" regions for asserting op.spun.
         if(diff > 0.175 && diff <= 0.325) op.spun = true ;
         else if(diff > 0.675 && diff <= 0.825) op.spun = true ;
-
-
         else { // Significant mvmt where pointer moves out of ring triggers "out" state and event
-          let hyp = Math.hypot(e.clientX - this.elm.offsetLeft, e.clientY - this.elm.offsetTop);
+          let hyp = Math.hypot(emv.clientX - this.elm.offsetLeft, emv.clientY - this.elm.offsetTop);
           if (op.out || hyp > this.menuHolder.offsetWidth / 2 || hyp < this.diskHolder.offsetWidth / 2) {
             op.out = true;
             return this.notify(`${op.ringKey}/${op.cellKey}/out`);
@@ -828,7 +820,7 @@ class Menu {
           [...op.ring.elm.children].forEach((elm, i) => (elm.firstElementChild.style.transform =
             `rotate(${-rotation * i - op.ring.turn}turn)`));
           if (!op.spun) return; // insufficient movement
-          // issue spin notification, i.e. spin in progress
+          // issue spin notification, i.emv. spin in progress
           this.notify(`${op.ringKey}/${op.cellKey}/spin`);
           op.cell.elm.classList.remove("Menu__cell-selected");
         }
@@ -849,9 +841,10 @@ class Menu {
       }
       case "grip": {
         if (!op.moved) return; // insufficient movement
+        flung(emv) ; // store event for fling detection
         // Move the menu while ensuring that the grip cannot be dragged out of the viewport
-        this.elm.style.left = clamp(e.clientX, 0, window.innerWidth) + "px";
-        this.elm.style.top = clamp(e.clientY, 0, window.innerHeight) + "px";
+        this.elm.style.left = clamp(emv.clientX, 0, window.innerWidth) + "px";
+        this.elm.style.top = clamp(emv.clientY, 0, window.innerHeight) + "px";
         this.notify("move");
         break;
       }
@@ -860,18 +853,21 @@ class Menu {
     }
   }
 
-  opUp(e) {
+  opUp(eup) {
     let op = this.op;
     op.schedule.cancel();
     unlisten(op.moveListener, op.upListener);
     op.cell && op.cell.elm.classList.remove("Menu__cell-selected");
     op.ring && op.ring.cellElm.classList.remove("Menu__diskCell-selected");
     this.grip.classList.remove("Menu__grip-selected");
-
     if (op.spun) return;
-    // if a long press handler has run, it will have issued an
-    // appropriate notification and set op.completed to true.
-    if (op.out || op.completed) return;
+    if(op.out) {
+      if(flung(null, eup)) {
+        let panel = panels[op.cell.name + "Panel"]?.get(op.cell);
+        if (panel) hide(panel.elm, dataIndex("tag", op.cell.elm).cellIcon);
+      }
+      return ;
+    }
 
     switch (op.state) {
       case "ring":
@@ -882,13 +878,12 @@ class Menu {
         break;
       case "grip":
         if(op.moved) {
-          if (flung(op.emv, e)) {
-          // fling
+          if (flung(null, eup)) { // fling detected
           if (!this.collapsed) this.collapse();
           this.elm.style.transition = "left .5s, top .5s";
           // Calculate direction and position using array lookup
-          let dx = e.clientX - op.e.clientX;
-          let dy = e.clientY - op.e.clientY;
+          let dx = eup.clientX - op.e.clientX;
+          let dy = eup.clientY - op.e.clientY;
           let angle = Math.atan2(dy, dx);
           let direction = Math.round(((angle + Math.PI) / (Math.PI /  4))) % 8;
           let positions = [
@@ -904,7 +899,7 @@ class Menu {
           [this.elm.style.left, this.elm.style.top] = positions[direction];
           schedule(500, () => (this.elm.style.transition = "none"));
         }
-      } else if(e.timeStamp - op.e.timeStamp < 200) this.notify("up");
+      } else if(eup.timeStamp - op.e.timeStamp < 200) this.notify("up");
     }
   }
 
