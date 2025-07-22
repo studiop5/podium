@@ -664,6 +664,7 @@ class Score {
     }
     // don't init score until after pgs are added, or layouts will fail
     await score.init(null, null, `anon${Math.round(Math.random() * 100)}.pdf`);
+    score.setDirty(false) ;
     return score;
   }
 

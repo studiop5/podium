@@ -110,6 +110,8 @@ class Layout
 **/
 
 class Layout {
+  static borderSize = 0.1; // in em's
+  static borderColor =  "#8B4513";
   static margin = 20 / _dvPxRt_; // default margin between layout and viewport
   static activeLayout = null;
 
@@ -214,6 +216,13 @@ class Layout {
         borderRight: "unset",
         borderBottom: "unset",
       });
+      if(pg.elm.firstChild) 
+        Object.assign(pg.elm.firstChild.style, {
+          borderLeft: "unset",
+          borderTop: "unset",
+          borderRight: "unset",
+          borderBottom: "unset",
+       }) ;
     }
     this.elm.remove();
   }
@@ -464,8 +473,8 @@ class BookLayout
 **/
 
 class BookLayout extends Layout {
-  static borderSize = 0.1; // in em's
-
+  static borderColor =  "#8B4513";
+  static bindingColor =  "#8B4513";
   static css = css(
     "BookLayout",
     `
@@ -474,7 +483,7 @@ class BookLayout extends Layout {
             position:absolute;
             box-shadow: .25em .25em 1.5em #888;
             border-radius: var(--borderRadius);
-            border: ${BookLayout.borderSize}em solid #8B4513;
+            border: ${Layout.borderSize}em solid ${Layout.borderColor};
             background-image: var(--layoutTexture) ;
             box-sizing: border-box ;
             font-size: 1em ;
@@ -491,14 +500,15 @@ class BookLayout extends Layout {
              width:1.8em;
              left:calc(50% - .9em);
              top:0%;
-             background: #A0522D ; 
+             background: ${BookLayout.bindingColor};
              position:absolute;
              pointer-events: none ;
           }
          .BookLayout__slot {
             position:absolute;
             overflow: hidden ;
-            transition: opacity 0.35s ease-in-out ;
+/* rem grd...what does this do??? */
+//            transition: opacity 0.35s ease-in-out ;
           }
           .BookLayout__shadow {
             position:absolute ;
@@ -750,16 +760,16 @@ class BookLayout extends Layout {
     if (slot === this.slots[3] && this.slots[4].children.length > 0) advancing = true;
     else if (slot === this.slots[2]) advancing = false;
     else return Layout.pgAlert(e, Layout.endElm);
-
     this.inOp = true;
     this.elm.setPointerCapture(e.pointerId);
     let spineBox = getBox(this.spine);
     this.pgFlip(advancing ? pgWidth : -pgWidth, pgHeight / 2, e.clientX - spineBox.x, e.clientY - spineBox.y, advancing, null);
+
+
     // following 3 vars are used to determine if page is "flung"
     let xTravel = 0;
     let prevClientX = e.clientX;
     let prevTimeStamp = e.timeStamp;
-
     let mv = listen(this.elm, "pointermove", (emv) => {
       this.pgFlipAnimator.cancel();
       this.pgMove(emv.clientX - spineBox.x, emv.clientY - spineBox.y, advancing);
@@ -830,6 +840,13 @@ class BookLayout extends Layout {
       pg.setZoom(this.cell.geo.zoom);
       this.pgPad(pg);
       this.slots[slot].append(pg.elm);
+      // add a shadow to right page where it joins the left, so fold between white pages is visible:
+      let addShadow = () => {
+        if(pg.deferred) return delay(1, () => addShadow()) ;
+        if(pn & 1) pg.elm.firstChild.style.borderLeft = `.05em solid ${BookLayout.bindingColor}` ; 
+        else pg.elm.firstChild.style.borderLeft = "unset" ;
+      } ;
+      addShadow() ;
     }
   }
 
@@ -853,7 +870,7 @@ class BookLayout extends Layout {
       let leader = this.slots[3];
       let follower = this.slots[4];
       follower.style.zIndex = 2;
-      shadow.style.background = "linear-gradient(to right,#0000, #888b)";
+      shadow.style.background = "radial-gradient(ellipse at right, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 50%, transparent 70%)";
       let xFactor = (x + pgWidth) / (pgWidth + pgWidth); // x contrib to rotation, decreases right to left
       let yFactor = (y / pgHeight - 0.5) * 2; // [-1,1] ;  // y contrib to rotation, 0 at middle, max at top/bottom
       let pullingAngle = (Math.PI / 2) * xFactor * yFactor; // angle of pull relative to spine: positive means clockwise
@@ -889,7 +906,7 @@ class BookLayout extends Layout {
       shadow.style.left = "unset";
 
       let alpha = Math.min((x + pgWidth) / shadowWidth, 1);
-      follower.style.filter = `drop-shadow(rgb(160 160 160/${alpha}) 1em 0.5em .5em) drop-shadow(rgb(220 220 220/${alpha}) 0em 0em .5em)`;
+      follower.style.filter = `drop-shadow(rgba(0, 0, 0, ${alpha * 0.3}) 2em 1em 1.5em)  drop-shadow(rgba(0, 0, 0, ${alpha * 0.15}) 0.5em 0.5em 0.5em) drop-shadow(rgba(0, 0, 0, ${alpha *  0.08}) 0px 0px 1em)`;
       shadow.style.opacity = alpha;
       shadow.style.right = pgWidth - pullingEdgeWidth + "px";
       shadow.style.transform = `rotate(${pulledAngle - pullingAngle}rad)`;
@@ -897,7 +914,7 @@ class BookLayout extends Layout {
       let leader = this.slots[2];
       let follower = this.slots[1];
       follower.style.zIndex = 1;
-      shadow.style.background = "linear-gradient(to left,#0000, #bbbb)";
+      shadow.style.background = "radial-gradient(ellipse at left, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 50%, transparent 70%)";
       let xFactor = 1 - (x + pgWidth) / (pgWidth + pgWidth); // x contrib to rotation, decreases left to right
       let yFactor = (y / pgHeight - 0.5) * 2; // [-1,1] ;
       let pullingAngle = -(Math.PI / 2) * xFactor * yFactor;
@@ -934,7 +951,7 @@ class BookLayout extends Layout {
       follower.append(shadow);
       shadow.style.right = "unset";
       let alpha = Math.min((pgWidth - x) / shadowWidth, 1);
-      follower.style.filter = `drop-shadow(rgb(128 128 128/${alpha}) 1em 0.5em 0.5em) drop-shadow(rgb(220 220 220/${alpha}) 0em 0em .5em)`;
+      follower.style.filter = `drop-shadow(rgba(0, 0, 0, ${alpha * 0.3}) 2em 1em 1.5em)  drop-shadow(rgba(0, 0, 0, ${alpha * 0.15}) 0.5em 0.5em 0.5em) drop-shadow(rgba(0, 0, 0, ${alpha *  0.08}) 0px 0px 1em)`;
       shadow.style.opacity = alpha;
       shadow.style.left = pgWidth - pullingEdgeWidth + "px";
       shadow.style.transform = `rotate(${pulledAngle - pullingAngle}rad)`;
@@ -1033,9 +1050,9 @@ class BookLayout extends Layout {
     //        1 4
     //        0 5
     for (let i of [0, 1, 2]) this.slots[i].style.left = "unset";
-    for (let i of [0, 1, 2]) this.slots[i].style.right = ".075em";
+    for (let i of [0, 1, 2]) this.slots[i].style.right = "0" ;
     for (let i of [5, 4, 3]) this.slots[i].style.right = "unset";
-    for (let i of [5, 4, 3]) this.slots[i].style.left = ".075em";
+    for (let i of [5, 4, 3]) this.slots[i].style.left = ".0";
     for (let i of [0, 1, 2, 5, 4, 3]) {
       let slot = this.slots[i];
       slot.style.transformOrigin = "unset";
@@ -1090,7 +1107,7 @@ class ScrollLayout extends Layout {
         .ScrollLayout__sash {
           position: relative;
           overflow: hidden; 
-          border: .1em solid #8B4513;
+          border: ${Layout.borderSize}em solid ${Layout.borderColor};
           box-sizing: border-box ;
         }
         .ScrollLayout__roll {
@@ -1217,7 +1234,6 @@ class ScrollLayout extends Layout {
     g.pgShow = Math.min(pgShow, g.pgCount) ; // g.pgShow must be <= total page count
     g.pgSnap = Math.min(pgSnap, g.pgCount) ; // g.pgSnap must be <= total page count
 
-    console.log("fit 1", fit) ;
     if (fit == "none") {
       g.pg[WIDTH] = score[MAXWIDTH] ;
       g.gap = gap * g.pg[WIDTH];
@@ -1255,7 +1271,6 @@ class ScrollLayout extends Layout {
       g.pg[WIDTH] = g.pg[HEIGHT] * score[MAXWIDTH] / score[MAXHEIGHT] ;
       g.scroll[WIDTH] = g.rollGirth + g.gap + (g.gap + g.pg[WIDTH]) * g.pgShow + g.rollGirth ;
     } 
-console.log("fit 2", fit) ;
 
     g.sash[WIDTH] = (g.pg[WIDTH] + g.gap) * g.pgCount + g.gap;
     // We round sashLimit because we want to compare it to event[CLIENTX], which is always int, see this.onDown()
@@ -1559,7 +1574,7 @@ class TableLayout extends Layout {
           border-radius: var(--borderRadius);
           background-image: var(--layoutTexture);
           overflow:hidden;
-          border: .1em solid #8B4513;
+          border: ${Layout.borderSize}em solid ${Layout.borderColor};
         }
         .TableLayout__grid {
           margin: ${TableLayout.gridMargin};
