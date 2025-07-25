@@ -820,8 +820,14 @@ class LayoutPanel extends Panel {
     };
 
     let msgCallback = (tag, value) => {
-      if (value == 0) return "Snap disabled";
-      else return "Snap: " + value + (value == 1 ? " page." : " pages");
+      if(tag == "pgShow") {
+         // don't allow pgSnap to be > pgShow
+         if(cell.stash.pgSnap > value) cell.stash.pgSnap = value ;
+         return "Show: " + value + (value == 1 ? " page." : " pages");
+      } else if(tag == "pgSnap") {
+        if (value == 0) return "Snap disabled";
+        return "Snap: " + value + (value == 1 ? " page." : " pages");
+      }
     };
 
     // defs for scroll/slider groups
@@ -837,7 +843,7 @@ class LayoutPanel extends Panel {
         min: 1,
         max: 8,
         step: 1,
-        msg: "Show: {value} pages",
+        msg: msgCallback,
         throttle: 750,
       },
       pgSnap: { min: 0, max: 8, step: 1, msg: msgCallback, throttle: 750 },

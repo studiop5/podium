@@ -58,7 +58,7 @@ async function main() {
   initFabric();
   //  Create the menu. It's fontSize is set s.t. that it's outer ring
   //  will cover _gsgs_ (_gs_ for mobile) * narrowest screen dimension.
-  //  Its initial appearance is animated.
+  //  Its initial appearance is animated for a little glitz.
   window._menu_ = new Menu();
   let dim = (Math.min(window.innerWidth, window.innerHeight) / _menu_.menuHolder.offsetWidth) * (_mobile_ ? _gs_ : _gsgs_);
   animate(_menu_.disk, { transform: "rotate(1turn)" }, { transform: "rotate(0)" }, `transform ${1 / _gs_}s`);
@@ -311,12 +311,9 @@ async function main() {
     /**
        Implement automatic "stashing" of Menu's settings:
         - stash after every pointerdown event (throttled to 6.18 seconds)
-        - update window.random as a source of "true" randomness
     **/
-    window.random = Math.random();
     let stasher = new Schedule();
     listen(window, "pointerdown", (e) => {
-      window.random += e.timeStamp;
       stasher.cancel();
 
       stasher.run(5000, () => {

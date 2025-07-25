@@ -21,7 +21,7 @@
 **/
 
 export { checkUnsaved, FileSrc, FileListView, FileSystemView, LocalFileView };
-import { css, ButtonGroup, clamp, clearChildren, dataIndex, delay, getBox, helm, iconSvg, listen, mvmt, dialog, schedule, Schedule, strToHash, toast, unlisten } from "./common.js";
+import { css, ButtonGroup, clamp, clearChildren, dataIndex, delay, delayMs, getBox, helm, iconSvg, listen, mvmt, dialog, schedule, Schedule, strToHash, toast, unlisten } from "./common.js";
 import { Score } from "./score.js";
 import { panels } from "./panel.js";
 import { Layout } from "./layout.js";
@@ -76,6 +76,62 @@ let checkUnsaved = async (msg = "Warning: current score has unsaved changes. Ope
     else accept(true) ;
   })
 }
+
+
+
+let checkFileSize = async (name, size) => {
+  let MAX_FILE_SIZE = 80 * 1024 * 1024; // 80MB
+  checkPath(name) ;
+  if (size == 0)
+    throw new Error('File is empty', { cause: "security" });
+  if (size > MAX_FILE_SIZE) {
+    return new Promise((resolve, reject) => {
+        dialog(
+          `Large File Warning<br><br>
+           File: <i>${escapeHtml(name)}</i><br>
+           Size: <strong>${(size / 1024 / 1024).toFixed(1)}MB</strong><br><br>
+           This file exceeds the recommended size limit of ${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB.<br>
+           Large files may cause performance issues or browser crashes.<br><br>
+           Continue anyway?`,
+          { Continue: { svg: "Open" }, Cancel: { svg: "Cancel" } },
+          (e, prop, tag, args) => {
+            args.close();
+            if (tag === "Continue") {
+              resolve();
+            } else {
+              reject(new Error("File loading cancelled by user", { cause: "cancelled" }));
+            }
+          }
+        );
+      });
+  }
+};
+
+
+let checkPath = (...args) => {
+  for(let arg of args)
+    if(arg && (arg.includes('../') || arg.includes('..\\') || arg.includes('\0')))
+      throw new Error('Invalid path', { cause: 'security' }) ;
+}
+
+
+let escapeHtml = (str) => {
+  if (!str) return '';
+  return str.toString()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;') //" <- keep double quotes balanced for build.py
+    .replace(/'/g, '&#x27;') ; 
+}
+
+let getPlainChallenge = (bytes = 32) => {
+  // generate cryptograpically secure array of random bytes for use in oauth2 PKCE flow
+  let randomBytes = new Uint8Array(bytes);
+  crypto.getRandomValues(randomBytes);
+  return Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
 
 
 /**
@@ -234,6 +290,12 @@ class LocalSrc extends FileSrc {
           input.remove();
           if (e.type == "cancel") return reject(new Error("", { cause: "cancelled" }));
           let file = e.target.files[0];
+          try {
+            await checkFileSize(file.name, file.size) ;
+          }
+          catch (error) {
+            return reject(error);
+          }
           let data = await file.arrayBuffer();
           return accept({ path: null, name: file.name, data: data, created: null, modified: file.lastModified, size: data.byteLength });
         },
@@ -266,8 +328,9 @@ class LocalSrc extends FileSrc {
     } else {
       data = new Blob(data);
       let url = window.URL.createObjectURL(data);
-      let link = helm(`<a download="${name}" href=${url}?</a>`);
-      link.click();
+      let link = document.createElement('a') ;
+      link.download = name;
+      link.href = url ;
       return { name: name, modified: Date.now() };
       // revoke url
     }
@@ -351,12 +414,12 @@ class CachedSrc extends FileSrc {
      Google Drive doesn't support this flow, so GDriveSrc redefines auth.
    */
 
-  cliendId = null; // subclass defined
+  clientId = null; // subclass defined
   scopes = null; // subclass defined
   authUrl = null; // subclass defined
   tokenUrl = null; // subclass defined
 
-  redirectUri = encodeURIComponent(`${window.location.origin}/podauth.html`);
+  redirectUri = `${window.location.origin}/podauth.html`;
   token = null;
   tokenExpiry = performance.now();
   authTimeout = 180000;
@@ -369,7 +432,13 @@ class CachedSrc extends FileSrc {
     let w = Math.min(window.screen.width, 750);
     let x = window.top.outerWidth / 2 + window.top.screenX - w / 2;
     let y = window.top.outerHeight / 2 + window.top.screenY - h / 2;
-    return window.open(`${url}`, "", `popup,height=${h},width=${w},top=${y},left=${x}`);
+    let popup = window.open(`${url}`, "", `popup,height=${h},width=${w},top=${y},left=${x}`);
+    // The authPopup often gets hidden behind the main browser window..keep it focused and in front
+    let focusInterval = setInterval(() => {
+      if (popup && !popup.closed) popup.focus();
+      else clearInterval(focusInterval);
+    }, 500); 
+    return popup ;
   }
 
   // This is called after oauth authentication has run
@@ -389,12 +458,13 @@ class CachedSrc extends FileSrc {
         .replace(/\+/g, "-")
         .replaceAll("/", "_")
         .replace(/=+$/, "");
-    let plainChallenge = window.random.toPrecision(48) + Math.random().toPrecision(48);
+    let plainChallenge = getPlainChallenge() ;
     let challenge = base64UrlEncode(await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(plainChallenge)));
+    let state = getPlainChallenge();
     let timeout = performance.now() + this.authTimeout; // 1 minute to authorize
 
     _shade_.show("Authorizing");
-    let popup = this.authPopupOpen(`${this.authUrl}?client_id=${this.clientId}&scope=${this.scopes}&response_type=code&redirect_uri=${this.redirectUri}&code_challenge_method=S256&code_challenge=${challenge}`);
+    let popup = this.authPopupOpen(`${this.authUrl}?client_id=${this.clientId}&scope=${this.scopes}&response_type=code&redirect_uri=${this.redirectUri}&code_challenge_method=S256&code_challenge=${challenge}&state=${state}`);
 
     // Return a promise...it runs the "oauth2 PKCE flow for single page web apps":
     // Repeatedly poll the popup window just opened, looking for a code on the url of
@@ -406,10 +476,17 @@ class CachedSrc extends FileSrc {
     return new Promise((resolve, reject) => {
       // exchange code for tokens
       let exchange = async (code) => {
+        const params = new URLSearchParams();
+        params.append('client_id', this.clientId);
+        params.append('redirect_uri', this.redirectUri);
+        params.append('code', code);
+        params.append('code_verifier', plainChallenge);
+        params.append('grant_type', 'authorization_code');
+
         let response = await fetch(this.tokenUrl, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: `client_id=${this.clientId}&redirect_uri=${this.redirectUri}&code=${code}&code_verifier=${plainChallenge}&grant_type=authorization_code`,
+          body: params.toString(),
         });
         if (response.ok) return await response.json(); // response has tokens
         else throw new Error(await response.text());
@@ -419,8 +496,11 @@ class CachedSrc extends FileSrc {
       let poll = async () => {
         try {
           if (popup.closed) throw "Authentication aborted";
-          let code = this.getQuery(popup.location.href, "code=");
+          let href = popup.location.href;
+          let code = this.getQuery(href, "code=");
           if (code) {
+            if(this.getQuery(href, "state=") != state)
+              throw new Error("Possible <i>Cross Site Request Forgery</i> attempt blocked.", {cause:"security"}) ;
             let tokens = await exchange(code);
             this.token = tokens.access_token;
             this.tokenExpiry = performance.now() + tokens.expires_in * 1000;
@@ -454,7 +534,7 @@ class CachedSrc extends FileSrc {
       let purgeCache = (path) => {
         let dirs = cache[path] || {};
         for (let [key, value] of Object.entries(dirs)) purgeCache(path + "/" + key);
-        delete cache.path;
+        delete cache[path];
       };
 
       let current = cache[path]; // remember current entry
@@ -472,7 +552,10 @@ class CachedSrc extends FileSrc {
     return cache[path];
   }
 
+
+
   async getDir(path, force = false) {
+    checkPath(path) ;
     await this.auth();
     let dir;
     if (this.cache.hasOwnProperty(path)) {
@@ -482,7 +565,6 @@ class CachedSrc extends FileSrc {
     }
     // load path after recursively loading its parent dir.
     let lastSlashIndex = path.lastIndexOf("/");
-    ///
     if (lastSlashIndex == -1) {
       Score.visit({ source: this.source, name: dir.name, path: path });
       err(`getDir(${path})`, "Path not found.");
@@ -493,6 +575,7 @@ class CachedSrc extends FileSrc {
   }
 
   async putDir(path, name) {
+    checkPath(path, name) ;
     await this.auth();
     let srcDir = await this.getDir(path);
     if (!srcDir) {
@@ -506,6 +589,7 @@ class CachedSrc extends FileSrc {
   }
 
   async renameDir(path, name, newName) {
+    checkPath(path, name, newName) ;
     await this.auth();
     let srcDir = await this.getDir(path);
     if (!srcDir) {
@@ -528,6 +612,7 @@ class CachedSrc extends FileSrc {
   }
 
   async trashDir(path, name) {
+    checkPath(path, name) ;
     await this.auth();
     let parentDir = await this.getDir(path);
     let dir = parentDir.dirs[name];
@@ -539,6 +624,7 @@ class CachedSrc extends FileSrc {
   }
 
   async getFile(path, name) {
+    checkPath(path,name) ;
     await this.auth();
     let dir = await this.getDir(path);
     let file = dir.files[name];
@@ -546,17 +632,21 @@ class CachedSrc extends FileSrc {
       Score.visit({ source: this.source, path, name });
       err(`getFile(${path},${name}`, "Path/Name not found.");
     }
+    await checkFileSize(name, file.size) ;
+
     // the "name" and "path" vars are are here passed back intact. For a LocalSrc, however, the name may have changed, and the path is unknown.
     return { path: path, name: name, data: await this.getFileSrc(path, name, dir, file), size: file.size, created: file.created, modified: file.modified };
   }
 
   async putFile(path, name, data) {
+    checkPath(path, name) ;
     let dir = await this.getDir(path);
     if (dir.dirs[path]) return err(`putFile(${path},${name},...)`, "Path not found.");
     await this.putFileSrc(path, name, await data, dir, null);
   }
 
   async renameFile(path, name, newName) {
+    checkPath(path, name, newName) ;
     await this.auth();
     _shade_.hide();
     let srcDir = await this.getDir(path);
@@ -575,6 +665,7 @@ class CachedSrc extends FileSrc {
   }
 
   async trashFile(path, name) {
+    checkPath(path, name) ;
     await this.auth();
     let dir = await this.getDir(path);
     let file = dir.files[name];
@@ -605,13 +696,12 @@ class GDriveSrc extends CachedSrc {
     super();
   }
 
-  // NOTE: gdrive doesn't implement PKCE code flow for web apps, so redefine auth() to
-  // use the older "token" flow 
-
+  // NOTE: Unable to get gdrive working with the PKCE code flow for web apps: same code used for 
+  // Dropbox and Microsoft OneDrive doesn't work, so  we redefine auth() to use the older "token" flow.
   async auth() {
     if (this.token && performance.now() < this.tokenExpiry) return Promise.resolve(); 
     this.token = null ;
-    let state = window.random.toPrecision(48) + Math.random().toPrecision(48);
+    let state = getPlainChallenge();
     let timeout = performance.now() + this.authTimeout; 
 
     _shade_.show("Authorizing") ;
@@ -862,7 +952,7 @@ class DbxSrc extends CachedSrc {
   source = Score.sources.dbx;
   authUrl = "https:/\/www.dropbox.com/oauth2/authorize";
   clientId = "erqcrdytyixn6h7";
-  scopes = encodeURIComponent("files.content.write files.content.read");
+  scopes = "files.content.write files.content.read";
   tokenUrl = "https:/\/api.dropbox.com/oauth2/token/";
 
   filesUrl = "https:/\/api.dropboxapi.com/2/files/";
@@ -913,7 +1003,7 @@ class DbxSrc extends CachedSrc {
           Authorization: "Bearer " + this.token,
           "Content-Type": "application/json",
         },
-        body: cursor ? `{"cursor":"${cursor}"}` : `{"path":"${path}"}`,
+        body: cursor ? JSON.stringify({cursor: cursor}) : JSON.stringify({path: path}),
       });
       let response = await fetchPromise;
       if (!response.ok) err(`getDirSrc(${path},${dir}})`, await response.text());
@@ -935,7 +1025,7 @@ class DbxSrc extends CachedSrc {
         Authorization: "Bearer " + this.token,
         "Content-Type": "application/json",
       },
-      body: `{"path":"${path}/${name}"}`,
+      body: JSON.stringify({path: path + "/" + name}),
     });
     let response = await fetchPromise;
     if (!response.ok) err(`putDirSrc(${path},${name},...})`, await response.text());
@@ -964,7 +1054,7 @@ class DbxSrc extends CachedSrc {
         Authorization: "Bearer " + this.token,
         "Content-Type": "application/json",
       },
-      body: `{"path":"${path}/${name}"}`,
+      body: JSON.stringify({path: path + "/" + name}),
     });
     let response = await fetchPromise;
     if (!response.ok) err(`trashDirSrc(${path},${name},...)`, await response.text());
@@ -1303,20 +1393,25 @@ class LocalFileView {
       return;
     }
 
-    // the input element's "accept" attribute is different for "copy" and "open" modes.
-    let inputElm =  this.mode == "copy" ? 
-       `<input type="file" data-tag="dialog" draggable="true" accept=".jpeg, .jpg, .JPG, image/jpeg, .png, image/png" style="visibility:hidden;"/>`:
-       `<input type="file" data-tag="dialog" draggable="true" accept=".pdf, application/pdf" style="visibility:hidden;"/>` ;
-
     this.elm = helm(`
      <div data-tag="local" class="Local" >
         <input type="file" data-tag="dialog" draggable="true" accept=".pdf, application/pdf" style="visibility:hidden;"/>
-        ${inputElm}
         <div class="Local__line"> ${iconSvg("Open", { style: "width:3em;height:3em;" })}</div>
         <div  class="Local__line"><b>Click to Show Open File Picker</b></div>
         <div class="Local__line">${_mobile_ ? "" : "<b>&mdash; or &mdash;<b>"}</div>
         <div class="Local__line">${_mobile_ ? "" : "<b>Drop Score File</b>"}</div>
      </div>`);
+
+    // Add input elm after DOM creation
+    let inputElm = document.createElement('input');
+    inputElm.type = 'file';
+    inputElm.setAttribute('data-tag', 'dialog');
+    inputElm.draggable = true;
+    inputElm.style.visibility = 'hidden';
+    // the input element's "accept" attribute is different for "copy" and "open" modes.
+    inputElm.accept = this.mode == "copy" ? ".jpeg, .jpg, .JPG, image/jpeg, .png, image/png" :".pdf, application/pdf";
+    this.elm.appendChild(inputElm);
+
 
     Object.assign(this, dataIndex("tag", this.elm));
 
@@ -1565,9 +1660,10 @@ class FileListView {
 
   async checkExt(name, ext = ".pdf") {
     // ext should include the leading dot "."
+    checkPath(name) ;
     if (name.toLowerCase().endsWith(ext)) return name;
     return new Promise((accept, reject) => {
-      dialog(`Add extension <i>.pdf</i> to <i>${name}<i> ?`, { Yes: { svg: "Pdf" }, No: { svg: "Not Pdf" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
+      dialog(`Add extension <i>.pdf</i> to <i>${escapeHtml(name)}<i> ?`, { Yes: { svg: "Pdf" }, No: { svg: "Not Pdf" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
         args.close();
         if (tag == "Yes") accept(name + ext);
         if (tag == "No") accept(name);
@@ -1599,6 +1695,7 @@ class FileListView {
   async makeFileElm(properties) {
     let name = properties.name;
     let path = properties.path;
+    checkPath(name, path) ;
     let isDir = properties.isDir ?? false;
     let source = properties.source || FileSrc.get(this.src) || "?";
     let size = properties.size || null;
@@ -1606,16 +1703,17 @@ class FileListView {
     let modified = properties.modified ? new Date(properties.modified).toLocaleString() : null;
     let iconName = isDir ? "Folder" : this.iconsByExtension[name.slice(name.lastIndexOf("."))];
     let color = this.colorFromText(name);
+
     let elm = helm(`
-       <div ${isDir ? "data-dir='true'":""} data-name="${name}" data-path="${path}" data-source="${source}" class="Flv-list__file">
+       <div ${isDir ? "data-dir='true'":""} data-name="${escapeHtml(name)}" data-path="${escapeHtml(path)}" data-source="${escapeHtml(source)}" class="Flv-list__file">
          <div class="Flv-list__file-header">
            ${iconSvg(iconName, {style: "width:3.5em;height:2.5em" })}
-           ${name}
+           ${escapeHtml(name)}
          </div>
          <div class="Flv-list__file-details">
            <div class="Flv-list__file-properties">
-             Source: ${source}<br>
-             ${source == "Local" ? "" : "Path: " + (path || "/") + "<br>"}
+             Source: ${escapeHtml(source)}<br>
+             ${source == "Local" ? "" : "Path: " + (escapeHtml(path) || "/") + "<br>"}
              ${size ? "Size: "+ Number(size).toLocaleString() + "<br>" : ""}
              ${created ? "Created: "+ created + "<br>" : ""}
              ${modified ? "Modified: "+ modified + "<br>" : ""}
@@ -1713,13 +1811,14 @@ class FileListView {
   }
 
   async renameFile(source, path, name) {
+    checkPath(path, name) ;
     _shade_.show("Renaming file");
     return new Promise((accept, reject) => {
       let dialogElm = dialog(
         `Confirm. Rename File:<br><br>
-            <i>${name}</i><br>
+            <i>${escapeHtml(name)}</i><br>
               <br>To:<br>
-        <input is="pod-input" type=text class="dialog__textInput" data-tag="input" value="${name}"></input>
+        <input is="pod-input" type=text class="dialog__textInput" data-tag="input" value="${escapeHtml(name)}"></input>
        <hr>`,
         { Rename: { svg: "Pencil" }, Cancel: { svg: "Cancel" } },
         async (e, prop, tag, args) => {
@@ -1768,7 +1867,7 @@ class FileListView {
     _shade_.show("Trashing file");
 
     return new Promise((accept, reject) => {
-      dialog(`Confirm. Trash File:<br><br><i>${name}</i><hr>`, { Trash: { svg: "Trash" }, Cancel: { svg: "Close" } }, async (e, prop, tag, args) => {
+      dialog(`Confirm. Trash File:<br><br><i>${escapeHtml(name)}</i><hr>`, { Trash: { svg: "Trash" }, Cancel: { svg: "Close" } }, async (e, prop, tag, args) => {
         try {
           args.close();
           if (tag == "Cancel") return;
@@ -1878,8 +1977,8 @@ class FileSystemView extends FileListView {
       } else path = path + "/" + dir;
 
       dirElm = helm(
-        `<div dir-source="${this.source}" data-path="${path}" style="background:${background}"{ class="Flv-path__dir">
-         ${iconSvg(icon, { style: "width:1.5em;" })}&nbsp${dir}&nbsp/</div>`
+        `<div dir-source="${escapeHtml(this.source)}" data-path="${escapeHtml(path)}" style="background:${background}"{ class="Flv-path__dir">
+         ${iconSvg(icon, { style: "width:1.5em;" })}&nbsp${escapeHtml(dir)}&nbsp/</div>`
       );
       elm.append(dirElm);
     });
@@ -1890,7 +1989,7 @@ class FileSystemView extends FileListView {
       // Add an entry that serves as "add directory" button
       elm.append(
         helm(
-          `<div data-tag="newDir" data-path="${path}" data-source="${this.source}" class="Flv-path__dir">
+          `<div data-tag="newDir" data-path="${escapeHtml(path)}" data-source="${escapeHtml(this.source)}" class="Flv-path__dir">
          ${iconSvg("New Folder", { style: "pointer-events:none;width:2em;padding-left:3em;" })}&nbspNew</div>`
         )
       );
@@ -1959,13 +2058,14 @@ class FileSystemView extends FileListView {
   }
 
   async renameDir(path, name) {
+    checkPath(path, name) ;
     _shade_.show("Renaming folder");
     return new Promise((accept, reject) => {
       let dialogElm = dialog(
         `Confirm. Rename Folder:<br><br>
-            <i>${name}</i><br>
+            <i>${escapeHtml(name)}</i><br>
               <br>To:<br>
-        <input is="pod-input" type=text class="dialog__textInput" data-tag="input" value="${name}"></input>
+        <input is="pod-input" type=text class="dialog__textInput" data-tag="input" value="${escapeHtml(name)}"></input>
        <hr>`,
         { Rename: { svg: "Pencil" }, Cancel: { svg: "Cancel" } },
         async (e, prop, tag, args) => {
@@ -2001,7 +2101,7 @@ class FileSystemView extends FileListView {
   async trashDir(path, name) {
     _shade_.show("Trashing folder");
     return new Promise((accept, reject) => {
-      dialog(`Confirm. Trash Folder:<br><br><i>${name}</i><hr>`, { Trash: { svg: "Trash" }, Cancel: { svg: "Close" } }, async (e, prop, tag, args) => {
+      dialog(`Confirm. Trash Folder:<br><br><i>${escapeHtml(name)}</i><hr>`, { Trash: { svg: "Trash" }, Cancel: { svg: "Close" } }, async (e, prop, tag, args) => {
         try {
           args.close();
           if (tag == "Cancel") return;
@@ -2028,7 +2128,7 @@ class FileSystemView extends FileListView {
       let listing = await this.src.getDir(this.path, true);
       if (listing.files[name])
         await new Promise((accept, reject) =>
-          dialog(`Confirm. Replace <i>${name}</i> ?`, { Replace: { svg: "Replace" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
+          dialog(`Confirm. Replace <i>${escapeHtml(name)}</i> ?`, { Replace: { svg: "Replace" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
             args.close();
             if (tag == "Cancel") reject(new Error("", { cause: "cancelled" }));
             accept();
