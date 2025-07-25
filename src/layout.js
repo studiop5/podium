@@ -1185,7 +1185,6 @@ class ScrollLayout extends Layout {
     }
     else {
       this.sash.style.borderBottom = this.sash.style.borderTop = "unset" ;
-      this.sash.style.borderRight = this.sash.style.borderBottom = "unset" ;
       this.props = ORTHO_PROPS ;
     }
 

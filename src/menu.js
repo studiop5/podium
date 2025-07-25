@@ -787,7 +787,7 @@ class Menu {
     op.turn = Math.atan2(dxdy[1] - op.ringRadiusPx, dxdy[0] - op.ringRadiusPx) / (Math.PI * 2) + 1.25;
 
     // Was there significant pointer motion in either ring?
-    op.moved = mvmt(op.e, emv) ; 
+    op.moved = mvmt(op.e, emv, 15, 15) ; 
     if(op.moved && !op.spun) { 
       if(op.state == "disk")
         op.spun = true ; // Significant mvmt in a disk cell is always interpreted as a spin
