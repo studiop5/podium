@@ -686,25 +686,28 @@ for more details.</p>
   creditsFace = helm(`<div>
         <div class="Credit">
           <a href="https:/\/github.com/steinbergmedia/bravura">Bravura</a> Version 1.1<br>
-          Copyright © 2019, Steinberg Media Technologies GmbH<br>
+          © 2019, Steinberg Media Technologies GmbH<br>
           SIL Open Font License
         </div><div class="Credit">
           <a href="https:/\/github.com/fabricjs">fabricjs</a> Version 5.2.1<br>
-          Copyright © 2008-2015 Printio (Juriy Zaytsev, Maxim Chernyak)<br>
+          © 2008-2015 Printio (Juriy Zaytsev, Maxim Chernyak)<br>
         </div><div class="Credit">
           <a href="https:/\/github.com/mozilla/pdf.js">pdf</a> Version 2.0<br>
-          Copyright  © 2023 Mozilla Foundation<br>
+          © 2023 Mozilla Foundation<br>
           Apache License<br>
         </div><div class="Credit">
-          <a href="https:/\/github.com/Hopding/pdf-lib">pdf-lib</a> Version 1.17.1
-          Copyright  © 2019 Andrew Dillon<br>
+          <a href="https:/\/github.com/Hopding/pdf-lib">pdf-lib</a> Version 1.17.1<br>
+          © 2019 Andrew Dillon<br>
           MIT license
         </div><div class="Credit"> 
           <a href="https:/\/github.com/sfzinstruments/SalamanderGrandPiano">Salamander Grand Piano V2 Yamaha C5</a><br>
           Author: Alexander Holm<br>
           Creative Commons 3.0
-        <a></a>
-     </div>`);
+        </div><div class="Credit">
+          <a href="https://codepen.io/zastrow/details/kxdYdk">CSS Piano</a><br>
+          © 2025 Philip Zastrow<br>
+        </div>
+         `);
 
   aboutFace = helm(
     `<div style="display:flex;align-items:center;flex-direction:column;justify-content:center;padding:1em;font-size:1.5em;">
