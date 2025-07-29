@@ -29,6 +29,7 @@ export { Review, Metronome, Clock, Stopwatch, Piano, Volume };
 /**
 class Piano
    Implements a Panel that shows a playable, configurable keyboard.
+   Adapted from a Codepen by Philip Zastrow, codepen.io/zastrow, ../licenses/zastrow_css_piano.txt
 */
 
 
@@ -51,18 +52,24 @@ class Piano {
       height:16em;
       width:4em;
       z-index:1;
+      box-sizing: border-box;
+      border-top:.06em solid transparent; 
       border-left:.06em solid #bbb;
       border-bottom:.06em solid #bbb;
       border-radius:0 0 .3em .3em;
       box-shadow:-.06em 0 0 rgba(255,255,255,0.8) inset,0 0 .3em #ccc inset,0 0 .18em rgba(0,0,0,0.2);
       background:linear-gradient(to bottom,#eee 0%,#fff 100%) ;
+      touch-action: manipulation; 
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
     .Piano__key-white:active {
       border-top:.06em solid #777;
       border-left:.06em solid #999;
       border-bottom:.06em solid #999;
       box-shadow:.18em 0 .18em rgba(0,0,0,0.1) inset,-.3em .3em 1.2em rgba(0,0,0,0.2) inset,0 0 .18em rgba(0,0,0,0.2);
-      background:linear-gradient(to bottom,#fff 0%,#e9e9e9 100%) ;
+      background:linear-gradient(to bottom,#fff 0%,#e9e9e9 100%) ; 
+      touch-action: manipulation; /* removes 300ms delay  browsers add for touch interactions (waiting to see if it's a double-tap) */
     }
     .Piano__key-black {
       flex-shrink:0;
@@ -70,14 +77,19 @@ class Piano {
       width:2em;
       margin:0 0 0 -1em;
       z-index:2;
+      box-sizing: border-box;
       border:.06em solid #000;
       border-radius:0 0 .18em .18em;
       box-shadow:-.06em -.06em .18em rgba(255,255,255,0.2) inset,0 -.3em .18em 3px rgba(0,0,0,0.6) inset,0 .18em .24em rgba(0,0,0,0.5);
       background:linear-gradient(45deg,#222 0%,#555 100%);
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
     .Piano__key-black:active {
       box-shadow:-.06em -.06em .18em rgba(255,255,255,0.2) inset,0 -.18em .18em 3px rgba(0,0,0,0.6) inset,0 .06em .18em rgba(0,0,0,0.5);
       background:linear-gradient(to right,#444 0%,#222 100%)
+      touch-action: manipulation;
     }
     .a,.b,.d,.e,.g {
       margin:0 0 0 -1.16em
@@ -229,7 +241,8 @@ class Piano {
     );
     this.panel.header.append(this.tunerButton);
     this.panel.listeners.push(
-      listen(this.tunerButton, "pointerdown", () => {
+      listen(this.tunerButton, "pointerdown", (e) => {
+        e.stopPropagation();
         this.tunerButton.classList.toggle("Piano__button-active");
         this.tuning = this.tunerButton.classList.contains("Piano__button-active");
         if (this.tuningScheduler) {
@@ -493,7 +506,7 @@ class Piano {
             e.emv = emv ;
         }) ;
         listen(optionsView.sash, "pointerup", (eup) => {
-          if(flung(eup)) {
+          if(flung(null, eup)) {
             hide(elm, this.optionsButton) ;
             delay(10, () => this.optionsButton.classList.remove("Piano__button-active"));
           }
