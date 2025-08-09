@@ -126,6 +126,7 @@ class Menu {
     .Menu__grip-selected {
      background: #aaa ;
     } 
+    `
   );
 
   activeRing = null;
