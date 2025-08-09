@@ -28,9 +28,11 @@ class PodiumHandler(http.server.SimpleHTTPRequestHandler):
         for root in docRoots:
             fullPath = os.path.abspath(os.path.join(root,path))
             if os.path.exists(fullPath):
+                self.sent_response(200)
+                filename, extension = os.path.splitext(path)
+                self.send_header("content-type", MIME_MAP[extension] + "; charset=utf-8")
                 self.send_header("Accept-Ranges", "bytes") ;
                 self.send_header("Content-Length", os.path.getsize(fullPath))
-                self.send_header("content-length ", os.path.getsize(fullPath))
                 self.end_headers()
                 return 
         self.send_response(404)

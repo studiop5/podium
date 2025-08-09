@@ -43,6 +43,7 @@ class Menu {
     "Menu",
     `
     .Menu {
+      position: absolute;
     }
     .Menu__holder {
       position:absolute;
@@ -50,6 +51,8 @@ class Menu {
       transition: opacity .5s; 
       z-index:101 ;
       filter: drop-shadow(.01em .125em .2em #6668);
+      transform: translateZ(0) ; /* fix for ipad compositing */
+      will-change: transform ; /* fix for ipad compositing */
     } 
     .Menu__ring {
       position:absolute;
@@ -119,12 +122,10 @@ class Menu {
       border-radius:50%;
       z-index:105;
       background-image: var(--panTexture);
-
     }
     .Menu__grip-selected {
      background: #aaa ;
     } 
-     `
   );
 
   activeRing = null;
@@ -388,8 +389,8 @@ class Menu {
             fit: "Auto", // "Auto", "Width","Height","None"
             gap: 0.2, // [0,10]% of fit dimension
             pnShow: "On",
-            pgShow: 2, // [1,Score.activeScore.pages.length)
-            pgSnap: 2,
+            pgShow: 1, // [1,Score.activeScore.pages.length)
+            pgSnap: 0, // 0 = disabled
           },
           svgPath: iconPaths["Vertical Scroll"],
         },
@@ -398,7 +399,7 @@ class Menu {
           pz: null,
           stash: {
             fit: "Auto", // "Auto", "Width","Height" (note: no "None")
-            pages: 4, // [2,Score.activeScore.pages.length)
+            pages: 15, // [2,Score.activeScore.pages.length)
             horizontalGap: 0, // [-100,100]%
             verticalGap: 0, // [-100,100]%
             pnShow: "On",
@@ -462,17 +463,17 @@ class Menu {
         rastrum: {
           name: "Rastrum",
           svgPath: iconPaths["Rastrum"],
-            stash: {  alpha:"1", gap:5, bars:1, lines: 5, rgb: "#000000", style:"L-R", width: .75, bars:1,barsWidth:.75}, // "L-R" or "T-B"
+            stash: {  alpha:"1", gap:5, bars:0, lines: 5, rgb: "#000000", style:"L-R", width: .75, barsWidth:.75}, // "L-R" or "T-B"
         },
         text: {
           name: "Text",
           svgPath: iconPaths["Text"],
-          stash: {alpha:"1", font: "Times-Roman", size: 12, height: 12, rgb: "#000000"},
+          stash: {alpha:"1", font: "Times-Roman", size: 20, height: 20, rgb: "#000000"},
         },
         symbols: {
           name: "Symbols",
           svgPath: iconPaths["Symbols"],
-          stash: {alpha:"1", rgb:"000000", font: "Bravura", size: 12, height: 12,rgb: "#000000", group: "4.5. Clefs", codePoint: "\ue050"},
+          stash: {alpha:"1", rgb:"000000", font: "Bravura", size: 20, height: 20,rgb: "#000000", group: "4.5. Clefs", codePoint: "\ue050"},
         },
         undo: {
           name: "Undo",
@@ -799,8 +800,8 @@ class Menu {
         if(diff < 0) diff += 1 ;
         else if(diff > 1) diff -= 1 ;
         // Sensitivity" regions for asserting op.spun.
-        if(diff > 0.175 && diff <= 0.325) op.spun = true ;
-        else if(diff > 0.675 && diff <= 0.825) op.spun = true ;
+        if(diff > 0.2 && diff <= 0.3) op.spun = true ;
+        else if(diff > 0.7 && diff <= 0.8) op.spun = true ;
         else { // Significant mvmt where pointer moves out of ring triggers "out" state and event
           let hyp = Math.hypot(emv.clientX - this.elm.offsetLeft, emv.clientY - this.elm.offsetTop);
           if (op.out || hyp > this.menuHolder.offsetWidth / 2 || hyp < this.diskHolder.offsetWidth / 2) {
@@ -886,15 +887,16 @@ class Menu {
           let dy = eup.clientY - op.e.clientY;
           let angle = Math.atan2(dy, dx);
           let direction = Math.round(((angle + Math.PI) / (Math.PI /  4))) % 8;
+          // positions at the bottom don't use vw because of Safari-specific viewport calculation.
           let positions = [
             ["0vw", "50vh"],    // left edge
             ["0vw", "0vh"],     // top-left corner
             ["50vw", "0vh"],    // top edge
             ["100vw", "0vh"] ,  // top-right corner
             ["100vw", "50vh"],  // right edge
-            ["100vw", "100vh"], // bottom-right corner
-            ["50vw", "100vh"],  // bottom edge
-            ["0vw", "100vh"],   // bottom-left corner
+            [`${window.innerWidth}px`, `${window.innerHeight}px`], // bottom-right corner
+            ["50vw", `${window.innerHeight}px`],  // bottom edge
+            ["0vw", `${window.innerHeight}px`],   // bottom-left corner
           ];
           [this.elm.style.left, this.elm.style.top] = positions[direction];
           schedule(500, () => (this.elm.style.transition = "none"));
@@ -1067,11 +1069,10 @@ class Menu {
   center(reset = false) {
     // move to the center of the current window
     animate(this.elm, null, { 
-       left: window.innerWidth / 2 + "px",
-       top: window.innerHeight / 2 + "px",
+      left: window.innerWidth / 2 + "px",
+      top: window.innerHeight / 2 + "px",
     }, ` ${_gs_}s`) ;
     if (this.collapsed) this.collapse();
-
     if (reset) {
       this.op.turnOffset = 0;
       this.disk.turn = 0;

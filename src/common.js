@@ -151,7 +151,10 @@ let css = (name, rules) => {
 };
 
 css(
-  //  common css declarations:
+  // common css declarations. note: if you change bodyColor, be sure
+  // change the background-color style declarations in pod.html and
+  // podium.html. Those are defined so that there is not a brief
+  // flash of white screen before the background paints.
   "common",
   `
   :root {
@@ -166,7 +169,6 @@ css(
   }
   body {
     font-family: Arial;
-    overflow:hidden;
     margin: 0;
     padding: 0;
     background-color: var(--bodyColor);
@@ -1759,7 +1761,8 @@ css(
   `
    .ptrMsg {
       position:absolute ;
-      width:12em;
+      width:fit-content;
+      padding:.05em .2em;
       height:2em;
       line-height:2em;
       font-size: .8em;
@@ -1779,12 +1782,14 @@ function ptrMsg(e, msgFunc, styles) {
   // the top of the screen, etc.
   let div = helm(`<div class="ptrMsg raisedEdge" style="${styles}"></div>`);
   _body_.append(div);
-  let wd = div.offsetWidth;
-  let hg = div.offsetHeight * 2;
+
   // when pointer is not a mouse, double distance between it and the div,
-  // so, for example, one's finger doesn't obscure ability to read div msg
+  // so, for example, user's finger doesn't obscure ability to read div msg
   let expander = e.pointertype == "mouse" ? 1 : 2;
   let put = (ev) => {
+    let b = getBox(div) ;
+    let wd = b.width ;
+    let hg = b.height ;
     let [left, top] = [ev.clientX - wd / 2, ev.clientY - hg * expander];
     left = clamp(left, 0, window.innerWidth - wd);
     top = clamp(top, 0, window.innerHeight - hg);

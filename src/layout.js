@@ -196,12 +196,11 @@ class Layout {
   }
 
   destructor() {
-    // Called when layout is about to be replaced by another. Subclasses
-    // should call super()
-    // Remember user's pz changes, if any
+    // Called when layout is about to be replaced by another. Subclasses should call super().
+    // We need to remember user's pz changes, if any:
     if (this.elm.classList.contains("pz-set")) {
       let styles = getComputedStyle(this.elm);
-      this.cell.pz = { left: styles.left, top: styles.top, fontSize: styles.fontSize };
+      this.cell.pz = { left: styles.left, top: styles.top, fontSize: (parseFloat(styles.fontSize) / _pxPerEm_) + "em" };
     }
     unlisten(this.pnListener);
     for (let pg of this.score.pgs) {
@@ -507,8 +506,6 @@ class BookLayout extends Layout {
          .BookLayout__slot {
             position:absolute;
             overflow: hidden ;
-/* rem grd...what does this do??? */
-//            transition: opacity 0.35s ease-in-out ;
           }
           .BookLayout__shadow {
             position:absolute ;
@@ -591,13 +588,9 @@ class BookLayout extends Layout {
     this.pagerLeft = new Pager("left", (stash, adjusting, cursor) => {
       let pn = stash.pn;
       // left page number must always be even, except when adjusting
-      if (!adjusting && pn == 1) return (cursor.textContent = ""); // no pg 1 on left side
+      if (!adjusting && pn == 1) return (cursor.textContent = "\u2219"); // no pg 1 on left side
       else if (!adjusting && pn & 1) pn--;
       return pnToDiv(pn, cursor);
-    });
-    Object.assign(this.pagerLeft.elm.style, {
-      left: 0,
-      zIndex: 20,
     });
     this.book.append(this.pagerLeft.elm);
     this.pagerRight = new Pager("right", (stash, adjusting, cursor) => {
@@ -605,14 +598,11 @@ class BookLayout extends Layout {
       let pgCount = this.score.pgs.length;
       // right page number must always be odd, except when adjusting
       pn = Math.min(pn, pgCount);
-      if (!adjusting && pn == pgCount) return (cursor.textContent = ""); // no pg on right side, so no pn either
       if (!adjusting && !(pn & 1)) pn++;
+      if (!adjusting && pn > pgCount) return (cursor.textContent = "\u2219"); // no pg on right side, so no pn either
       return pnToDiv(pn, cursor);
     });
-    Object.assign(this.pagerRight.elm.style, {
-      right: 0,
-      zIndex: 20,
-    });
+    this.pagerLeft.elm.style.left = this.pagerRight.elm.style.right = 0 ;
   }
 
   destructor() {
@@ -625,37 +615,44 @@ class BookLayout extends Layout {
   async build(animated=true) {
     Object.assign(this, this.cell.stash);
     this.pn0 = -2;
-    let { fit, gap, score, pgShow } = this;
+    let { fit, score, pgShow } = this;
     fit = fit.toLowerCase() ;
 
     // Layout scroll g((eo)metry) in units of css pixels
-    let g = (this.cell.geo = this.cell.geo || {});
-    g.gap = .8 * _pxPerEm_ ;  // for a border-radius of .8 em
+    let g = this.cell.geo = (this.cell.geo || {});
+    // top/bottom gap and left/right gap, for a border-radius of .8em
+    g.tbGap = g.lrGap = .8 * _pxPerEm_ ;
+    g.pagerWidth = 0 ;
+
+    if(this.pnShow == "On") {
+       // Compensate for width of pager, and remove  gap on left and right
+      g.pagerWidth = Pager.width ;
+      g.lrGap = 0 ;
+    }
     g.pgCount = this.score.pgs.length;
-    g.pagerWidth = this.pnShow == "On" ? Pager.width - g.gap/2 : 0
-      
+
     if (fit == "none") {
       g.pgWidth = score.maxWidth;
       g.pgHeight = score.maxHeight;
-      g.bookWidth = g.pagerWidth + g.gap + g.pgWidth + g.pgWidth + g.gap + g.pagerWidth;
-      g.bookHeight = g.gap + g.pgHeight + g.gap;
+      g.bookWidth = g.lrGap + g.pagerWidth + g.pgWidth + g.pgWidth + g.pagerWidth + g.lrGap;
+      g.bookHeight = g.tbGap + g.pgHeight + g.tbGap;
     } 
 
     if (fit == "auto" || fit == "width") {
       g.bookWidth = window.innerWidth - Layout.margin - Layout.margin;
-      g.pgWidth = (g.bookWidth - g.pagerWidth - g.gap - g.gap - g.pagerWidth) / 2;
+      g.pgWidth = (g.bookWidth - g.pagerWidth - g.lrGap - g.lrGap - g.pagerWidth) / 2;
       g.pgHeight = Math.floor(g.pgWidth * (score.maxHeight / score.maxWidth));
-      g.bookHeight = g.gap + g.pgHeight + g.gap;
+      g.bookHeight = g.tbGap + g.pgHeight + g.tbGap;
 
       if(fit == "auto") {
         // Check if layout will fit entirely within window. If not, recalculate with fit = HEIGHT ;
         fit = "width" ; // assume width
         // if either dimension doesn't fit window, change fit to HEIGHT ;
-        let layoutWidth = Math.round(Layout.margin * 2 + (g.pgWidth + g.gap) * 2 + g.pagerWidth * 2) ;
+        let layoutWidth = Math.round(Layout.margin * 2 + (g.pgWidth + g.lrGap) * 2 + g.pagerWidth * 2) ;
         if(layoutWidth > window.innerWidth)
           fit = "height" ;
         else {
-          let layoutHeight = Math.round(Layout.margin * 2 + g.pgHeight + g.gap * 2) ;
+          let layoutHeight = Math.round(Layout.margin * 2 + g.pgHeight + g.tbGap * 2) ;
           if(layoutHeight > window.innerHeight) fit = "height" ;
         } 
       }
@@ -663,9 +660,9 @@ class BookLayout extends Layout {
 
     if (fit == "height") {
       g.bookHeight = window.innerHeight - Layout.margin - Layout.margin;
-      g.pgHeight = g.bookHeight - g.gap - g.gap;
+      g.pgHeight = g.bookHeight - g.tbGap - g.tbGap;
       g.pgWidth = Math.floor(g.pgHeight * (score.maxWidth / score.maxHeight));
-      g.bookWidth = g.pagerWidth + g.gap + g.pgWidth + g.pgWidth + g.gap + g.pagerWidth;
+      g.bookWidth = g.lrGap + g.pagerWidth + g.pgWidth + g.pgWidth + g.pagerWidth + g.lrGap ;
     }
     g.zoom = g.pgWidth / score.maxWidth;
 
@@ -688,7 +685,7 @@ class BookLayout extends Layout {
     });
 
     // spine...slots attach here.
-    this.spine.style.top = toEm(g.gap);
+    this.spine.style.top = toEm(g.tbGap);
 
     // shadow...creates shadow effect across the flipping page
     g.shadowWidth = g.pgWidth / _pxPerEm_;
@@ -720,7 +717,7 @@ class BookLayout extends Layout {
 
     let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon) ;
 
-    if(this.cell.pz) 
+    if(this.cell.pz)  // custom user-set size/position
       animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0}, this.cell.pz, `left, top, font-size ${_gs_}s`) ;
     else animate(this.elm, 
        {left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
@@ -840,7 +837,7 @@ class BookLayout extends Layout {
       pg.setZoom(this.cell.geo.zoom);
       this.pgPad(pg);
       this.slots[slot].append(pg.elm);
-      // add a shadow to right page where it joins the left, so fold between white pages is visible:
+      // add a shadow (actually, a border) to right page where it joins the left, so fold between white pages is visible:
       let addShadow = () => {
         if(pg.deferred) return delay(1, () => addShadow()) ;
         if(pn & 1) pg.elm.firstChild.style.borderLeft = `.05em solid ${BookLayout.bindingColor}` ; 
@@ -1391,8 +1388,11 @@ class ScrollLayout extends Layout {
         // When delay between pointerup and previous event < 200ms, compute "velocity" of last movement.
         let delay = eup.timeStamp - e.mv0.timeStamp;
         let vel = delay < 200 ? (e.mv0[CLIENTX] - e.mv1[CLIENTX]) / (e.mv0.timeStamp - e.mv1.timeStamp) : 0;
+        vel = vel || 0 ; // When e.mv0 ==- e.mv1, vel will be NaN, so substitute 0.
         vel /= 5; // dampen the velocity
-        this.pgSnapTo(eup.timeStamp - e.timeStamp > 200 ? "none" : e.mv0[CLIENTX] > e.mv1[CLIENTX] ? "right" : e.mv0[CLIENTX] < e.mv1[CLIENTX] ? "left" : "none", vel);
+        this.pgSnapTo(eup.timeStamp - e.timeStamp > 200 ? "none" :
+            e.mv0[CLIENTX] > e.mv1[CLIENTX] ? "right" :
+                 e.mv0[CLIENTX] < e.mv1[CLIENTX] ? "left" : "none", vel);
       }).bind(this),
       { once: true }
     );
@@ -1957,24 +1957,26 @@ class Pager {
 
   buildCursor() {
     let { HEIGHT, WIDTH, TOP } = this.props;
-    this.pagerBox = getBox(this.pager);
-    let pgCount = Score.activeScore.pgs.length;
-    let pgSpan = this.pagerBox[HEIGHT] / pgCount;
-    this.cursor.style[HEIGHT] = this.pagerBox[WIDTH] + "px";
-    this.cursor.style[TOP] = ((this.pnStash.pn - 1) / pgCount) * 100 + "%";
-    this.cursor.style.lineHeight = this.cursor.style[HEIGHT];
+    let cursorBox = getBox(this.cursor) ;
+    let pagerBox = getBox(this.pager);
+    this.cursor.style[HEIGHT] = this.cursor.style.lineHeight = pagerBox[WIDTH] + "px";
+    // The cursor is positioned s.t. pg 1 is always at the top of the pager, and the max page is always at the bottom
+    // of the pager.  Its Position is expressed as a percentage so that when a layout is scaled by adjusting
+    // the font size of its pz element, the pager position will automatically adjust.
+    let topPx = (this.pnStash.pn -1) * (pagerBox[HEIGHT] - cursorBox[HEIGHT]) / (Score.activeScore.pgs.length - 1) ;
+    this.cursor.style[TOP] = 100 * topPx / pagerBox[HEIGHT] + "%" ;
     this.formatFunc(this.pnStash, false, this.cursor);
   }
 
   buildBookmarks() {
     let { LEFT, HEIGHT, TOP, WIDTH } = this.props;
-    let { pagerBox, pnStash } = this;
+    let pagerBox = getBox(this.pager) ;
     for (let elm of [...this.elm.children]) if (elm.dataset.tag == "bookmark") elm.remove();
     let pgCount = Score.activeScore.pgs.length;
     let pgSpan = 100 / pgCount;
     // bookmarks for positions right and bottom are on opposite side of those for left and top
     let leftPercent = ["left", "top"].includes(this.position) ? 70 : -10;
-    for (let [index, color] of Object.entries(pnStash.bookmarks))
+    for (let [index, color] of Object.entries(this.pnStash.bookmarks))
       this.elm.append(
         helm(
           `<div data-tag="bookmark" class="Pager__bookmark"
@@ -2005,6 +2007,7 @@ class Pager {
       delta = Math.max(1, delta / pagerBox.width) ;
       if(delta == 1) origin = clientPos ; // reset origin when delta is 1
       let dY = (clientPos - origin) / delta  ;
+      dY += cursorBox[HEIGHT] / 2 ; // middle of cursor
       let newPos = origin + dY - cursorOffset  ;
       cursor.style[TOP] = clamp(newPos, 0, pagerBox[HEIGHT] - cursorBox[HEIGHT]) + "px"; 
       newPos += cursorBox[HEIGHT] / 2 ; // compensate for cursor height

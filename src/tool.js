@@ -20,11 +20,69 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, flung, getBox, helm, hide, iconSvg, listen, mvmt, unlisten, saveLocal, schedule, Schedule, SliderGroup, TabView, pxToEm } from "./common.js";
+import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, flung, getBox, helm, hide, iconSvg, listen, mvmt, saveLocal, schedule, Schedule, SliderGroup, TabView, toast, unlisten, pxToEm } from "./common.js";
 import { pianoSamples } from "./sample.js";
+import { panels } from "./panel.js" ; 
 export { Review, Metronome, Clock, Stopwatch, Piano, Volume };
 
 // -skip
+
+/**
+class Actx
+    Shared audio context object
+**/
+
+class Actx {
+
+  static instance = null ;
+
+  static get() {
+    if(Actx.instance == null) Actx.instance = new Actx() ;
+    return [Actx.instance.actx, Actx.instance.bus] ;
+  }
+
+  constructor() {
+    this.actx = new AudioContext() ;
+    let volume = new GainNode(this.actx) ;
+    volume.gain.setValueAtTime(_menu_.rings.more.cells.volume.stash.volume, this.actx.currentTime);
+    volume.connect(this.actx.destination) ;    
+    listen(_body_, "volumechanged", (e) => volume.gain.setValueAtTime(e.detail, this.actx.currentTime)) ;
+    this.bus = new DynamicsCompressorNode(this.actx, {
+      threshold: -50, knee: 40, ratio: 12, attack: 0, release: 0.25,
+    }) ;
+    this.bus.connect(volume) ;
+    listen(document, 'visibilitychange', () => {
+
+      if(!document.hidden) {
+         if(this.actx.state == "suspended") this.actx.resume().catch(() => {
+           // Promise.reject(new Error("Can't resume")).catch(() => { // alternate code for testing
+           dialog(`Audio resources are currently in use by another tab or window.<br><br>To restore audio:
+             <br>• Close other tabs using audio
+             <br>• Or switch to those tabs and stop their audio
+             <br>Then click retry`,
+             { Retry: { svg: "Undo" }, Cancel: { svg: "Cancel" } },
+             (e, prop, tag, args) => {
+               args.close();
+               if (tag == "Retry") document.dispatchEvent(new Event("visibilitychange")) ;
+               else { // close any open Piano, Metronome, or Review panels.
+                 let msg = "" ;
+                 if(panels.metronome) { panels.metronome.close() ; msg += "Closed Metronome. " ;}
+                 if(panels.piano) { panels.piano.close() ; msg += "Closed Piano. " ; }
+                 if(panels.review) { panels.review.close() ; msg += "Closed Review. " ;}
+                 if(msg.length > 0) toast("Note: " + msg) ;
+               }
+             }
+           );
+         }) ;
+      }
+      else if(this.actx.state == "running") this.actx.suspend() ;
+    }) ;
+    listen(window, 'beforeunload', () => {
+      if(this.actx && this.actx.state != 'closed') this.actx.close() ;
+    }) ;
+  }
+
+}
 
 /**
 class Piano
@@ -94,12 +152,22 @@ class Piano {
     .a,.b,.d,.e,.g {
       margin:0 0 0 -1.16em
     }
+    /* piano buttons (pedaldown/up, resize, tuner, options) are surrounded by a larger "holder" button that makes their
+       touch area bigger: this helps on  small screens where they are otherwise hard to touch */
+    .Piano__button-holder { 
+      position: absolute;
+      font-family: Bravura;
+      height: 4em;
+      width: 5em;
+      top: -.5em;
+    }
     .Piano__button { 
       position: absolute;
       font-family: Bravura;
       height: 2em;
       width: 2em;
-      top: .5em;
+      top: calc(50% - 1em) ;
+      left:calc(50% - 1em) ;
       border-radius: 100% ;
       background: #eee6;
     }
@@ -188,19 +256,12 @@ class Piano {
 
     // pedal button...swaps Pedal and PedalUp icons
     let pedalDownButton = helm(
-      `${iconSvg("Pedal", {
-        tag: "pedal",
-        class: "Piano__button",
-        style: "right:calc(50% + 9em);",
-      })}`
-    );
-    let pedalUpButton = (this.pedalUpButton = helm(
-      `${iconSvg("Pedal Up", {
-        tag: "pedalup",
-        class: "Piano__button",
-        style: "right:calc(50% + 9em);",
-      })}`
-    ));
+      `<div class="Piano__button-holder" style="right: calc(50% + 8em)">
+        ${iconSvg("Pedal", { tag: "pedal", class: "Piano__button" })}</div>`) ;
+    let pedalUpButton = helm(
+      `<div class="Piano__button-holder" style="right: calc(50% + 8em)">
+        ${iconSvg("Pedal Up", {tag: "pedalup", class: "Piano__button" })}</div>`) ;
+
     this.panel.header.append(pedalDownButton);
 
     this.panel.listeners.push(
@@ -233,18 +294,14 @@ class Piano {
     // tuner: control that repeats key press every 2 seconds
     // as an tuning aid. Must be an ivar: used on keyboard noteOn.
     this.tunerButton = helm(
-      `${iconSvg("TuningFork", {
-        tag: "tune",
-        class: "Piano__button",
-        style: "left:calc(50% + 9em);",
-      })}`
-    );
+      `<div class="Piano__button-holder" style="left: calc(50% + 8em)">     
+        ${iconSvg("TuningFork", { tag: "tune", class: "Piano__button" })}</div`);
     this.panel.header.append(this.tunerButton);
     this.panel.listeners.push(
       listen(this.tunerButton, "pointerdown", (e) => {
         e.stopPropagation();
-        this.tunerButton.classList.toggle("Piano__button-active");
-        this.tuning = this.tunerButton.classList.contains("Piano__button-active");
+        this.tunerButton.firstElementChild.classList.toggle("Piano__button-active");
+        this.tuning = this.tunerButton.firstElementChild.classList.contains("Piano__button-active");
         if (this.tuningScheduler) {
           this.tuningScheduler.cancel();
           this.tuningScheduler = null;
@@ -254,12 +311,8 @@ class Piano {
 
     // Control to allow adjusting keyboard width
     let stretcherButton = helm(
-      `${iconSvg("Stretch", {
-        tag: "tune",
-        class: "Piano__button",
-        style: "right:calc(50% + 5em);",
-      })}`
-    );
+      `<div class="Piano__button-holder" style="right: calc(50% + 3em)">     
+        ${iconSvg("Stretch", { tag: "tune", class: "Piano__button" })}</div>`);
 
     this.panel.header.append(stretcherButton);
 
@@ -272,17 +325,15 @@ class Piano {
         e.keyWidth = this.keyboard.offsetWidth;
         e.keyOffLeft = this.keyboard.offsetLeft;
         e.target.setPointerCapture(e.pointerId);
-        stretcherButton.classList.add("Piano__button-active");
+        stretcherButton.firstElementChild.classList.add("Piano__button-active");
         this.panel.header.classList.add("Panel__header-selected");
 
         let mv = listen(e.target, "pointermove", (emv) => {
           let delta = emv.clientX - e.clientX;
           let minWidth = this.c4Elm.offsetWidth * 9.75; // minimum display E3-A4
           let newWidth = clamp(e.offWidth + delta + delta, minWidth, this.keyboard.offsetWidth);
-          if (newWidth > minWidth && newWidth < this.keyboard.offsetWidth) {
-            this.panel.panel.style.width = pxToEm(newWidth, this.panel.elm) ;
-            let left = clamp(e.keyOffLeft + delta, e.offWidth - e.keyWidth, 0);
-          }
+          this.panel.panel.style.width = pxToEm(newWidth, this.panel.elm) ;
+          let left = clamp(e.keyOffLeft + delta, e.offWidth - e.keyWidth, 0);
         });
 
         listen(
@@ -290,7 +341,7 @@ class Piano {
           "pointerup",
           () => {
             unlisten(mv);
-            stretcherButton.classList.remove("Piano__button-active");
+            stretcherButton.firstElementChild.classList.remove("Piano__button-active");
             this.panel.header.classList.remove("Panel__header-selected");
           },
           { once: true }
@@ -300,22 +351,19 @@ class Piano {
 
     // options button
     this.optionsButton = helm(
-      `${iconSvg("Options", {
-        tag: "options",
-        class: "Piano__button",
-        style: "left:calc(50% + 5em);transform:scale(.9) translate(0px,2px);",
-      })}`
-    );
+      `<div class="Piano__button-holder" style="left: calc(50% + 3em)">     
+        ${iconSvg("Options", { tag: "options", class: "Piano__button",
+           style: "transform:scale(.9) translate(0px,2px);"})}` );
     this.panel.header.append(this.optionsButton);
 
     this.panel.listeners.push(
       listen(this.optionsButton, "pointerdown", (e) => {
         e.stopPropagation();
-        if (this.optionsButton.classList.contains("Piano__button-active")) {
-          this.optionsButton.classList.remove("Piano__button-active");
+        if (this.optionsButton.firstElementChild.classList.contains("Piano__button-active")) {
+          this.optionsButton.firstElementChild.classList.remove("Piano__button-active");
           this.optionsView.elm.style.visibility = "hidden";
         } else {
-          this.optionsButton.classList.add("Piano__button-active");
+          this.optionsButton.firstElementChild.classList.add("Piano__button-active");
           this.optionsView.elm.style.left = "calc(50% - 13.5em);";
           this.optionsView.elm.style.visibility = "visible";
         }
@@ -327,34 +375,27 @@ class Piano {
   }
 
   destructor() {
+    if(this.activeNotes) {
+      this.activeNotes.forEach((note, tag) => {
+        if(note.source) {
+          note.source.stop() ;
+          note.source.disconnect() ;
+        }
+        if(note.envelope) note.envelope.disconnect() ;
+      }) ;
+      this.activeNotes.clear() ;
+    }
     this.repeater.cancel();
     this.damper.cancel();
     this.looper.cancel();
-    unlisten(this.volumeListener);
   }
 
   // Build the web audio pipeline for the keyboard
   async buildAudio() {
-    let activeNotes = new Map() ;
-    let actx = new AudioContext();
+    this.activeNotes = new Map() ;
+    let [actx, bus] = Actx.get() ;
 
-    let volume = new GainNode(actx) ;
-    volume.gain.setValueAtTime(_menu_.rings.more.cells.volume.stash.volume, actx.currentTime);
-    volume.connect(actx.destination) ;    
-    this.panel.listeners.push(listen(_body_, "volumechanged", (e) => volume.gain.setValueAtTime(e.detail, actx.currentTime))) ;
-
-
-    let compressor = new DynamicsCompressorNode(actx, {
-      threshold: -50,
-      knee: 40,
-      ratio: 12,
-      attack: 0,
-      release: 0.25,
-    }) ;
-    compressor.connect(volume) ;
-
-
-    // decode audio samples (if not already decoded: we check only middle C)
+    // decode audio samples, if not already decoded: we check only middle C
     if(!(pianoSamples[60] instanceof AudioBuffer)) Object.keys(pianoSamples).forEach(async (key) => {
       let noteSamples = pianoSamples[key];
       let len = noteSamples.length;
@@ -364,16 +405,16 @@ class Piano {
     });
 
     let noteOff = (tag, force=false) => {
-        let note = activeNotes.get(tag) ;
-        if(note && (force || !(this.sustaining || this.tuning)))  {
-          note.envelope.gain.setTargetAtTime(0, actx.currentTime, 0.015);
-          activeNotes.delete(tag) ;
-          schedule(15, () => note.source.stop());
-       }
+      let note = this.activeNotes.get(tag) ;
+      if(note && (force || !(this.sustaining || this.tuning)))  {
+        note.envelope.gain.setTargetAtTime(0, actx.currentTime, 0.015);
+        this.activeNotes.delete(tag) ;
+        schedule(15, () => note.source.stop());
+      }
     }
 
     listen([this.pedalUpButton, this.tunerButton], ["pointerdown","spacebar"], (e)=> {
-       activeNotes.forEach((note, tag) => noteOff(tag, true)) ;
+       this.activeNotes.forEach((note, tag) => noteOff(tag, true)) ;
        this.repeater.cancel() ;
        this.damper.cancel() ;
        this.looper.cancel() ;
@@ -410,26 +451,26 @@ class Piano {
       source.detune.value = parseInt(centsOffset) + this.cell.stash.a4 
           + this.temperaments[this.cell.stash.temperament][midi0] - midi0 * 100;
       source.connect(envelope);
-      envelope.connect(compressor);
+      envelope.connect(bus);
 
       if (this.tuning) {
         // when tuning, we "auto repeat" the note by recusive calls to noteOn
         let repeatMs = piano ? 2500:4000 ;
         this.repeater.run(repeatMs, () => noteOn(midiOffset));
-        this.tunerButton.animate([{ color: "black" }, { color: "white" }], repeatMs);
+        this.tunerButton.firstElementChild.animate([{ color: "black" }, { color: "white" }], repeatMs);
         // dampen the note just before it repeats
         this.damper.run(piano ? 2200:7500, () => envelope.gain.setTargetAtTime(0.0, now, 0.015)); 
       }
       else envelope.gain.setTargetAtTime(1.0, now,  0.015); 
 
       // Don't allow same note to sound more than once
-      if(activeNotes.has(midiOffset)) 
+      if(this.activeNotes.has(midiOffset)) 
         noteOff(midiOffset, true) ;
       // Trim activeNotes to current "voices" setting
-      while(activeNotes.size > this.cell.stash["voices"] - 1) noteOff(activeNotes.keys().next().value, true) ;
+      while(this.activeNotes.size > this.cell.stash["voices"] - 1) noteOff(this.activeNotes.keys().next().value, true) ;
       // ...and now sound the new Note
       source.start(0);
-      activeNotes.set(midiOffset, { midiOffset, envelope, source}) ;
+      this.activeNotes.set(midiOffset, { midiOffset, envelope, source}) ;
     };
 
     // piano key press handler
@@ -508,7 +549,7 @@ class Piano {
         listen(optionsView.sash, "pointerup", (eup) => {
           if(flung(null, eup)) {
             hide(elm, this.optionsButton) ;
-            delay(10, () => this.optionsButton.classList.remove("Piano__button-active"));
+            delay(10, () => this.optionsButton.firstElementChild.classList.remove("Piano__button-active"));
           }
           optionsView.sash.classList.remove("Panel__header-selected");
           unlisten(mv)},
@@ -789,7 +830,8 @@ class Volume extends Surface {
     super(panel);
     this.surface.style.height = "4em";
     this.surface.style.width = "12em";
-    this.volumeSlider = new SliderGroup(this.panel.cell.stash,
+let stash = _menu_.rings.more.cells.volume.stash ;
+    this.volumeSlider = new SliderGroup(stash,
     { volume: { min: 0, max: 1, step: 0.1, value: 1, msg: "Volume: {value}" } },
     (e, tag, value) => {
       this.panel.cell.stash.tag = value;
@@ -977,7 +1019,8 @@ class Stopwatch extends Surface {
          <rect data-tag="resetArea" x="100" y="75" width="300" height="300" fill="#0000"/>
          <rect data-tag="crownArea" x="450" y="0" width="300" height="300" fill="#0000"/>
          <rect data-tag="splitArea" x="800" y="75" width="300" height="300" fill="#0000"/>
-
+        // logo
+        <text x="510" y="500" style="font-size:45px;font-family:Liminari;font-style:italic;">PODIUM</text>
        </svg>`);
     this.surface.prepend(watch);
     Object.assign(this, dataIndex("tag", watch));
@@ -1140,7 +1183,6 @@ class Metronome extends Surface {
 
   accent1 = 1; // accents;
   accent2 = 0;
-  actx = new AudioContext();
   tempo = 90;
   delta = 0.5; // Schedule-ahead
   gain = 1;
@@ -1158,9 +1200,18 @@ class Metronome extends Surface {
     super(panel);
     this.beatPattern = this.beatPatterns[0];
     this.volumeStash = _menu_.rings.more.cells.volume.stash;
+    [this.actx, this.bus] = Actx.get() ;
+    this.oscillator = null ;
+    this.gainNode = new GainNode(this.actx) ;
+    this.gainNode.connect(this.bus) ;
   }
 
   destructor() {
+    if(this.oscillator) {
+      this.oscillator.stop() ;
+      this.oscillator.disconnect() ;
+    }
+    this.gainNode.disconnect() ;
     this.ticker.cancel();
   }
 
@@ -1241,20 +1292,18 @@ class Metronome extends Surface {
     let tickCount = this.tickCount++;
     if (this.gain == 0) return;
     let tickPattern = this.beatPattern.ticks;
-    let actx = this.actx;
     let time = this.tickTime;
     time += 0.3; // adjust for skim
-    let osc = new OscillatorNode(actx, { frequency: tickPattern[tickCount % tickPattern.length] });
-    let gain = new GainNode(actx);
+    if(this.oscillator) this.oscillator.stop() ;
+    this.oscillator = new OscillatorNode(this.actx, { frequency: tickPattern[tickCount % tickPattern.length] });
     // Note: gain value must not be 0
-    gain.gain.exponentialRampToValueAtTime(Math.max(this.volumeStash.volume, 0.0000001), time + 0.001);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.02);
-    osc.connect(gain);
-    gain.connect(actx.destination);
-    osc.start(time);
-    osc.stop(time + 0.03);
+    this.gainNode.gain.exponentialRampToValueAtTime(Math.max(this.volumeStash.volume, 0.0000001), time + 0.001);
+    this.gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.02);
+    this.oscillator.connect(this.gainNode);
+    this.oscillator.start(time);
+    this.oscillator.stop(time + 0.03);
     // Schedule next path animation to
-    schedule((this.tickTime - actx.currentTime) * 1000, () => {
+    schedule((this.tickTime - this.actx.currentTime) * 1000, () => {
       if (this.secondsPerTick != this.animDur) {
         // tempo has changed, so adjust all
         this.animDur = this.secondsPerTick;
@@ -1346,7 +1395,8 @@ class Clip and class Recorder
 
     destructor() {
       unlisten(this.listener) ;
-      if(this.recorder) this.recorder.stop() ;
+      if(this.recorder && this.recorder.state == "recording") this.recorder.stop() ;
+      this.resolve = null ;
     }
  
     record(mediaStream) {
@@ -1608,6 +1658,14 @@ class Review {
   }
 
   destructor() {
+    if(this.mediaStream) this.mediaStream.getTracks().forEach(track => track.stop()) ;
+    if(this.liveSrc) this.liveSrc.disconnect() ;
+    if(this.analyzer) this.analyser.disconnect() ;
+    if(this.video) {
+      this.video.pause() ;
+      this.video.src = "" ;
+      this.video.load() ;
+    }
     this.recorder.destructor() ;
   }
 
@@ -1620,7 +1678,7 @@ class Review {
        audio: { deviceId: {exact: this.mediaDevicesSpec[this.stash.audioSrc].deviceId}},
     });
 
-    this.actx = new AudioContext();
+    [this.actx, this.bus] = Actx.get() ;
     this.analyser = this.actx.createAnalyser();
     this.analyser.fftSize = this.audioBuf.length ;
     this.analyser.minDecibels = -90;
@@ -1896,7 +1954,7 @@ class Review {
     this.video.src = this.createVideoUrl(recordedData) ;
     this.liveSrc.disconnect() ;
     this.recordedSrc.connect(this.analyser) ;
-    this.analyser.connect(this.actx.destination) ;
+    this.analyser.connect(this.bus) ;
     this.video.currentTime = progress / 1000;
   }
 
