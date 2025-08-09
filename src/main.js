@@ -26,7 +26,7 @@
 // python3 build.py --podium.  All text  between +/- skip fill be stripped out,
 // and all the following // #include files will be  textually included.
 
-import { animate, dialog, delay,  helm, listen, Schedule, toast, unlisten } from "./common.js";
+import { animate, dialog, delay,  helm, listen, schedule, Schedule, toast, unlisten } from "./common.js";
 import "./font.js";
 import { Score } from "./score.js";
 import { Menu } from "./menu.js";
@@ -56,19 +56,26 @@ window.pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
 
 async function main() {
   initFabric();
-  //  Create the menu. It's fontSize is set s.t. that it's outer ring
-  //  will cover _gsgs_ (_gs_ for mobile) * narrowest screen dimension.
-  //  Its initial appearance is animated for a little glitz.
-  window._menu_ = new Menu();
-  let dim = (Math.min(window.innerWidth, window.innerHeight) / _menu_.menuHolder.offsetWidth) * (_mobile_ ? _gs_ : _gsgs_);
-  animate(_menu_.disk, { transform: "rotate(1turn)" }, { transform: "rotate(0)" }, `transform ${1 / _gs_}s`);
-  animate(_menu_.menuHolder, { transform: "rotate(-.5turn)" }, { transform: "rotate(0turn)" }, `transform ${1 / _gs_}s`);
-  animate(_menu_.elm, { fontSize: 0 }, { fontSize: dim + "em" }, `font-size ${1 / _gs_}s`);
-  _menu_.center();
+  // Create the menu. It's fontSize is set s.t. it's outer ring
+  // will cover _gsgs_ (_gs_ for mobile) * narrowest screen dimension.
+  // Its initial appearance is animated for a little glitz.
+  // Apparently Safari doesn't always report window size correctly at
+  // startup, so we delay for 200 msecs after page load before creation.
+
+  schedule(500, () => {
+    window._menu_ = new Menu();
+    let dim = (Math.min(window.innerWidth, window.innerHeight) / _menu_.menuHolder.offsetWidth) *
+         (_mobile_ ? _gs_ : _gsgs_);
+    animate(_menu_.disk, { transform: "rotate(1turn)" }, { transform: "rotate(0)" }, `transform ${1 / _gs_}s`);
+    animate(_menu_.menuHolder, { transform: "rotate(-.5turn)" },
+      { transform: "rotate(0turn)" }, `transform ${1 / _gs_}s`);
+    animate(_menu_.elm, { fontSize: 0 }, { fontSize: dim + "em" }, `font-size ${1 / _gs_}s`);
+    _menu_.center();
+  }) ;
 
   {
     /** 
-        This block implements global pz operations:
+        This block implements global pan/zoom (pz) operations:
 
         - With mouse: ctrl-drag to move, ctrl-wheel to zoom
           ...adding shift key increases accuracy
@@ -101,11 +108,11 @@ async function main() {
     listen(_body_, "wheel", (e) => {
       e.preventDefault();
       if (e.ctrlKey) {
-        let dXY = Math.sign(e.wheelDelta) / 100;
+        let dXY = Math.sign(e.wheelDelta) / 10;
         if (e.shiftKey) dXY /= 10; // fine sizing mode
         for (let target of _pzTarget_ == _body_ ? document.getElementsByClassName("pz") : [_pzTarget_]) {
-          let fontSize = target.style.fontSize  ;
-          target.style.fontSize = Math.max(parseFloat(target.style.fontSize) + dXY, minEmSize) + "em";
+          let fontSize = parseFloat(target.style.fontSize)  || 1 ;
+          target.style.fontSize = Math.max(fontSize + dXY, minEmSize) + "em";
           target.classList.add("pz-set") ;
         }
       }
@@ -167,7 +174,7 @@ async function main() {
           tr2 = null;
 
           // ctrl-mouse-down initiates pan (via mouse move)/ zoom (via mouse wheel)
-          if (e.pointerType == "mouse" && e.ctrlKey) {
+          if (e.ctrlKey) {
             _menu_.op.schedule.cancel();
             timer.cancel(); // cancel any pending long-press operation on background
             e.stopImmediatePropagation();
@@ -210,7 +217,7 @@ async function main() {
         tr2.dY = e.clientY - tr2.pz.offsetTop;
         let hypot = Math.hypot(tr1.e.clientX - tr2.e.clientX, tr1.e.clientY - tr2.e.clientY);
         let targets = new Map(); // map target -> current, original fontSize in em's
-        for (let target of tr1.pz == _body_ ? [..._body_.children] : [tr1.pz])
+        for (let target of tr1.pz == _body_ ? _body_.getElementsByClassName("pz") : [tr1.pz])
            targets.set(target, parseFloat(target.style.fontSize) || 1);
 
         // For translations, we only consider one pointer track...tr1 by default unless tr1.pz is body, then tr2,
