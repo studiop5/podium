@@ -61,12 +61,6 @@ export {
 import { iconPaths } from "./icon.js";
 // -skip
 
-Element.prototype["replace"] = function (newElm) {
-  this.replaceWith(newElm);
-  if (this.dataset.tag) newElm.dataset.tag = this.dataset.tag;
-  return newElm;
-};
-
 // properties defined on the window "global" namespace
 // are distinguished using the convention of leading+trailing underscores:
 
@@ -81,9 +75,11 @@ window._mobile_ =
   /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
     navigator.userAgent
   );
-window._moveEvents_ = [] ; // see flung() below
 window._maxMoveEvents_ = 5 ; // see flung() below
+window._moveEvents_ = [] ; // see flung() below
+window._msPerObj_ = 1 ; // for pdf printing, see score.toPdf()
 window._pxPerEm_ = 25; // initial document.body's font size value: defines pixels in 1 em
+window._voidFunc_ = () => {} ; 
 
 //  svg textures used as background images:
 let sandSvg =
@@ -155,10 +151,11 @@ css(
   // change the background-color style declarations in pod.html and
   // podium.html. Those are defined so that there is not a brief
   // flash of white screen before the background paints.
+
   "common",
   `
   :root {
-    --textShadow: .5px .5px white,-1px -1px white,.5px -1px white,-1px .5px white; 
+    --textShadow: .5px .5px #fff6,-1px -1px #fff6,.5px -1px #fff6,-1px .5px #fff6; 
     --bodyShadow: drop-shadow(.1em .125em .2em #6668);
     --borderRadius: .8em;
     --border: .1em solid white;
@@ -833,7 +830,7 @@ class Schedule {
       if (this.cancelled) return;
       if (this.paused || performance.now() < this.runTime)
         this.af = requestAnimationFrame(loop);
-      else this.callable();
+      else this.callable(this);
     }).bind(this);
     loop();
     return this;
@@ -906,9 +903,18 @@ class Shade {
 
   scheduler = new Schedule();
   msgStack = [];
+  onCancel = null ;
+
   constructor() {
     Object.assign(this, dataIndex("tag", this.elm));
-    listen(this.cancel, "click", () => this.hide());
+    listen(this.cancel, "click", () => {
+      this.hide() ;
+      if(this.onCancel) {
+        let onCancel = this.onCancel ;
+        this.onCancel = null ;
+        onCancel() ;
+      }
+    })
   }
 
   show(message = "Loading") {
@@ -1110,7 +1116,7 @@ class Spot {
     this.elm = helm(`<div style=
       "z-index:100000;pointer-events:none;position:absolute;width:.5em;height:.5em;background:${color};visibility:hidden;"
     ></div>`);
-    this.parent.append(this.elm);
+    if(parent) parent.append(this.elm);
   }
 
   go(x, y, parent) {

@@ -48,7 +48,7 @@ let err = (call, msg) => {
 let errDialog = (error, stack, msg) => {
   // Craft an error dialog, given an exception variable and a msg.
   if (error.name == "AbortError") return; // thrown when browser's open/save panels are cancelled
-  else if (error.cause && error.cause == "cancelled") return;
+  else if (error.cause && error.cause == "cancelled") return toast("Cancelled") ;
   else if (error.cause == "timeout") dialog("Timed out waiting for authentication");
   else if (error.cause == "security") dialog(`<em>Security Error</em><br><br><strong>${error.message}</strong>`);
   else if (error.cause == "fileSrc") dialog(`<em>${msg}</em><br><br><strong>${error.message}</strong>`);
@@ -1442,7 +1442,7 @@ class LocalFileView {
           toast("File opened");
         }
         else if (this.mode == "copy") {
-          _menu_.setPasteObj(await bytesToBase64DataUrl(await file.arrayBuffer(), file.type), file.type) ;
+          await _menu_.setPasteObj(await bytesToBase64DataUrl(await file.arrayBuffer(), file.type), file.type) ;
           Score.visit({ source:Score.sources.local, name:file.name, path:"n/a"}, visitUpdate) ;
           toast("File opened");
         }
@@ -1463,6 +1463,7 @@ class LocalFileView {
   async putFile() {
     let score = Score.activeScore;
     _shade_.show("Saving file");
+    _shade_.onCancel = () => { throw new Error() } ;
     try {
       score.source = Score.sources.local;
       let data = await score.toPdf();
@@ -1476,6 +1477,7 @@ class LocalFileView {
     } finally {
       _shade_.hide();
       this.panel.hide();
+      _shade_.onCancel = null ;
     }
   }
 }

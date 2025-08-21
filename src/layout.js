@@ -293,6 +293,7 @@ class Layout {
           animateToPaste(elm);
           _menu_.enableCells("page/paste", true);
           await this.build(false);
+          await this.pgGoTo(this.pnStash.pn) ;
           break;
         }
         case "copy": {
@@ -363,6 +364,16 @@ class Layout {
         _menu_.activateCell(null);
         _menu_.enableCells("page/cut", false);
       }
+
+      // update e only if there is "significant" movement, not jitter
+      let mv = listen(_body_, "pointermove", emv => { if(Math.hypot(emv.movementX, emv.movementY) > 5) e = emv; }) ;
+
+      // automatic deactivation of active cell if final dwell > 1sec
+      listen(_body_, "pointerup", eup => { 
+        unlisten(mv) ;
+        if(eup.timeStamp - e.timeStamp > 1000) _menu_.activateCell(null) ;
+      }, { once: true}) ;
+
       return true;
     }
     return false;
@@ -1353,8 +1364,6 @@ class ScrollLayout extends Layout {
     if (await super.onDown(e)) return;
     let { LEFT, HEIGHT, OFFSETLEFT, OFFSETWIDTH, TOP, CLIENTX, CLIENTY, WIDTH, X } = this.props;
     let sashLimit = this.cell.geo.sashLimit;
-    let atStart = this.sashStart == 0; // at start of document
-    let atEnd = sashLimit == Math.round(this.sashStart); // at end of document
 
     this.sash.setPointerCapture(e.pointerId);
     let frameBox = getBox(this.frame);
@@ -1368,6 +1377,8 @@ class ScrollLayout extends Layout {
         e.mv1 = e.mv0;
         e.mv0 = emv;
         let clientX = emv[CLIENTX];
+        let atStart = this.sashStart == 0; // at start of document
+        let atEnd = sashLimit == Math.round(this.sashStart); // at end of document
         // disallow dragging sash when pointer outside of frame, as it can expose
         // sash locations where no Pg is mounted
         if (clientX < frameBox[X] || clientX > frameBox[X] + frameBox[WIDTH]) return;
@@ -1375,8 +1386,18 @@ class ScrollLayout extends Layout {
         this.sash.style[LEFT] = toEm(this.sashStart);
         this.spinRollers();
         dir = clientX > e.mv1[CLIENTX] ? "right" : clientX < e.mv1[CLIENTX] ? "left" : "none";
-        if (dir == "left" && atEnd) Layout.pgAlert(emv, Layout.endElm);
-        else if (dir == "right" && atStart) Layout.pgAlert(emv, Layout.startElm);
+        if (dir == "left" && atEnd) {
+          Layout.pgAlert(emv, Layout.endElm);
+          if (Layout.startElm.isConnected) Layout.startElm.remove();
+        } else if (dir == "right" && atStart) {
+          Layout.pgAlert(emv, Layout.startElm);
+          if (Layout.endElm.isConnected) Layout.endElm.remove();
+        } else {
+          if (Layout.startElm.isConnected) Layout.startElm.remove();
+          if (Layout.endElm.isConnected) Layout.endElm.remove();
+        }
+
+
       }).bind(this)
     );
 

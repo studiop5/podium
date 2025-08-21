@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { Spot, animate, clamp, clearChildren, css, dataIndex, delay, flung, fontMap, getBox, helm, hide, listen, mvmt, Schedule, schedule, toast, unlisten } from "./common.js";
+import { Spot, animate, clamp, clearChildren, css, dataIndex, delay, delayMs, flung, fontMap, getBox, helm, hide, iconSvg, listen, mvmt, Schedule, schedule, toast, unlisten } from "./common.js";
 import { Grid, Score } from "./score.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
@@ -355,6 +355,10 @@ class Menu {
       Layout.activeLayout.elm.remove();
       Layout.activeLayout = null ;
       Score.activeScore = null;
+      for(let panel of Object.values(panels)) {
+         // Several panels need to close when the Score closes, otherwise they will have stale state.
+         if(panel.cell && ["Details", "Save","Bind","Print"].includes(panel.cell.name)) panel.close() ;
+      }
       _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print", "score/bind"], false);
     });
 
@@ -516,6 +520,24 @@ class Menu {
     this.listen(paths.map((path) => path + "up"),(cell) => this.activateCell(rings.ink.activeCell === cell ? null :cell));
     this.listen(paths.map((path) => path + "long"),(cell) => this.activateCell(cell, true));
     this.listen(paths.map((path) => path + "out"),(cell) => this.openPanel(cell)) ; 
+/***********************
+    this.listen("ink/transform/up", (cell) => {
+      let controls = true ;
+      if(rings.ink.activeCell == cell) {
+         // toggle off
+         this.activateCell(null) ;
+         controls = false ;
+      }
+      else this.activateCell(cell) ;
+      // now enable (or disable) controls for all objects:
+      for(let pg of Score.activeScore.pgs) {
+        if(!controls) pg.canvas.discardActiveObject() ;
+        for (let obj of pg.canvas.getObjects()) {
+          obj.hasControls = controls ;
+        pg.canvas.requestRenderAll() ;
+      }} ;
+    }) ;
+**************/
 
     // Page ring
     rings.page = {
@@ -935,17 +957,32 @@ class Menu {
     // Call with cell = null to deactivate active cell (if any) on the active ring
     // Only 1 cell per ring can be active at a time, so if the ring
     // had an active cell before this call, it will be deactivated.
-    // special case: if currently editing a fabric text object, exit text editing
+    // Special cases:
+    //  -  if currently editing a fabric text object, exit text editing
+    //  -  when the ink/transform cell activates/deactivates, must call Score's setTransformable method
+
     this.checkEditing() ;
     let ring = this.activeRing;
+
+    // will this operation toggle the transform cell?
+    let transformCell = this.rings.ink.cells.transform ;
+    let transformToggle = (ring.activeCell !== transformCell && cell === transformCell) ||
+        (ring.activeCell === transformCell && cell !== transformCell) ;
+
+    // now update state and appearance for activate/deactivate
     if (ring?.activeCell) ring.activeCell.elm.classList.remove("Menu__cell-active");
     if (cell) {
       cell.elm.classList.add("Menu__cell-active");
       ring.activeCell = cell;
       ring.stash.active = cell.key;
     } else ring.activeCell = null;
-    // Score is editable iff ink is activeRing, and it has an activeCell
-    if(Score.activeScore) Score.activeScore.setEditable(ring.key == "ink" && ring.activeCell) ;
+
+    if(Score.activeScore && ring.key == "ink") {
+      // Score is editable iff ink is activeRing, and it has an activeCell
+      Score.activeScore.setEditable(ring.activeCell) ;
+      // Score is transformable iff ink is activeRing, and transform cell is active
+      if(transformToggle) Score.activeScore.setTransformable(cell === transformCell) ;
+    }
   }
 
   enableCells(cellPath, enable = true) {
@@ -1138,13 +1175,16 @@ class Menu {
   // user page interaction according to current state of
   // the menu.
 
-  async pgDownEvent(options, pg) {
+  async pgDownEvent(opts, pg) {
+    let canvas = pg.canvas ;
+
     let addObj = (obj) => {
       this.newlyCreated = obj;
-      pg.canvas.add(obj);
-      pg.canvas._target = obj;  // this makes it "moveable"
+      canvas.add(obj);
       obj.hasControls = false ; 
-return obj ;
+      // makes obj draggable until subsequent pgUpEvent:
+      canvas._target = obj; 
+      return obj ;
     };
 
     if (this.activeRing.key != "ink") return;
@@ -1155,12 +1195,14 @@ return obj ;
     if(this.checkEditing()) return ;
 
     this.newlyCreated = null ;
+    let target = opts.target ;
+
     switch (activeCell.key) {
 
       case "transform":
-        if(options.target && !options.target.hasControls) {
-          options.target.hasControls = true ;
-          pg.canvas.requestRenderAll() ;
+        if(target && !target.hasControls) {
+          target.hasControls = true ;
+          canvas.requestRenderAll() ;
         }
         return ;
 
@@ -1175,19 +1217,19 @@ return obj ;
         let rgba = color.toRgba();
         let brush;
         if (style == "Free") {
-          brush = new fabric.PencilBrush(pg.canvas);
+          brush = new fabric.PencilBrush(canvas);
           brush.width = width;
           brush.color = rgba;
-        } else brush = new fabric.LineBrush(pg.canvas, activeCell.stash, rgba);
-        pg.canvas.freeDrawingBrush = brush;
-        pg.canvas.isDrawingMode = true;
+        } else brush = new fabric.LineBrush(canvas, activeCell.stash, rgba);
+        canvas.freeDrawingBrush = brush;
+        canvas.isDrawingMode = true;
         return;
       }
 
       case "grid": {
         // toggle grid on/off
         if (pg.grid) pg.grid = pg.grid.destructor();
-        else pg.grid = new Grid(pg, activeCell.stash, options);
+        else pg.grid = new Grid(pg, activeCell.stash, opts);
         return;
       }
 
@@ -1196,9 +1238,9 @@ return obj ;
         let color = fabric.Color.fromHex(rgb);
         color.setAlpha(alpha);
         let rgba = color.toRgba();
-        this.newlyCreated = new fabric.RastrumBrush(pg.canvas, activeCell.stash, rgba);
-        pg.canvas.freeDrawingBrush = this.newlyCreated;
-        return (pg.canvas.isDrawingMode = true);
+        this.newlyCreated = new fabric.RastrumBrush(canvas, activeCell.stash, rgba);
+        canvas.freeDrawingBrush = this.newlyCreated;
+        return (canvas.isDrawingMode = true);
       }
 
       case "text": {
@@ -1213,8 +1255,8 @@ return obj ;
           editable: true,
           selectable: true,
           cursorColor: "black",
-          left: options.absolutePointer.x,
-          top: options.absolutePointer.y,
+          left: opts.absolutePointer.x,
+          top: opts.absolutePointer.y,
           hasControls: false,
           podiumType: "text", 
         };
@@ -1240,33 +1282,36 @@ return obj ;
           editable: false,
           selectable: true,
           cursorColor: "black",
-          left: options.absolutePointer.x,
-          top: options.absolutePointer.y,
+          left: opts.absolutePointer.x,
+          top: opts.absolutePointer.y,
           hasControls: false,
           podiumType: "symbols", 
         };
         Object.assign(config, fontMap["Bravura"]);
-        return addObj(new fabric.Textbox(codePoint, config));
+        return addObj(new fabric.Text(codePoint, config));
       }
 
-      case "cut": {
-        if (options.target) {
-          this.pasteObj = options.target;
-          pg.canvas.discardActiveObject();
-          delay(1, () => {
-            pg.canvas.remove(this.pasteObj);
-            pg.canvas.requestRenderAll();
-          });
-          this.enableCells("ink/paste", true);
-        }
-        return;
-      }
-
+      case "cut": 
       case "copy": {
-        if (options.target) {
-          pg.canvas.discardActiveObject();
-          options.target.clone((clone) => (this.pasteObj = this.newlyCreated = clone));
+        if (target) {
+          target.clone((clone) => this.pasteObj = this.newlyCreated = clone) ;
           this.enableCells("ink/paste", true);
+          // animate operation's target object back to the paste cell
+          let emWidth = target.getScaledWidth() / _pxPerEm_ ;
+          let {x,y} = target.getLocalPointer() ;
+          let elm  = helm(`<img src=${target.toDataURL()} style=
+             "width:${emWidth}em;height:auto;z-index:1000;left:${opts.e.clientX -x}px;top:${opts.e.clientY-y}px;position:absolute;"></img>`) ;
+          _body_.append(elm) ;
+          hide(elm, dataIndex("tag", _menu_.rings.ink.cells.paste.elm).cellIcon);
+          delayMs(500, () => elm.remove()) ;
+          if(activeCell.key == "cut") {
+            delay(1, () => {
+              if( target.type == "activeSelection")
+                target.getObjects().forEach(obj => canvas.remove(obj)) ;
+              else canvas.remove(target) ;
+              canvas.discardActiveObject() ;
+            });
+          }
         }
         return;
       }
@@ -1274,15 +1319,46 @@ return obj ;
       case "paste": {
         if (this.pasteObj) {
           this.pasteObj.clone((clone) => {
-            clone.set({
-              left: options.absolutePointer.x,
-              top: options.absolutePointer.y,
-            });
-            addObj(clone);
-          });
-        }
-        return;
+            let {x,y} = opts.absolutePointer ;
+            if(clone.type == "activeSelection") {
+              clone._objects.forEach(obj => {
+              obj.set({ left: obj.left+x, top:obj.top+y}) ;
+              canvas.add(obj) ;
+            }) ;
+            let actSel = new fabric.ActiveSelection(clone._objects, { canvas: canvas, hasControls: false}) ;
+            canvas.setActiveObject(actSel) ;
+            canvas._target = this.newlyCreated = actSel ;
+            }
+            else {
+              clone.set({ left:x, top: y}) ;
+              addObj(clone) ;
+              canvas.requestRenderAll();
+
+              if(clone.type == "image") {
+                // image need special race condition workaround:
+                canvas.selection = false ;
+                let onMove = (opt) => {
+                  clone.set({ left: opt.pointer.x, top: opt.pointer.y });
+                  canvas.requestRenderAll();
+                };
+                let onUp = () => {
+                  canvas.selection = true ;
+                  canvas.off('mouse:move', onMove);
+                  canvas.off('mouse:up', onUp);
+                  canvas.remove(clone);
+                  delay(1, () => { 
+                    canvas.add(clone) ;
+                    clone.set({ hasControls: true}) ;
+                  }) ; 
+                };
+                canvas.on('mouse:move', onMove);
+                canvas.on('mouse:up', onUp);
+              }
+            }
+        }) ;
       }
+      return;
+     }
     }
   }
 
@@ -1335,4 +1411,5 @@ return obj ;
         throw new Error(`menu.setPasteObj: unsupported media type: ${type}`);
     }
   }
+
 }

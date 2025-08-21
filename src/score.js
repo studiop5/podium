@@ -28,6 +28,24 @@ import { Grid } from "./canvas.js";
 
 // -skip
 
+{ 
+  // We monkey-patch setTimeout for use during PDFLib.save():
+  // save() calls setTimeout periodically, so we monkey-patch
+  // setTimeout throw an exception when window.pdf == "cancel".
+  // This allows us to interrupt the save, allowing users
+  // to "cancel" a long-running save operation.
+  let sto = window.setTimeout ;
+  window.cancelPdf = false ;
+  window.setTimeout = function(callback, delay, ...args) { 
+    if(window.cancelPdf) {
+      window.cancelPdf = false ;
+      throw new Error() ;
+    }
+    return sto(callback, delay, ...args) ;
+  }
+}
+
+
 /**
 class Pg
   Represents a page in a score.  Named Pg, not Pg, and its instances
@@ -193,31 +211,31 @@ class Pg {
     }
     this.canvas = canvas ;
 
+    let stateChanged = false ; // flag to indicate canvas state has changed s.t. it needs to be pushed to the undoStack
+    let ev = 0 ; // remember last Event for dwell processing (see on("mouse:up")).
 
-  let stateChanged = false ; // flag to indicate canvas state has changed s.t. it needs to be pushed to the undoStack
+    canvas.on("mouse:down:before", async (opts) => {
+      ev = opts.e ;
+      if(_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) 
+        _menu_.pgDownEvent(opts, this);
+    });
 
-  canvas.on("mouse:down:before", async (opts) => {
-    if(_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) 
-       _menu_.pgDownEvent(opts, this);
-  });
+    // update ev iff there is "significant" movement, not jitter
+    canvas.on("mouse:move", opts => { if(Math.hypot(opts.e.movementX, opts.e.movementY) > 2) ev = opts.e ;
+}) ;
 
-   canvas.on("mouse:up", (opts) => {
+    canvas.on("mouse:up", opts => {
       if(stateChanged) pushState() ;
       stateChanged = false ;
-      if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) 
-          _menu_.pgUpEvent(opts, this); 
+      if (_menu_.activeRing.key == "ink")
+      {  if(_menu_.activeRing.activeCell) _menu_.pgUpEvent(opts, this); 
+         let dwell = opts.e.timeStamp - ev.timeStamp ;
+         if(dwell > 2000) _menu_.activateCell(_menu_.rings.ink.cells.transform) ; // long dwell: activate transform
+         else if(dwell > 1000)  _menu_.activateCell(null) ; // short dwell: deactive, medium: no deactivation
+         // else no dwell: no deactivate
+      }
     });
 
-    canvas.on("selection:created", (opts) => {
-        // Podium only allows one active object (or group), even across multiple pg's, so discard from all other pg's:
-        Pg.clear = false; // prevent recursive calls to selection:cleared handler from running
-        for (let pg of score.pgs) if (pg.inflated && pg != this) pg.canvas.discardActiveObject().requestRenderAll();
-        Pg.clear = true;
-    });
-
-    canvas.on("selection:cleared", (opts) => {
-        if (Pg.clear) for (let pg of score.pgs) if (pg.inflated && pg != this) pg.canvas.discardActiveObject().requestRenderAll();
-    });
 
     // Each pg instance has its own undo stack. Initially, the
     // stack has 1 entry: its state *before* anything has been
@@ -419,16 +437,31 @@ class Pg {
     if (annots) annots.array.splice(0, annots.array.length);
     let pageHeight = pLibPg.getHeight();
 
-    // Now convert each fabric object to PDFLib object:
-    for (let obj of this.canvas.getObjects()) {
+    // Nested function that converts a fabric object to a PDFLib object, with help of this.objToPdf(...)
+    let processObj = async(obj, absoluteTransform = null, parentMatrix = null) => {
+
+      if(absoluteTransform) {
+        obj = fabric.util.object.clone(obj) ;
+        obj.set({
+          left: absoluteTransform.left,
+          top: absoluteTransform.top,
+          scaleX : absoluteTransform.scaleX,
+          scaleY: absoluteTransform.scaleY,
+          angle: absoluteTransform.angle }) ;
+      }     
+
       switch (obj.type) {
+
+        case "text":
         case "textbox": {
           // find the pdf font name from object's fontFamily, fontStyle, and fontWeight values
           let pdfFontName = fontUnmap[`${obj.fontFamily}/${obj.fontStyle}/${obj.fontWeight}`];
           if (!pdfFontName) pdfFontName = "Times-Roman";
           let pdfFont = this.score.embeddedFonts[pdfFontName];
           if (!pdfFont) {
-            pdfFont = await pLibPg.doc.embedFont(window.fontData[pdfFontName] ?? pdfFontName);
+            let fontData = window.fontData[pdfFontName];
+            if (typeof fontData == 'function') fontData = fontData();
+            pdfFont = await pLibPg.doc.embedFont(fontData ?? pdfFontName);
             this.score.embeddedFonts[pdfFontName] = pdfFont;
           }
           // For PDFLib, y: locates baseline of first (or only) line of text, but fabric's y
@@ -458,6 +491,7 @@ class Pg {
           ]);
           break;
         }
+
         case "path": {
           let pathStr = "";
           // Create an svg-style path string, where every point is scaled and
@@ -510,7 +544,7 @@ class Pg {
         }
 
         case "image": {
-          // obm, the fabricjs image, is assumed to have a src property that
+          // the fabricjs image is assumed to have a src property that
           // must be a dataURL starting with "data:image/jpeg; or "data:image/png;"
           let res = await fetch(obj.src) ;
           let bytes = new Uint8Array(await res.arrayBuffer()) ;
@@ -522,21 +556,59 @@ class Pg {
           // "un"rotate bl.x and bl.y
           let pp = rotatePoint(obj.aCoords.bl.x, obj.aCoords.bl.y, obj.aCoords.bl.x, obj.aCoords.bl.y, -angle);
           await this.objToPdf(obj, ink, pLibPg, pLibPg.drawImage, [
-              image,
-              { x: pp.x,
-                y: pageHeight - pp.y,
-                rotate: PDFLib.degrees(360 - obj.angle),
-                height: obj.height * scale,
-                width: obj.width * scale,
-              },
+            image,
+            { x: pp.x,
+              y: pageHeight - pp.y,
+              rotate: PDFLib.degrees(360 - obj.angle),
+              height: obj.height * scale,
+              width: obj.width * scale,
+            },
           ]);
           break ;
         }
+ 
+        case "group": {
+          let groupMatrix = obj.calcOwnMatrix();
+
+          for (let groupObj of obj._objects) {
+            if (groupObj.type === 'group') {
+              // Nested group: apply parent transformation, then recurse
+                fabric.util.addTransformToObject(groupObj, groupMatrix);
+                await processObj(groupObj, null, null);
+            } else {
+              // Not a group: get absolute coordinates and app get absolute coordinates
+              let tmpObj = fabric.util.object.clone(groupObj);
+              fabric.util.addTransformToObject(tmpObj, groupMatrix);
+              await processObj(groupObj, {
+                  left: tmpObj.left,
+                  top: tmpObj.top,
+                  scaleX: tmpObj.scaleX,
+                  scaleY: tmpObj.scaleY,
+                  angle: tmpObj.angle,
+              });
+            }
+          }
+          break;
+        }
+
         default: {
           console.warn("Unsupported fabric obj:", obj.type);
         }
-      }
+
+      } // switch
+    } ; // processObj
+
+    // Discard active object, if any: they don't print correctly if rotated.
+    // Note: groups do work, but there are unresolved bugs with rotated
+    // nested groups.
+    this.canvas.discardActiveObject() ;
+    this.canvas.requestRenderAll() ;
+
+     // Process all top-level objects
+    for (let obj of this.canvas.getObjects()) {
+      await processObj(obj);
     }
+
     let json = this.toJson();
     if (!wasInflated) this.deflate();
     // The returned json will not contain any fabricjs objects with the "merge" property:
@@ -566,6 +638,7 @@ class Pg {
       func.apply(pLibPg, funcArgs);
       return;
     }
+    else if(ink == "none") return ; 
     // Add object as a Stamp annotation:
     // - first, create a tmpPage and apply func to it.
     // - "re-forge" tmpPage's content into a stamp annotation
@@ -590,7 +663,7 @@ class Pg {
     content.dict.set(PDFName.of("BBox"), context.obj([0, 0, pLibPg.getWidth(), pLibPg.getHeight()]));
     content.dict.set(PDFName.of("Resources"), tmpPage.node.dict.get(PDFName.of("Resources")));
     stamp.setNormalAppearance(context.register(content));
-    if (pLibPg.node.has(PDFName.Annots)) pLibPg.node.Annots().push(stamp.dict);
+    if (pLibPg.node.has(PDFName.Annots) && pLibPg.node.Annots()) pLibPg.node.Annots().push(stamp.dict);
     else pLibPg.node.set(PDFName.Annots, context.obj([stamp.dict]));
     pLibDoc.removePage(pLibDoc.getPageCount() - 1);
   }
@@ -622,6 +695,11 @@ class Score
 **/
 
 class Score {
+
+
+
+
+
   static activeScore = null;
   static MAX_INFLATED = 6; // maximum number of unused inflated pgs: see Score.pgUnuse()
 
@@ -760,7 +838,7 @@ class Score {
     //  For new scores (no external data sources), this is just null.
     // @path identifies the file path in the data source (not including name), or null for new scores.
     // @name identifies the file name of the data source (not including path)
-    // @pdfData bytearray containing pdf file, or null for new scores.
+    // @pdfData bytearray containing pdf file, or null for new scores. 
     document.getElementById("title").innerText = name ? name.replace(/\.pdf/i, ""):"Podium" ;
     // Note: new, locally created files won't have any pdfData: it will be null or undefined
     Object.assign(this, { source, path, name });
@@ -835,60 +913,82 @@ class Score {
     return this;
   }
 
-  async toPdf(ink = "stamp", doc = false) {
+  async toPdf(ink = "stamp", doc = false, startPg=1, endPg = null) {
     // Use PDFLib to create PDF representation of this score.
     // @ink === none, skip fabric objects entirely (even as attachment??)
     //      === "stamp" add fabric object as stamp annotation
     //      === "pdf" add fabric object as pdf object
     // @doc if true, the PDF-LIB doc object is returned, otherwise the
-    //    pdf bytes that is produces is returned.
-    let srcPLibDoc = this.mozDoc ? await PDFLib.PDFDocument.load(await this.mozDoc.getData()) : null;
-    let dstPLibDoc = await PDFLib.PDFDocument.create();
-    dstPLibDoc.registerFontkit(window.fontkit);
-    // Reset te embeddedFonts array: it prevents Pg instances from embedding same font twice.
-    this.embeddedFonts = [];
-    let now = new Date();
-
-    let attachment = {
-      created: this.created,
-      modified: now,
-      maxWidth: this.maxWidth,
-      maxHeight: this.maxHeight,
-      quality: this.quality,
-      pages: {},
-      menu: _menu_.stashToJsonObj(),
-    };
-    let pLibPg;
-    for (let i = 0; i < this.pgs.length; i++) {
-      let pg = this.pgs[i];
-      // if pg is "backed" by a page in mozDoc (1-based), copy page to dstDoc, otherwise add a new "empty" page
-      if (pg.mozPn) pLibPg = dstPLibDoc.addPage((await dstPLibDoc.copyPages(srcPLibDoc, [pg.mozPn-1]))[0]);
-      else pLibPg = dstPLibDoc.addPage([this.maxWidth, this.maxHeight]);
-      // add fabric objects to the page
-      let pgJson = await pg.toPdf(ink, pLibPg);
-      attachment.pages[i + 1] = pgJson;
+    //    pdf bytes that it produces is returned.
+    let complete = false ;
+    try {
+      // When shade is cancelled, set cancelPdf. This will interrupt lib-pdf when
+      // it next calls waitForTick by calling our monkey-patched setTimeout
+      _shade_.onCancel = () => { window.cancelPdf = true ; } ;
+      let srcPLibDoc = this.mozDoc ? await PDFLib.PDFDocument.load(await this.mozDoc.getData()) : null;
+      let dstPLibDoc = await PDFLib.PDFDocument.create();
+      dstPLibDoc.registerFontkit(window.fontkit);
+      // Reset te embeddedFonts array: it prevents Pg instances from embedding same font twice.
+      this.embeddedFonts = [];
+      let now = new Date();
+  
+      let attachment = { 
+        created: this.created,
+        modified: now,
+        maxWidth: this.maxWidth,
+        maxHeight: this.maxHeight,
+        quality: this.quality,
+        pages: {},
+        menu: _menu_.stashToJsonObj(),
+      };
+      let pLibPg;
+      let from = Math.max(1, startPg) ;
+      let to = endPg ? Math.min(endPg, this.pgs.length) : this.pgs.length ;
+      for (let i = from, j = 0 ; i <= to; i++, j++) {
+        let percent = Math.trunc( (j / (to -from + 1)) * 100) ;
+        _shade_.update(`Building pages ${from}-${to} (${percent}%)`) ;
+        let pg = this.pgs[i-1];
+        // if pg is "backed" by a page in mozDoc (1-based), copy page to dstDoc, otherwise add a new "empty" page
+        if (pg.mozPn) pLibPg = dstPLibDoc.addPage((await dstPLibDoc.copyPages(srcPLibDoc, [pg.mozPn-1]))[0]);
+        else pLibPg = dstPLibDoc.addPage([this.maxWidth, this.maxHeight]);
+        setTimeout(_voidFunc_, 0) ;
+        // add fabric objects to the page
+        let pgJson = await pg.toPdf(ink, pLibPg);
+        attachment.pages[i] = pgJson;
+        if(window.gc) window.gc() ; 
+      }
+      // Add the pdf attachment
+      let jsonString = JSON.stringify(attachment);
+      await dstPLibDoc.attach(new TextEncoder().encode(jsonString), "podium", {
+        mimeType: "application/json",
+        description: "podium json metadata",
+        creationDate: now,
+        modificationDate: now,
+      });
+      // set pdf doc metadata
+      dstPLibDoc.setModificationDate(now);
+      dstPLibDoc.setCreationDate(now);
+      dstPLibDoc.setCreator("Podium vers." + _podiumVersion_);
+      if (doc) return dstPLibDoc;
+      _shade_.update("Generating Pdf document") ;
+      let bytes = await dstPLibDoc.save({objectsPerTick: 1000}) ;
+      complete = true ;
+      _shade_.update("PDF Generated!");
+      return bytes ;   
+    } catch(error) {
+      window.pdf = "cancel" ;
+      throw new Error("cancelled",{cause:"cancelled"}) ;
     }
-
-    // Add the pdf attachment
-    let jsonString = JSON.stringify(attachment);
-    await dstPLibDoc.attach(new TextEncoder().encode(jsonString), "podium", {
-      mimeType: "application/json",
-      description: "podium json metadata",
-      creationDate: now,
-      modificationDate: now,
-    });
-
-    // set pdf doc metadata
-    dstPLibDoc.setModificationDate(now);
-    dstPLibDoc.setCreationDate(now);
-    dstPLibDoc.setCreator("Podium vers." + _podiumVersion_);
-    if (doc) return dstPLibDoc;
-    return dstPLibDoc.save();
+    finally {
+      _shade_.onCancel = null ;
+      complete = true ;
+    }
   }
 
   async bindScore(pdfData) {
     // bind all pages from a given score to this score: i.e. given some score's
     // @pdfData, append all of its pages to this score.
+    // todo: a shade, and logic for cancel in-process
     let { PDFArray, PDFDict, PDFDocument, PDFName, PDFStream } = PDFLib;
     let pgCount = this.pgs.length;
     let docA = await this.toPdf("stamp", true);
@@ -1020,6 +1120,17 @@ class Score {
   setEditable(bool) {
     for (let pg of this.pgs) pg.setEditable(bool);
   }
+
+  setTransformable(bool) {
+    // when a score is transformable, all objects on all pages
+    // can be rotated, scaled, and translated...otherwise not
+    for(let pg of this.pgs) {
+      if(!pg.inflated) continue ;
+      if(!bool) pg.canvas.discardActiveObject() ;
+        for (let obj of pg.canvas.getObjects()) {
+          obj.hasControls = bool ;
+        pg.canvas.requestRenderAll() ;
+    } } }
 
   update(props) {
     // Used to update any or all off this.source, this.name, this.path
