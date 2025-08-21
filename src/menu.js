@@ -520,24 +520,6 @@ class Menu {
     this.listen(paths.map((path) => path + "up"),(cell) => this.activateCell(rings.ink.activeCell === cell ? null :cell));
     this.listen(paths.map((path) => path + "long"),(cell) => this.activateCell(cell, true));
     this.listen(paths.map((path) => path + "out"),(cell) => this.openPanel(cell)) ; 
-/***********************
-    this.listen("ink/transform/up", (cell) => {
-      let controls = true ;
-      if(rings.ink.activeCell == cell) {
-         // toggle off
-         this.activateCell(null) ;
-         controls = false ;
-      }
-      else this.activateCell(cell) ;
-      // now enable (or disable) controls for all objects:
-      for(let pg of Score.activeScore.pgs) {
-        if(!controls) pg.canvas.discardActiveObject() ;
-        for (let obj of pg.canvas.getObjects()) {
-          obj.hasControls = controls ;
-        pg.canvas.requestRenderAll() ;
-      }} ;
-    }) ;
-**************/
 
     // Page ring
     rings.page = {
@@ -797,8 +779,8 @@ class Menu {
     op.emv = emv;
 
     if (op.out) {
-      flung(emv) ;
-      return this.notify(`${op.ringKey}/${op.cellKey}/out`); // if cell has panel, then this wil pass move operation to it
+///      flung(emv) ;
+      return this.notify(`${op.ringKey}/${op.cellKey}/out`); // if cell has panel, then this will pass move operation to it
     }
 
     let elm = this.menuHolder;
@@ -1028,8 +1010,19 @@ class Menu {
     // then moves ths panel's header to pointer location (this.op.e)
     let panel = panels[cell.name + "Panel"]?.get(cell);
     if (!panel) return;
+    
+    if (panel.elm.style.visibility != "visible") {
+       this.op.launched = performance.now() ;
+       panel.show();
+     }
 
-    if (panel.elm.style.visibility != "visible") panel.show();
+     // we want the ability to fling-to-close the opened panel using same gesture that
+     // was used to open it, but don't want a quick fling after first open to have it
+     // close immediately, so no fling processing until 1/2 second after launching
+     // panel.
+     if(performance.now() - this.op.launched > 500)
+       flung(this.op.emv) ;
+
     Object.assign(panel.elm.style, {
       left: this.op.emv.clientX - panel.elm.offsetWidth / 2 + "px",
       top: this.op.emv.clientY + panel.panel.offsetHeight / 2 - panel.header.offsetHeight / 2 + "px",
