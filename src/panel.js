@@ -173,12 +173,12 @@ class Panel {
         header.setPointerCapture(e.pointerId);
         let middleX = this.panel.offsetWidth / 2;
         let middleY = this.panel.offsetHeight / 2;
-
         let mv = listen(header, "pointermove", (emv) => {
           if (e.pointerId != emv.pointerId) return;
           flung(emv) ; // store event for fling detection
           elm.style.left = emv.clientX - e.offsetX + middleX + "px";
           elm.style.top = emv.clientY - e.offsetY + middleY + "px";
+          this.constrain() ;
           e.emv = emv;
         });
 
@@ -195,6 +195,12 @@ class Panel {
         );
       })
     );
+    this.listeners.push(
+      listen(window, "resize", () => {
+        if (this.elm.style.visibility === "visible") {
+          this.constrain();
+      }
+    })) ;
   }
 
   close() {
@@ -214,6 +220,14 @@ class Panel {
     // the panel may be holding on to.
     unlisten(...this.listeners);
   }
+
+  constrain() {
+   // Ensure at least 50% of the panel header's width and 100% of its height stays onscreen
+   this.elm.style.left = clamp(this.elm.offsetLeft, 0, window.innerWidth) + "px" ;
+   this.elm.style.top = clamp(this.elm.offsetTop, this.elm.offsetHeight/2,
+     window.innerHeight  - this.header.offsetHeight + this.panel.offsetHeight / 2) + "px" ;
+  }
+
 
   setIcon(svgPath) {
     let newIcon = helm(

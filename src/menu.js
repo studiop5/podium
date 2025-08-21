@@ -279,6 +279,13 @@ class Menu {
     this.disk.turn = 0;
 
     listen(elm, "pointerdown", this.opDown.bind(this));
+
+    // ensure grip remains at least partially on-screen after any window resize
+    listen(window, "resize", () => {
+      this.elm.style.left = clamp(this.elm.offsetLeft, 0, window.offsetWidth) + "px" ;
+      this.elm.style.top = clamp(this.elm.offsetTop, 0, window.offsetHeight) + "px" ;
+    }) ;
+
   }
 
   async buildRings() {
@@ -1028,6 +1035,7 @@ class Menu {
       top: this.op.emv.clientY + panel.panel.offsetHeight / 2 - panel.header.offsetHeight / 2 + "px",
     });
     cell.elm.classList.remove("Menu__panel");
+    panel.constrain() ;
   }
 
   // stash serialization functions:
