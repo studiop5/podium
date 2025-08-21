@@ -149,7 +149,6 @@ class Panel {
         </div>
         <div data-tag="body" class="Panel__body">
         </div>
-        <datalist data-tag="colors" id="commonColors"></datalist>
       </div>
     </div>`);
 
@@ -248,10 +247,12 @@ class Panel {
   }
 
   setPosition(otherElm) {
-    // Position panel element's "closest corner"  to corner relative
-    //  to center of another element that's closest to window's center.
-    // Algorithm assumes refPanel is as tall as it is wide...designed for
-    // _menu_.grip.
+    // Position panel element's "closest corner" to corner relative
+    // to center of another element that's closest to window's center,
+    // usually _menu_.grip. Usually, Panel's are positioned as part
+    // of the drag out gesture from the menu. However some Panels
+    // can be opened by simply clicking on their cell. This method
+    // is provided for such cases.
     let elm = this.elm;
     let box = getBox(otherElm);
     let mid = box.x + box.width / 2;
@@ -1781,27 +1782,84 @@ class PianoPanel extends Panel {
 }
 
 class PrintPanel extends Panel {
+
+  content = helm(`
+    <div data-tag="body" class="Panel__body">
+      <div data-tag="buttons"></div>
+      <b>Note:</b><br>Print larger scores<br>in small sections
+      <div data-tag="first"></div>
+      <div data-tag="last"></div>
+    </div>`);
+
   constructor(cell) {
     super(cell);
+    this.body.replaceWith(this.content) ;
+    Object.assign(this, dataIndex("tag", this.content)) ;
+    // PrintPanel settings are not permanent, and are reset everytime the
+    // PrintPanel is constructed, which should be the first time
+    // its opened on a new score.  BUG, todo: should also reset when
+    // pg's are added or removed
+    let props = { first:1, last: Score.activeScore.pgs.length } ;
+
+    cell = _menu_.rings.page.cells.numbers ; // for pnToString
     let buttons = new ButtonGroup(
-      this.cell.stash,
+      props,
       {
         Ink: { svg: "Ink" },
         "No Ink": { svg: "No Ink" },
       },
       async (e, tag, value) => {
-        let data = await Score.activeScore.toPdf(
-          value == "Inked" ? "pdf" : "none"
-        );
-        let dataUrl = window.URL.createObjectURL(
-          new Blob([data], { type: "application/pdf" })
-        );
-        window.open(dataUrl).print();
+        try {
+          _shade_.show("Preparing to print") ;
+          let data = await Score.activeScore.toPdf(
+            value == "Ink" ? "pdf" : "none", false, props.first, props.last) ;
+          let dataUrl = window.URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
+          window.open(dataUrl).print();
+        }
+        catch(error) { toast("Print cancelled") ;}
+        finally { 
+          _shade_.onCancel = null ;
+          _shade_.hide() ;
+          this.close() ;
+        }
       }
     );
     buttons.elm.style = "margin:.5em;width:12em";
-    this.body.replaceWith(buttons.elm);
+    this.buttons.replaceWith(buttons.elm);
+  
+    let msgCallback = (tag, value) => {
+      // don't allow first to be > last, or last to be < first
+      if(tag == "first") {
+        if(value > props.last) value = props.last ;
+        props.first = value ;
+        return "First page: " + pnToString(value, -cell.stash.pnOffset) ;
+      } else if(tag == "last") {
+        if(value < props.first) value = props.first ;
+        props.last = value ;
+        return "Last page: " +  pnToString(value, -cell.stash.pnOffset) ;
+      }
+    }
+
+    // Can't combine these two sliders because of the way msgCallback works, sigh.
+    this.firstSlider = new SliderGroup(props, {
+      first: {min:1, max:props.last, step:1, value:1, msg: msgCallback},
+    }) ;
+    this.first.replaceWith(this.firstSlider.elm) ;
+
+    this.lastSlider = new SliderGroup(props, {
+      last: {min:1, max:props.last, step:1, value:props.last,  msg: msgCallback},
+    }) ;
+    this.last.replaceWith(this.lastSlider.elm) ;
+
+    listen(_body_, ["PnChanged"], (e) => {
+      this.firstSlider.defs.first.max = this.lastSlider.defs.last.max = Score.activeScore.pgs.length ;
+      props.last  = Math.min(Score.activeScore.pgs.length, props.last) ;
+      props.first  = Math.min(Score.activeScore.pgs.length, props.first) ;
+      this.firstSlider.refresh() ;
+      this.lastSlider.refresh() ;
+    }) ;
   }
+
 }
 
 class StopwatchPanel extends Panel {

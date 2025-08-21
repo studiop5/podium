@@ -21,6 +21,8 @@
 **/
 
 
+
+
 // Podium usies in own build system that can package the entire application
 // into a single file, build/podium.html. This file is built by running
 // python3 build.py --podium.  All text  between +/- skip fill be stripped out,
@@ -53,6 +55,8 @@ window.pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
 // #include src/panel.js minified
 // #include src/file.js minified
 // #include src/tool.js minified
+
+
 
 async function main() {
   initFabric();
@@ -380,6 +384,7 @@ async function main() {
     };
   }
 }
+
 
 
 main();

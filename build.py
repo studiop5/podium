@@ -31,19 +31,38 @@ if args.font:
 
     fontFileName = 'lib/Bravura.otf'
     outFileName = 'build/font.js'
+
     with open(outFileName, 'wb') as outFile:
         outFile.write(b"""
-{ window.fontData = {} ;
-  let fontFile = new FontFace("Bravura", "url(data:font/otf;charset=utf-8;base64,""") ;
+  { window.fontData = {} ;
+    
+    // Store base64 font data once
+    const bravuraBase64 = \"""")
 
         with open(fontFileName,'rb') as inFile:
-          outFile.write(base64.b64encode(inFile.read()))
+            outFile.write(base64.b64encode(inFile.read()))
 
-        outFile.write(b"""");
-  document.fonts.add(fontFile);
-  await fontFile.load();
-}
-""") 
+        outFile.write(b"""\";
+    
+    // Load CSS font from the same data
+    let fontFile = new FontFace("Bravura", "url(data:font/otf;charset=utf-8;base64," + bravuraBase64 + ")");
+    document.fonts.add(fontFile);
+    await fontFile.load();
+    
+    // Lazy loading: convert base64 to Uint8Array only when PDF-lib needs it
+    window.fontData["Bravura"] = function() {
+      if (!this._bytes) {
+        const binary = atob(bravuraBase64);
+        this._bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          this._bytes[i] = binary.charCodeAt(i);
+        }
+      }
+      return this._bytes;
+    }.bind({});
+  }
+  """)
+
     if args.verbose: print(f'-- {outFileName} (re)built')
 
 if args.sample:
