@@ -21,10 +21,9 @@
 **/
 
 export { checkUnsaved, FileSrc, FileListView, FileSystemView, LocalFileView };
-import { css, ButtonGroup, clamp, clearChildren, dataIndex, delay, delayMs, getBox, helm, iconSvg, listen, mvmt, dialog, schedule, Schedule, strToHash, toast, unlisten } from "./common.js";
+import { css, ButtonGroup, clamp, clearChildren, dataIndex, delay, getBox, helm, iconSvg, listen, mvmt, dialog, Schedule, strToHash, toast, unlisten } from "./common.js";
 import { Score } from "./score.js";
 import { panels } from "./panel.js";
-import { Layout } from "./layout.js";
 // -skip
 
 let bytesToBase64DataUrl = async (bytes, type = "application/octet-stream") => {
@@ -533,7 +532,7 @@ class CachedSrc extends FileSrc {
       // Initially, recursively purge all children of path:
       let purgeCache = (path) => {
         let dirs = cache[path] || {};
-        for (let [key, value] of Object.entries(dirs)) purgeCache(path + "/" + key);
+        for (let key of Object.keys(dirs)) purgeCache(path + "/" + key);
         delete cache[path];
       };
 
@@ -1095,7 +1094,7 @@ class DbxSrc extends CachedSrc {
     url = this.contentUrl + "upload_session/append_v2";
     let cursor = 0;
     while (remaining > sliceLen) {
-      let slice = (fetchPromise = await fetch(url, {
+      fetchPromise = await fetch(url, {
         method: "POST",
         headers: {
           Authorization: "Bearer " + this.token,
@@ -1103,7 +1102,7 @@ class DbxSrc extends CachedSrc {
           "Dropbox-API-Arg": `{"cursor":{"offset":${cursor},"session_id":"${session_id}"}\}`,
         },
         body: new DataView(data.buffer, cursor, sliceLen),
-      }));
+      });
       response = await fetchPromise;
       if (!response.ok) err(`putFileSrc(${path},${name},...)`, await response.text());
       remaining -= sliceLen;
@@ -1683,16 +1682,15 @@ class FileListView {
 
   refresh() {}
 
-  enterDialog = (tag, dialog) => {
+  enterDialog(tag, dialog) {
     // Takes a dialog assumed to contain a pod-input element with a data-tag set to "input".
     // Listens for an keypup on "Enter" and, if found, calls fire() on the buttonsElm associated
-    // with the given tag.  Since there is no convenient way to unlisten the listener, we
-    // just let garbage collection do its work.
+    // with the given tag. 
     let input = dataIndex("tag", dialog).input;
-    let listener = listen(input, "keyup", (e) => {
+    listen(input, "keyup", (e) => {
       if (e.key == "Enter") dialog.buttonsElm.self.fire(tag);
-    });
-  };
+    }, { once:true});
+  }; 
 
   async makeFileElm(properties) {
     let name = properties.name;
@@ -2154,7 +2152,7 @@ class FileSystemView extends FileListView {
     }
   }
 
-  async setPath(path, force = false, dismissAlert = false) {
+  async setPath(path, force = false) {
     if (this.source == "Local") return; // no path for Local files.
     _shade_.show("Reading folder");
     return new Promise(async (accept, reject) => {
@@ -2180,9 +2178,6 @@ class FileSystemView extends FileListView {
       } catch (error) {
         errDialog(error, error.stack, "Error: Failed to read folder from cloud server.<br>Details in Console.");
       } finally {
-        // Most, but not all, calls to setPath are embedded in another operation which will dismiss the alert...
-        // if such a call is in progress, don't want to dismiss the alert.
-        //        if (dismissAlert) _shade_.hide(); // rem grd: seems screwed up
         _shade_.hide();
         return accept();
       }

@@ -21,7 +21,7 @@
 **/
 
 export { initFabric, Grid };
-import { clamp, delay, getBox, helm, listen, unlisten } from "../common.js";
+import { getBox, helm, listen, unlisten } from "../common.js";
 // -skip
 
 /**
@@ -218,7 +218,6 @@ function initFabric() {
         else d += `M${i} 0 L${i} ${dY} `;
       if (bars > 0) {
         let staffHeight = (lines - 1) * gap ;
-        let barWidth = dY / bars;
         if (style == "L-R") {
           let barWidth = dX / bars;
           for (let i = 0, x = 0 ; i <= bars; i++, x += barWidth) d += `M${x} ${-width/2} v${staffHeight + width} `;
@@ -265,7 +264,7 @@ function initFabric() {
       canvas.clearContext(ctx);
       ctx.beginPath();
       ctx.lineWidth = width * zoom;
-      ctx.strokeStyle = this.color;
+      ctx.strokeStyle = color;
       ctx.lineCap = "round";
       ctx.moveTo(origin.x * zoom, origin.y * zoom);
       ctx.lineTo(ptr.x * zoom, ptr.y * zoom);
@@ -278,7 +277,7 @@ function initFabric() {
     },
   
     draw: function() {
-      let { canvas, color, origin, ptr, style, width, zoom } = this;
+      let { canvas, color, origin, ptr, style, width } = this;
       if(this.path) this.canvas.remove(this.path) ; // might be "re" drawing...remove any prev path
       if (style == "L-R") ptr.y = origin.y;
       else if (style == "T-B") ptr.x = origin.x;
@@ -355,8 +354,8 @@ class Grid {
     // grid lines are offset from each other by dx,dy pixels:
     let maxStep = this.maxStep ;
 
-    this.dx = this.maxStep / Math.pow(2, this.xStep);
-    this.dy = this.maxStep / Math.pow(2, this.yStep);
+    this.dx = maxStep / Math.pow(2, this.xStep);
+    this.dy = maxStep / Math.pow(2, this.yStep);
 
     // the cell.cache vars xStep and yStep determine the grid line patterns:
     this.patternX = this.patterns[this.xStep] ;
@@ -393,8 +392,8 @@ class Grid {
     this.zoom = zoom;
     let { width, height } = this.pg.canvas;
     // For each zoom, create a new, resized gridCanvas:
-    width *= this.zoom;
-    height *= this.zoom;
+    width *= zoom;
+    height *= zoom;
     this.gridCanvas.remove() ;
     this.gridCanvas = helm(`<canvas data-tag="grid" width="${width}" height="${height}" style="position:absolute;width:${width / _pxPerEm_}em;height:${height / _pxPerEm_}em;"></canvas>`);
     this.pg.canvas.wrapperEl.insertBefore(this.gridCanvas, this.pg.canvas.upperCanvasEl);

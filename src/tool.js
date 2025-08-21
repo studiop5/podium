@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, flung, getBox, helm, hide, iconSvg, listen, mvmt, saveLocal, schedule, Schedule, SliderGroup, TabView, toast, unlisten, pxToEm } from "./common.js";
+import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, flung, getBox, helm, hide, iconSvg, listen, mvmt, schedule, Schedule, SliderGroup, TabView, toast, unlisten, pxToEm } from "./common.js";
 import { pianoSamples } from "./sample.js";
 import { panels } from "./panel.js" ; 
 export { Review, Metronome, Clock, Stopwatch, Piano, Volume };
@@ -333,7 +333,6 @@ class Piano {
           let minWidth = this.c4Elm.offsetWidth * 9.75; // minimum display E3-A4
           let newWidth = clamp(e.offWidth + delta + delta, minWidth, this.keyboard.offsetWidth);
           this.panel.panel.style.width = pxToEm(newWidth, this.panel.elm) ;
-          let left = clamp(e.keyOffLeft + delta, e.offWidth - e.keyWidth, 0);
         });
 
         listen(
@@ -425,7 +424,6 @@ class Piano {
       let [midiNum, centsOffset] = midiOffset.split("/");
       let piano = this.cell.stash.timbre == "piano"  ;
       let now = actx.currentTime ;
-      let a4 = this.cell.stash.a4; // offset, in cents, from 440hz
       let source;
 
       // Create an envelope using a GainNode to ramp up/down notes gracefully.
@@ -507,7 +505,6 @@ class Piano {
       11: [12, -100],
     };
 
-    let notesIndex = -1;
     // Show standard harpsichord/fortepiano range f1 - f6
     for (let midi = 29; midi < 89; midi++) {
       //for (let midi = 31; midi < 89; midi++) {
@@ -534,7 +531,6 @@ class Piano {
     // options panel is draggable by its frame left/right, with fling to close.
     optionsView.frame.style.marginTop = 0;
     optionsView.draggable = false; // defeat default l-r sash dragging of tabs
-    let minDx = this.panel.elm / _pxPerEm_ ;
     this.panel.listeners.push(
       listen(optionsView.sash, "pointerdown", (e) => {
         optionsView.sash.classList.add("Panel__header-selected");
@@ -771,7 +767,6 @@ class Surface {
       _body_.setPointerCapture(e.pointerId);
       longPresser.run(_longPressMs_,() => this.onSurfaceEvent("press")) ;
       let dX = e.offsetX, dY = e.offsetY ; // warning: e can be gc'ed before mv references it.
-      let lastEmv = null ;
       let mv = listen(_body_, "pointermove", (emv) => {
         flung(emv) ; // store event for fling detection
         if(surface.parentElement == _body_) {
@@ -1220,7 +1215,6 @@ class Metronome extends Surface {
     this.pathTransforms.forEach((pathTransform) => pathTransform.endElement());
     clearChildren(this.surface);
     let beatPattern = this.beatPattern || this.beatPatterns[0];
-    let dur = 60 / this.tempo;
     // Outermost svg tag. Transforms at this level effect entire surface. Note: the svg transform tag doesn't
     // work on ios devices, so we use the css style version instead
     let svg = `<svg style="transform:scale(1.75, 1.75);position:relative;pointer-events:none;" viewBox="0 0 1024 1024">`;
@@ -1800,7 +1794,6 @@ class Review {
     });
 
     this.mediaDevicesGroup = new ButtonGroup(this.stash, mediaDevicesSpec, async (e, prop, tag) => {
-      let { deviceId, kind, label } = mediaDevicesSpec[tag];
       let index = parseInt(tag.split(" ")[1]) + 1;
       if (prop == "audioSrc") {
         if (index > audioSrcIdx) index = 1;

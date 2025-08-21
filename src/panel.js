@@ -357,7 +357,6 @@ class DetailsPanel extends Panel {
           throttle: 750,
           msg: () => {
             let q = cell.stash.quality;
-            let qualities = ["Low", "Medium", "High", "Extreme"];
             let desc =
               q < 1.1
                 ? "Low"
@@ -1179,7 +1178,6 @@ class NumbersPanel extends Panel {
     Object.assign(this, dataIndex("tag", this.content));
 
     this.schedule = new Schedule();
-    let self = this;
     let score = Score.activeScore;
 
     let formatPn = () => {
@@ -1652,7 +1650,6 @@ class SymbolsPanel extends PencilPanel {
     super(cell);
     this.preview.after(helm(`<div>Symbols Group:</div>`));
     for (let group of Object.keys(smuflTable)) {
-      let len = group.length;
       this.groups.append(
         helm(
           `<option ${

@@ -21,7 +21,7 @@
 **/
 
 export { Grid, Pg, Score };
-import { Spot, getBox, clamp, clearChildren, delay, fontUnmap, helm, inflate, listen, rotatePoint, saveLocal, Schedule, schedule, Timer } from "./common.js";
+import { delay, fontUnmap, helm, inflate, rotatePoint } from "./common.js";
 import { Layout } from "./layout.js";
 import { panels } from "./panel.js";
 import { Grid } from "./canvas.js";
@@ -169,9 +169,8 @@ class Pg {
       if(this.inflateAborted) return ;
     }
 
-    let score = this.score;
     let domCanvas = document.createElement("canvas");
-    let canvas = new fabric.Canvas(this.domCanvas, {
+    let canvas = new fabric.Canvas(domCanvas, {
         enablePointerEvents: true,
         allowTouchScrolling: true,
         imageSmoothingEnabled: false,
@@ -438,7 +437,7 @@ class Pg {
     let pageHeight = pLibPg.getHeight();
 
     // Nested function that converts a fabric object to a PDFLib object, with help of this.objToPdf(...)
-    let processObj = async(obj, absoluteTransform = null, parentMatrix = null) => {
+    let processObj = async(obj, absoluteTransform = null) => {
 
       if(absoluteTransform) {
         obj = fabric.util.object.clone(obj) ;
@@ -496,8 +495,6 @@ class Pg {
           let pathStr = "";
           // Create an svg-style path string, where every point is scaled and
           // rotated by (obj.scaleX, obj.scaleY), and obj.angle
-          let offsetX = obj.path[0][1];
-          let offsetY = obj.path[0][2];
           let minX = obj.path[0][1];
           let minY = obj.path[0][2];
           // ...first find the minimum x and y in the path so that we can initially
@@ -574,7 +571,7 @@ class Pg {
             if (groupObj.type === 'group') {
               // Nested group: apply parent transformation, then recurse
                 fabric.util.addTransformToObject(groupObj, groupMatrix);
-                await processObj(groupObj, null, null);
+                await processObj(groupObj, null);
             } else {
               // Not a group: get absolute coordinates and app get absolute coordinates
               let tmpObj = fabric.util.object.clone(groupObj);
@@ -892,7 +889,7 @@ class Score {
       // max {width/height} over all pgs. 
       for (let i = 1; i <= this.mozDoc.numPages; i++) {
         let mozPage = await this.mozDoc.getPage(i);
-        let [left, top, width, height] = mozPage.view ;
+        let [width, height] = mozPage.view ;
         this.pgs.push(new Pg(this, width, height, scoreJson?.pages ? scoreJson.pages[i] : null, i));
         this.maxWidth = Math.max(width, this.maxWidth);
         this.maxHeight = Math.max(height, this.maxHeight);
@@ -920,7 +917,6 @@ class Score {
     //      === "pdf" add fabric object as pdf object
     // @doc if true, the PDF-LIB doc object is returned, otherwise the
     //    pdf bytes that it produces is returned.
-    let complete = false ;
     try {
       // When shade is cancelled, set cancelPdf. This will interrupt lib-pdf when
       // it next calls waitForTick by calling our monkey-patched setTimeout

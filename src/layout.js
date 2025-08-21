@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { pxToEm, animate, Spot, toast, clamp, clearChildren, css, cssIndex, delay, getBox, listen, pnToDiv, pnToString, unlisten, helm, dataIndex, dialog, mvmt, rotatePoint, Schedule, schedule, ptrMsg } from "./common.js";
+import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, getBox,   helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, unlisten,} from "./common.js";
 import { Pg, Score } from "./score.js";
 import { panels } from "./panel.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
@@ -92,7 +92,7 @@ let ORTHO_PROPS = {
   Y: "x",
 };
 
-// Following is a simplified equivalent of pxToEm used for increased
+// Following is a simplified equivalent of common::pxToEm used for increased
 // efficiency when we know that the object's style.fontSize is 1em:
 let toEm = (px) => px / _pxPerEm_ + "em";
 
@@ -626,7 +626,7 @@ class BookLayout extends Layout {
   async build(animated=true) {
     Object.assign(this, this.cell.stash);
     this.pn0 = -2;
-    let { fit, score, pgShow } = this;
+    let { fit, score } = this;
     fit = fit.toLowerCase() ;
 
     // Layout scroll g((eo)metry) in units of css pixels
@@ -865,7 +865,7 @@ class BookLayout extends Layout {
     //  @advancing when true: the page in slot 3 is pulled to the left,
     //   so advancing toward end of book. This page is the "leader", while
     //   slot 4 is the "follower".
-    let { shadow, spine } = this;
+    let { shadow } = this;
     let { pgWidth, pgHeight, shadowWidth } = this.cell.geo;
     let zoom = parseFloat(this.elm.style.fontSize);
     pgWidth *= zoom;
@@ -932,7 +932,6 @@ class BookLayout extends Layout {
       if (pullingAngle >= 0) {
         // pulling left->right from top half of page
         let lr = rotatePoint(x, pgHeight, x - pullingEdgeWidth, 0, pullingAngle);
-        let dY = lr.y - pgHeight;
         pulledEdgeWidth = pullingAngle ? (lr.y - pgHeight) / Math.sin(pullingAngle) : pullingEdgeWidth;
         pulledAngle = Math.atan((pullingEdgeWidth - pulledEdgeWidth) / pgHeight);
         if (leader.firstChild) leader.firstChild.style.clipPath = `path("M${pullingEdgeWidth} 0H${pgWidth}V${pgHeight}H${pulledEdgeWidth}Z")`;
@@ -1223,7 +1222,7 @@ class ScrollLayout extends Layout {
   async build(animated=true) {
     this.animated = animated ; 
     Object.assign(this, this.cell.stash);
-    let { fit, gap, pgSnap, sash, score, scroll, pgShow } = this;
+    let { fit, gap, pgSnap, sash, score, pgShow } = this;
     let { LEFT, RIGHT, TOP, WIDTH, HEIGHT, MAXWIDTH, MAXHEIGHT, INNERWIDTH, INNERHEIGHT } = this.props;
     fit = fit.toLowerCase() ;
     clearChildren(sash);
@@ -1362,7 +1361,7 @@ class ScrollLayout extends Layout {
 
   async onDown(e) {
     if (await super.onDown(e)) return;
-    let { LEFT, HEIGHT, OFFSETLEFT, OFFSETWIDTH, TOP, CLIENTX, CLIENTY, WIDTH, X } = this.props;
+    let { LEFT, CLIENTX, WIDTH, X } = this.props;
     let sashLimit = this.cell.geo.sashLimit;
 
     this.sash.setPointerCapture(e.pointerId);
@@ -1420,8 +1419,8 @@ class ScrollLayout extends Layout {
   }
 
   async pgGoTo(pn) {
-    let { LEFT, WIDTH, OFFSETLEFT } = this.props;
-    let { gap, pg, pgCount, pgShow, sashLimit } = this.cell.geo;
+    let { LEFT, WIDTH } = this.props;
+    let { gap, pg, pgCount, sashLimit } = this.cell.geo;
     pn = clamp(pn, 1, pgCount);
     let sashOrigin = this.sashStart;
     this.sashStart = -(pg[WIDTH] + gap) * (pn - 1);
@@ -1438,7 +1437,7 @@ class ScrollLayout extends Layout {
     // as "pgShow" previous and succeeding pages are checked out and mounted on
     // the sash.  All other pages on the sash are marked as unused.
     let { LEFT, RIGHT, TOP, BOTTOM, WIDTH } = this.props;
-    let { gap, pgShow, zoom } = this.cell.geo;
+    let { gap, pgShow } = this.cell.geo;
     let pgWidth = this.cell.geo.pg[WIDTH];
     for (let pgElm of Array.from(this.sash.children)) {
       let pg = pgElm.pg;
@@ -1506,7 +1505,7 @@ class ScrollLayout extends Layout {
   async pgSnapTo(dir, vel) {
     // "snap" displayed pages so that they align with a page boundary.  @dir is "right" or "left" or none (i.e. nearest)
     // @vel is "velocity". If pgSnap == 0, and dir != none, then vel is used to fling the sash left or right.  
-    let { LEFT, WIDTH, OFFSETLEFT } = this.props ;
+    let { LEFT, WIDTH } = this.props ;
     let { gap, pgCount, pgSnap, pgShow, sashLimit} = this.cell.geo ;
     let pgWidth = this.cell.geo.pg[WIDTH] ;
     let snapDur = Math.min(vel ? Math.abs(250 / vel) : 250, 750)  ; // how long the snap takes, in ms
@@ -1647,7 +1646,7 @@ class TableLayout extends Layout {
   async build(animated=true) {
     // set animated to false to skip some of the animation effects during building...
     // When true, we build 1 page per animation frame, and move the layout as more
-    // rows are added. This works find for initial builds, but is too musch  if
+    // rows are added. This works fine for initial builds, but is too much if
     // we're rebuilding after a cut or paste.
     this.animated = animated ;
     Object.assign(this, this.cell.stash);
@@ -1662,7 +1661,6 @@ class TableLayout extends Layout {
     clearChildren(grid);
     let pgCount = score.pgs.length;
 
-    let fitWidth = this.fit == "Width" ;  
     let gridMargin = parseFloat(TableLayout.gridMargin) * _pxPerEm_ ;
     let tableWidth = window.innerWidth - Layout.margin * 2  ;
     let gridWidth = tableWidth - gridMargin * 2 ;
@@ -1700,7 +1698,7 @@ class TableLayout extends Layout {
 
       let gen = async(i) => {
         dialogElm.firstChild.innerHTML = `Building: ${Math.round((i/pgCount)* 100)}%<hr>` ;
-        let {pn, top, left} = this.gridCoords[i] ;
+        let {pn, top} = this.gridCoords[i] ;
         // Potentially expand the gridHeight to accomodate the next row:
         let gridHeight = top + pgHeight ;
         grid.style.height = toEm(gridHeight) ;
@@ -1991,7 +1989,6 @@ class Pager {
 
   buildBookmarks() {
     let { LEFT, HEIGHT, TOP, WIDTH } = this.props;
-    let pagerBox = getBox(this.pager) ;
     for (let elm of [...this.elm.children]) if (elm.dataset.tag == "bookmark") elm.remove();
     let pgCount = Score.activeScore.pgs.length;
     let pgSpan = 100 / pgCount;
@@ -2009,7 +2006,7 @@ class Pager {
 
   onDown(e) {
     e.stopImmediatePropagation(); // don't let event propagate to the layout
-    let { TOP, BOTTOM, WIDTH, HEIGHT, CLIENTX, CLIENTY, X, Y, OFFSETTOP, OFFSETHEIGHT } = this.props;
+    let { TOP, WIDTH, HEIGHT, CLIENTX, CLIENTY, X, Y } = this.props;
     let { cursor, pager, pnStash } = this;
     let pgCount = Score.activeScore.pgs.length ;
     let cursorBox = getBox(cursor);
