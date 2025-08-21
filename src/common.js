@@ -1722,7 +1722,6 @@ function pnToString(pn, useSMuFL = false) {
   pn = parseInt(pn);
   prelim = parseInt(prelim);
   first = parseInt(first);
-  let roman = pn < prelim;
   let str = "";
   if (pn <= prelim) {
     let roman = {
@@ -1817,7 +1816,7 @@ function ptrMsg(e, msgFunc, styles) {
 
   let mv = listen(_body_, "pointermove", (emv) => put(emv));
 
-  let up = listen(
+  listen(
     _body_,
     "pointerup",
     (eup) => {

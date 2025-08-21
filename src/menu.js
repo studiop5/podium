@@ -728,13 +728,11 @@ class Menu {
     let op = this.op;
     let keys = e.target.dataset.key || "grip";
     if (!keys) return;
-    let { ringRadius, diskRadius, gripRadius } = this.sizes;
     let box = getBox(this.menuHolder);
     let dxdy = [e.clientX - box.x, e.clientY - box.y];
 
     let [ringKey, cellKey] = keys.split("/");
     // Allow user interaction to spin the disk or ring only when pointer is within 20% of edge of disk or ring
-    let ptrOffset = Math.hypot(e.clientX - this.elm.offsetLeft, e.clientY - this.elm.offsetTop) / (_pxPerEm_ * parseFloat(this.elm.style.fontSize));
 
     Object.assign(op, {
       e: e, // initial event
@@ -779,7 +777,6 @@ class Menu {
       }
       case "disk": {
         this.disk.turnOffset = op.turn - this.disk.turn;
-        let cellTurn = 1 / this.rings.length;
         op.ring = this.rings[ringKey];
         if (op.ring.enabled == false) break;
         op.ring.cellElm.classList.add("Menu__diskCell-selected");
@@ -1015,7 +1012,7 @@ class Menu {
     if (path in this.listeners) {
       let parts = path.split("/");
       parts.pop();
-      let [ringKey, cellKey, op] = parts;
+      let [ringKey, cellKey] = parts;
       let cell = this.rings[ringKey];
       if (cellKey) cell = cell.cells[cellKey];
       let elm = cell?.elm || cell?.cellElm;

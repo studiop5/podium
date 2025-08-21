@@ -136,8 +136,6 @@ async function main() {
             //      move menu to pointer location and expand
             _body_.setPointerCapture(e.pointerId);
 
-            let [wnhg, wnwd] = [window.innerHeight, window.innerWidth] ;
-
             timer.run(_gsgs_*1000, () => {
               e.timedOut = true ;
               animate(_menu_.elm, null, { left: e.clientX + "px", top: e.clientY + "px" },`${_gsgs_}s`) ;
@@ -328,18 +326,19 @@ async function main() {
       stasher.cancel();
 
       stasher.run(5000, () => {
-        let active = _menu_.rings.layout.stash.active;
         localStorage.setItem("menu", _menu_.stashToJson());
       });
     });
   }
 
-  {
     /**
+  {
+
         If url query parameter "file" defined, open it. This is
         experimental code for running podium as a browser extension:
         not currently called by anything.
-     **/
+
+
     if (window.location.search) {
       //    let file = new URLSearchParams(window.location.search).get("file");
       //    if (!file) return;
@@ -365,6 +364,7 @@ async function main() {
       }
     }
   }
+  **/
 
   {
     /**
