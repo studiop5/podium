@@ -1895,7 +1895,7 @@ class TableLayout extends Layout {
 
 /**
 Class Pager
- Implements Pagers used by Book and Scroll Layouts (but not Gridlayout)
+ Implements Pagers used by Book and Scroll Layouts (but not Tablelayout)
  to quickly change pages through user interaction.
 **/
 

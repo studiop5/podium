@@ -298,17 +298,40 @@ async function main() {
   }
 
   let rebuildThrottle = new Schedule();
-  listen([screen.orientation, window], ["change", "resize", "fullscreenchange"], (e) => {
-    // html color picker can file change events on window...filter them out:
-    if (e.currentTarget === window && e.type == "change") return;
-    let layout = Layout.activeLayout;
-    if (layout) {
-      rebuildThrottle.cancel();
-      rebuildThrottle.run(500, () => {
-        layout.cell.pz = null;
-        layout.build();
-      });
-    }
+
+  delay(8, () => { // Set initial coordinates: 8 cycles ensures window coords "settled"
+      window.iW = innerWidth ;
+      window.iH = innerHeight ;
+  }) ;
+
+
+  listen(screen.orientation, "change", (e) => {
+    delay(8, () => { // 8 cycles ensure window coords "settled"
+      let iW = innerWidth ;
+      let iH = innerHeight ;
+      for(let child of _body_.children) {
+        if(child.classList.contains("Menu") || child.classList.contains("Panel")) {
+          child.style.left = (parseFloat(child.style.left) / window.iW) * iW + "px" ;
+          child.style.top = (parseFloat(child.style.top) / window.iH) * iH + "px" ;
+        }
+      }
+      window.iW = iW ;
+      window.iH = iH ;         
+    }) ;
+  }) ;
+
+
+  listen(window, ["resize", "fullscreenchange"], (e) => {
+    delay(10, () => { // must run *after*  screen orientation change
+      let layout = Layout.activeLayout;
+      if (layout) {
+        rebuildThrottle.cancel();
+        rebuildThrottle.run(500, () => {
+          layout.cell.pz = null;
+          layout.build();
+        });
+      }
+    }) ;
   });
 
   // don't allow context menu to appear
@@ -379,7 +402,7 @@ async function main() {
       if (args.length == 0) msgs = [];
       let msg = args.join(" ");
       msgs.push(`${msg}`);
-      while (msgs.length > 10) msgs.shift();
+      while (msgs.length > 5) msgs.shift();
       x.innerHTML = msgs.join("<br>");
     };
   }

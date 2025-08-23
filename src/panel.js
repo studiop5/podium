@@ -79,6 +79,8 @@ class Panel {
   static css = css(
     "Panel",
     `
+    .Panel { /* marker only */
+    }
     .Panel__elm {
       position:fixed;
       overflow: hidden;
@@ -134,7 +136,7 @@ class Panel {
   );
 
   elm = helm(`
-    <div class="pz" style="z-index:200">
+    <div class="pz Panel" style="z-index:200">
       <div data-tag="panel" class="Panel__elm raisedEdge">
         <div data-tag="header" class="Panel__header">
           ${iconSvg("Close", { tag: "icon", class: "Panel__icon" })}
@@ -197,7 +199,7 @@ class Panel {
     );
     this.listeners.push(
       listen(window, "resize", () => {
-        if (this.elm.style.visibility === "visible") {
+        if (this.elm.style.visibility == "visible") {
           this.constrain();
       }
     })) ;
@@ -223,9 +225,11 @@ class Panel {
 
   constrain() {
    // Ensure at least 50% of the panel header's width and 100% of its height stays onscreen
-   this.elm.style.left = clamp(this.elm.offsetLeft, 0, window.innerWidth) + "px" ;
-   this.elm.style.top = clamp(this.elm.offsetTop, this.elm.offsetHeight/2,
-     window.innerHeight  - this.header.offsetHeight + this.panel.offsetHeight / 2) + "px" ;
+   delay(10, () => {  // must delay until after any screen.orientation change, see main.js
+     this.elm.style.left = clamp(this.elm.offsetLeft, 0, window.innerWidth) + "px" ;
+     this.elm.style.top = clamp(this.elm.offsetTop, this.panel.offsetHeight/2,
+       window.innerHeight  - this.header.offsetHeight + this.panel.offsetHeight / 2) + "px" ;
+   }) ;
   }
 
 

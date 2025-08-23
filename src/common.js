@@ -61,6 +61,14 @@ export {
 import { iconPaths } from "./icon.js";
 // -skip
 
+// Replacement for replaceWith that propogates dataset.tag and
+// returns the new element.
+Element.prototype["replace"] = function(newElm) {
+  this.replaceWith(newElm) ;
+  if(this.dataset.tag) newElm.dataset.tag = this.dataset.tag ;
+  return newElm ;
+}
+
 // properties defined on the window "global" namespace
 // are distinguished using the convention of leading+trailing underscores:
 
@@ -171,7 +179,7 @@ css(
     background-color: var(--bodyColor);
     height: 100svh; /* small (min) viewport height */
     width: 100lvw;  /* large (max) viewport width */
-    position:absolute;
+    position:fixed ;
     font-size: ${_pxPerEm_}px ;
     left:0;
     top:0 ;
