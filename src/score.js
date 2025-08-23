@@ -570,8 +570,9 @@ class Pg {
           for (let groupObj of obj._objects) {
             if (groupObj.type === 'group') {
               // Nested group: apply parent transformation, then recurse
-                fabric.util.addTransformToObject(groupObj, groupMatrix);
-                await processObj(groupObj, null);
+                let clonedGroup = fabric.util.object.clone(groupObj) ;
+                fabric.util.addTransformToObject(clonedGroup, groupMatrix);
+                await processObj(clonedGroup, null);
             } else {
               // Not a group: get absolute coordinates and app get absolute coordinates
               let tmpObj = fabric.util.object.clone(groupObj);
@@ -692,11 +693,6 @@ class Score
 **/
 
 class Score {
-
-
-
-
-
   static activeScore = null;
   static MAX_INFLATED = 6; // maximum number of unused inflated pgs: see Score.pgUnuse()
 
@@ -889,7 +885,7 @@ class Score {
       // max {width/height} over all pgs. 
       for (let i = 1; i <= this.mozDoc.numPages; i++) {
         let mozPage = await this.mozDoc.getPage(i);
-        let [width, height] = mozPage.view ;
+        let [left, top, width, height] = mozPage.view ;
         this.pgs.push(new Pg(this, width, height, scoreJson?.pages ? scoreJson.pages[i] : null, i));
         this.maxWidth = Math.max(width, this.maxWidth);
         this.maxHeight = Math.max(height, this.maxHeight);
@@ -968,7 +964,7 @@ class Score {
       if (doc) return dstPLibDoc;
       _shade_.update("Generating Pdf document") ;
       let bytes = await dstPLibDoc.save({objectsPerTick: 1000}) ;
-      complete = true ;
+//      complete = true ;
       _shade_.update("PDF Generated!");
       return bytes ;   
     } catch(error) {
@@ -977,7 +973,7 @@ class Score {
     }
     finally {
       _shade_.onCancel = null ;
-      complete = true ;
+//      complete = true ;
     }
   }
 

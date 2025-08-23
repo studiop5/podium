@@ -44,9 +44,6 @@ function initFabric() {
   fabric.Object.prototype.cornerColor = "#00f8";
   fabric.Object.prototype.controls.mtr.offsetY = -80;
 
-  fabric.Object.prototype.originX = 'center';
-  fabric.Object.prototype.originY = 'center';
-
   fabric.Text.prototype.lockScalingFlip = true;
   fabric.Textbox.prototype.lockScalingFlip = true;
 
@@ -234,8 +231,6 @@ function initFabric() {
         width: dX,
         left: Math.min(origin.x, ptr.x) - width / 2,
         top: Math.min(origin.y, ptr.y) - width / 2,
-        originX: "left",
-        originY: "top",
         fill: false,
         stroke: color,
         strokeLineCap: "butt",

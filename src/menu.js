@@ -282,10 +282,11 @@ class Menu {
 
     // ensure grip remains at least partially on-screen after any window resize
     listen(window, "resize", () => {
-      this.elm.style.left = clamp(this.elm.offsetLeft, 0, window.offsetWidth) + "px" ;
-      this.elm.style.top = clamp(this.elm.offsetTop, 0, window.offsetHeight) + "px" ;
+      delay(100, () => { // must delay until after any screen.orientation change, see main.js
+        this.elm.style.left = clamp(parseFloat(this.elm.style.left), 0, window.innerWidth) + "px" ;
+        this.elm.style.top = clamp(parseFloat(this.elm.style.top), 0, window.innerHeight) + "px" ;
+      }) ;
     }) ;
-
   }
 
   async buildRings() {
@@ -626,7 +627,6 @@ class Menu {
 
     // grip: no cells here, just handlers
     this.listen("up", () => this.collapse());
-    this.listen("long", () => this.park());
 
     // Add a "key" key to every cell so that, given a cell,
     // we know immediately what its key is. Add a "ring" entry
@@ -786,7 +786,6 @@ class Menu {
     op.emv = emv;
 
     if (op.out) {
-///      flung(emv) ;
       return this.notify(`${op.ringKey}/${op.cellKey}/out`); // if cell has panel, then this will pass move operation to it
     }
 
@@ -889,28 +888,32 @@ class Menu {
       case "grip":
         if(op.moved) {
           if (flung(null, eup)) { // fling detected
-          if (!this.collapsed) this.collapse();
-          this.elm.style.transition = "left .5s, top .5s";
-          // Calculate direction and position using array lookup
-          let dx = eup.clientX - op.e.clientX;
-          let dy = eup.clientY - op.e.clientY;
-          let angle = Math.atan2(dy, dx);
-          let direction = Math.round(((angle + Math.PI) / (Math.PI /  4))) % 8;
-          // positions at the bottom don't use vw because of Safari-specific viewport calculation.
-          let positions = [
-            ["0vw", "50vh"],    // left edge
-            ["0vw", "0vh"],     // top-left corner
-            ["50vw", "0vh"],    // top edge
-            ["100vw", "0vh"] ,  // top-right corner
-            ["100vw", "50vh"],  // right edge
-            [`${window.innerWidth}px`, `${window.innerHeight}px`], // bottom-right corner
-            ["50vw", `${window.innerHeight}px`],  // bottom edge
-            ["0vw", `${window.innerHeight}px`],   // bottom-left corner
-          ];
-          [this.elm.style.left, this.elm.style.top] = positions[direction];
-          schedule(500, () => (this.elm.style.transition = "none"));
+            if (!this.collapsed) this.collapse();
+            this.elm.style.transition = "left .5s, top .5s";
+            // Calculate direction and position using array lookup
+            let dx = eup.clientX - op.e.clientX;
+            let dy = eup.clientY - op.e.clientY;
+            let angle = Math.atan2(dy, dx);
+            let direction = Math.round(((angle + Math.PI) / (Math.PI /  4))) % 8;
+            // Don't use vw....we need the styles to be in px
+            let wwb2 = window.innerWidth / 2 + "px" ;
+            let ww = window.innerWidth + "px" ;
+            let whb2 = window.innerHeight / 2 + "px" ;
+            let wh = window.innerHeight + "px" ;
+            let positions = [
+              [0, whb2],    // left edge
+              [0,0],     // top-left corner
+              [wwb2, 0],    // top edge
+              [ww, 0] ,  // top-right corner
+              [ww, whb2],  // right edge
+              [ww,wh], // bottom-right corner
+              [wwb2,wh],  // bottom edge
+              [0, wh],   // bottom-left corner
+            ];
+            [this.elm.style.left, this.elm.style.top] = positions[direction];
+          }
         }
-      } else if(eup.timeStamp - op.e.timeStamp < 200) this.notify("up");
+        else if(eup.timeStamp - op.e.timeStamp < 200) this.notify("up");
     }
   }
 
@@ -1147,14 +1150,6 @@ class Menu {
       schedule(618, () => (holder.style.transition = "unset"));
       this.collapsed = true;
     }
-  }
-
-  park() {
-    // collapse menu and move to upper left corner to be out of the way
-    this.elm.style.transition = "left .618s, top 0.618s";
-    this.elm.style.top = this.elm.style.left = -this.elm.offsetWidth / 2 + this.grip.offsetWidth * 0.22 + "px";
-    schedule(618, () => (this.elm.style.transition = "none"));
-    if (!this.collapsed) this.collapse();
   }
 
   reset() {

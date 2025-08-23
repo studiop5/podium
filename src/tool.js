@@ -1841,7 +1841,7 @@ class Review {
         }
       }
     });
-    this.mediaControlsElm.replaceWith(this.mediaControls.elm) ;
+    this.mediaControlsElm.replace(this.mediaControls.elm) ;
     this.mediaControls.elm.classList.add("Review__mediaControls");
 
     // add video scrub bar
@@ -1867,7 +1867,7 @@ class Review {
           }       
         }
      }) ;
-    this.scrubberElm.replaceWith(this.scrubber.elm) ;
+    this.scrubberElm.replace(this.scrubber.elm) ;
     this.scrubber.elm.classList.add("Review__scrubber");
 
     // define video event handlers
