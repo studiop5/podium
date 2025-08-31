@@ -769,6 +769,8 @@ for more details.</p>
             toast("Menu reset");
           } else if (tag == "Recent") {
             localStorage.setItem("recent", []);
+            for(let src of Object.values(Score.sources)) // set all "last opened directory" paths to the root path
+              localStorage.setItem(src, "") ;
             toast("Recent list cleared");
           }
         }
