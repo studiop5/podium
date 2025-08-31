@@ -74,7 +74,7 @@ Element.prototype["replace"] = function(newElm) {
 
 window._podiumVersion_ = "1.0";
 window._body_ = document.body;
-window._dvPxRt_ = 1 + (window.devicePixelRatio - 1) * 0.3;
+window._dvPxRt_ = 1 + (devicePixelRatio - 1) * 0.3;
 window._frMs_ = 0.06; // initial estimate of number of frames per millisecond (60fps)
 window._gs_ = 0.618; // golden section
 window._gsgs_ = _gs_ * _gs_; // shorter golden section!
@@ -93,8 +93,7 @@ window._voidFunc_ = () => {} ;
 let sandSvg =
   // Note: you must escape second / in a url, otherwise builder.py will parse
   // them as comments.
-  "url('data:image/svg+xml;base64," +
-  window.btoa(`
+  "url('data:image/svg+xml;base64," + btoa(`
       <svg width='3em' height='3em' viewBox='0 0 175 175' xmlns='http:/\/www.w3.org/2000/svg'>
         <filter id='noiseFilter'>
           <feTurbulence type='turbulence' baseFrequency='0.5' numOctaves='5' stitchTiles='stitch'/>
@@ -106,8 +105,7 @@ let sandSvg =
 let paperSvg =
   // Note: you must escape second / in a url, otherwise builder.py will parse
   // them as comments.
-  "url('data:image/svg+xml;base64," +
-  window.btoa(`
+  "url('data:image/svg+xml;base64," + btoa(`
     <svg width='3em' height='3em' viewBox='0 0 100 100' xmlns='http:/\/www.w3.org/2000/svg'>
       <filter id='paperFilter'>
         <feTurbulence type="fractalNoise" baseFrequency='0.15' 
@@ -287,7 +285,7 @@ class ButtonGroup
 **/
 
 class ButtonGroup {
-  static toggleButtonSvg = `url('data:image/svg+xml;base64,window.btoa(<svg width="100%" height="100%" viewBox="0 0 24 24" xmlns="http:/\/www.w3.org/2000/svg"><path style="fill:none;stroke:black;stroke-width:0.5px" d="M5 15.5L4 16.5L5 17.5M19 15.4L20 16.5L19 17.5"/></svg>')`;
+  static toggleButtonSvg = `url('data:image/svg+xml;base64,btoa(<svg width="100%" height="100%" viewBox="0 0 24 24" xmlns="http:/\/www.w3.org/2000/svg"><path style="fill:none;stroke:black;stroke-width:0.5px" d="M5 15.5L4 16.5L5 17.5M19 15.4L20 16.5L19 17.5"/></svg>')`;
 
   static css = css(
     "ButtonGroup",
@@ -771,7 +769,7 @@ class PodiumSlider extends HTMLElement {
   }
 }
 
-window.customElements.define("pod-slider", PodiumSlider);
+customElements.define("pod-slider", PodiumSlider);
 
 /**
 class PodiumInput
@@ -796,7 +794,7 @@ class PodiumInput extends HTMLInputElement {
   }
 }
 
-window.customElements.define("pod-input", PodiumInput, { extends: "input" });
+customElements.define("pod-input", PodiumInput, { extends: "input" });
 
 /**
 class Schedule
@@ -957,7 +955,7 @@ class Shade {
   }
 }
 
-window._shade_ = new Shade();
+_shade_ = new Shade();
 
 /**
 class SliderGroup
@@ -1804,11 +1802,11 @@ function ptrMsg(e, msgFunc, styles) {
     let wd = b.width ;
     let hg = b.height ;
     let [left, top] = [ev.clientX - wd / 2, ev.clientY - hg * expander];
-    left = clamp(left, 0, window.innerWidth - wd);
-    top = clamp(top, 0, window.innerHeight - hg);
+    left = clamp(left, 0, innerWidth - wd);
+    top = clamp(top, 0, innerHeight - hg);
     // prevent readout from going offscreen or under pointer
     if (top < hg) {
-      if (ev.clientX < window.innerWidth / 2)
+      if (ev.clientX < innerWidth / 2)
         left += ((1 - top / hg) * _pxPerEm_ * 10) / 2;
       else left -= ((1 - top / hg) * _pxPerEm_ * 10) / 2;
     }
@@ -1858,13 +1856,13 @@ function saveLocal(fileName, blob) {
   // is not available on many platforms.
   // @fileName
   // @blob
-  let url = window.URL.createObjectURL(blob);
+  let url = URL.createObjectURL(blob);
   let link = helm(
     `<a download="${fileName}" href="${url}" style="visibility:none"></a>`
   );
   _body_.append(link);
   link.click();
-  window.URL.revokeObjectURL(url);
+  URL.revokeObjectURL(url);
   link.remove();
 }
 

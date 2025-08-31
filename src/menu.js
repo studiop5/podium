@@ -283,8 +283,8 @@ class Menu {
     // ensure grip remains at least partially on-screen after any window resize
     listen(window, "resize", () => {
       delay(100, () => { // must delay until after any screen.orientation change, see main.js
-        this.elm.style.left = clamp(parseFloat(this.elm.style.left), 0, window.innerWidth) + "px" ;
-        this.elm.style.top = clamp(parseFloat(this.elm.style.top), 0, window.innerHeight) + "px" ;
+        this.elm.style.left = clamp(parseFloat(this.elm.style.left), 0, innerWidth) + "px" ;
+        this.elm.style.top = clamp(parseFloat(this.elm.style.top), 0, innerHeight) + "px" ;
       }) ;
     }) ;
   }
@@ -852,8 +852,8 @@ class Menu {
         if (!op.moved) return; // insufficient movement
         flung(emv) ; // store event for fling detection
         // Move the menu while ensuring that the grip cannot be dragged out of the viewport
-        this.elm.style.left = clamp(emv.clientX, 0, window.innerWidth) + "px";
-        this.elm.style.top = clamp(emv.clientY, 0, window.innerHeight) + "px";
+        this.elm.style.left = clamp(emv.clientX, 0, innerWidth) + "px";
+        this.elm.style.top = clamp(emv.clientY, 0, innerHeight) + "px";
         this.notify("move");
         break;
       }
@@ -896,10 +896,10 @@ class Menu {
             let angle = Math.atan2(dy, dx);
             let direction = Math.round(((angle + Math.PI) / (Math.PI /  4))) % 8;
             // Don't use vw....we need the styles to be in px
-            let wwb2 = window.innerWidth / 2 + "px" ;
-            let ww = window.innerWidth + "px" ;
-            let whb2 = window.innerHeight / 2 + "px" ;
-            let wh = window.innerHeight + "px" ;
+            let wwb2 = innerWidth / 2 + "px" ;
+            let ww = innerWidth + "px" ;
+            let whb2 = innerHeight / 2 + "px" ;
+            let wh = innerHeight + "px" ;
             let positions = [
               [0, whb2],    // left edge
               [0,0],     // top-left corner
@@ -1108,8 +1108,8 @@ class Menu {
   center(reset = false) {
     // move to the center of the current window
     animate(this.elm, null, { 
-      left: window.innerWidth / 2 + "px",
-      top: window.innerHeight / 2 + "px",
+      left: innerWidth / 2 + "px",
+      top: innerHeight / 2 + "px",
     }, ` ${_gs_}s`) ;
     if (this.collapsed) this.collapse();
     if (reset) {
