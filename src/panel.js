@@ -226,9 +226,9 @@ class Panel {
   constrain() {
    // Ensure at least 50% of the panel header's width and 100% of its height stays onscreen
    delay(10, () => {  // must delay until after any screen.orientation change, see main.js
-     this.elm.style.left = clamp(this.elm.offsetLeft, 0, window.innerWidth) + "px" ;
+     this.elm.style.left = clamp(this.elm.offsetLeft, 0, innerWidth) + "px" ;
      this.elm.style.top = clamp(this.elm.offsetTop, this.panel.offsetHeight/2,
-       window.innerHeight  - this.header.offsetHeight + this.panel.offsetHeight / 2) + "px" ;
+       innerHeight  - this.header.offsetHeight + this.panel.offsetHeight / 2) + "px" ;
    }) ;
   }
 
@@ -274,20 +274,20 @@ class Panel {
     let elm = this.elm;
     let box = getBox(otherElm);
     let mid = box.x + box.width / 2;
-    mid > window.innerWidth / 2
+    mid > innerWidth / 2
       ? (elm.style.left = mid - elm.offsetWidth + "px")
       : (elm.style.left = mid + "px");
     mid = box.y - box.height / 2;
-    mid > window.innerHeight / 2
+    mid > innerHeight / 2
       ? (elm.style.top = mid - elm.offsetHeight / 2 + "px")
       : (elm.style.top = mid + "px");
     box = getBox(elm);
-    if (box.top < 0 || box.bottom > window.innerHeight)
+    if (box.top < 0 || box.bottom > innerHeight)
       elm.style.top =
-        Math.max(window.innerHeight / 2 - box.height / 2, 0) + "px";
-    if (box.left < 0 || box.right > window.innerWidth)
+        Math.max(innerHeight / 2 - box.height / 2, 0) + "px";
+    if (box.left < 0 || box.right > innerWidth)
       elm.style.left =
-        Math.max(window.innerWidth / 2 - box.width / 2, 0) + "px";
+        Math.max(innerWidth / 2 - box.width / 2, 0) + "px";
   }
 }
 
@@ -1777,7 +1777,7 @@ class PianoPanel extends Panel {
     this.piano = new Piano(this, cell);
     this.body.replaceWith(this.piano.elm);
     this.panel.style.width =
-      window.innerWidth / _pxPerEm_ / parseFloat(this.elm.style.fontSize) -
+      innerWidth / _pxPerEm_ / parseFloat(this.elm.style.fontSize) -
       4 +
       "em";
     this.listeners.push(listen(window, "resize", () => this.show()));
@@ -1830,7 +1830,7 @@ class PrintPanel extends Panel {
           _shade_.show("Preparing to print") ;
           let data = await Score.activeScore.toPdf(
             value == "Ink" ? "pdf" : "none", false, props.first, props.last) ;
-          let dataUrl = window.URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
+          let dataUrl = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
           window.open(dataUrl).print();
         }
         catch(error) { toast("Print cancelled") ;}

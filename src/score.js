@@ -458,7 +458,7 @@ class Pg {
           if (!pdfFontName) pdfFontName = "Times-Roman";
           let pdfFont = this.score.embeddedFonts[pdfFontName];
           if (!pdfFont) {
-            let fontData = window.fontData[pdfFontName];
+            let fontData = fontData[pdfFontName];
             if (typeof fontData == 'function') fontData = fontData();
             pdfFont = await pLibPg.doc.embedFont(fontData ?? pdfFontName);
             this.score.embeddedFonts[pdfFontName] = pdfFont;
@@ -846,11 +846,11 @@ class Score {
       if (!window.pdfjsLib) {
         // mozilla pdfjsLib is loaded from mozSrc and mozWorkerSrc (strings
         // (base64-encoded-gzipped strings defined globally) on demand
-        let pdfUrl = window.URL.createObjectURL(await inflate(mozSrc));
+        let pdfUrl = URL.createObjectURL(await inflate(mozSrc));
         mozSrc = null; // allow gc
         await import(pdfUrl);
-        window.URL.revokeObjectURL(pdfUrl);
-        let mozWorkerUrl = window.URL.createObjectURL(await inflate(mozWorkerSrc));
+        URL.revokeObjectURL(pdfUrl);
+        let mozWorkerUrl = URL.createObjectURL(await inflate(mozWorkerSrc));
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = mozWorkerUrl;
         mozWorkerSrc = null; // allow gc
       }

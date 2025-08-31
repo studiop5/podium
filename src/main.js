@@ -34,7 +34,7 @@ import { Score } from "./score.js";
 import { Menu } from "./menu.js";
 import { Layout } from "./layout.js";
 import { initFabric } from "./canvas.js";
-window.pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
 // -skip
 
 // #include build/font.js
@@ -68,7 +68,7 @@ async function main() {
 
   schedule(500, () => {
     window._menu_ = new Menu();
-    let dim = (Math.min(window.innerWidth, window.innerHeight) / _menu_.menuHolder.offsetWidth) *
+    let dim = (Math.min(innerWidth, innerHeight) / _menu_.menuHolder.offsetWidth) *
          (_mobile_ ? _gs_ : _gsgs_);
     animate(_menu_.disk, { transform: "rotate(1turn)" }, { transform: "rotate(0)" }, `transform ${1 / _gs_}s`);
     animate(_menu_.menuHolder, { transform: "rotate(-.5turn)" },
@@ -100,7 +100,7 @@ async function main() {
     listen(_body_, "touchmove", (e) => e.preventDefault(), { passive: false });
 
     // store element to pan/zoom globally
-    window._pzTarget_ = _body_;
+    _pzTarget_ = _body_;
 
     // react to background long-press
     let timer = new Schedule() ;
@@ -149,7 +149,7 @@ async function main() {
             let cancelDelta = 16 ;
 
             // pointer movement in px required to invoke gestures:
-            let gestureDelta = Math.min(window.innerWidth * _gsgs_, window.innerHeight * _gsgs_) ;
+            let gestureDelta = Math.min(innerWidth * _gsgs_, innerHeight * _gsgs_) ;
 
             let mv = listen(_body_, "pointermove", (emv) => Math.hypot(emv.movementX, emv.movementY) > cancelDelta ? timer.cancel() : null) ; 
 
@@ -300,8 +300,8 @@ async function main() {
   let rebuildThrottle = new Schedule();
 
   delay(8, () => { // Set initial coordinates: 8 cycles ensures window coords "settled"
-      window.iW = innerWidth ;
-      window.iH = innerHeight ;
+      iW = innerWidth ;
+      iH = innerHeight ;
   }) ;
 
 
@@ -362,13 +362,13 @@ async function main() {
         not currently called by anything.
 
 
-    if (window.location.search) {
-      //    let file = new URLSearchParams(window.location.search).get("file");
+    if (location.search) {
+      //    let file = new URLSearchParams(location.search).get("file");
       //    if (!file) return;
       //    let url = new URL(file);
       //    let path = `${url.protocol}//${url.host}${url.pathname}`;
       //    console.log("path:", path);
-      let path = window.location.search.substring(6);
+      let path = location.search.substring(6);
 
       try {
         let fetchPromise = await fetch(path, {

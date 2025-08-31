@@ -305,7 +305,7 @@ class LocalSrc extends FileSrc {
   }
 
   async putFile(path, name, data) {
-    if (window.showSaveFilePicker) {
+    if (showSaveFilePicker) {
       // Use "experimental" file system access api, if supported:
       const options = {
         suggestedName: name,
@@ -318,7 +318,7 @@ class LocalSrc extends FileSrc {
           },
         ],
       };
-      const handle = await window.showSaveFilePicker(options);
+      const handle = await showSaveFilePicker(options);
       const writeable = await handle.createWritable();
       await writeable.write(data);
       await writeable.close();
@@ -326,7 +326,7 @@ class LocalSrc extends FileSrc {
       return { name: file.name, modified: file.lastModified };
     } else {
       data = new Blob(data);
-      let url = window.URL.createObjectURL(data);
+      let url = URL.createObjectURL(data);
       let link = document.createElement('a') ;
       link.download = name;
       link.href = url ;
@@ -418,7 +418,7 @@ class CachedSrc extends FileSrc {
   authUrl = null; // subclass defined
   tokenUrl = null; // subclass defined
 
-  redirectUri = `${window.location.origin}/podauth.html`;
+  redirectUri = `${location.origin}/podauth.html`;
   token = null;
   tokenExpiry = performance.now();
   authTimeout = 180000;
@@ -427,11 +427,11 @@ class CachedSrc extends FileSrc {
 
   authPopupOpen(url) {
     // create, open, and return a centered popup window for authentication
-    let h = Math.min(window.screen.height, 1000);
-    let w = Math.min(window.screen.width, 750);
-    let x = window.top.outerWidth / 2 + window.top.screenX - w / 2;
-    let y = window.top.outerHeight / 2 + window.top.screenY - h / 2;
-    let popup = window.open(`${url}`, "", `popup,height=${h},width=${w},top=${y},left=${x}`);
+    let h = Math.min(screen.height, 1000);
+    let w = Math.min(screen.width, 750);
+    let x = top.outerWidth / 2 + top.screenX - w / 2;
+    let y = top.outerHeight / 2 + top.screenY - h / 2;
+    let popup = open(`${url}`, "", `popup,height=${h},width=${w},top=${y},left=${x}`);
     // The authPopup often gets hidden behind the main browser window..keep it focused and in front
     let focusInterval = setInterval(() => {
       if (popup && !popup.closed) popup.focus();
@@ -458,7 +458,7 @@ class CachedSrc extends FileSrc {
         .replaceAll("/", "_")
         .replace(/=+$/, "");
     let plainChallenge = getPlainChallenge() ;
-    let challenge = base64UrlEncode(await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(plainChallenge)));
+    let challenge = base64UrlEncode(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(plainChallenge)));
     let state = getPlainChallenge();
     let timeout = performance.now() + this.authTimeout; // 1 minute to authorize
 
@@ -1675,7 +1675,7 @@ class FileListView {
 
   select() {
     clearChildren(this.flvList);
-    JSON.parse(window.localStorage.getItem("recent") || "[]").forEach(async (obj, index) => {
+    JSON.parse(localStorage.getItem("recent") || "[]").forEach(async (obj, index) => {
       if (this.acceptExt(obj.name)) this.flvList.append(await this.makeFileElm(obj));
     });
   }

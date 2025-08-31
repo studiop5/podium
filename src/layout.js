@@ -448,7 +448,7 @@ class Layout {
     // *but* enforce that it's top left is at least Layout.margin px from viewport's top left corner.
     // @param otherStyles object defining other styles to include in the return
     let box = getBox(this.elm.firstElementChild);
-    let winMid = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    let winMid = { x: innerWidth / 2, y: innerHeight / 2 };
     return Object.assign(
       { left: (winMid.x - box.width / 2 < Layout.margin ? box.width / 2 + Layout.margin : winMid.x) + "px",
         top: (winMid.y - box.height / 2 < Layout.margin ? box.height / 2 + Layout.margin : winMid.y) + "px" },
@@ -469,8 +469,8 @@ class Layout {
        top: iconBox.y + "px",
        fontSize: 0,
      },
-     { left: layoutBox.width > window.innerWidth + Layout.margin * 2 ? Layout.margin + "px" : window.innerWidth / 2 + "px",
-       top: layoutBox.height > window.innerWidth + Layout.margin * 2 ? Layout.margin + "px" : window.innerHeight / 2 + "px",
+     { left: layoutBox.width > innerWidth + Layout.margin * 2 ? Layout.margin + "px" : innerWidth / 2 + "px",
+       top: layoutBox.height > innerWidth + Layout.margin * 2 ? Layout.margin + "px" : innerHeight / 2 + "px",
        fontSize:elm.style.fontSize,
      },
      `left, stop, font-size ${_gs_}s`) ;
@@ -650,7 +650,7 @@ class BookLayout extends Layout {
     } 
 
     if (fit == "auto" || fit == "width") {
-      g.bookWidth = window.innerWidth - Layout.margin - Layout.margin;
+      g.bookWidth = innerWidth - Layout.margin - Layout.margin;
       g.pgWidth = (g.bookWidth - g.pagerWidth - g.lrGap - g.lrGap - g.pagerWidth) / 2;
       g.pgHeight = Math.floor(g.pgWidth * (score.maxHeight / score.maxWidth));
       g.bookHeight = g.tbGap + g.pgHeight + g.tbGap;
@@ -660,17 +660,17 @@ class BookLayout extends Layout {
         fit = "width" ; // assume width
         // if either dimension doesn't fit window, change fit to HEIGHT ;
         let layoutWidth = Math.round(Layout.margin * 2 + (g.pgWidth + g.lrGap) * 2 + g.pagerWidth * 2) ;
-        if(layoutWidth > window.innerWidth)
+        if(layoutWidth > innerWidth)
           fit = "height" ;
         else {
           let layoutHeight = Math.round(Layout.margin * 2 + g.pgHeight + g.tbGap * 2) ;
-          if(layoutHeight > window.innerHeight) fit = "height" ;
+          if(layoutHeight > innerHeight) fit = "height" ;
         } 
       }
     }
 
     if (fit == "height") {
-      g.bookHeight = window.innerHeight - Layout.margin - Layout.margin;
+      g.bookHeight = innerHeight - Layout.margin - Layout.margin;
       g.pgHeight = g.bookHeight - g.tbGap - g.tbGap;
       g.pgWidth = Math.floor(g.pgHeight * (score.maxWidth / score.maxHeight));
       g.bookWidth = g.lrGap + g.pagerWidth + g.pgWidth + g.pgWidth + g.pagerWidth + g.lrGap ;
@@ -1662,7 +1662,7 @@ class TableLayout extends Layout {
     let pgCount = score.pgs.length;
 
     let gridMargin = parseFloat(TableLayout.gridMargin) * _pxPerEm_ ;
-    let tableWidth = window.innerWidth - Layout.margin * 2  ;
+    let tableWidth = innerWidth - Layout.margin * 2  ;
     let gridWidth = tableWidth - gridMargin * 2 ;
     let hStep = this.horizontalGap * 0.01 + 1; // as fraction of pgWidth
     let vStep = this.verticalGap * 0.01 + 1; // as fraction of pgHeight
@@ -1702,7 +1702,7 @@ class TableLayout extends Layout {
         // Potentially expand the gridHeight to accomodate the next row:
         let gridHeight = top + pgHeight ;
         grid.style.height = toEm(gridHeight) ;
-        let nextTop = window.innerHeight - gridHeight - Layout.margin ;
+        let nextTop = innerHeight - gridHeight - Layout.margin ;
         if (nextTop < Layout.margin) this.toXY(Layout.margin, nextTop) ;
         grid.append(await this.buildPg(pn)) ;
         if(++i < this.gridCoords.length && !cancelled)  {
@@ -1711,7 +1711,7 @@ class TableLayout extends Layout {
         else {
           dialogElm.buttonsElm.self.fire("Cancel");
           if(this.cell.pz) return (this.elm.style.cssText = this.cell.pz) ;// custom user-set pan/zoom
-          if(this.fit == "Height") this.elm.style.fontSize = (window.innerHeight - Layout.margin * 2) / table.offsetHeight  + "em" ;
+          if(this.fit == "Height") this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / table.offsetHeight  + "em" ;
           animate(this.elm, null, this.centerLT(), `left, top ${_gs_}s`) ;
         }
       }
@@ -1725,7 +1725,7 @@ class TableLayout extends Layout {
         for(let {pn, top, left} of this.gridCoords) {
           let gridHeight = top + pgHeight + gridMargin * 2 ;
           grid.style.height = toEm(gridHeight) ;
-          let nextTop = window.innerHeight - gridHeight - Layout.margin ;
+          let nextTop = innerHeight - gridHeight - Layout.margin ;
           if (nextTop < Layout.margin) this.toXY(Layout.margin, nextTop) ;
           grid.append(await this.buildPg(pn, left, top));
         }
@@ -1733,7 +1733,7 @@ class TableLayout extends Layout {
        if(this.cell.pz) animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0}, this.cell.pz, `left, top, font-size ${_gs_}s`) ;
        else { 
          if(this.fit == "Height") // reduce fontSize so layout fits window's height
-           this.elm.style.fontSize = (window.innerHeight - Layout.margin * 2) / table.offsetHeight  + "em" ;
+           this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / table.offsetHeight  + "em" ;
          animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
            this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}s`) ;
         }

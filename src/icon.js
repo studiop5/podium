@@ -439,7 +439,7 @@ Webcam:
 import { delay, helm } from "./common.js";
 let src =
   "data:image/svg+xml;base64," +
-  window.btoa(`<svg width=`12` height=`12` viewBox=`0 0 24 24` xmlns=`http:/\/www.w3.org/2000/svg`>
+  btoa(`<svg width=`12` height=`12` viewBox=`0 0 24 24` xmlns=`http:/\/www.w3.org/2000/svg`>
                <path fill="#fff" stroke="black" stroke-width="1"
               d="M4 23v-3h16v3h1.5h-19.5, M7 20v-14h10v14 M7 12h-2l-3 -10 h20l-3 10h-2"/></svg>`);
 let img = helm(`<img src="${src}"></img>`);
