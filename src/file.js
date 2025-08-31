@@ -1956,9 +1956,10 @@ class FileSystemView extends FileListView {
       this.fsvSave.classList.add("void");
       this.flvList__frame.classList.remove("Flv-list__frame--save-mode");
     }
+    let storedPath = localStorage.getItem(this.source) || "" ;
     this.setPath(this.path ||
        Score.activeScore?.source == this.source ?
-         Score.activeScore?.path : "", true, true);
+         Score.activeScore?.path :  storedPath, true);
   }
 
   populateFsvPath() {
@@ -2154,11 +2155,20 @@ class FileSystemView extends FileListView {
 
   async setPath(path, force = false) {
     if (this.source == "Local") return; // no path for Local files.
+
     _shade_.show("Reading folder");
     return new Promise(async (accept, reject) => {
       try {
         this.path = path;
-        let listing = await this.src.getDir(path, force);
+        let listing ;
+        try {
+          listing = await this.src.getDir(path, force);
+          localStorage.setItem(this.source, path) ; // remember last path opened
+        }
+        catch(error) {
+          localStorage.setItem(this.source, "") ; // reset if path doesn't exist
+          listing = await this.src.getDir("", force);
+        }        
         this.populateFsvPath();
         clearChildren(this.flvList);
         for (let properties of Object.values(listing.files)) {

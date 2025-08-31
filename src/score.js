@@ -768,7 +768,7 @@ class Score {
     //  visit(score, {name:newName, size:newSize, modified: <<timestamp>>}
     //        deletes entry if exists, updates score, then reinserts at list head
 
-    let recent = JSON.parse(window.localStorage.getItem("recent") || "[]");
+    let recent = JSON.parse(localStorage.getItem("recent") || "[]");
     // a path change (i.e. a folder rename) affects potentially many recent list entries
     if (path) {
       for (let i = 0; i < recent.length; i++) {
