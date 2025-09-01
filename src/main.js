@@ -100,7 +100,7 @@ async function main() {
     listen(_body_, "touchmove", (e) => e.preventDefault(), { passive: false });
 
     // store element to pan/zoom globally
-    _pzTarget_ = _body_;
+    window._pzTarget_ = _body_;
 
     // react to background long-press
     let timer = new Schedule() ;
@@ -300,8 +300,8 @@ async function main() {
   let rebuildThrottle = new Schedule();
 
   delay(8, () => { // Set initial coordinates: 8 cycles ensures window coords "settled"
-      iW = innerWidth ;
-      iH = innerHeight ;
+      window.iW = innerWidth ;
+      window.iH = innerHeight ;
   }) ;
 
 
@@ -412,4 +412,3 @@ async function main() {
 
 main();
 
-import {} from "./track.js" ;
