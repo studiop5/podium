@@ -22,7 +22,6 @@
 
 import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, getBox,   helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, unlisten,} from "./common.js";
 import { Pg, Score } from "./score.js";
-import { panels } from "./panel.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
 // -skip
 

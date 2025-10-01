@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { Spot, animate, clamp, clearChildren, css, dataIndex, delay, delayMs, flung, fontMap, getBox, helm, hide, iconSvg, listen, mvmt, Schedule, schedule, toast, unlisten } from "./common.js";
+import { animate, clamp, css, dataIndex, delay, delayMs, flung, fontMap, getBox, helm, hide, listen, mvmt, Schedule, schedule, toast, unlisten } from "./common.js";
 import { Grid, Score } from "./score.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";

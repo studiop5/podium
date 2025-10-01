@@ -28,9 +28,8 @@
 // python3 build.py --podium.  All text  between +/- skip fill be stripped out,
 // and all the following // #include files will be  textually included.
 
-import { animate, dialog, delay,  helm, listen, schedule, Schedule, toast, unlisten } from "./common.js";
+import { animate, delay,  helm, listen, schedule, Schedule, unlisten } from "./common.js";
 import "./font.js";
-import { Score } from "./score.js";
 import { Menu } from "./menu.js";
 import { Layout } from "./layout.js";
 import { initFabric } from "./canvas.js";
@@ -251,7 +250,6 @@ async function main() {
         listen(_body_, "pointerup", (eup) => {
              unlisten(mv);
              tr1 = tr2 = null ;
-             tr2 = null ; 
           },
           { capture: true, once: true }
         );

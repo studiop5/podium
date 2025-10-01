@@ -26,7 +26,6 @@ export {
   cssIndex,
   dialog,
   flung,
-  saveLocal,
   Schedule,
   schedule,
   clamp,
@@ -1851,20 +1850,6 @@ function rotatePoint(pX, pY, cX, cY, theta) {
   return { x: pX * c - pY * s + cX, y: pX * s + pY * c + cY };
 }
 
-function saveLocal(fileName, blob) {
-  // Save a blob to a local fileName without using the file system access api, which
-  // is not available on many platforms.
-  // @fileName
-  // @blob
-  let url = URL.createObjectURL(blob);
-  let link = helm(
-    `<a download="${fileName}" href="${url}" style="visibility:none"></a>`
-  );
-  _body_.append(link);
-  link.click();
-  URL.revokeObjectURL(url);
-  link.remove();
-}
 
 String.prototype.format = function () {
   // String formatter taken from stack overflow, see

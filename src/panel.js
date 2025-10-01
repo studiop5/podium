@@ -23,7 +23,6 @@
 import {
   clamp,
   css,
-  dialog,
   delay,
   flung,
   fontMap,
@@ -39,7 +38,6 @@ import {
   ButtonGroup,
   ColorPicker,
   SliderGroup,
-  saveLocal,
   schedule,
   Schedule,
   TabView,
@@ -47,13 +45,7 @@ import {
 } from "./common.js";
 import { Score } from "./score.js";
 import { Layout } from "./layout.js";
-import { iconPaths } from "./icon.js";
-import {
-  FileSrc,
-  FileListView,
-  FileSystemView,
-  LocalFileView,
-} from "./file.js";
+import { FileSrc, FileListView, FileSystemView, LocalFileView } from "./file.js";
 import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
 import { smuflTable } from "./smufl.js";
 export { panels };
@@ -1144,7 +1136,6 @@ class NewPanel extends Panel {
     this.custom.replaceWith(this.customGroup.elm);
 
     listen(this.presets, ["input", "change"], (e) => {
-      let width, height;
       cell.stash.size = e.target.selectedOptions[0].textContent;
       if (e.target.value == "custom") {
         // enable sliders:
