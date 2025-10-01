@@ -31,7 +31,7 @@ import { Grid } from "./canvas.js";
 { 
   // We monkey-patch setTimeout for use during PDFLib.save():
   // save() calls setTimeout periodically, so we monkey-patch
-  // setTimeout throw an exception when window.pdf == "cancel".
+  // setTimeout to throw an exception when window.pdf == "cancel".
   // This allows us to interrupt the save, allowing users
   // to "cancel" a long-running save operation.
   let sto = window.setTimeout ;
@@ -39,7 +39,7 @@ import { Grid } from "./canvas.js";
   window.setTimeout = function(callback, delay, ...args) { 
     if(window.cancelPdf) {
       window.cancelPdf = false ;
-      throw new Error() ;
+      throw new Error("PDF save cancelled by user") ;
     }
     return sto(callback, delay, ...args) ;
   }
@@ -76,7 +76,7 @@ class Pg {
     this.elm = null; // shortcut for this.canvas.wrapperEl: the base element of the fabric canvas dom
     this.grid = null; // Grid instance, if any
     this.inflated = false; // true iff a fabricjs canvas is currently available
-    this.inflateAborted = false ; // flag to cancel inflation promise
+    this.inflateCtrl = null ;
     this.inUse = false; // marker for class Score's caching algorithm
     this.score = score;
     this.height = height;
@@ -146,7 +146,7 @@ class Pg {
     //   the inflation finishes, the div is replaced by the fabric
     //   canvas's container div.
     if (this.inflated) return this;
-    this.inflateAborted = false ;
+    this.inflateCtrl = new AbortController() ;
     if(this.mozPn && nonblocking) {
       // Pages backed by mozilla pdf pages can take a long time to render, blocking the ui.
       // To improve the ui experience, if nonblocking is true (the default), pdf rendering
@@ -158,15 +158,20 @@ class Pg {
       this.elm = this.canvas ;
       this.elm.pg = this; // convenience for accesing pg from dom
       this.style = this.elm.style; // convenient shorthand
-      this.inflatePromise = this.inflateAux(render).catch(err => console.warn(`Failed to background load/render page ${this.mozPn}:`, err)) ;
+      this.inflatePromise = this.inflateAux(render).catch(err => {
+        if(err.name == 'AbortError') return ; // no error: expected
+        console.warn(`Failed to background load/render page ${this.mozPn}:`, err)}) ;
     } else await this.inflateAux(render) ;
   }
 
   async inflateAux(render) {
-    if(this.inflateAborted) return ;
+    let signal = this.inflateCtrl?.signal;
+    let checkAbort = () => { if(signal?.aborted) throw new DOMException("Inflation aborted","AbortError") ;}
+    checkAbort() ;
+
     if(!this.inUse) { // yield to inUse pages
        await new Promise(resolve => delay(1, resolve));
-      if(this.inflateAborted) return ;
+       checkAbort() ;
     }
 
     let domCanvas = document.createElement("canvas");
@@ -175,6 +180,9 @@ class Pg {
         allowTouchScrolling: true,
         imageSmoothingEnabled: false,
     });
+    checkAbort() ;
+
+
     // Setting both *without* cssOnly (in implicit px's), then *with* cssOnly
     // (in explicit em's) creates a canvas that can be resized by simply changing
     // its font size. Not sure why, seems to be a fabricjs oddity.
@@ -189,8 +197,17 @@ class Pg {
     },  { cssOnly: true }   );
 
     if (this.json) await new Promise((resolve, reject) => 
-        canvas.loadFromJSON(this.json, () => resolve()));
-    if (render && this.mozPn) await this.renderPdf(canvas);
+      canvas.loadFromJSON(this.json, () => resolve()));
+    checkAbort() ;
+
+    if (render && this.mozPn) { 
+       await this.renderPdf(canvas);
+       if(signal?.aborted) {
+         canvas.dispose() ;
+         this.mozCanvas?.remove() ;
+         throw new DOMException("Inflation aborted","AbortError") ;   
+       }
+    }
     else if (this.background) canvas.setBackgroundColor(this.background);
 
     canvas.requestRenderAll();
@@ -221,7 +238,7 @@ class Pg {
 
     // update ev iff there is "significant" movement, not jitter
     canvas.on("mouse:move", opts => { if(Math.hypot(opts.e.movementX, opts.e.movementY) > 2) ev = opts.e ;
-}) ;
+  }) ;
 
     canvas.on("mouse:up", opts => {
       if(stateChanged) pushState() ;
@@ -263,7 +280,11 @@ class Pg {
     // Deflate's a Pg, releasing its resources for garbage collection.
     // @full boolean: iff true, any thumbElm is not deleted during
     //   deflation.
-    this.inflateAborted = true ;
+    if(this.inflateCtrl) {
+      this.inflateCtrl.abort() ;
+      this.inflateCtrl = null ;
+    }
+
     if (this.inflated) {
       if (full) {
         this.thumbElm?.remove();

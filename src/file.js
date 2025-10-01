@@ -180,7 +180,7 @@ class FileSrc
   from the various cloud-based file systems. In all cases, these
   functions use the cloud-based systems REST interface rather than
   the cloud provider's libaries.  
-*/
+**/
 
 class FileSrc {
   static refs = null;
@@ -337,404 +337,448 @@ class LocalSrc extends FileSrc {
 }
 
 class CachedSrc extends FileSrc {
-  /* 
-     This comment describes how data fetched from a provider subclass is cached.
-     This data is fetched on demand, so most of the time, will have only a
-     subset of the provider's data.  All fetched data is timestamped, and when
-     a cache entry is accessed, data that was fetched more than "maxCacheAge"
-     milliseconds will be refetched in an attempt to keep the cache as "fresh"
-     as possible.
-     
-     The cache is implemented as a javascript object containing a property for
-     every directory fetched from its provider. Property names are strings
-     representing directory path components seperated by "/"'s. The corresponding
-     values are objects containing information about that directory, including
-     the files in that directory and the subdirectories in that directory.
-     The root path's name is "", i.e. the empty string.
+    /* 
+       This comment describes how data fetched from a provider subclass is cached.
+       This data is fetched on demand, so most of the time, will have only a
+       subset of the provider's data.  All fetched data is timestamped, and when
+       a cache entry is accessed, data that was fetched more than "maxCacheAge"
+       milliseconds will be refetched in an attempt to keep the cache as "fresh"
+       as possible.
+       
+       The cache is implemented as a javascript object containing a property for
+       every directory fetched from its provider. Property names are strings
+       representing directory path components seperated by "/"'s. The corresponding
+       values are objects containing information about that directory, including
+       the files in that directory and the subdirectories in that directory.
+       The root path's name is "", i.e. the empty string.
 
-     pseudo-code example:
-    
-     cache = {
+       pseudo-code example:
+       
+       cache = {
 
        path1: {id: dirId,
-               ts: entryTimeStamp, // will be 0 if not fetched or invalidated
-               dirs:  { path2: <<cache.path2>>  // note: self referencing
-                        path3: <<cache.path3>>
-                        ...
-                      }
-               files: { name1: { id,name,size,created,modified},
-                        name2: { id,name,size,created,modified},                          
-                        nameN: { id,name,size,created,modified},                          
-                     },
-               etc...
-              },
-  
-       path2: { id: dirId,
-                ts: entryTimeStamp
-                dirs: { ...
-                      }
-                files: { ...
-                       },
-               etc...
-             },
-
-        path3: ...
+       ts: entryTimeStamp, // will be 0 if not fetched or invalidated
+       dirs:  { path2: <<cache.path2>>  // note: self referencing
+       path3: <<cache.path3>>
        ...
-     }
+       }
+       files: { name1: { id,name,size,created,modified},
+       name2: { id,name,size,created,modified},                          
+       nameN: { id,name,size,created,modified},                          
+       },
+       etc...
+       },
+       
+       path2: { id: dirId,
+       ts: entryTimeStamp
+       dirs: { ...
+       }
+       files: { ...
+       },
+       etc...
+       },
 
-  */
+       path3: ...
+       ...
+       }
 
-  // The cache is initialized to root with no subdirs and no files,
-  // but with a timestamp (ts) of 0, which will force it to be fetched
-  // when first accessed.
+    */
 
-  cache = {
-    "": { id: "root", name: "", ts: 0, dirs: {}, files: {} },
-  };
+    // The cache is initialized to root with no subdirs and no files,
+    // but with a timestamp (ts) of 0, which will force it to be fetched
+    // when first accessed.
 
-  maxCacheAge = 2 * 60 * 1000; // two minutes
+    cache = {
+        "": { id: "root", name: "", ts: 0, dirs: {}, files: {} },
+    };
 
-  tokenExpiry = null;
-  token = null;
+    maxCacheAge = 2 * 60 * 1000; // two minutes
+    extraAuthParams = "" ; // sublcasses redefine
 
-  getQuery(url, key) {
-    // Returns a query key's value from a url, or null if not found.
-    // Always include the "=" in the key. Avoids more code complexity
-    // by assuming the key is *not* part of the url's address.
-    let i = url.indexOf(key);
-    if (i == -1) return null;
-    let value = url.substring(i + key.length);
-    i = value.indexOf("&");
-    return i == -1 ? value : value.substring(0, i);
-  }
+    getQuery(url, key) {
+        // Returns a query key's value from a url, or null if not found.
+        // Always include the "=" in the key. Avoids more code complexity
+        // by assuming the key is *not* part of the url's address.
+        let i = url.indexOf(key);
+        if (i == -1) return null;
+        let value = url.substring(i + key.length);
+        i = value.indexOf("&");
+        return i == -1 ? value : value.substring(0, i);
+    }
 
-  /**
-     authenticate using oauth2 PKCE currently. Dropbox nd OneDrive use this, but
-     Google Drive doesn't support this flow, so GDriveSrc redefines auth.
-   */
+    /**
+       authenticate using oauth2 PKCE flow
+    **/
 
-  clientId = null; // subclass defined
-  scopes = null; // subclass defined
-  authUrl = null; // subclass defined
-  tokenUrl = null; // subclass defined
+    clientId = null; // subclass defined
+    scopes = null; // subclass defined
+    authUrl = null; // subclass defined
+    tokenUrl = null; // subclass defined
 
-  redirectUri = `${location.origin}/podauth.html`;
-  token = null;
-  tokenExpiry = performance.now();
-  authTimeout = 180000;
+    redirectUri = `${location.origin}/podauth.html`;
+    tokens = null;
+    refreshExpiry = 90 * 24 * 60 * 60 ; // default refresh token expiry in seconds
+    authTimeout = 180; // max time in seconds for user to complete authorization
 
-  popupSizes = {};
+    authPopupOpen(url) {
+        // create, open, and return a centered popup window for authentication
+        let h = Math.min(screen.height, 1000);
+        let w = Math.min(screen.width, 750);
+        let x = top.outerWidth / 2 + top.screenX - w / 2;
+        let y = top.outerHeight / 2 + top.screenY - h / 2;
+        let popup = open(url, "", `popup,height=${h},width=${w},top=${y},left=${x}`);
+        // The authPopup often gets hidden behind the main browser window..keep it focused and in front
+        let focusInterval = setInterval(() => {
+            if (popup && !popup.closed) popup.focus();
+            else clearInterval(focusInterval);
+        }, 500); 
+        return popup ;
+    }
 
-  authPopupOpen(url) {
-    // create, open, and return a centered popup window for authentication
-    let h = Math.min(screen.height, 1000);
-    let w = Math.min(screen.width, 750);
-    let x = top.outerWidth / 2 + top.screenX - w / 2;
-    let y = top.outerHeight / 2 + top.screenY - h / 2;
-    let popup = open(`${url}`, "", `popup,height=${h},width=${w},top=${y},left=${x}`);
-    // The authPopup often gets hidden behind the main browser window..keep it focused and in front
-    let focusInterval = setInterval(() => {
-      if (popup && !popup.closed) popup.focus();
-      else clearInterval(focusInterval);
-    }, 500); 
-    return popup ;
-  }
+    // This is called after oauth authentication has run
+    authPopupClose(popup) {
+        _shade_.pop();
+        popup.close();
+    }
 
-  // This is called after oauth authentication has run
-  authPopupClose(popup) {
-    _shade_.pop();
-    popup.close();
-  }
+    async auth() {
+        // Run the oauth 2 PKCE flow to get an authentication token
 
-  async auth() {
-    // Run the oauth 2 PKCE flow to get an authentication toekn
-    if (this.token && performance.now() < this.tokenExpiry) return Promise.resolve();
-    this.token = null;
+        let refreshAccessToken = async () => {
+            const params = new URLSearchParams();
+            params.append('client_id', this.clientId);
+            params.append('refresh_token', this.tokens.refresh_token);
+            params.append('grant_type', 'refresh_token');
 
-    // function to create a code challenge
-    let base64UrlEncode = (str) =>
-      btoa(String.fromCharCode.apply(null, new Uint8Array(str)))
-        .replace(/\+/g, "-")
-        .replaceAll("/", "_")
-        .replace(/=+$/, "");
-    let plainChallenge = getPlainChallenge() ;
-    let challenge = base64UrlEncode(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(plainChallenge)));
-    let state = getPlainChallenge();
-    let timeout = performance.now() + this.authTimeout; // 1 minute to authorize
+            let response = await fetch(this.tokenUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: params.toString(),
+            });
 
-    _shade_.show("Authorizing");
-    let popup = this.authPopupOpen(`${this.authUrl}?client_id=${this.clientId}&scope=${this.scopes}&response_type=code&redirect_uri=${this.redirectUri}&code_challenge_method=S256&code_challenge=${challenge}&state=${state}`);
+            if (response.ok) {
+                let now = performance.now() / 1000;
+                const newTokens = await response.json();
 
-    // Return a promise...it runs the "oauth2 PKCE flow for single page web apps":
-    // Repeatedly poll the popup window just opened, looking for a code on the url of
-    // the popup.  Until that code is received, trying to read the url will raise
-    // a security error.  That's OK...we just keep poll'ing until it doesn't, at
-    // which time we know we have the code (or we know that the user has closed
-    // the popup). Once we have the code, we'll call exchange to trade the code
-    // for an auth token.
-    return new Promise((resolve, reject) => {
-      // exchange code for tokens
-      let exchange = async (code) => {
-        const params = new URLSearchParams();
-        params.append('client_id', this.clientId);
-        params.append('redirect_uri', this.redirectUri);
-        params.append('code', code);
-        params.append('code_verifier', plainChallenge);
-        params.append('grant_type', 'authorization_code');
+                if (!newTokens.refresh_token) {
+                    newTokens.refresh_token = this.tokens.refresh_token;
+                    newTokens.refresh_expiry = this.tokens.refresh_expiry;
+                } else {
+                    newTokens.refresh_expiry = now + (newTokens.refresh_token_expires_in || this.refreshExpiry);
+                }
+                this.tokens = newTokens;
+                this.tokens.expiry = now + this.tokens.expires_in;
+            } else {
+                throw new Error(await response.text());
+            }
+        }
 
-        let response = await fetch(this.tokenUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: params.toString(),
+        if(this.tokens) {
+            let now = performance.now() / 1000;
+            if(this.tokens.expiry > now) return Promise.resolve();
+            if(this.tokens.refresh_token && this.tokens.refresh_expiry > now) {
+                try {
+                    await refreshAccessToken() ;
+                    return Promise.resolve();
+                } catch(error) {
+                    console.warn("Token refresh failed, using full auth.") ;
+                }
+            }
+        }
+
+        // function to create a code challenge
+        let base64UrlEncode = (str) =>
+            btoa(String.fromCharCode.apply(null, new Uint8Array(str)))
+            .replace(/\+/g, "-")
+            .replaceAll("/", "_")
+            .replace(/=+$/, "");
+        let plainChallenge = getPlainChallenge() ;
+        let challenge = base64UrlEncode(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(plainChallenge)));
+        let state = getPlainChallenge();
+        let timeout = (performance.now() / 1000) + this.authTimeout; 
+
+        _shade_.show("Authorizing");
+        let popup = this.authPopupOpen(`${this.authUrl}?client_id=${this.clientId}&scope=${this.scopes}&response_type=code&redirect_uri=${this.redirectUri}&code_challenge_method=S256&code_challenge=${challenge}&state=${state}${this.extraAuthParams}`);
+
+        // Return a promise...it runs the "oauth2 PKCE flow for single page web apps":
+        // Repeatedly poll the popup window just opened, looking for a code on the url of
+        // the popup.  Until that code is received, trying to read the url will raise
+        // a security error.  That's OK...we just keep poll'ing until it doesn't, at
+        // which time we know we have the code (or we know that the user has closed
+        // the popup). Once we have the code, we'll call exchange to trade the code
+        // for an auth token.
+        return new Promise((resolve, reject) => {
+            // exchange code for tokens
+            let exchange = async (code) => {
+                const params = new URLSearchParams();
+                params.append('client_id', this.clientId);
+                params.append('redirect_uri', this.redirectUri);
+                params.append('code', code);
+                params.append('code_verifier', plainChallenge);
+                params.append('grant_type', 'authorization_code');
+
+                let response = await fetch(this.tokenUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: params.toString(),
+                });
+
+                if (response.ok) return await response.json();
+                else {
+                    throw new Error(await response.text());
+                }
+            };
+
+            // poll for code
+            let poll = async () => {
+                try {
+                    if (popup.closed) throw new Error("Authentication aborted");
+                    let href = popup.location.href;
+                    let code = this.getQuery(href, "code=");
+                    if (code) {
+                        if(this.getQuery(href, "state=") != state)
+                            throw new Error("Possible <i>Cross Site Request Forgery</i> attempt blocked.", {cause:"security"}) ;
+                        this.tokens = await exchange(code);
+                        let now = performance.now() / 1000 ;
+                        this.tokens.expiry = now + this.tokens.expires_in ;
+                        if(this.tokens.refresh_token) 
+                            this.tokens.refresh_expiry = now  + (this.tokens.refresh_token_expires_in || this.refreshExpiry) ;
+                        this.authPopupClose(popup);
+                        return resolve();
+                    }
+                } catch ({ name }) {
+                    if (name != "SecurityError") {
+                        this.authPopupClose(popup);
+                        return reject(new Error("Authentication cancelled by user.", {cause: "cancelled"}));
+                    }
+                }
+                if ((performance.now() / 1000) > timeout) {
+                    this.authPopupClose(popup);
+                    return reject(new Error("Timed out waiting for user's authorization.", { cause: "timeout" }));
+                }
+                setTimeout(() => poll(), 20); // try again
+            };
+            // start polling: can't use delay() here, as on mobile, the popup has focus, so
+            // nextAnimationFrame doesn't run
+            setTimeout(() => poll(), 50);
         });
-        if (response.ok) return await response.json(); // response has tokens
-        else throw new Error(await response.text());
-      };
+    }
 
-      // poll for code
-      let poll = async () => {
+    putCache(path, data) {
+        let cache = this.cache;
         try {
-          if (popup.closed) throw "Authentication aborted";
-          let href = popup.location.href;
-          let code = this.getQuery(href, "code=");
-          if (code) {
-            if(this.getQuery(href, "state=") != state)
-              throw new Error("Possible <i>Cross Site Request Forgery</i> attempt blocked.", {cause:"security"}) ;
-            let tokens = await exchange(code);
-            this.token = tokens.access_token;
-            this.tokenExpiry = performance.now() + tokens.expires_in * 1000;
-            this.authPopupClose(popup);
-            return resolve();
-          }
-        } catch ({ name }) {
-          if (name != "SecurityError") {
-            this.authPopupClose(popup);
-            return reject();
-          }
+            // update entry for parentPath (which must be in cache), with data fetched from src
+            // subclasses override and immediately call super()
+            // Initially, recursively purge all children of path:
+            let purgeCache = (path) => {
+                let entry = cache[path] || {};
+                for (let key of Object.keys(entry.dirs)) purgeCache(path + "/" + key);
+                delete cache[path];
+            };
+
+            let current = cache[path]; // remember current entry
+            purgeCache(path); // purge it from cache, then reinsert virgin copy
+            cache[path] = {
+                id: current.id,
+                name: current.name,
+                ts: Date.now(),
+                dirs: {},
+                files: {},
+            };
+        } catch (error) {
+            err(`putCache(${path},...)`, error.message);
         }
-        if (performance.now() > timeout) {
-          this.authPopupClose(popup);
-          return reject(new Error("Timed out waiting for user's authorization.", { cause: "timeout" }));
+        return cache[path];
+    }
+
+
+
+    async getDir(path, force = false) {
+        checkPath(path) ;
+        await this.auth();
+        let dir;
+        if (this.cache.hasOwnProperty(path)) {
+            dir = this.cache[path];
+            if (!force && Date.now() - dir.ts <= this.maxCacheAge) return dir;
+            if (dir.name == "") return this.putCache(path, await this.getDirSrc(path, dir));
         }
-        setTimeout(() => poll(), 20); // try again
-      };
-      // start polling: can't use delay() here, as on mobile, the popup has focus, so
-      // nextAnimationFrame doesn't run
-      setTimeout(() => poll(), 50);
-    });
-  }
-
-  putCache(path, data) {
-    let cache = this.cache;
-    try {
-      // update entry for parentPath (which must be in cache), with data fetched from src
-      // subclasses override and immediately call super()
-      // Initially, recursively purge all children of path:
-      let purgeCache = (path) => {
-        let dirs = cache[path] || {};
-        for (let key of Object.keys(dirs)) purgeCache(path + "/" + key);
-        delete cache[path];
-      };
-
-      let current = cache[path]; // remember current entry
-      purgeCache(path); // purge it from cache, then reinsert virgin copy
-      cache[path] = {
-        id: current.id,
-        name: current.name,
-        ts: Date.now(),
-        dirs: {},
-        files: {},
-      };
-    } catch (error) {
-      err(`putCache(${path},...)`, error.message);
-    }
-    return cache[path];
-  }
-
-
-
-  async getDir(path, force = false) {
-    checkPath(path) ;
-    await this.auth();
-    let dir;
-    if (this.cache.hasOwnProperty(path)) {
-      dir = this.cache[path];
-      if (!force && Date.now() - dir.ts <= this.maxCacheAge) return dir;
-      if (dir.name == "") return this.putCache(path, await this.getDirSrc(path, dir));
-    }
-    // load path after recursively loading its parent dir.
-    let lastSlashIndex = path.lastIndexOf("/");
-    if (lastSlashIndex == -1) {
-      Score.visit({ source: this.source, name: dir.name, path: path });
-      err(`getDir(${path})`, "Path not found.");
-    }
-    let parentPath = path.substring(0, lastSlashIndex);
-    await this.getDir(parentPath, force);
-    return this.putCache(path, await this.getDirSrc(path, this.cache[path]));
-  }
-
-  async putDir(path, name) {
-    checkPath(path, name) ;
-    await this.auth();
-    let srcDir = await this.getDir(path);
-    if (!srcDir) {
-      err(`putDir(${path},${name}`, "Path not found.");
-      Score.visit({ source: this.source, name: name, path: path });
-    }
-    let newDir = srcDir.dirs[name];
-    let file = srcDir.files[name];
-    if (newDir || file) err(`putDir(${path},${name})`, "Name in use.");
-    await this.putDirSrc(path, name, srcDir);
-  }
-
-  async renameDir(path, name, newName) {
-    checkPath(path, name, newName) ;
-    await this.auth();
-    let srcDir = await this.getDir(path);
-    if (!srcDir) {
-      Score.visit(null, null, path);
-      err(`renameDir(${path},${name},${newName})`, "Path not found.");
-    }
-    let srcSubDir = srcDir?.dirs[name];
-    if (!srcSubDir) {
-      Score.visit(null, null, path + "/" + name);
-      err(`renameDir(${path},${name},${newName})`, "Path not found.");
+        // load path after recursively loading its parent dir.
+        let lastSlashIndex = path.lastIndexOf("/");
+        if (lastSlashIndex == -1) {
+            Score.visit({ source: this.source, name: dir.name, path: path });
+            err(`getDir(${path})`, "Path not found.");
+        }
+        let parentPath = path.substring(0, lastSlashIndex);
+        await this.getDir(parentPath, force);
+        return this.putCache(path, await this.getDirSrc(path, this.cache[path]));
     }
 
-    if (!srcDir || !srcSubDir) {
-      err(`renameDir(${path},${name},${newName})`, "Path not found.");
-      Score.visit(null, null, path);
+    async putDir(path, name) {
+        checkPath(path, name) ;
+        await this.auth();
+        let srcDir = await this.getDir(path);
+        if (!srcDir) {
+            err(`putDir(${path},${name})`, "Path not found.");
+            Score.visit({ source: this.source, name: name, path: path });
+        }
+        let newDir = srcDir.dirs[name];
+        let file = srcDir.files[name];
+        if (newDir || file) err(`putDir(${path},${name})`, "Name in use.");
+        await this.putDirSrc(path, name, srcDir);
     }
-    let dstName = srcDir.files[newName] || srcDir.dirs[newName];
-    if (dstName) err(`renameDir(${path},${name},${newName})`, "Name in use.");
-    await this.renameDirSrc(path, name, newName, srcDir, srcSubDir);
-  }
 
-  async trashDir(path, name) {
-    checkPath(path, name) ;
-    await this.auth();
-    let parentDir = await this.getDir(path);
-    let dir = parentDir.dirs[name];
-    if (!dir) {
-      Score.visit(null, null, path + "/" + name);
-      err(`trashDir(${path},${name})`, "Path/Name not found.");
+    async renameDir(path, name, newName) {
+        checkPath(path, name, newName) ;
+        await this.auth();
+        let srcDir = await this.getDir(path);
+        if (!srcDir) {
+            Score.visit(null, null, path);
+            err(`renameDir(${path},${name},${newName})`, "Path not found.");
+        }
+        let srcSubDir = srcDir?.dirs[name];
+        if (!srcSubDir) {
+            Score.visit(null, null, path + "/" + name);
+            err(`renameDir(${path},${name},${newName})`, "Path not found.");
+        }
+
+        if (!srcDir || !srcSubDir) {
+            err(`renameDir(${path},${name},${newName})`, "Path not found.");
+            Score.visit(null, null, path);
+        }
+        let dstName = srcDir.files[newName] || srcDir.dirs[newName];
+        if (dstName) err(`renameDir(${path},${name},${newName})`, "Name in use.");
+        await this.renameDirSrc(path, name, newName, srcDir, srcSubDir);
     }
-    await this.trashDirSrc(path, name, parentDir, dir);
-  }
 
-  async getFile(path, name) {
-    checkPath(path,name) ;
-    await this.auth();
-    let dir = await this.getDir(path);
-    let file = dir.files[name];
-    if (!file) {
-      Score.visit({ source: this.source, path, name });
-      err(`getFile(${path},${name}`, "Path/Name not found.");
+    async trashDir(path, name) {
+        checkPath(path, name) ;
+        await this.auth();
+        let parentDir = await this.getDir(path);
+        let dir = parentDir.dirs[name];
+        if (!dir) {
+            Score.visit(null, null, path + "/" + name);
+            err(`trashDir(${path},${name})`, "Path/Name not found.");
+        }
+        await this.trashDirSrc(path, name, parentDir, dir);
     }
-    await checkFileSize(name, file.size) ;
 
-    // the "name" and "path" vars are are here passed back intact. For a LocalSrc, however, the name may have changed, and the path is unknown.
-    return { path: path, name: name, data: await this.getFileSrc(path, name, dir, file), size: file.size, created: file.created, modified: file.modified };
-  }
+    async getFile(path, name) {
+        checkPath(path,name) ;
+        await this.auth();
+        let dir = await this.getDir(path);
+        let file = dir.files[name];
+        if (!file) {
+            Score.visit({ source: this.source, path, name });
+            err(`getFile(${path},${name})`, "Path/Name not found.");
+        }
+        await checkFileSize(name, file.size) ;
 
-  async putFile(path, name, data) {
-    checkPath(path, name) ;
-    let dir = await this.getDir(path);
-    if (dir.dirs[path]) return err(`putFile(${path},${name},...)`, "Path not found.");
-    await this.putFileSrc(path, name, await data, dir, null);
-  }
-
-  async renameFile(path, name, newName) {
-    checkPath(path, name, newName) ;
-    await this.auth();
-    _shade_.hide();
-    let srcDir = await this.getDir(path);
-    if (!srcDir) {
-      Score.visit({ source: this.source }, null, path);
-      err(`renameFile(${path},${name},${newName}`, "Path/Name not found.");
+        // the "name" and "path" vars are are here passed back intact. For a LocalSrc, however, the name may have changed, and the path is unknown.
+        return { path: path, name: name, data: await this.getFileSrc(path, name, dir, file), size: file.size, created: file.created, modified: file.modified };
     }
-    let srcFile = srcDir?.files[name];
-    if (!srcFile) {
-      Score.visit({ source: this.source, path, name });
-      err(`renameFile(${path},${name},${newName}`, "Path/Name not found.");
-    }
-    let dstFile = srcDir.files[newName] || srcDir.dirs[newName];
-    if (dstFile) err(`renameFile(${path},${name},${newName})`, "Name in use.");
-    await this.renameFileSrc(path, name, newName, srcDir, srcFile);
-  }
 
-  async trashFile(path, name) {
-    checkPath(path, name) ;
-    await this.auth();
-    let dir = await this.getDir(path);
-    let file = dir.files[name];
-    if (!file) {
-      Score.visit({ source: this.source, path, name });
-      err(`trashFile(${path},${name})`, "Path/Name not found");
+    async putFile(path, name, data) {
+        checkPath(path, name) ;
+        let dir = await this.getDir(path);
+        if (dir.dirs[name]) return err(`putFile(${path},${name},...)`, "Path not found.");
+        await this.putFileSrc(path, name, await data, dir, null);
     }
-    await this.trashFileSrc(path, name, dir, file);
-  }
+
+    async renameFile(path, name, newName) {
+        checkPath(path, name, newName) ;
+        await this.auth();
+        let srcDir = await this.getDir(path);
+        if (!srcDir) {
+            Score.visit({ source: this.source }, null, path);
+            err(`renameFile(${path},${name},${newName})`, "Path/Name not found.");
+        }
+        let srcFile = srcDir?.files[name];
+        if (!srcFile) {
+            Score.visit({ source: this.source, path, name });
+            err(`renameFile(${path},${name},${newName})`, "Path/Name not found.");
+        }
+        let dstFile = srcDir.files[newName] || srcDir.dirs[newName];
+        if (dstFile) err(`renameFile(${path},${name},${newName})`, "Name in use.");
+        await this.renameFileSrc(path, name, newName, srcDir, srcFile);
+    }
+
+    async trashFile(path, name) {
+        checkPath(path, name) ;
+        await this.auth();
+        let dir = await this.getDir(path);
+        let file = dir.files[name];
+        if (!file) {
+            Score.visit({ source: this.source, path, name });
+            err(`trashFile(${path},${name})`, "Path/Name not found");
+        }
+        await this.trashFileSrc(path, name, dir, file);
+    }
 }
 
 /**
 class GDriveSrc (i.e. Google Drive) ;
 **/
+
+
 class GDriveSrc extends CachedSrc {
   source = Score.sources.gdrive;
-
-  authUrl = "https:/\/accounts.google.com/o/oauth2/v2/";
   clientId = "1049752786050-72rqerj64c1l1vqk26r28qtcahfd6i3v.apps.googleusercontent.com";
-  scopes = encodeURIComponent("https:/\/www.googleapis.com/auth/drive");
-  tokenUrl = "https:/\/oauth2.googleapis.com/token";
 
-  filesUrl = "https:/\/www.googleapis.com/drive/v3/files/";
-  uploadUrl = "https:/\/www.googleapis.com/upload/drive/v3/files/";
+  filesUrl = "https://www.googleapis.com/drive/v3/files/";
+  uploadUrl = "https://www.googleapis.com/upload/drive/v3/files/";
   folderMimeType = "application/vnd.google-apps.folder";
 
   constructor() {
     super();
+    this.tokens = null ;
+    this.gisClient = null ;
   }
 
-  // NOTE: Unable to get gdrive working with the PKCE code flow for web apps: same code used for 
-  // Dropbox and Microsoft OneDrive doesn't work, so  we redefine auth() to use the older "token" flow.
-  async auth() {
-    if (this.token && performance.now() < this.tokenExpiry) return Promise.resolve(); 
-    this.token = null ;
-    let state = getPlainChallenge();
-    let timeout = performance.now() + this.authTimeout; 
 
-    _shade_.show("Authorizing") ;
-    let popup = this.authPopupOpen(this.authUrl + "auth?response_type=token&" + 
-      `redirect_uri=${this.redirectUri}&scope=${this.scopes}&client_id=${this.clientId}&state=${state}`) ;
-
+  async loadGIS () {
+    if (window.google && window.google.accounts && window.google.accounts.oauth2) return window.google;
     return new Promise((resolve, reject) => {
-      let poll = async () => {
-        try {
-          if (popup.closed) throw "Authentication aborted";
-          let href = popup.location.href;
-          this.token = this.getQuery(href, "access_token=") ;
-          if(this.token) {
-            if(this.getQuery(href, "state=") != state)
-              throw new Error("Possible <i>Cross Site Request Forgery</i> attempt blocked.", {cause:"security"}) ;
-            this.tokenExpiry = performance.now() + ((this.getQuery(href, "expires_in=") || 0) * 1000);
-            this.authPopupClose(popup);
-            return resolve();
+      let  script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => resolve(window.google);
+      script.onerror = () => reject(new Error("Failed to load Google Identity Services SDK"));
+      document.head.append(script);
+    });
+  }
+
+
+  async auth() {
+    // If we already have a valid token, reuse it
+    if (this.tokens && this.tokens.expiry > Date.now() / 1000) return;
+    let google = await this.loadGIS();
+
+    if (!this.gisClient) {
+      this.gisClient = google.accounts.oauth2.initTokenClient({
+        client_id: this.clientId,
+        scope: "https://www.googleapis.com/auth/drive",
+        prompt: '', // leave empty to avoid forcing re-consent every time
+        callback: (response) => {
+          if (response.error) {
+            this._pendingReject?.(new Error(response.error, { cause: "auth" }));
+          } else {
+            const now = Date.now() / 1000;
+            this.tokens = {
+              access_token: response.access_token,
+              expiry: now + (response.expires_in || 3600),
+            };
+            this._pendingResolve?.();
           }
-        } catch ({ name }) {
-          if (name != "SecurityError") {
-            this.authPopupClose(popup);
-            return reject();
-          }
-        }
-        if (performance.now() > timeout) {
-          this.authPopupClose(popup);
-          return reject(new Error("Timed out waiting for user's authorization.", {cause: "timeout"}));
-        }
-        setTimeout(() => poll(), 50);
-      };
-      // start polling, can't use delay() here: on mobile, nextAnimationFrame might
-      // not be running
-      setTimeout(() => poll(), 50);
+        },
+      });
+    }
+
+    // Wrap GIS callback in a Promise
+    return new Promise((resolve, reject) => {
+      this._pendingResolve = resolve;
+      this._pendingReject = reject;
+      this.gisClient.requestAccessToken();
     });
   }
 
@@ -780,14 +824,14 @@ class GDriveSrc extends CachedSrc {
       let fetchPromise = await fetch(fullUrl, {
         method: "GET",
         headers: {
-          Authorization: "Bearer " + this.token,
+          Authorization: "Bearer " + this.tokens.access_token,
         },
       });
       let response = await fetchPromise;
       if (response.ok) {
         let responseJson = await response.json();
         entries.push(...responseJson.files);
-        if ("nextPageToken" in response) await loadPage(response.nextPageToken); // recurse
+        if ("nextPageToken" in responseJson) await loadPage(responseJson.nextPageToken); // recurse
       } else err(`getDirSrc(${path},${dir}})`, await response.text());
     };
     await loadPage(null); // loads first page; succeeding pages loaded recursively
@@ -800,7 +844,7 @@ class GDriveSrc extends CachedSrc {
     let fetchPromise = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -818,11 +862,11 @@ class GDriveSrc extends CachedSrc {
     let fetchPromise = await fetch(url, {
       method: "PATCH",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: `{ name: "${newName}" }`,
+      body: JSON.stringify({ name: newName }),
     });
     let response = await fetchPromise;
     if (response.ok) return true;
@@ -834,10 +878,10 @@ class GDriveSrc extends CachedSrc {
     let fetchPromise = await fetch(url, {
       method: "PATCH",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
         "Content-Type": "application/json",
       },
-      body: "{trashed: true}",
+      body: JSON.stringify({ trashed: true }),
     });
     let response = await fetchPromise;
     if (!response.ok) err(`trashDirSrc(${path},${name},...)) failed: ${await response.text()}`);
@@ -848,12 +892,11 @@ class GDriveSrc extends CachedSrc {
     let fetchPromise = await fetch(url, {
       method: "GET",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
       },
     });
     let response = await fetchPromise;
     if (response.ok) return await response.arrayBuffer();
-    throw Error(await response.text());
     if (!response.ok) err(`getFileSrc(${path},${name},...) failed: ${await response.text()}`);
   }
 
@@ -862,11 +905,11 @@ class GDriveSrc extends CachedSrc {
     let fetchPromise = await fetch(url, {
       method: "PATCH",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: `{ name: "${newName}" }`,
+      body: JSON.stringify({name: newName}),
     });
     let response = await fetchPromise;
     if (!response.ok) err(`renameFileSrc(${path},${name},${newName},...) failed: ${await response.text()}`);
@@ -881,7 +924,7 @@ class GDriveSrc extends CachedSrc {
       let response = await fetch(this.filesUrl, {
         method: "POST",
         headers: {
-          Authorization: "Bearer " + this.token,
+          Authorization: "Bearer " + this.tokens.access_token,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -896,7 +939,7 @@ class GDriveSrc extends CachedSrc {
       let sessionResponse = await fetch(this.uploadUrl + file.id + "?uploadType=resumable", {
         method: "PATCH",
         headers: {
-          Authorization: "Bearer " + this.token,
+          Authorization: "Bearer " + this.tokens.access_token,
           "Content-Length": "0",
         },
       });
@@ -917,10 +960,10 @@ class GDriveSrc extends CachedSrc {
         });
       }
     } else {
-      await fetch(this.uploadUrl + file.id, {
+      await fetch(this.uploadUrl + file.id + "?uploadType=media", {
         method: "PATCH",
         headers: {
-          Authorization: "Bearer " + this.token,
+          Authorization: "Bearer " + this.tokens.access_token,
           "Content-Type": "application/octet-stream",
         },
         body: data,
@@ -934,10 +977,10 @@ class GDriveSrc extends CachedSrc {
     let fetchPromise = await fetch(url, {
       method: "PATCH",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
         "Content-Type": "application/json",
       },
-      body: "{ trashed: true}",
+      body: JSON.stringify({ trashed: true}),
     });
     let response = await fetchPromise;
     if (!response.ok) err(`trashFileSrc(${path},${name},...) failed: ${await response.text()}`);
@@ -946,12 +989,13 @@ class GDriveSrc extends CachedSrc {
 
 /**
 class DbxSrc (i.e. Dropbox)
-*/
+**/
 class DbxSrc extends CachedSrc {
   source = Score.sources.dbx;
   authUrl = "https:/\/www.dropbox.com/oauth2/authorize";
+  extraAuthParams = "&token_access_type=offline" ;
   clientId = "erqcrdytyixn6h7";
-  scopes = "files.content.write files.content.read";
+  scopes = encodeURIComponent("files.content.write files.content.read");
   tokenUrl = "https:/\/api.dropbox.com/oauth2/token/";
 
   filesUrl = "https:/\/api.dropboxapi.com/2/files/";
@@ -999,7 +1043,7 @@ class DbxSrc extends CachedSrc {
       let fetchPromise = await fetch(uri, {
         method: "POST",
         headers: {
-          Authorization: "Bearer " + this.token,
+          Authorization: "Bearer " + this.tokens.access_token,
           "Content-Type": "application/json",
         },
         body: cursor ? JSON.stringify({cursor: cursor}) : JSON.stringify({path: path}),
@@ -1021,7 +1065,7 @@ class DbxSrc extends CachedSrc {
     let fetchPromise = await fetch(uri, {
       method: "POST",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({path: path + "/" + name}),
@@ -1035,11 +1079,13 @@ class DbxSrc extends CachedSrc {
     let fetchPromise = await fetch(uri, {
       method: "POST",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
         "Content-Type": "application/json",
       },
-      // rm grd... use JSON.stringify
-      body: `{"from_path":"${path}/${name}","to_path":"${path}/${newName}"`,
+      body: JSON.stringify({
+        from_path: `${path}/${name}`,
+        to_path: `${path}/${newName}`,
+      }),
     });
     let response = await fetchPromise;
     if (!response.ok) err(`renameDirSrc(${path},${name},${newName})`, await response.text());
@@ -1050,7 +1096,7 @@ class DbxSrc extends CachedSrc {
     let fetchPromise = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({path: path + "/" + name}),
@@ -1065,8 +1111,8 @@ class DbxSrc extends CachedSrc {
     let fetchPromise = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: "Bearer " + this.token,
-        "Dropbox-API-Arg": `{ "path": "${file.id}"}`,
+        Authorization: "Bearer " + this.tokens.access_token,
+        "Dropbox-API-Arg": JSON.stringify({ path: file.id }),
       },
     });
     let response = await fetchPromise;
@@ -1080,7 +1126,7 @@ class DbxSrc extends CachedSrc {
     let fetchPromise = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
         "Content-Type": "application/octet-stream",
       },
     });
@@ -1097,9 +1143,9 @@ class DbxSrc extends CachedSrc {
       fetchPromise = await fetch(url, {
         method: "POST",
         headers: {
-          Authorization: "Bearer " + this.token,
+          Authorization: "Bearer " + this.tokens.access_token,
           "Content-Type": "application/octet-stream",
-          "Dropbox-API-Arg": `{"cursor":{"offset":${cursor},"session_id":"${session_id}"}\}`,
+          "Dropbox-API-Arg": JSON.stringify({cursor: {offset:cursor, session_id:session_id}}),
         },
         body: new DataView(data.buffer, cursor, sliceLen),
       });
@@ -1114,7 +1160,7 @@ class DbxSrc extends CachedSrc {
     fetchPromise = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
         "Content-Type": "application/octet-stream",
         "Dropbox-API-Arg": JSON.stringify({
           commit: {
@@ -1138,7 +1184,7 @@ class DbxSrc extends CachedSrc {
     let fetchPromise = await fetch(uri, {
       method: "POST",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ from_path: `${path}/${name}`, to_path: `${path}/${newName}` }),
@@ -1152,7 +1198,7 @@ class DbxSrc extends CachedSrc {
     let fetchPromise = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
         "Content-Type": "application/json",
       },
       body: `{"path":"${path}/${name}"}`,
@@ -1164,19 +1210,70 @@ class DbxSrc extends CachedSrc {
 
 /**
 class ODriveSrc (i.e. Microsoft OneDrive)
-*/
+**/
 class ODriveSrc extends CachedSrc {
   source = Score.sources.odrive;
-  authUrl = "https:/\/login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
   clientId = "b81faf82-539b-4759-bcc9-8fdac6c7ceba";
-  scopes = "files.readwrite.all";
-  tokenUrl = "https:/\/login.microsoftonline.com/consumers/oauth2/v2.0/token";
-
+  //  scopes = encodeURIComponent("files.readwrite.all offline_access");
+  //  tokenUrl = "https:/\/login.microsoftonline.com/consumers/oauth2/v2.0/token";
   filesUrl = "https:/\/graph.microsoft.com/v1.0/me/drive/";
 
   constructor() {
     super();
   }
+
+
+  async loadMSAL() {
+    if (window.msal) return window.msal;
+    return new Promise((resolve, reject) => {
+      let script = document.createElement("script");
+      script.src = "https://alcdn.msauth.net/browser/2.34.0/js/msal-browser.min.js";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => resolve(window.msal);
+      script.onerror = () => reject(new Error("Failed to load MSAL.js"));
+      document.head.append(script);
+    });
+  }
+
+  async auth() {
+    if (this.tokens && this.tokens.expiry > Date.now() / 1000) return;
+  
+    const msal = await this.loadMSAL();
+  
+    if (!this.msalClient) {
+      this.msalClient = new msal.PublicClientApplication({
+        auth: {
+          clientId: this.clientId,
+          authority: "https://login.microsoftonline.com/consumers",
+          redirectUri: location.origin,
+        },
+        cache: { cacheLocation: "localStorage" }
+      });
+    }
+  
+    try {
+      const account = this.msalClient.getAllAccounts()[0];
+      let result;
+      if (account) {
+        result = await this.msalClient.acquireTokenSilent({
+          scopes: [ "Files.ReadWrite.All", "offline_access" ],
+          account,
+        });
+      } else {
+        result = await this.msalClient.loginPopup({
+          scopes: [ "Files.ReadWrite.All", "offline_access" ],
+        });
+      }
+      this.tokens = {
+        access_token: result.accessToken,
+        expiry: Math.floor(Date.now()/1000) + (result.expiresIn || 3600),
+      };
+    } catch (err) {
+      throw new Error("OneDrive auth failed", { cause: "auth" });
+    }
+  }
+
 
   putCache(path, data) {
     super.putCache(path, data);
@@ -1209,12 +1306,11 @@ class ODriveSrc extends CachedSrc {
   }
 
   async getDirSrc(path, dir) {
-    await this.auth();
     let url = this.filesUrl + `${path == "" ? "root" : "items/" + dir.id}/children`;
     let fetchPromise = await fetch(url, {
       method: "GET",
       headers: {
-        Authorization: "bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
       },
     });
     let response = await fetchPromise;
@@ -1223,12 +1319,11 @@ class ODriveSrc extends CachedSrc {
   }
 
   async putDirSrc(path, name, srcDir) {
-    await this.auth();
     let url = this.filesUrl + srcDir.id + "/children";
     let fetchPromise = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -1246,10 +1341,10 @@ class ODriveSrc extends CachedSrc {
     let fetchPromise = await fetch(url, {
       method: "PATCH",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
         "Content-Type": "application/json",
       },
-      body: `{ name: "${newName}" }`,
+      body: JSON.stringify({ name: newName }),
     });
     let response = await fetchPromise;
     if (!response.ok) err(`renameDirSrc(${path},${name},${newName},...) failed: ${await response.text()}`);
@@ -1260,7 +1355,7 @@ class ODriveSrc extends CachedSrc {
     let fetchPromise = await fetch(url, {
       method: "DELETE",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
       },
     });
     let response = await fetchPromise;
@@ -1268,32 +1363,30 @@ class ODriveSrc extends CachedSrc {
   }
 
   async getFileSrc(path, name, dir, file) {
-    await this.auth();
     let url = this.filesUrl + "items/" + file.id + "/content";
     let fetchPromise = await fetch(url, {
       method: "GET",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
       },
     });
     let response = await fetchPromise;
     if (response.ok) return await response.arrayBuffer();
-    err(`getFileSrc(${path},${name},...) failed: ${await response.text}`);
+    err(`getFileSrc(${path},${name},...) failed: ${await response.text()}`);
   }
 
   async putFileSrc(path, name, data, dir, file) {
-    await this.auth();
     let id = file?.id ? file.id : dir.id;
     let url = this.filesUrl + "items/" + id + ":/" + name + ":/createUploadSession";
     // get upload session url
     let fetchPromise = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
         "Content-Type": "application/json",
       },
       // Doesn't seem to work if "item" is the only field defined. Onedrive API bug?
-      body: JSON.stringify({"name": "${name}", "item":{"@microsoft.graph.conflictBehavior":"replace"}}),
+      body: JSON.stringify({"name": name, "item":{"@microsoft.graph.conflictBehavior":"replace"}}),
     });
     let response = await fetchPromise;
     if (!response.ok) err(`putFileSrc(${path},${name},...)`, await response.text());
@@ -1301,7 +1394,7 @@ class ODriveSrc extends CachedSrc {
     let maxSliceLen = 5 * 1024 * 1024;
     let dataLen = data.byteLength;
     let remaining = dataLen;
-    let sliceLen = Math.min(dataLen, maxSliceLen);
+    let sliceLen = Math.min(remaining, maxSliceLen);
 
     for (let cursor = 0; remaining > 0; ) {
       let slice = new DataView(data.buffer, cursor, sliceLen);
@@ -1319,20 +1412,19 @@ class ODriveSrc extends CachedSrc {
       if (!response.ok) err(`putFileSrc(${path},${name},...) failed: ${await response.text()}`);
       remaining -= sliceLen;
       cursor += sliceLen;
-      sliceLen = Math.min(cursor + remaining, cursor + maxSliceLen);
+      sliceLen = Math.min(remaining, maxSliceLen);
     }
   }
 
   async renameFileSrc(path, name, newName, srcDir, srcFile) {
-    await this.auth();
     let url = this.filesUrl + "items/" + srcFile.id;
     let fetchPromise = await fetch(url, {
       method: "PATCH",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
         "Content-Type": "application/json",
       },
-      body: `{ name: "${newName}" }`,
+      body: JSON.stringify({ name: newName }),
     });
     let response = await fetchPromise;
     if (!response.ok) err(`renameFileSrc(${path},${name},${newName},...) failed: ${await response.text()}`);
@@ -1343,7 +1435,7 @@ class ODriveSrc extends CachedSrc {
     let fetchPromise = await fetch(url, {
       method: "DELETE",
       headers: {
-        Authorization: "Bearer " + this.token,
+        Authorization: "Bearer " + this.tokens.access_token,
       },
     });
     let response = await fetchPromise;
@@ -1667,8 +1759,8 @@ class FileListView {
       dialog(`Add extension <i>.pdf</i> to <i>${escapeHtml(name)}<i> ?`, { Yes: { svg: "Pdf" }, No: { svg: "Not Pdf" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
         args.close();
         if (tag == "Yes") accept(name + ext);
-        if (tag == "No") accept(name);
-        accept(null);
+        else if (tag == "No") accept(name);
+        else accept(null);
       });
     });
   }
@@ -1784,12 +1876,10 @@ class FileListView {
         let src = FileSrc.get(source);
         let { path, name, data, size, created, modified } = await src.getFile(requestedPath, requestedName);
         let visitUpdate = { path, size, created, modified };
-        ///
         if (this.mode == "bind") {
           await Score.activeScore.bindScore(data);
           Score.visit(Score.activeScore, visitUpdate);
         } else if (this.panel.mode == "copy") {
-          /// rem grd copy
           let ext = this.acceptExt(requestedName);
           if (ext) {
             _menu_.setPasteObj(await bytesToBase64DataUrl(data, this.mimeTypes[ext]), this.mimeTypes[ext]);
@@ -1836,10 +1926,9 @@ class FileListView {
             // If we're renaming from a FileSystemView, call setPath.  But if we're renaming from
             // the Recent tab, "this" is a fileListView, and there is no setPath function...in this
             // case, invalidate any entry for the path in  src's cache.
-            let cached = null;
             if (this.setPath) {
               await this.setPath(path, true);
-              cached = src.cache[path];
+              let cached = src.cache[path];
               Score.visit({ source, path, name, size: cached.size, created: cached.created, modified: cached.modified }, { name: newName });
             } else if (src.cache && src.cache[path]) {
               let cached = src.cache[path];
