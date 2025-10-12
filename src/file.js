@@ -47,7 +47,7 @@ let err = (call, msg) => {
 let errDialog = (error, stack, msg) => {
   // Craft an error dialog, given an exception variable and a msg.
   if (error.name == "AbortError") return; // thrown when browser's open/save panels are cancelled
-  else if (error.cause && error.cause == "cancelled") return toast("Cancelled") ;
+  else if (error.cause == "cancelled") return toast("Cancelled") ;
   else if (error.cause == "timeout") dialog("Timed out waiting for authentication");
   else if (error.cause == "security") dialog(`<em>Security Error</em><br><br><strong>${error.message}</strong>`);
   else if (error.cause == "fileSrc") dialog(`<em>${msg}</em><br><br><strong>${error.message}</strong>`);

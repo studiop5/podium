@@ -939,9 +939,14 @@ class Score {
       // it next calls waitForTick by calling our monkey-patched setTimeout
       _shade_.onCancel = () => { window.cancelPdf = true ; } ;
       let srcPLibDoc = this.mozDoc ? await PDFLib.PDFDocument.load(await this.mozDoc.getData()) : null;
+
+      // Verify the catalog was parsed correctly
+      if (srcPLibDoc && (!srcPLibDoc.catalog || typeof srcPLibDoc.catalog.Pages !== 'function')) 
+          throw new Error("PDF catalog corrupted.<br>File too large?<br>Try splitting into sections.", { cause: "fileSrc"}) 
+
       let dstPLibDoc = await PDFLib.PDFDocument.create();
       dstPLibDoc.registerFontkit(window.fontkit);
-      // Reset te embeddedFonts array: it prevents Pg instances from embedding same font twice.
+      // Reset the embeddedFonts array: it prevents Pg instances from embedding same font twice.
       this.embeddedFonts = [];
       let now = new Date();
   
@@ -985,16 +990,11 @@ class Score {
       if (doc) return dstPLibDoc;
       _shade_.update("Generating Pdf document") ;
       let bytes = await dstPLibDoc.save({objectsPerTick: 1000}) ;
-//      complete = true ;
       _shade_.update("PDF Generated!");
       return bytes ;   
-    } catch(error) {
-      window.pdf = "cancel" ;
-      throw new Error("cancelled",{cause:"cancelled"}) ;
-    }
+    } 
     finally {
       _shade_.onCancel = null ;
-//      complete = true ;
     }
   }
 
