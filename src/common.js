@@ -275,6 +275,24 @@ css(
     align-items: center ;
     justify-content: center ;
   }
+
+
+
+  Option 1: Vertical-align adjustment
+  /* In your pnToDiv-generated elements */
+  .bravura-char {
+    font-family: Bravura;
+    vertical-align: -0.15em; /* Adjust as needed */
+  }
+
+  .times-char {
+    font-family: "Times New Roman";
+    vertical-align: baseline;
+  }
+
+
+
+
 }`
 );
 
@@ -1690,7 +1708,7 @@ function pnToDiv(pn, div, autoSize = true) {
   let str = pnToString(pn, true);
 
   if (autoSize) {
-    // Determine font size is needed so str will fit within 90% of the div's width
+    // Determ ine font size is needed so str will fit within 90% of the div's width
     let elm = helm(
       `<div style="visibility:hidden;position:absolute">${str}</div>`
     );

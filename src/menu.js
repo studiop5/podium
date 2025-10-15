@@ -547,6 +547,9 @@ class Menu {
         copy: { name: "Copy", svgPath: iconPaths["Copy Page"] },
         paste: { name: "Paste", svgPath: iconPaths["Paste Page"] },
         merge: { name: "Merge", svgPath: iconPaths["Merge"] },
+        stash: { name: "Stash", svgPath: iconPaths["Copy"], stash: { pns: []} },
+        fetch: { name: "Fetch", svgPath: iconPaths["Paste"] },
+
       },
       name: "Page",
       stash: {},
@@ -558,7 +561,6 @@ class Menu {
     this.listen("page/up", () => this.activateRing(rings.page));
     paths = Object.keys(rings.page.cells).map((path) => `page/${path}/`) ;
     this.listen(paths.map((path) => path + "up"), (cell) => this.activateCell(rings.page.activeCell === cell ? null :cell)) ;
-    this.listen(paths.map((path) => path + "long"), (cell) => this.activateCell(cell, true)) ;
     this.listen(paths.map((path) => path + "out"), (cell) =>  this.openPanel(cell)) ;
     // numbers panel has no functionality except its panel, so allow up to open the panel
     this.listen("page/numbers/up", (cell) => panels.NumbersPanel.get(cell).show().setPosition(this.grip)) ;

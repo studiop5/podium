@@ -48,6 +48,7 @@ import { Layout } from "./layout.js";
 import { FileSrc, FileListView, FileSystemView, LocalFileView } from "./file.js";
 import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
 import { smuflTable } from "./smufl.js";
+import { podiumDb } from "./idb.js" ; // rem grd
 export { panels };
 
 // -skip
@@ -1807,7 +1808,8 @@ class PrintPanel extends Panel {
     // PrintPanel is constructed, which should be the first time
     // its opened on a new score.  BUG, todo: should also reset when
     // pg's are added or removed
-    let props = { first:1, last: Score.activeScore.pgs.length } ;
+    let scoreLength = Score.activeScore.pgs.length ;
+    let props = { first:1, last: scoreLength } ;
 
     cell = _menu_.rings.page.cells.numbers ; // for pnToString
     let buttons = new ButtonGroup(
@@ -1819,8 +1821,10 @@ class PrintPanel extends Panel {
       async (e, tag, value) => {
         try {
           _shade_.show("Preparing to print") ;
-          let data = await Score.activeScore.toPdf(
-            value == "Ink" ? "pdf" : "none", false, props.first, props.last) ;
+          let pns = [] ;
+          for(let i = props.first ; i <= props.last ; i++)
+            pns.push(i) ;
+          let data = await Score.activeScore.toPdf(value == "Ink" ? "pdf" : "none", false, pns) ;
           let dataUrl = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
           window.open(dataUrl).print();
         }
@@ -1869,6 +1873,110 @@ class PrintPanel extends Panel {
   }
 
 }
+
+class StashPanel extends Panel {
+///
+  static css = css(
+    "StashPanel", 
+    `
+    .smufl {
+      font-family: Bravura;
+      display: inline-block;
+      transform: translateY(-.25em);
+      font-size: 1.42em;
+    } 
+    .roman {
+      font-family: 'Times New Roman';
+      display: inline-block;
+      font-weight:bold;
+      font-style: italic;
+      -webkit-text-stroke: 0.5px currentColor;
+    }
+    `
+  ) ;
+
+  content = helm(`
+     <div data-tag="body" class="Panel__body">
+       Stashed Pages:<br>
+       <div data-tag="ranges" style="line-height: 1.5em;margin-top:.5em;"></div>
+       <div data-tag="buttons" style="border-top:1px solid #aaa;"></div>
+     </div>
+   `);
+
+
+
+  constructor(cell) {
+    super(cell);
+    this.body.replaceWith(this.content);
+    Object.assign(this, dataIndex("tag", this.content));
+    this.ranges.innerHTML = this.pageRangeString(cell.stash.pns) ;
+
+    let buttons = new ButtonGroup({}, {
+        Clear: { svg: "Cancel", onOff:true },
+        Undo: { svg: "Undo", onOff:true },
+        Export: { svg: "Paste", onOff:true },
+      },
+      async (e, tag, value) => {
+        if(value == "Export") {
+          let pdfData = await Score.activeScore.toPdf( "stamp", false, cell.stash.pns) ;
+          await podiumDb.put(pdfData) ;
+///
+          toast("Pages exported") ;
+          delay(8, () => this.hide()) ; // nice to hide panel after export.
+        }
+        else if(value == "Clear") cell.stash.pns = [] ;
+        else if(value == "Undo") cell.stash.pns.pop() ;
+        // we're making the buttons look like on-off buttons that are on while working, but off
+        // when done...so now turn the activated button off by deleting its corresponding buttons.props
+        delay(5, () => { delete buttons.props[value] ; buttons.refresh() ;}) ;
+        _body_.dispatchEvent(new CustomEvent("PnStashChanged")) ;
+      }
+    ) ;
+    buttons.elm.style.borderTop = ".02em solid #aaa" ;   
+    buttons.defs.Export.disabled = buttons.defs.Undo.disabled = buttons.defs.Clear.disabled = cell.stash.pns.length == 0 ;
+    this.buttons.replaceWith(buttons.elm) ;
+
+    listen(_body_, ["PnStashChanged"], (e) => {
+      buttons.defs.Export.disabled = buttons.defs.Undo.disabled = buttons.defs.Clear.disabled = cell.stash.pns.length == 0 ;
+      this.ranges.innerHTML = this.pageRangeString(cell.stash.pns) ;       
+    })
+  }
+
+  pageRangeString(pageNumbers) 
+  {
+    let formatter = (pn) => {
+      let str = pnToString(pn, true); // Get the pure text
+      let result = '';
+      for (let char of str) {
+        let code = char.charCodeAt(0);
+        // SMuFL characters typically > 0xE000 (private use area)
+        if (code >= 0xE000) result += `<span class="smufl">${char}</span>`;
+        else result += `<span class="roman">${char}</span>`;
+      }
+      return result;
+    }
+
+    if (pageNumbers.length == 0) return '<span class="smufl">\uE4E3</span>'; // whole rest
+    let sorted = [...pageNumbers].sort((a, b) => a - b);
+    let ranges = [], start = sorted[0], end = sorted[0];
+
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i] == end + 1) {
+        end = sorted[i];
+      } else {
+        ranges.push(start == end ? formatter(start) : `${formatter(start)}\u2013${formatter(end)}`); // 2013=en-dash, *not* em-dash!
+        start = sorted[i];
+        end = sorted[i];
+      }
+    }
+    ranges.push(start == end ? formatter(start) : `${formatter(start)}\u2013${formatter(end)}`);
+    return ranges.join(', ');
+  }
+
+
+}
+
+
 
 class StopwatchPanel extends Panel {
   content = helm(
@@ -1945,6 +2053,7 @@ let panels = {
   RastrumPanel,
   ReviewPanel,
   SavePanel,
+  StashPanel,
   StopwatchPanel,
   TextPanel,
   SymbolsPanel,
