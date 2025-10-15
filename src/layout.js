@@ -23,6 +23,8 @@
 import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, getBox,   helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, unlisten,} from "./common.js";
 import { Pg, Score } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
+import { podiumDb } from "./idb.js" ; // rem grd
+import { panels } from "./panel.js";
 // -skip
 
 let randomColor;
@@ -252,13 +254,13 @@ class Layout {
       let score = this.score;
       if (score.pgs.length == 0) pn = 1;
       else {
-        // The add/paste ops insert before page when event is in left (or top) half of e.target,
+        // The add/paste/fetch  ops insert before page when event is in left (or top) half of e.target,
         // and after page when clicked in right (or bottom) half. We use left/right for
-        // for most layouts, but VerticalLayout uses top/bottom.
+        // for most layouts, but VerticalLayout uses top/bottom. 
         pg = e.target.pg || e.target.closest(".canvas-container")?.pg;
         if (!pg) return true;
         pn = score.pnOf(pg);
-        if (pageKey == "add" || pageKey == "paste") {
+        if (pageKey == "add" || pageKey == "paste" || pageKey == "fetch") {
           let box = getBox(e.target);
           if (layoutKey == "vertical" && e.clientY - box.top > box.height / 2) pn++;
           else if (e.clientX - box.x > box.width / 2) pn++;
@@ -355,6 +357,22 @@ class Layout {
               args.close() ;
             });
           break;
+        }
+        case "fetch": {
+          let entry = await podiumDb.get() ;
+          await this.score.bindScore(entry.data, pn)
+          break ;
+        }  
+        case "stash": {
+          // add to stash list
+          if(!pageCell.stash.pns.includes(pn)) {
+             pageCell.stash.pns.push(pn) ;
+          }
+          _body_.dispatchEvent(new CustomEvent("PnStashChanged")) ;
+          // force stashpanel to open if not already open
+          let panel = panels.StashPanel.get(pageCell);
+          if (panel.elm.style.visibility != "visible") 
+            panel.show().setPosition(_menu_.grip);
         }
       }
 

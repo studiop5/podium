@@ -21,10 +21,11 @@
 **/
 
 export { Grid, Pg, Score };
-import { delay, fontUnmap, helm, inflate, rotatePoint } from "./common.js";
+import { clamp, delay, fontUnmap, helm, inflate, rotatePoint } from "./common.js";
 import { Layout } from "./layout.js";
 import { panels } from "./panel.js";
 import { Grid } from "./canvas.js";
+
 
 // -skip
 
@@ -927,7 +928,85 @@ class Score {
     return this;
   }
 
-  async toPdf(ink = "stamp", doc = false, startPg=1, endPg = null) {
+  async toPdf(ink = "stamp", doc = false, pns = null) {
+    // Use PDFLib to create PDF representation of this score.
+    // @ink === none, skip fabric objects entirely (even as attachment??)
+    //      === "stamp" add fabric object as stamp annotation
+    //      === "pdf" add fabric object as pdf object
+    // @doc if true, the PDF-LIB doc object is returned, otherwise the
+    //    pdf bytes that it produces is returned.
+    // @pns array of page numbers (1-based) to include, or null for all pates
+    try {
+      // When shade is cancelled, set cancelPdf. This will interrupt lib-pdf when
+      // it next calls waitForTick by calling our monkey-patched setTimeout
+      _shade_.onCancel = () => { window.cancelPdf = true ; } ;
+      let srcPLibDoc = this.mozDoc ? await PDFLib.PDFDocument.load(await this.mozDoc.getData()) : null;
+
+      // Verify the catalog was parsed correctly
+      if (srcPLibDoc && (!srcPLibDoc.catalog || typeof srcPLibDoc.catalog.Pages !== 'function')) 
+          throw new Error("PDF catalog corrupted.<br>File too large?<br>Try splitting into sections.", { cause: "fileSrc"}) 
+
+      let dstPLibDoc = await PDFLib.PDFDocument.create();
+      dstPLibDoc.registerFontkit(window.fontkit);
+      // Reset the embeddedFonts array: it prevents Pg instances from embedding same font twice.
+      this.embeddedFonts = [];
+      let now = new Date();
+  
+      let attachment = { 
+        created: this.created,
+        modified: now,
+        maxWidth: this.maxWidth,
+        maxHeight: this.maxHeight,
+        quality: this.quality,
+        pages: {},
+        menu: _menu_.stashToJsonObj(),
+      };
+      let pLibPg;
+      /*
+      let from = Math.max(1, startPg) ;
+      let to = endPg ? Math.min(endPg, this.pgs.length) : this.pgs.length ;
+      for (let i = from, j = 0 ; i <= to; i++, j++) {
+      */
+      pns = pns || Array.from({length: this.pgs.length}, (_, i) => i + 1);
+      for(let j = 0 ; j < pns.length; j++) {
+        let pn = pns[j] ; // 1-based
+        let percent = Math.trunc((j / pns.length) * 100) ;
+        _shade_.update(`Building page ${j + 1} of ${pns.length} (${percent}%)`) ;
+        let pg = this.pgs[pn-1];
+        // if pg is "backed" by a page in mozDoc (1-based), copy page to dstDoc, otherwise add a new "empty" page
+        if (pg.mozPn) pLibPg = dstPLibDoc.addPage((await dstPLibDoc.copyPages(srcPLibDoc, [pg.mozPn-1]))[0]);
+        else pLibPg = dstPLibDoc.addPage([this.maxWidth, this.maxHeight]);
+        setTimeout(_voidFunc_, 0) ;
+        // add fabric objects to the page
+        let pgJson = await pg.toPdf(ink, pLibPg);
+        attachment.pages[pn] = pgJson;
+        if(window.gc) window.gc() ; 
+      }
+      // Add the pdf attachment
+      let jsonString = JSON.stringify(attachment);
+      await dstPLibDoc.attach(new TextEncoder().encode(jsonString), "podium", {
+        mimeType: "application/json",
+        description: "podium json metadata",
+        creationDate: now,
+        modificationDate: now,
+      });
+      // set pdf doc metadata
+      dstPLibDoc.setModificationDate(now);
+      dstPLibDoc.setCreationDate(now);
+      dstPLibDoc.setCreator("Podium vers." + _podiumVersion_);
+      if (doc) return dstPLibDoc;
+      _shade_.update("Generating Pdf document") ;
+      let bytes = await dstPLibDoc.save({objectsPerTick: 1000}) ;
+      _shade_.update("PDF Generated!");
+      return bytes ;   
+    } 
+    finally {
+      _shade_.onCancel = null ;
+    }
+  }
+
+
+  async toPdfOrig(ink = "stamp", doc = false, startPg=1, endPg = null) {
     // Use PDFLib to create PDF representation of this score.
     // @ink === none, skip fabric objects entirely (even as attachment??)
     //      === "stamp" add fabric object as stamp annotation
@@ -998,16 +1077,19 @@ class Score {
     }
   }
 
-  async bindScore(pdfData) {
+  async bindScore(pdfData, pn = 3) {
     // bind all pages from a given score to this score: i.e. given some score's
     // @pdfData, append all of its pages to this score.
     // todo: a shade, and logic for cancel in-process
+    // @pn one-based index of where to insert the pages from pdfData.
+    //     ..when null or < 1, converted to 1 (i.e. first page).
+    pn = clamp(pn, 1, this.pgs.length + 1) -1 ; // convert pn to 0-based in [0, this.pgs.length-1]
     let { PDFArray, PDFDict, PDFDocument, PDFName, PDFStream } = PDFLib;
     let pgCount = this.pgs.length;
-    let docA = await this.toPdf("stamp", true);
-    let docB = await PDFDocument.load(pdfData);
+    let docA = await this.toPdf("stamp", true); // this is the current document
+    let docB = await PDFDocument.load(pdfData); // this document contains pages to merge
     let copiedPages = await docA.copyPages(docB, docB.getPageIndices());
-    copiedPages.forEach((page) => docA.addPage(page));
+    copiedPages.forEach((page,idx) => docA.insertPage(pn + idx, page));
     let mergedPdfData = await docA.save();
 
     let mergedScore = await new Score().init(this.source, this.path, this.name, mergedPdfData);
@@ -1033,17 +1115,19 @@ class Score {
       }
     } while(false) ;
 
-    if (json) {
-      // add docB's json to mergedScore
-      let pages = JSON.parse(json).pages;
-      let newPgCount = mergedScore.pgs.length;
-      for (let i = pgCount; i < newPgCount; i++) {
-        let pn = i - pgCount + 1;
-        mergedScore.pgs[i].json = pages[pn];
-    } }
-
+    // add docB's json to mergedScore
+    let copyKnt = copiedPages.length ;
+    // existing json at pn needs to be shifted forward to its pg
+    for (let i = pgCount - 1; i >= pn; i--) // need highest->lowest
+      mergedScore.pgs[i + copyKnt].json = mergedScore.pgs[i].json;
+    if(json) {
+      // insert new json from docB
+      let pageJson = JSON.parse(json).pages;
+      for (let i = pn, j = 1; j <= copyKnt; i++, j++) { // i is 0-based, j is 1-based
+        mergedScore.pgs[i].json = pageJson[j]; 
+      }
+    }
     mergedScore.setDirty() ;
-    return;
   }
 
   getActiveObject() {
