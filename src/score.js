@@ -845,6 +845,8 @@ class Score {
     // Since constructing a score calls async functions, and since a constructor
     // can't be marked async, the constructor must be invoked as:
     //      await new Score().init(....) ;
+    // @clear if true (default), pasteBuffer is cleared.
+
   }
 
   async init(source, path, name, pdfData) {
@@ -854,7 +856,8 @@ class Score {
     // @path identifies the file path in the data source (not including name), or null for new scores.
     // @name identifies the file name of the data source (not including path)
     // @pdfData bytearray containing pdf file, or null for new scores. 
-    document.getElementById("title").innerText = name ? name.replace(/\.pdf/i, ""):"Podium" ;
+
+    document.title = `Podium ${name ? name.replace(/\.pdf/i, ""):"*"} (${_podId_})`;
     // Note: new, locally created files won't have any pdfData: it will be null or undefined
     Object.assign(this, { source, path, name });
     Score.activeScore = this;
@@ -915,7 +918,7 @@ class Score {
     }
 
     // update the _menu_ state for newly created Score instance:
-    _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print", "score/bind"]);
+    _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"]);
     _menu_.enableCells("ink/undo", false); // nothing to undo yet
     this.pgRefresh();
 

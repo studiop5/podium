@@ -33,6 +33,8 @@ import "./font.js";
 import { Menu } from "./menu.js";
 import { Layout } from "./layout.js";
 import { initFabric } from "./canvas.js";
+import { PasteBuffer } from "./pasteBuffer.js";
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
 // -skip
 
@@ -54,18 +56,20 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
 // #include src/panel.js minified
 // #include src/file.js minified
 // #include src/tool.js minified
+// #include src/pasteBuffer.js minified
 
 
 
 async function main() {
+
   initFabric();
   // Create the menu. It's fontSize is set s.t. it's outer ring
   // will cover _gsgs_ (_gs_ for mobile) * narrowest screen dimension.
   // Its initial appearance is animated for a little glitz.
   // Apparently Safari doesn't always report window size correctly at
-  // startup, so we delay for 200 msecs after page load before creation.
+  // startup, so we delay for 500 msecs after page load before creation.
 
-  schedule(500, () => {
+  schedule(500, async () => {
     window._menu_ = new Menu();
     let dim = (Math.min(innerWidth, innerHeight) / _menu_.menuHolder.offsetWidth) *
          (_mobile_ ? _gs_ : _gsgs_);
@@ -74,6 +78,7 @@ async function main() {
       { transform: "rotate(0turn)" }, `transform ${1 / _gs_}s`);
     animate(_menu_.elm, { fontSize: 0 }, { fontSize: dim + "em" }, `font-size ${1 / _gs_}s`);
     _menu_.center();
+    new PasteBuffer().init() ;
   }) ;
 
   {
@@ -409,5 +414,4 @@ async function main() {
 
 
 main();
-
 

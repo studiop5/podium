@@ -21,11 +21,11 @@
 **/
 
 import { animate, clamp, css, dataIndex, delay, delayMs, flung, fontMap, getBox, helm, hide, listen, mvmt, Schedule, schedule, toast, unlisten } from "./common.js";
-import { Grid, Score } from "./score.js";
+import { checkUnsaved, FileSrc } from "./file.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
-import { checkUnsaved, FileSrc } from "./file.js";
 import { panels } from "./panel.js";
+import { Grid, Score } from "./score.js";
 
 export { Menu };
 
@@ -246,7 +246,7 @@ class Menu {
              cell.elm.classList.add("Menu__cell-panel") ;
 
     // set initial cell state
-    this.enableCells(["layout", "ink", "ink/paste", "page", "score/close", "score/save", "score/bind", "score/details", "score/print", "page/paste"], false);
+    this.enableCells(["layout", "ink", "ink/paste", "page", "score/close", "score/save", "score/details", "score/print", "page/paste"], false);
 
     this.stashDefaults = this.stashToJson();
 
@@ -320,7 +320,6 @@ class Menu {
           svgPath: iconPaths["New Score"],
         },
         close: { name: "Close", svgPath: iconPaths["Close"] },
-        bind: { name: "Bind", svgPath: iconPaths["Bind"] },
         print: { name: "Print", svgPath: iconPaths["Print"] },
         details: { name: "Details", svgPath: iconPaths["Details"], stash: { quality: 2} },
       },
@@ -342,10 +341,9 @@ class Menu {
        this.activateCell(null) ;
     }) ;
 
-    this.listen(["score/details/out", "score/open/out","score/save/out","score/new/out","score/print/out", "score/bind/out"], (cell) => this.openPanel(cell)) ;
+    this.listen(["score/details/out", "score/open/out","score/save/out","score/new/out","score/print/out"], (cell) => this.openPanel(cell)) ;
     // The print, details, bind cells have no /up functionality, so we let the up action  open their panels:
     this.listen("score/print/up", (cell) => panels.PrintPanel.get(cell).show().setPosition(this.grip)) ;
-    this.listen("score/bind/up", (cell) => panels.BindPanel.get(cell).show().setPosition(this.grip)) ;
     this.listen("score/details/up", (cell) => panels.DetailsPanel.get(cell).show().setPosition(this.grip)) ;
 
     this.listen("score/new/up", async (cell) => {
@@ -365,7 +363,7 @@ class Menu {
       Score.activeScore = null;
       for(let panel of Object.values(panels)) {
          // Several panels need to close when the Score closes, otherwise they will have stale state.
-         if(panel.cell && ["Details", "Save","Bind","Print"].includes(panel.cell.name)) panel.close() ;
+         if(panel.cell && ["Details", "Save", "Paste", "Print"].includes(panel.cell.name)) panel.close() ;
       }
       _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print", "score/bind"], false);
     });
@@ -547,9 +545,6 @@ class Menu {
         copy: { name: "Copy", svgPath: iconPaths["Copy Page"] },
         paste: { name: "Paste", svgPath: iconPaths["Paste Page"] },
         merge: { name: "Merge", svgPath: iconPaths["Merge"] },
-        stash: { name: "Stash", svgPath: iconPaths["Copy"], stash: { pns: []} },
-        fetch: { name: "Fetch", svgPath: iconPaths["Paste"] },
-
       },
       name: "Page",
       stash: {},
@@ -951,6 +946,15 @@ class Menu {
     // Special cases:
     //  -  if currently editing a fabric text object, exit text editing
     //  -  when the ink/transform cell activates/deactivates, must call Score's setTransformable method
+    if(this.activeRing.name == "Page") {
+      let prevName = this.activeRing.activeCell?.name ;
+      let newName = cell?.name ; 
+      let cutCopySet = new Set(["Cut", "Copy"]);
+      let leavingCutCopy = cutCopySet.has(prevName) && !cutCopySet.has(newName);
+      let enteringCutCopy = cutCopySet.has(newName) && !cutCopySet.has(prevName);
+      // if (leavingCutCopy) delay(1, async () => await _podPb_.commit());
+      // else if (enteringCutCopy) _podPb_.clear();
+    }
 
     this.checkEditing() ;
     let ring = this.activeRing;
@@ -1022,7 +1026,6 @@ class Menu {
     // then moves ths panel's header to pointer location (this.op.e)
     let panel = panels[cell.name + "Panel"]?.get(cell);
     if (!panel) return;
-    
     if (panel.elm.style.visibility != "visible") {
        this.op.launched = performance.now() ;
        panel.show();
