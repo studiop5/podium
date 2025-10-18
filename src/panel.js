@@ -43,12 +43,11 @@ import {
   TabView,
   toast,
 } from "./common.js";
-import { Score } from "./score.js";
-import { Layout } from "./layout.js";
 import { FileSrc, FileListView, FileSystemView, LocalFileView } from "./file.js";
-import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
+import { Layout } from "./layout.js";
+import { Score } from "./score.js";
 import { smuflTable } from "./smufl.js";
-import { podiumDb } from "./idb.js" ; // rem grd
+import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
 export { panels };
 
 // -skip
@@ -224,7 +223,6 @@ class Panel {
        innerHeight  - this.header.offsetHeight + this.panel.offsetHeight / 2) + "px" ;
    }) ;
   }
-
 
   setIcon(svgPath) {
     let newIcon = helm(
@@ -540,13 +538,6 @@ class OpenPanel extends FilePanel {
         tab.view.select(this.tabView, tab);
       };
     }
-  }
-}
-
-class BindPanel extends OpenPanel {
-  constructor(cell) {
-    super(cell);
-    this.mode = "bind";
   }
 }
 
@@ -1874,10 +1865,10 @@ class PrintPanel extends Panel {
 
 }
 
-class StashPanel extends Panel {
-///
+class PastePanel extends Panel {
+
   static css = css(
-    "StashPanel", 
+    "PasteBufferPanel", 
     `
     .smufl {
       font-family: Bravura;
@@ -1897,35 +1888,29 @@ class StashPanel extends Panel {
 
   content = helm(`
      <div data-tag="body" class="Panel__body">
-       Stashed Pages:<br>
-       <div data-tag="ranges" style="line-height: 1.5em;margin-top:.5em;"></div>
+       Selected Pages:<br><div data-tag="ranges" style="line-height: 1.5em;margin-top:.5em;"></div>
+       From:<br><div data-tag="from"></div>
        <div data-tag="buttons" style="border-top:1px solid #aaa;"></div>
      </div>
    `);
 
-
-
   constructor(cell) {
     super(cell);
+
     this.body.replaceWith(this.content);
     Object.assign(this, dataIndex("tag", this.content));
-    this.ranges.innerHTML = this.pageRangeString(cell.stash.pns) ;
-
     let buttons = new ButtonGroup({}, {
-        Clear: { svg: "Cancel", onOff:true },
-        Undo: { svg: "Undo", onOff:true },
-        Export: { svg: "Paste", onOff:true },
+      Clear: { svg: "Cancel", onOff:true },
+      Undo: { svg: "Undo", onOff:true },
+      Commit: { svg: "Paste", onOff:true },
       },
       async (e, tag, value) => {
-        if(value == "Export") {
-          let pdfData = await Score.activeScore.toPdf( "stamp", false, cell.stash.pns) ;
-          await podiumDb.put(pdfData) ;
-///
-          toast("Pages exported") ;
-          delay(8, () => this.hide()) ; // nice to hide panel after export.
+        if(value == "Commit") {
+          // await pasteBuffer.commit() ;
+          toast("Pages committed") ;
         }
-        else if(value == "Clear") cell.stash.pns = [] ;
-        else if(value == "Undo") cell.stash.pns.pop() ;
+        else if(value == "Clear") _podPb_.clear() ;
+        else if(value == "Undo") _PodPb_.pop() ;
         // we're making the buttons look like on-off buttons that are on while working, but off
         // when done...so now turn the activated button off by deleting its corresponding buttons.props
         delay(5, () => { delete buttons.props[value] ; buttons.refresh() ;}) ;
@@ -1933,17 +1918,20 @@ class StashPanel extends Panel {
       }
     ) ;
     buttons.elm.style.borderTop = ".02em solid #aaa" ;   
-    buttons.defs.Export.disabled = buttons.defs.Undo.disabled = buttons.defs.Clear.disabled = cell.stash.pns.length == 0 ;
     this.buttons.replaceWith(buttons.elm) ;
 
-    listen(_body_, ["PnStashChanged"], (e) => {
-      buttons.defs.Export.disabled = buttons.defs.Undo.disabled = buttons.defs.Clear.disabled = cell.stash.pns.length == 0 ;
-      this.ranges.innerHTML = this.pageRangeString(cell.stash.pns) ;       
+    listen(_body_, "PasteBufferChanged", (e) => {
+      this.ranges.innerHTML = this.pageRangeString(e.detail.pns) ;
+      this.from.innerText = `${e.detail.score} (${e.detail.podId})` ;
     })
+
+    // Find out if another Podium instance "owns" paste buffer. If so,
+    // it will signal back, and we'll get the PasteBufferChanged custom event.
+   _podPb_.signal("pod-has-pgs");
   }
 
-  pageRangeString(pageNumbers) 
-  {
+  pageRangeString(pageNumbers) {
+
     let formatter = (pn) => {
       let str = pnToString(pn, true); // Get the pure text
       let result = '';
@@ -1961,9 +1949,8 @@ class StashPanel extends Panel {
     let ranges = [], start = sorted[0], end = sorted[0];
 
     for (let i = 1; i < sorted.length; i++) {
-      if (sorted[i] == end + 1) {
-        end = sorted[i];
-      } else {
+      if (sorted[i] == end + 1) end = sorted[i];
+      else {
         ranges.push(start == end ? formatter(start) : `${formatter(start)}\u2013${formatter(end)}`); // 2013=en-dash, *not* em-dash!
         start = sorted[i];
         end = sorted[i];
@@ -1973,10 +1960,18 @@ class StashPanel extends Panel {
     return ranges.join(', ');
   }
 
+  show() {
+    super.show() ;
+//    this.from.innerText = _tId_ + " " + Score.activeScore.name ;
+  } 
+
+/*
+  update(pns, name) {
+    this.ranges.innerHTML = this.pageRangeString(pns) ;
+    this.from.innerText = name ;
+  } */
 
 }
-
-
 
 class StopwatchPanel extends Panel {
   content = helm(
@@ -2034,7 +2029,6 @@ let panels = {
   // lowercase. ex: GridPanel -> grid: instance
   Panel,
   AddPanel,
-  BindPanel,
   BookPanel,
   ClockPanel,
   CopyPanel,
@@ -2046,6 +2040,7 @@ let panels = {
   NewPanel,
   NumbersPanel,
   OpenPanel,
+  PastePanel,
   PencilPanel,
   PenPanel,
   PianoPanel,
@@ -2053,7 +2048,6 @@ let panels = {
   RastrumPanel,
   ReviewPanel,
   SavePanel,
-  StashPanel,
   StopwatchPanel,
   TextPanel,
   SymbolsPanel,

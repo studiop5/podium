@@ -21,10 +21,9 @@
 **/
 
 import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, getBox,   helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, unlisten,} from "./common.js";
+import { panels } from "./panel.js";
 import { Pg, Score } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
-import { podiumDb } from "./idb.js" ; // rem grd
-import { panels } from "./panel.js";
 // -skip
 
 let randomColor;
@@ -179,6 +178,7 @@ class Layout {
   }
 
   pnStash = _menu_.rings.page.cells.numbers.stash;
+  pastePanel = panels.PastePanel.get(_menu_.rings.page.cells.paste) ;
   margin = 12; // in px: initial margin between layout and viewport
 
   constructor(score, cell) {
@@ -271,21 +271,32 @@ class Layout {
         // animate the cut/copy page by simulating moving the pasteCell.pg to the paste cell
         let srcBox = getBox(elm);
         let dstBox = getBox(dataIndex("tag", _menu_.rings.page.cells.paste.elm).cellIcon);
-        let pasteElm = (layoutKey == "table" && pasteCell.pg.thumbElm) || pasteCell.pg.elm;
-        let cssText = pasteElm.style.cssText ;
-        _body_.append(pasteElm);
-        animate(pasteElm, 
+        let cssText = elm.style.cssText ;
+        _body_.append(elm) ;
+        animate(elm, 
          { left: srcBox.x + "px", top: srcBox.y + "px", zIndex:100 },
          { left: dstBox.x + dstBox.width / 2 + "px", top: dstBox.y +dstBox.height / 2 +  "px", fontSize: 0 },
           `all ${_gs_}s`,
            () => {
-             pasteElm.remove() ;
-            pasteElm.style.cssText = cssText ;
+             elm.remove() ;
+             elm.style.cssText = cssText ;
         });
       };
 
       switch (pageKey) {
         case "cut": {
+          // When last pg of score is cut, and its active, pnStash.pn will be invalid: so fix it:
+         if (this.pnStash.pn && pn == score.pgs.length) this.pnStash.pn = Math.max(this.pnStash.pn--, 1);
+         let cutPg = score.pgCut(pn) ;
+         animateToPaste(layoutKey == "table" && cutPg.thumbElm || cutPg.elm) ;
+         await _podPb_.addPg(cutPg) ;
+         _menu_.enableCells("page/paste", true);
+         await this.build(false);
+         await this.pgGoTo(this.pnStash.pn) ;
+         break;
+        }
+
+        case "cutOrig": {
           // When last pg of score is cut, and its active, pnStash.pn will be invalid: so fix it:
           if (this.pnStash.pn && pn == score.pgs.length) this.pnStash.pn = Math.max(this.pnStash.pn--, 1);
           if (pasteCell.pg) pasteCell.pg.deflate(true);
@@ -297,7 +308,35 @@ class Layout {
           await this.pgGoTo(this.pnStash.pn) ;
           break;
         }
-        case "copy": {
+
+        case "copy": { 
+          let elm = layoutKey == "table" && pg.thumbElm || pg.elm;
+          let clone = await pg.clone(true) ;
+          let cloneElm = layoutKey == "table" && clone.thumbElm || clone.elm ;
+
+          cloneElm.style.cssText = elm.style.cssText ; 
+
+          if (clone.canvas && pg.canvas) {
+             // need to resize fabric's components to match 
+             clone.canvas.lowerCanvasEl.style.width = pg.canvas.lowerCanvasEl.style.width ;
+             clone.canvas.upperCanvasEl.style.width = pg.canvas.upperCanvasEl.style.width ;
+             clone.canvas.lowerCanvasEl.style.height = pg.canvas.lowerCanvasEl.style.height ;
+             clone.canvas.upperCanvasEl.style.height = pg.canvas.upperCanvasEl.style.height ;
+             if(clone.mozCanvas) {
+               clone.mozCanvas.style.height = elm.style.height ;
+               clone.mozCanvas.style.width = elm.style.width ;
+             }
+          } 
+
+          elm.parentElement.append(cloneElm);
+          animateToPaste(cloneElm) ;
+
+          _podPb_.addPg(clone, pg) ; // when adding a clone, we need to pass the original pg
+          _menu_.enableCells("page/paste", true);
+          break ;
+        }
+
+        case "copyOrig": {
           if (pasteCell.pg) pasteCell.pg.deflate(true);
           pasteCell.pg = await pg.clone(true);
           let elm = (layoutKey == "table" && pg.thumbElm) || pg.elm;
@@ -305,7 +344,35 @@ class Layout {
           _menu_.enableCells("page/paste", true);
           break;
         }
-        case "paste": {
+
+
+        case "paste": { 
+          localStorage.setItem('podium-pasteBuffer-paste-requested', Date.now()) ;
+          await delay(100, () => {}) ; // rem grd...maybe to long
+
+          let bufData = await _podPb_.get('pages');
+          if (!bufData?.data?.pdfData) {
+            console.error("No _podPb_ data found");
+            break;
+         }
+         await Score.activeScore.bindScore(bufData.data.pdfData, pn);
+         _body_.dispatchEvent(new CustomEvent("PgsChanged"));
+
+/*
+          // We animate the pasted page's opacity 0 -> 1
+          Object.assign(pastedPg.thumbElm?.style || pastedPg.elm.style, { opacity: 0 });
+          pasteCell.pg = await pasteCell.pg.clone(true);
+*/
+          this.pnStash.pn = 0; // No active pg for build:
+          await this.build(false);
+          await this.pgGoTo(pn); // Make pasted page active
+ //          animate(pastedPg.thumbElm || pastedPg.elm, null, { opacity: 1 }, `opacity cubic-bezier( 0.99, 0.05, 0.82, 0.35 ) ${_gs_}s`);
+          break;
+        }
+
+
+
+        case "pasteOrig": {
           let pastedPg = score.pgAdd(pasteCell.pg, pn);
           // We animate the pasted page's opacity 0 -> 1
           Object.assign(pastedPg.thumbElm?.style || pastedPg.elm.style, { opacity: 0 });
@@ -316,6 +383,9 @@ class Layout {
           animate(pastedPg.thumbElm || pastedPg.elm, null, { opacity: 1 }, `opacity cubic-bezier( 0.99, 0.05, 0.82, 0.35 ) ${_gs_}s`);
           break;
         }
+
+
+
         case "add": {
           let stash = _menu_.rings.page.cells.add.stash;
           let alpha = parseInt(stash.alpha * 255).toString(16);

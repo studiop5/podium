@@ -1527,12 +1527,7 @@ class LocalFileView {
         // visitUpdate is used as 2nd argument to Score.visit. In it, we set created: to 0,
         // because browser api doesn't give us a creation date on the file object
         let visitUpdate = { size: file.size, created: 0, modified: file.lastModified };
-        if (this.mode == "bind") {
-          await Score.activeScore.bindScore(await file.arrayBuffer());
-          Score.visit(Score.activeScore, visitUpdate) ;
-          toast("File opened");
-        }
-        else if (this.mode == "copy") {
+        if (this.mode == "copy") {
           await _menu_.setPasteObj(await bytesToBase64DataUrl(await file.arrayBuffer(), file.type), file.type) ;
           Score.visit({ source:Score.sources.local, name:file.name, path:"n/a"}, visitUpdate) ;
           toast("File opened");
@@ -1876,10 +1871,7 @@ class FileListView {
         let src = FileSrc.get(source);
         let { path, name, data, size, created, modified } = await src.getFile(requestedPath, requestedName);
         let visitUpdate = { path, size, created, modified };
-        if (this.mode == "bind") {
-          await Score.activeScore.bindScore(data);
-          Score.visit(Score.activeScore, visitUpdate);
-        } else if (this.panel.mode == "copy") {
+        if (this.panel.mode == "copy") {
           let ext = this.acceptExt(requestedName);
           if (ext) {
             _menu_.setPasteObj(await bytesToBase64DataUrl(data, this.mimeTypes[ext]), this.mimeTypes[ext]);
