@@ -1889,7 +1889,7 @@ class PastePanel extends Panel {
   content = helm(`
      <div data-tag="body" class="Panel__body">
        Selected Pages:<br><div data-tag="ranges" style="line-height: 1.5em;margin-top:.5em;"></div>
-       From:<br><div data-tag="from"></div>
+       <div data-tag="from"></div>
        <div data-tag="buttons" style="border-top:1px solid #aaa;"></div>
      </div>
    `);
@@ -1900,19 +1900,14 @@ class PastePanel extends Panel {
     this.body.replaceWith(this.content);
     Object.assign(this, dataIndex("tag", this.content));
     let buttons = new ButtonGroup({}, {
-      Clear: { svg: "Cancel", onOff:true },
       Undo: { svg: "Undo", onOff:true },
-      Commit: { svg: "Paste", onOff:true },
+      Clear: { svg: "Cancel", onOff:true },
       },
       async (e, tag, value) => {
-        if(value == "Commit") {
-          // await pasteBuffer.commit() ;
-          toast("Pages committed") ;
-        }
-        else if(value == "Clear") _podPb_.clear() ;
-        else if(value == "Undo") _PodPb_.pop() ;
-        // we're making the buttons look like on-off buttons that are on while working, but off
-        // when done...so now turn the activated button off by deleting its corresponding buttons.props
+        if(value == "Clear") _podPb_.pgClear() ;
+        else if(value == "Undo") _podPb_.pgPop() ;
+        // We're making the buttons look like on-off buttons, but this is not actually implemented.
+        // However we can simulated turning it off button off by deleting its corresponding buttons.props
         delay(5, () => { delete buttons.props[value] ; buttons.refresh() ;}) ;
         _body_.dispatchEvent(new CustomEvent("PnStashChanged")) ;
       }
@@ -1922,7 +1917,17 @@ class PastePanel extends Panel {
 
     listen(_body_, "PasteBufferChanged", (e) => {
       this.ranges.innerHTML = this.pageRangeString(e.detail.pns) ;
-      this.from.innerText = `${e.detail.score} (${e.detail.podId})` ;
+
+      if(e.detail.pns.length > 0) {
+         this.from.innerHTML = `From:<br>${e.detail.score}${e.detail.podId == _podId_ ? "" : " (" + e.detail.podId + ")"}` ;
+         buttons.elm.style.display = "flex" ;
+      }
+
+      else {
+        this.from.innerHTML = "" ;
+        buttons.elm.style.display = "none" ;
+      }
+
     })
 
     // Find out if another Podium instance "owns" paste buffer. If so,
@@ -1959,17 +1964,6 @@ class PastePanel extends Panel {
     ranges.push(start == end ? formatter(start) : `${formatter(start)}\u2013${formatter(end)}`);
     return ranges.join(', ');
   }
-
-  show() {
-    super.show() ;
-//    this.from.innerText = _tId_ + " " + Score.activeScore.name ;
-  } 
-
-/*
-  update(pns, name) {
-    this.ranges.innerHTML = this.pageRangeString(pns) ;
-    this.from.innerText = name ;
-  } */
 
 }
 

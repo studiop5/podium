@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, getBox,   helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, unlisten,} from "./common.js";
+import { sleep, animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, getBox,   helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, unlisten,} from "./common.js";
 import { panels } from "./panel.js";
 import { Pg, Score } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
@@ -288,25 +288,13 @@ class Layout {
           // When last pg of score is cut, and its active, pnStash.pn will be invalid: so fix it:
          if (this.pnStash.pn && pn == score.pgs.length) this.pnStash.pn = Math.max(this.pnStash.pn--, 1);
          let cutPg = score.pgCut(pn) ;
-         animateToPaste(layoutKey == "table" && cutPg.thumbElm || cutPg.elm) ;
-         await _podPb_.addPg(cutPg) ;
+         if(await _podPb_.pgAdd(cutPg))
+           animateToPaste(layoutKey == "table" && cutPg.thumbElm || cutPg.elm) ;
+
          _menu_.enableCells("page/paste", true);
          await this.build(false);
          await this.pgGoTo(this.pnStash.pn) ;
          break;
-        }
-
-        case "cutOrig": {
-          // When last pg of score is cut, and its active, pnStash.pn will be invalid: so fix it:
-          if (this.pnStash.pn && pn == score.pgs.length) this.pnStash.pn = Math.max(this.pnStash.pn--, 1);
-          if (pasteCell.pg) pasteCell.pg.deflate(true);
-          pasteCell.pg = score.pgCut(pn);
-          let elm = (layoutKey == "table" && pasteCell.pg.thumbElm) || pasteCell.pg.elm;
-          animateToPaste(elm);
-          _menu_.enableCells("page/paste", true);
-          await this.build(false);
-          await this.pgGoTo(this.pnStash.pn) ;
-          break;
         }
 
         case "copy": { 
@@ -331,60 +319,20 @@ class Layout {
           elm.parentElement.append(cloneElm);
           animateToPaste(cloneElm) ;
 
-          _podPb_.addPg(clone, pg) ; // when adding a clone, we need to pass the original pg
+          await _podPb_.pgAdd(clone, pg) ; // note: when adding a cloned pg, we need to pass the original pg
           _menu_.enableCells("page/paste", true);
           break ;
         }
 
-        case "copyOrig": {
-          if (pasteCell.pg) pasteCell.pg.deflate(true);
-          pasteCell.pg = await pg.clone(true);
-          let elm = (layoutKey == "table" && pg.thumbElm) || pg.elm;
-          animateToPaste(elm);
-          _menu_.enableCells("page/paste", true);
-          break;
-        }
-
-
         case "paste": { 
-          localStorage.setItem('podium-pasteBuffer-paste-requested', Date.now()) ;
-          await delay(100, () => {}) ; // rem grd...maybe to long
-
-          let bufData = await _podPb_.get('pages');
-          if (!bufData?.data?.pdfData) {
-            console.error("No _podPb_ data found");
-            break;
-         }
-         await Score.activeScore.bindScore(bufData.data.pdfData, pn);
-         _body_.dispatchEvent(new CustomEvent("PgsChanged"));
-
-/*
-          // We animate the pasted page's opacity 0 -> 1
-          Object.assign(pastedPg.thumbElm?.style || pastedPg.elm.style, { opacity: 0 });
-          pasteCell.pg = await pasteCell.pg.clone(true);
-*/
+          _shade_.show("Pasting...") ;
+          await _podPb_.pgPaste(pn) ;
           this.pnStash.pn = 0; // No active pg for build:
           await this.build(false);
           await this.pgGoTo(pn); // Make pasted page active
- //          animate(pastedPg.thumbElm || pastedPg.elm, null, { opacity: 1 }, `opacity cubic-bezier( 0.99, 0.05, 0.82, 0.35 ) ${_gs_}s`);
+          _shade_.hide() ;
           break;
         }
-
-
-
-        case "pasteOrig": {
-          let pastedPg = score.pgAdd(pasteCell.pg, pn);
-          // We animate the pasted page's opacity 0 -> 1
-          Object.assign(pastedPg.thumbElm?.style || pastedPg.elm.style, { opacity: 0 });
-          pasteCell.pg = await pasteCell.pg.clone(true);
-          this.pnStash.pn = 0; // No active pg for build:
-          await this.build(false);
-          await this.pgGoTo(pn); // Make pasted page active
-          animate(pastedPg.thumbElm || pastedPg.elm, null, { opacity: 1 }, `opacity cubic-bezier( 0.99, 0.05, 0.82, 0.35 ) ${_gs_}s`);
-          break;
-        }
-
-
 
         case "add": {
           let stash = _menu_.rings.page.cells.add.stash;
