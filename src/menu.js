@@ -365,7 +365,7 @@ class Menu {
          // Several panels need to close when the Score closes, otherwise they will have stale state.
          if(panel.cell && ["Details", "Save", "Paste", "Print"].includes(panel.cell.name)) panel.close() ;
       }
-      _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print", "score/bind"], false);
+      _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"], false);
     });
 
 
@@ -946,6 +946,7 @@ class Menu {
     // Special cases:
     //  -  if currently editing a fabric text object, exit text editing
     //  -  when the ink/transform cell activates/deactivates, must call Score's setTransformable method
+/*
     if(this.activeRing.name == "Page") {
       let prevName = this.activeRing.activeCell?.name ;
       let newName = cell?.name ; 
@@ -955,7 +956,7 @@ class Menu {
       // if (leavingCutCopy) delay(1, async () => await _podPb_.commit());
       // else if (enteringCutCopy) _podPb_.clear();
     }
-
+*/
     this.checkEditing() ;
     let ring = this.activeRing;
 

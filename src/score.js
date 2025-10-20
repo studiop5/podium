@@ -20,11 +20,13 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-export { Grid, Pg, Score };
 import { clamp, delay, fontUnmap, helm, inflate, rotatePoint } from "./common.js";
+import { Grid } from "./canvas.js";
 import { Layout } from "./layout.js";
 import { panels } from "./panel.js";
-import { Grid } from "./canvas.js";
+export { Grid, Pg, Score };
+
+
 
 
 // -skip
@@ -857,9 +859,10 @@ class Score {
     // @name identifies the file name of the data source (not including path)
     // @pdfData bytearray containing pdf file, or null for new scores. 
 
-    document.title = `Podium ${name ? name.replace(/\.pdf/i, ""):"*"} (${_podId_})`;
     // Note: new, locally created files won't have any pdfData: it will be null or undefined
+    await _podPb_.commit() ; // commit any locally uncommitted pages before replacing active score
     Object.assign(this, { source, path, name });
+    document.title = `Podium ${name ? name.replace(/\.pdf/i, ""):"*"} (${_podId_})`;
     Score.activeScore = this;
     this.quality = _menu_.rings.score.cells.details.stash.quality ?? this.quality;
 
@@ -965,11 +968,6 @@ class Score {
         menu: _menu_.stashToJsonObj(),
       };
       let pLibPg;
-      /*
-      let from = Math.max(1, startPg) ;
-      let to = endPg ? Math.min(endPg, this.pgs.length) : this.pgs.length ;
-      for (let i = from, j = 0 ; i <= to; i++, j++) {
-      */
       pns = pns || Array.from({length: this.pgs.length}, (_, i) => i + 1);
       for(let j = 0 ; j < pns.length; j++) {
         let pn = pns[j] ; // 1-based

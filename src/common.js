@@ -47,6 +47,7 @@ export {
   pnToString,
   rotatePoint,
   ptrMsg,
+  sleep,
   Spot,
   unlisten,
   strToHash,
@@ -973,6 +974,17 @@ class Shade {
 }
 
 window._shade_ = new Shade();
+
+
+async function sleep(ms) {
+  // sleep for (at least) ms
+  let until = performance.now() + ms;
+  return new Promise((resolve) => {
+    let run = () => performance.now() >= until ? resolve() : requestAnimationFrame(run) ;
+    requestAnimationFrame(run);
+  })
+}
+
 
 /**
 class SliderGroup
