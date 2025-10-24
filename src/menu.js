@@ -535,12 +535,12 @@ class Menu {
           svgPath: iconPaths["Numbers"],
           stash: { pn: 1, first: 1, prelim: 0, bookmarks: {}, forward: "Pages", reverse: "Pages" },
         },
-
         add: {
           name: "Add",
           svgPath: iconPaths["New Page"],
           stash: { rgb: "#ffffff", alpha: 1.0, type: "Blank" },
         },
+        delete: { name: "Delete", svgPath: iconPaths["Delete Page"] },
         cut: { name: "Cut", svgPath: iconPaths["Cut Page"] },
         copy: { name: "Copy", svgPath: iconPaths["Copy Page"] },
         paste: { name: "Paste", svgPath: iconPaths["Paste Page"] },
@@ -613,7 +613,7 @@ class Menu {
     paths = Object.keys(rings.more.cells).map((path) => `more/${path}/`) ;
     this.listen(paths.map((path) => path + "out"),  (cell) => this.openPanel(cell)) ;
 
-    // more cells have no functionality except their panels, so allow .../up to open the panel
+    // more ring's cells have no functionality except their panels, so allow .../up to open the panel
    this.listen("more/metronome/up", (cell) => panels.MetronomePanel.get(cell).show().setPosition(this.grip)) ;
    this.listen("more/stopwatch/up", (cell) => panels.StopwatchPanel.get(cell).show().setPosition(this.grip)) ;
    this.listen("more/clock/up", (cell) => panels.ClockPanel.get(cell).show().setPosition(this.grip)) ;
@@ -938,6 +938,9 @@ class Menu {
     if(Score.activeScore) Score.activeScore.setEditable(ring.key == "ink" && ring.activeCell) ;
   }
 
+
+  autoOff = new Schedule(5000, () => this.activateCell(null)) ;
+
   activateCell(cell) {
     // Overlay a div onto given cell of active ring visually mark it as active.
     // Call with cell = null to deactivate active cell (if any) on the active ring
@@ -946,17 +949,6 @@ class Menu {
     // Special cases:
     //  -  if currently editing a fabric text object, exit text editing
     //  -  when the ink/transform cell activates/deactivates, must call Score's setTransformable method
-/*
-    if(this.activeRing.name == "Page") {
-      let prevName = this.activeRing.activeCell?.name ;
-      let newName = cell?.name ; 
-      let cutCopySet = new Set(["Cut", "Copy"]);
-      let leavingCutCopy = cutCopySet.has(prevName) && !cutCopySet.has(newName);
-      let enteringCutCopy = cutCopySet.has(newName) && !cutCopySet.has(prevName);
-      // if (leavingCutCopy) delay(1, async () => await _podPb_.commit());
-      // else if (enteringCutCopy) _podPb_.clear();
-    }
-*/
     this.checkEditing() ;
     let ring = this.activeRing;
 
@@ -971,6 +963,10 @@ class Menu {
       cell.elm.classList.add("Menu__cell-active");
       ring.activeCell = cell;
       ring.stash.active = cell.key;
+
+      if((ring.key == "page" && cell.key != "numbers") || ring.key == "ink")
+         this.autoOff.run() ;
+
     } else ring.activeCell = null;
 
     if(Score.activeScore && ring.key == "ink") {
@@ -1334,7 +1330,7 @@ class Menu {
               canvas.requestRenderAll();
 
               if(clone.type == "image") {
-                // image need special race condition workaround:
+                // images need special race condition workaround:
                 canvas.selection = false ;
                 let onMove = (opt) => {
                   clone.set({ left: opt.pointer.x, top: opt.pointer.y });

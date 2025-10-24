@@ -74,6 +74,7 @@ class Pg {
 
     this.background = background;
     this.canvas = null; // fabricjs canvas
+    this.isCut = false ; // marker for pgs that are "cut" in the gui
     this.deferred = false; // true while pdf rendering deferred for non-blocking
     this.editable = false;
     this.elm = null; // shortcut for this.canvas.wrapperEl: the base element of the fabric canvas dom
@@ -102,7 +103,7 @@ class Pg {
     // canvas). The code could have rendered the pdf directly into
     // the fabricjs as a fabric "background image", but that route
     // was found to have poorer resolution that using a decicated
-    // dom canvas.
+    // dom canvas, sigh.
     let mozPg = await this.score.mozDoc.getPage(this.mozPn);
     let viewport = mozPg.getViewport({ scale: this.score.quality });
     let w = viewport.width / this.score.quality;
@@ -364,6 +365,16 @@ class Pg {
     if (this.inflated) {
       this.canvas.upperCanvasEl.style.pointerEvents = bool ? "auto" : "none";
     }
+  }
+
+  setCut(bool) {
+    // Mark this pg as "cut". Its otherwise a perfectly normal pg, but will
+    // be removed from the score on a subsequent "paste" operation.
+    this.isCut = bool ;
+    if(this.elm) 
+      this.elm.style.filter = bool? "brightness(75%) blur(3px)" : "none" ;
+    if(this.thumbElm)
+      this.thumbElm.style.filter = bool? "brightness(75%) blur(3px)" : "none" ;
   }
 
   setZoom(zoom) {
@@ -1006,78 +1017,6 @@ class Score {
     }
   }
 
-
-  async toPdfOrig(ink = "stamp", doc = false, startPg=1, endPg = null) {
-    // Use PDFLib to create PDF representation of this score.
-    // @ink === none, skip fabric objects entirely (even as attachment??)
-    //      === "stamp" add fabric object as stamp annotation
-    //      === "pdf" add fabric object as pdf object
-    // @doc if true, the PDF-LIB doc object is returned, otherwise the
-    //    pdf bytes that it produces is returned.
-    try {
-      // When shade is cancelled, set cancelPdf. This will interrupt lib-pdf when
-      // it next calls waitForTick by calling our monkey-patched setTimeout
-      _shade_.onCancel = () => { window.cancelPdf = true ; } ;
-      let srcPLibDoc = this.mozDoc ? await PDFLib.PDFDocument.load(await this.mozDoc.getData()) : null;
-
-      // Verify the catalog was parsed correctly
-      if (srcPLibDoc && (!srcPLibDoc.catalog || typeof srcPLibDoc.catalog.Pages !== 'function')) 
-          throw new Error("PDF catalog corrupted.<br>File too large?<br>Try splitting into sections.", { cause: "fileSrc"}) 
-
-      let dstPLibDoc = await PDFLib.PDFDocument.create();
-      dstPLibDoc.registerFontkit(window.fontkit);
-      // Reset the embeddedFonts array: it prevents Pg instances from embedding same font twice.
-      this.embeddedFonts = [];
-      let now = new Date();
-  
-      let attachment = { 
-        created: this.created,
-        modified: now,
-        maxWidth: this.maxWidth,
-        maxHeight: this.maxHeight,
-        quality: this.quality,
-        pages: {},
-        menu: _menu_.stashToJsonObj(),
-      };
-      let pLibPg;
-      let from = Math.max(1, startPg) ;
-      let to = endPg ? Math.min(endPg, this.pgs.length) : this.pgs.length ;
-      for (let i = from, j = 0 ; i <= to; i++, j++) {
-        let percent = Math.trunc( (j / (to -from + 1)) * 100) ;
-        _shade_.update(`Building pages ${from}-${to} (${percent}%)`) ;
-        let pg = this.pgs[i-1];
-        // if pg is "backed" by a page in mozDoc (1-based), copy page to dstDoc, otherwise add a new "empty" page
-        if (pg.mozPn) pLibPg = dstPLibDoc.addPage((await dstPLibDoc.copyPages(srcPLibDoc, [pg.mozPn-1]))[0]);
-        else pLibPg = dstPLibDoc.addPage([this.maxWidth, this.maxHeight]);
-        setTimeout(_voidFunc_, 0) ;
-        // add fabric objects to the page
-        let pgJson = await pg.toPdf(ink, pLibPg);
-        attachment.pages[i] = pgJson;
-        if(window.gc) window.gc() ; 
-      }
-      // Add the pdf attachment
-      let jsonString = JSON.stringify(attachment);
-      await dstPLibDoc.attach(new TextEncoder().encode(jsonString), "podium", {
-        mimeType: "application/json",
-        description: "podium json metadata",
-        creationDate: now,
-        modificationDate: now,
-      });
-      // set pdf doc metadata
-      dstPLibDoc.setModificationDate(now);
-      dstPLibDoc.setCreationDate(now);
-      dstPLibDoc.setCreator("Podium vers." + _podiumVersion_);
-      if (doc) return dstPLibDoc;
-      _shade_.update("Generating Pdf document") ;
-      let bytes = await dstPLibDoc.save({objectsPerTick: 1000}) ;
-      _shade_.update("PDF Generated!");
-      return bytes ;   
-    } 
-    finally {
-      _shade_.onCancel = null ;
-    }
-  }
-
   async bindScore(pdfData, pn = 3) {
     // bind all pages from a given score to this score: i.e. given some score's
     // @pdfData, append all of its pages to this score.
@@ -1093,7 +1032,9 @@ class Score {
     copiedPages.forEach((page,idx) => docA.insertPage(pn + idx, page));
     let mergedPdfData = await docA.save();
 
+    // NOTE: beware, following line changes Score.activeScore and Layout.activeLayout!
     let mergedScore = await new Score().init(this.source, this.path, this.name, mergedPdfData);
+
     // Get podium attachment from docB, if any. Note that PDFLib has no "high level" api for this, so
     // its a bit involved. Code adapted from //github.com/Hopding/pdf-lib/issues/534.
     let json = null;
@@ -1175,7 +1116,7 @@ class Score {
         this.maxHeight = Math.max(pg.height, this.maxHeight);
       });
     }
-    _menu_.enableCells(["page/cut", "page/copy", "page/merge"], this.pgs.length > 0);
+    _menu_.enableCells(["page/delete", "page/cut", "page/copy", "page/merge"], this.pgs.length > 0);
   }
 
   async pgUse(pn, nonblocking=true) {

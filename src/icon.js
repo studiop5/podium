@@ -102,6 +102,15 @@ Close:
   `<g style="transform:scale(.6,.6);"><path style="translate(-2px,-2px);fill:none;stroke:currentColor;stroke-width:.3" d="M3 2h17v20.5h-17Z"/>
   <path transform=translate(4,4) style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/></g>`,
 
+ "Delete Page":
+    `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+     <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+     <rect x="8" y="8" width="8" height="8" fill="#aaa" stroke="none"/>
+     <path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.38) translate(18.5,20.5)" fill="#ccc" stroke-linecap="round" stroke="currentColor" stroke-width="0.8" d="m 13.7,7.93 -1.5,0.6 h 4.4 l 1.8,-3.2 
+  -1.2,0.5 -1.2,-1.1 c -0.3,-0.3 -0.6,-0.6 -0.8,-0.6 l -4.4,-0.3 0.9,0.9 z M 6.97,7.33 8.65,4.77 C 9.82,3.57 11.2,4.62 11.4,5 L 12,6.14 10,9.33 Z M 8.67,12.4 10,12.9 7.87,9.33 h -3.9 l 1.5,0.97 -0.9,1.8 c -0.3,0.3 -0.3,0.8
+   -0.3,1.1 l 2.1,3.9 0.3,-1.2 z m 3.03,6.1 -3.33,0.3 c -1.7,-0.6 -1.7,-2.3 -1.4,-2.6 l 0.8,-1.5 h 3.93 z m 3.2,-3.8 v -1.5 l -2.1,3.6 2.1,3.4 v -1.4 h 2 c 0.6,0 0.6,-0.3 0.9,-0.6 l 2.1,-3.8 -0.9,0.3 z m 3.8,-5.87 1.8,2.97
+   c 0.5,1.7 -0.9,2.6 -1.5,2.6 h -1.5 l -2.3,-3.8 z   M -4 -2 h 32 l -4 32 h -24 l -4 -32 l -1 -2 h34 l -1 2"/>`,
+
 Details:
   `<defs><mask id="details">
     <rect x="0" y="0" height="24" width="24" fill="white"></rect>
@@ -198,11 +207,11 @@ Local:
 "L-R":
   `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M4 12h21 M8 8l-4 4l4 4M19 8l4 4l-4 4"/>`,
 
-Merge:
-  `<text transform="rotate(0) skewX(0)" y="4" x="5" font-size="13px" font-family="Bravura">\ue1d4</text>
-  <text transform="translate(19 15) rotate(130) skewX(40)" y="0" x="0" font-size="12px" font-family="Bravura">\ue1d4</text>
-  <path stroke="currentColor" fill="#9998" stroke-width=".6" d="M4 12  L0 20 L24 20 L20 12Z">
-  <path fill="none" stroke="currentColor" stroke-width=".5" d="m8 6 l0 4">`,
+ Merge:
+  `<text transform="rotate(0) skewX(0)" y="4.8" x="5" font-size="13px" font-family="Bravura">\ue1d4</text>
+   <path stroke="currentColor" fill="#9998" stroke-width=".6" d="M4 12 L0 20 L24 20 L20 12Z"/>
+   <path fill="none" stroke="currentColor" stroke-width="0.3" d="M4 12.5 L20 12.5 M3.5 14 L20.5 14 M3 15.5 L21 15.5 M2.5 17 L21.5 17 M2 18.5 L22 18.5 M1.5 20 L22.5 20"/>
+   <text transform="translate(19 16) rotate(130) skewX(40)" y="0" x="0" font-size="12px" font-family="Bravura">\ue1d4</text>`,
 
 Metric:
   `<path stroke="currentColor" stroke-width="1.0" d="M 1 1 h22 M 1 1 v 24 M 5 1 v 6 M 9 1 v 6 M 13 1 v 6 M 17 1 v 6 M 21  1 v 12">`,
@@ -252,7 +261,10 @@ More:
 
 
 Numbers:
-  `<text y=19 x=5.5 font-size=20>#</text>`,
+  `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+   <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+   <rect x="7" y="6" width="9" height="13.5" fill="#aaa" stroke="none"/>
+   <text style="fill:currentColor;font-family:Bravura;" font-size="18" x="9" y="12.5">\uE262</text>`,
 
 OneDriveOrig:
   `<path fill="#aaa"stroke="currentColor" stroke-width="1.8"  d="M 5.94,7.85 22.4,16.4 M 18.3,9.79 C 18,10 1.44,16.7 1.44,16.7 M 18.4,9.88 C 15.5,1.7 8.84,4.65 5.9,7.77 3.34,8.38 -1.13,10.4 1.37,16.6 c 1.14,1.2 2.41,1.9 3.65,2.7 H 18.9 c 6.5,-2.6 5.2,-8.9 -0.5,-9.42 z" />`, 
