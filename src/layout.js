@@ -203,27 +203,8 @@ class Layout {
       let styles = getComputedStyle(this.elm);
       this.cell.pz = { left: styles.left, top: styles.top, fontSize: (parseFloat(styles.fontSize) / _pxPerEm_) + "em" };
     }
+for(let pg of this.score.pgs) pg.deflate() ; 
     unlisten(this.pnListener);
-    for (let pg of this.score.pgs) {
-      if (!pg.inflated) continue;
-      Object.assign(pg.elm.style, {
-        left: "unset",
-        top: "unset",
-        right: "unset",
-        bottom: "unset",
-        borderLeft: "unset",
-        borderTop: "unset",
-        borderRight: "unset",
-        borderBottom: "unset",
-      });
-      if(pg.elm.firstChild) 
-        Object.assign(pg.elm.firstChild.style, {
-          borderLeft: "unset",
-          borderTop: "unset",
-          borderRight: "unset",
-          borderBottom: "unset",
-       }) ;
-    }
     this.elm.remove();
   }
 
@@ -267,8 +248,28 @@ class Layout {
         }
       }
 
-      let animateToPaste = (elm) => {
-        // animate the cut/copy page by simulating moving the pasteCell.pg to the paste cell
+      let animateToPaste = (pg0) => {
+        // animate the given delete/copy page by simulating moving the pasteCell.pg to the paste cell
+        let elm ;
+        if(layoutKey == "table") {
+           elm = pg0.thumbElm ;
+           elm.style.cssText = pg.thumbElm.style.cssText ;
+           pg.thumbElm.parentElement.append(elm) ;
+        }
+        else {
+          elm = pg0.elm ;
+          elm.style.cssText = pg.elm.style.cssText ;
+           // need to resize fabric's components to match 
+           pg0.canvas.lowerCanvasEl.style.width = pg0.canvas.lowerCanvasEl.style.width ;
+           pg0.canvas.upperCanvasEl.style.width = pg0.canvas.upperCanvasEl.style.width ;
+           pg0.canvas.lowerCanvasEl.style.height = pg0.canvas.lowerCanvasEl.style.height ;
+           pg0.canvas.upperCanvasEl.style.height = pg0.canvas.upperCanvasEl.style.height ;
+           if(pg0.mozCanvas) {
+             pg0.mozCanvas.style.height = elm.style.height ;
+             pg0.mozCanvas.style.width = elm.style.width ;
+           }
+           pg.elm.parentElement.append(elm) ;
+        }    
         let srcBox = getBox(elm);
         let dstBox = getBox(dataIndex("tag", _menu_.rings.page.cells.paste.elm).cellIcon);
         let cssText = elm.style.cssText ;
@@ -284,57 +285,38 @@ class Layout {
       };
 
       switch (pageKey) {
-        case "cut": {
-          // When last pg of score is cut, and its active, pnStash.pn will be invalid: so fix it:
-         if (this.pnStash.pn && pn == score.pgs.length) this.pnStash.pn = Math.max(this.pnStash.pn--, 1);
-         let cutPg = score.pgCut(pn) ;
-         if(await _podPb_.pgAdd(cutPg))
-           animateToPaste(layoutKey == "table" && cutPg.thumbElm || cutPg.elm) ;
 
-         _menu_.enableCells("page/paste", true);
-         await this.build(false);
-         await this.pgGoTo(this.pnStash.pn) ;
+        case "delete": {
+          animateToPaste(pg) ;
+          _podPb_.pgDelete(pg, pn) ;
+          break ;
+        }
+
+        case "cut": {
+         // rem grd...i think this has to go into commit....or easier, if we try to go to
+         // a pg > count, just go to last pg???
+         if (this.pnStash.pn && pn == score.pgs.length) this.pnStash.pn = Math.max(this.pnStash.pn--, 1);
+         _podPb_.pgCut(pg, pn) ;
+_menu_.autoOff.run() ;
          break;
         }
 
         case "copy": { 
-          let elm = layoutKey == "table" && pg.thumbElm || pg.elm;
-          let clone = await pg.clone(true) ;
-          let cloneElm = layoutKey == "table" && clone.thumbElm || clone.elm ;
-
-          cloneElm.style.cssText = elm.style.cssText ; 
-
-          if (clone.canvas && pg.canvas) {
-             // need to resize fabric's components to match 
-             clone.canvas.lowerCanvasEl.style.width = pg.canvas.lowerCanvasEl.style.width ;
-             clone.canvas.upperCanvasEl.style.width = pg.canvas.upperCanvasEl.style.width ;
-             clone.canvas.lowerCanvasEl.style.height = pg.canvas.lowerCanvasEl.style.height ;
-             clone.canvas.upperCanvasEl.style.height = pg.canvas.upperCanvasEl.style.height ;
-             if(clone.mozCanvas) {
-               clone.mozCanvas.style.height = elm.style.height ;
-               clone.mozCanvas.style.width = elm.style.width ;
-             }
-          } 
-
-          elm.parentElement.append(cloneElm);
-          animateToPaste(cloneElm) ;
-
-          await _podPb_.pgAdd(clone, pg) ; // note: when adding a cloned pg, we need to pass the original pg
-          _menu_.enableCells("page/paste", true);
+          let clone = await _podPb_.pgCopy(pg, pn) ;
+          if(!clone) break ;
+          animateToPaste(clone) ;
           break ;
         }
 
         case "paste": { 
           _shade_.show("Pasting...") ;
           await _podPb_.pgPaste(pn) ;
-          this.pnStash.pn = 0; // No active pg for build:
-          await this.build(false);
-          await this.pgGoTo(pn); // Make pasted page active
           _shade_.hide() ;
           break;
         }
 
         case "add": {
+          // here we "fabric"ate a new pg and add it to the score
           let stash = _menu_.rings.page.cells.add.stash;
           let alpha = parseInt(stash.alpha * 255).toString(16);
           while (alpha.length < 2) alpha = "0" + alpha;
@@ -365,6 +347,7 @@ class Layout {
           this.pnStash.pn = 0; // No active pg for build:
           await this.build(false);
           await this.pgGoTo(pn);
+          _podPb_.pgAdded(pn) ; // let pg buffer know about new page!
           break;
         }
         case "merge": {
@@ -376,38 +359,25 @@ class Layout {
             });
           break;
         }
-        case "fetch": {
-          let entry = await podiumDb.get() ;
-          await this.score.bindScore(entry.data, pn)
-          break ;
-        }  
-        case "stash": {
-          // add to stash list
-          if(!pageCell.stash.pns.includes(pn)) {
-             pageCell.stash.pns.push(pn) ;
-          }
-          _body_.dispatchEvent(new CustomEvent("PnStashChanged")) ;
-          // force stashpanel to open if not already open
-          let panel = panels.StashPanel.get(pageCell);
-          if (panel.elm.style.visibility != "visible") 
-            panel.show().setPosition(_menu_.grip);
-        }
       }
 
       if (score.pgs.length == 1) {
-        // Don't allow cutting the last (and only) pg
+        // Don't allow cut/delete when only 1 pg left
         _menu_.activateCell(null);
         _menu_.enableCells("page/cut", false);
+        _menu_.enableCells("page/delete", false);
       }
 
       // update e only if there is "significant" movement, not jitter
       let mv = listen(_body_, "pointermove", emv => { if(Math.hypot(emv.movementX, emv.movementY) > 5) e = emv; }) ;
 
-      // automatic deactivation of active cell if final dwell > 1sec
+      // active cell deactivates if final dwell < 1sec
+///
+/*
       listen(_body_, "pointerup", eup => { 
         unlisten(mv) ;
-        if(eup.timeStamp - e.timeStamp > 1000) _menu_.activateCell(null) ;
-      }, { once: true}) ;
+        if(eup.timeStamp - e.timeStamp < 1000) _menu_.activateCell(null) ;
+      }, { once: true}) ; */
 
       return true;
     }
@@ -1391,7 +1361,6 @@ class ScrollLayout extends Layout {
       `left, top, font-size ${_gs_}s`) ;
 
     await this.pgGoTo(this.pnStash.pn);
-
   }
 
   async onDown(e) {

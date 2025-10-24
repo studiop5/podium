@@ -30,13 +30,8 @@ export { PasteBuffer }
 
 class PasteBuffer {
 
-  // list of podium tab id's. Assigned in a cycle, starting from end.
-  podIds = [
-    'vib', 'mar', 'xyl', 'tgl', 'cym', 'gl', 'pf', 'ti', 'la', 'so', 'fa', 'mi',
-    're', 'do', 'uke', 'bjo', 'gtr', 'hp', 'db', 'vc', 'va', 'vn', 'hpd', 'eu',
-    'crt', 'tba', 'tbn', 'tpt', 'hn', 'hca', 'rec', 'eh', 'sax', 'pic', 'bn',
-    'cl', 'ob', 'fl', 'mf', 'mp', 'ff', 'pp'] ;
-
+  // List of podium tab id's..assigned starting from end.
+  podIds = ["sf","pp","mp","mf","ff","ti","la","so","fa","mi","re","do"] ;
 
   constructor() {
     this.db = null;
@@ -54,7 +49,16 @@ class PasteBuffer {
   async init() {
     return new Promise((resolve, reject) => {
       let request = indexedDB.open(this.dbName, this.version);
+
       request.onerror = () => reject(request.error);
+
+      request.onupgradeneeded = (event) => {
+        let db = event.target.result;
+        if (!db.objectStoreNames.contains(this.storeName)) {
+          db.createObjectStore(this.storeName, { keyPath: 'id' });
+        }
+      };
+
       request.onsuccess = async () => { 
         this.db = request.result ;
         window._podPb_ = this ;
@@ -63,12 +67,8 @@ class PasteBuffer {
         // we pop the last element and use it as our _podId_. If not there
         // or empty, then "roll over the pod-ids: use last element of this.podIds
         // as our ids, and store the rest in the db.
-        let ids ;
-        let entry = await this.get("pod-ids") ;
-        if(!entry || entry.data.length == 0) ids = [...this.podIds] ;
-        else ids = entry.data ;
+        let ids = [...this.podIds] ;
         window._podId_ = ids.pop() ;
-
         // set up storage listener now that _podId_ exists
         listen(window, 'storage', async (e) => {
           let data = JSON.parse(e.newValue);
@@ -78,9 +78,20 @@ class PasteBuffer {
               await this.commit();
               break ;
     
-            case "pod-exit": // Too many tabs open: force user to close this one.
-              if(data.podId == _podId_)
-                dialog(`<em>Podium tab limit (${this.podIds.length}) exceeded.<em><br>Please close this tab.`, {}) ;
+            case "pod-id-taken": // Chosen id in use, try another one.
+              // When pod-id-taken is signalled, there must be 2 tabs for which data.podId == _podId_:
+              // 1. tab that sent the signal: it won't get the signal, tabs can't signal themself.
+              // 2. the tab trying to get an id.
+              // All other tabs besides these 2 will get the signal, but only the tab trying to get an
+              // id should process it...
+              if(data.podId != _podId_) break ; // then this is not the tab trying to get an id...
+              if(ids.length == 0) // No return from this dialog...need to enforce this.
+                dialog(`<em>Error: only ${this.podIds.length} Podium tabs can be open at the same time.<em><br>`, {}) ;
+              else {
+                window._podId_ = ids.pop() ;
+                this.signal("pod-id-check") ;
+                document.title = `Podium (${_podId_})` ;
+              }
               break ;
     
             case "pod-has-pgs": 
@@ -116,14 +127,13 @@ class PasteBuffer {
     
             case "pod-id-check": // Check if the given podId is ours...if so, tell signaller to exit...
                if(data.podId == _podId_)
-                 this.signal("pod-exit") ;
+                 this.signal("pod-id-taken") ;
                break ;
           }
         }) ;
 
-        // heck for _podId_ in use
+        // check for _podId_ in use
         this.signal("pod-id-check") ;
-        await this.put("pod-ids", ids) ;
         document.title = `Podium (${_podId_})` ;
         resolve(_podId_) ;
       }

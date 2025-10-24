@@ -46,7 +46,7 @@ import {
 import { FileSrc, FileListView, FileSystemView, LocalFileView } from "./file.js";
 import { Layout } from "./layout.js";
 import { Score } from "./score.js";
-import { smuflTable } from "./smufl.js";
+import { smuflTable, bravuraGroups, bravuraOffsets } from "./smufl.js";
 import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
 export { panels };
 
@@ -1615,7 +1615,7 @@ class SymbolsPanel extends PencilPanel {
       background-image: var(--panTexture);
       position:relative;
       font-family:Bravura;
-      height:6em;
+      height:2em;
       width:max-content;
       min-width:100%;
       margin-bottom:.2em ;
@@ -1625,15 +1625,15 @@ class SymbolsPanel extends PencilPanel {
    .SymbolsPanel__preview {
      background: unset ;
      font-size:2em ;
-     height:6em ;
+     height:4em ;
      margin: unset ;
    }
    .SymbolsPanel__symbol {
       display:inline-block;
       padding-left:.25em;
       padding-right:.25em;
-      border: .02em solid #eee;
-      border-radius: .2em ;
+//      border: .02em solid #eee;
+//      border-radius: .2em ;
    }
    .SymbolsPanel__symbol-active {
       background: ghostwhite ;
@@ -1652,7 +1652,8 @@ class SymbolsPanel extends PencilPanel {
   constructor(cell) {
     super(cell);
     this.preview.after(helm(`<div>Symbols Group:</div>`));
-    for (let group of Object.keys(smuflTable)) {
+///    for (let group of Object.keys(smuflTable)) {
+    for (let group of Object.keys(bravuraGroups)) {
       this.groups.append(
         helm(
           `<option ${
@@ -1680,9 +1681,12 @@ class SymbolsPanel extends PencilPanel {
     listen(this.groups, "change", () => {
       clearChildren(this.symbolsList);
 
-      for (let codePoint of smuflTable[this.groups.value]) {
+///      for (let codePoint of smuflTable[this.groups.value]) {
+      for (let codePoint of bravuraGroups[this.groups.value]) {
+        let offset = (bravuraOffsets[codePoint] || 0) * 20 ;
+console.log(offset) ;
         let symbol = helm(
-          `<div class="SymbolsPanel__symbol ${codePoint == cell.stash.codePoint ? "SymbolsPanel__symbol-active": "" }">{codePoint}</div>`
+          `<div style="transform: translateY(${offset}px)" class="SymbolsPanel__symbol ${codePoint == cell.stash.codePoint ? "SymbolsPanel__symbol-active": "" }">{codePoint}</div>`
         );
         symbol.textContent = `${codePoint}`;
         this.symbolsList.append(symbol);
@@ -1714,7 +1718,7 @@ class SymbolsPanel extends PencilPanel {
       Array.from(this.symbolsList.children).forEach((child) =>
         child.classList.remove("SymbolsPanel__symbol-active")
       );
-      e.target.classList.add("SymbolsPanel__symbol-active");
+      e.target.classList.add("SymbolsPanel__symbol-active"); 
       this.cell.stash.codePoint = e.target.textContent;
       _menu_.activateCell(cell);
       listen(

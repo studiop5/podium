@@ -1453,6 +1453,7 @@ class LocalFileView:
    for involing the Browser's built in load/save file interface,
    including drag/drop.
 **/
+///
 class LocalFileView {
   static css = css(
     "LocalFileView",
@@ -1473,6 +1474,9 @@ class LocalFileView {
     this.mode = panel.mode;
     this.source = Score.sources.local;
     this.src = FileSrc.get("Local");
+
+    // Check if we should auto-open picker (1-click mode)
+    let tabMode = localStorage.getItem('podium-local-tab-mode') || '2-click'
 
     if (this.mode == "save") {
       this.elm = helm(`
@@ -1508,12 +1512,16 @@ class LocalFileView {
 
     listen(this.local, "dragover", (e) => e.preventDefault());
 
-    listen(this.local, ["click", "drop", "change"], async (e) => {
+    listen(this.local, ["cancel", "click", "drop", "change"], async (e) => {
       e.preventDefault();
       let file = null;
       switch (e.type) {
         case "click":
+          localStorage.setItem('podium-local-tab-mode', '1-click');
           this.dialog.showPicker();
+          break;
+        case "cancel":
+          localStorage.setItem('podium-local-tab-mode', '2-click');
           break;
         case "drop":
           file = e.dataTransfer.items[0].getAsFile();
@@ -1544,7 +1552,16 @@ class LocalFileView {
     });
   }
 
-  async select() {}
+  async select() {
+    // The picker will "auto trigger" when tab is selected iff we're in
+    // 1-click "mode". The mode is remembered based on user's previous action.
+    let tabMode = localStorage.getItem('podium-local-tab-mode') || '2-click';
+
+    if (tabMode === '1-click' && this.mode !== 'save') {
+      // Auto-trigger picker for open mode
+      delay(5, () => this.dialog.showPicker());
+    }
+  }
 
   async putFile() {
     let score = Score.activeScore;
