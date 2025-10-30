@@ -21,7 +21,7 @@
 **/
 
 
-import { dialog, listen, sleep, toast } from "./common.js";
+import { delay, dialog, listen, sleep, toast } from "./common.js";
 import { Layout } from "./layout.js";
 import { Score } from "./score.js";
 export { PasteBuffer }
@@ -37,13 +37,9 @@ class PasteBuffer {
     this.db = null;
     this.dbName = 'Podium';
     this.storeName = 'podium';
+    this.dbKey = "pod-pb-pdf";
     this.version = 1;
-    this.pgs = [] ;
-    this.pns = [] ;
-
-
-    listen(window, "beforeunload", () => this.pns.length > 0 ? this.signal("pod-owner-closed") : null) ;
-
+    this.score = null ;
   }
 
   async init() {
@@ -74,10 +70,6 @@ class PasteBuffer {
           let data = JSON.parse(e.newValue);
           switch(e.key) { // interpret incoming signals
     
-            case "pod-commit": // bring db up-to-date
-              await this.commit();
-              break ;
-    
             case "pod-id-taken": // Chosen id in use, try another one.
               // When pod-id-taken is signalled, there must be 2 tabs for which data.podId == _podId_:
               // 1. tab that sent the signal: it won't get the signal, tabs can't signal themself.
@@ -94,27 +86,9 @@ class PasteBuffer {
               }
               break ;
     
-            case "pod-has-pgs": 
-              // Whenever a Podium instance launches, it signals "pod-has-pgs"
-              // to find out if any other instance has any pastebuffer pages,
-              // and therefore "owns" the pastebuffer.
-              // If current instance has pgs, it will signal "pod-pgs-changed"
-              // so that caller (and others) know what the current pastebuffer
-              // "owner" tab is, and its state.
-              if(this.pgs.length > 0) 
-                this.signal("pod-pgs-changed", { pns: this.pns }) ;
-              break ;
-    
-            case "pod-owner-closed": // owner tab closed: disable pastebuffer cell, clear panel
-              _menu_.enableCells("page/paste", false) ;
-              this.relay({pns: []}) ;
-              break ;
-             
-            case "pod-pgs-changed": // Another tab has modified its pgs so now "owns" the paste buffer, clear local 
-              this.pns = [] ;
-              this.pgs = [] ;
-              this.relay(data) ;
-              _menu_.enableCells("page/paste") ;
+            case "pod-pgs-changed": // Another tab has modified the pastebuffer
+              this.score = null ;
+              this.announce() ;
               break ;
     
             case "pod-pgs-clear": 
@@ -135,19 +109,16 @@ class PasteBuffer {
         // check for _podId_ in use
         this.signal("pod-id-check") ;
         document.title = `Podium (${_podId_})` ;
+        _menu_.enableCells("page/paste", (await this.getScore()).pgs.length > 0) ;
         resolve(_podId_) ;
       }
     });
   }
 
-  async del() { // don't know if/when we would call this. likely from helpmenu's reset
-    await indexedDB.deleteDatabase(this.dbName) ;
-  }
-
-  relay(data={}) {
+  announce() {
    // Create and send a PasteBufferChanged event
-   let payload = Object.assign({ podId: _podId_, pns: this.pns, score: Score.activeScore.name }, data) ;
-   _body_.dispatchEvent(new CustomEvent("PasteBufferChanged", { detail: payload})) ;
+   _body_.dispatchEvent(new CustomEvent("PasteBufferChanged")) ;
+//
   }
 
   signal(msg, data={}) {
@@ -156,120 +127,47 @@ class PasteBuffer {
     localStorage.setItem(msg, JSON.stringify(payload)) ;
   }
 
-  async pgAdd(pg, pn) {
-     // @pg the pg to add to the pasteBuffer
-     // @origPg if pg is a clone, pass in the pg it was cloned from, otherwise null.
-     // @return true if pg was added, or false (pg with same pn already added)
-     // At the beginning of very cut/copy sequence, there will be no pns.
-     // At this point, tell each of the score's pg's what their current
-     // pn is...we call this pn0. 
-     if(this.pns.length == 0) 
-       await this.clear() ; // clear committed pgs from db
-     if(this.pns.includes(pn)) return false ;
-     this.pgs.push(pg) ;
-     this.pns.push(pn) ;
-     this.relay() ;
-     this.signal("pod-pgs-changed", { pns: this.pns }) ; 
-     _menu_.enableCells("page/paste", true) ;
-     return true ;
-  }
-
-
-  async pgAdded(pn) {
-    // Not to be confused with pgAdd! This is called when a pg has been
-    // added to the score...we simply need to adjust all the pn's
-    // >= pn by 1.
-    for(let i = 0 ; i < this.pns.length ; i++) 
-      if(this.pns[i] >= pn) this.pns[i]++ ;
-    this.signal("pod-pgs-changed") ;
-    this.relay() ;
+  async getScore() { 
+    // @return Score constructed from pastebuffer pdf (if available, else new, empty Score)
+    if(this.score) return this.score ; // cached
+    let pdfData = (await this.get(this.dbKey))?.data ;
+    if(pdfData) this.score = await new Score().init("podPb",_podId_,_podId_,pdfData, false) ;
+    else this.score = new Score() ;
+    return this.score ;
   }
 
   async pgClear() {
-    if(this.pns.length == 0) return this.signal("pod-pgs-clear") ;
-    while(this.pns.length > 0) {
-      this.pgPop() ;
-      await sleep(100) ;
-    }
+    await this.clear(this.dbKey) ;    
+    this.score = null ;
+    this.signal("pod-pgs-changed") ;
+    this.announce() ;
   }
-
-  async pgCopy(pg, pn) {
-    if(pg.isCut) return toast("Page already cut") ;
-/// rem grd...fix this...check for inclusion befor cloning.
-    let clone = await pg.clone(true) ;
-    if(!(await this.pgAdd(clone, pn))) return toast("Page already in clipboard") ;
-    _menu_.enableCells("page/paste", true);
-    return clone ;
-  }
-
-
-  async pgCut(pg, pn) {
-    if(pg.isCut) return toast("Page already cut") ;
-    if(this.pns.length == 0) await this.clear() ;
-    let idx = this.pns.indexOf(pn); // If pg already in buffer (as a copy)
-    if (idx >= 0) this.pgs[idx] = pg; // replace copied clone with cut original.
-    else { // Add as new cut
-      this.pgs.push(pg);
-      this.pns.push(pn);
-    }
-    pg.setCut(true);
-    this.relay();
-    this.signal("pod-pgs-changed", { pns: this.pns });
-    _menu_.enableCells("page/paste", true);
-  }
-
-  async pgDelete(pg, pn) {
-    if(this.pns.length == 0) await this.clear();
-    // Mark which score this page came from
-    pg.srcScore = Score.activeScore;
-    this.pgs.push(pg);
-    this.pns.push(pn);
-    Score.activeScore.pgCut(pn);
-    Layout.activeLayout.build(false);
-    this.relay();
-    this.signal("pod-pgs-changed", { pns: this.pns });
+ 
+  async pgCopy(pn) {
+    let pgPdf = await Score.activeScore.toPdf("stamp", false, [pn]) ;
+    let pbScore = await this.getScore() ;
+    this.score = await pbScore.bindScore(pgPdf, pbScore.pgs.length + 1) ;
+    await this.put(this.dbKey, await this.score.toPdf()) ;
+    this.signal("pod-pgs-changed") ;
+    this.announce();
     _menu_.enableCells("page/paste", true) ;
   }
 
-  async pgPaste(pn) {
-    // Signal all tabs (including self) to commit
-    await this.commit() ;
-    this.signal("pod-commit");
-    // Poll IndexedDB until data appears (with shade + cancel)
-    _shade_.update("Waiting for clipboard data...");
-    _shade_.onCancel = () => toast("Paste cancelled") ;
-    let timeout = 10000 ; // max time to wait for commit to appear: 10 secs
-    for(let pdfData, deadline = performance.now() + timeout;;) {
-      await sleep(100);
-      if (_shade_.cancelled) return toast("Paste cancelled") ;
-      if(pdfData = (await this.get("pages"))?.data?.pdfData) {
-        await Score.activeScore.bindScore(pdfData, pn);
-        return _body_.dispatchEvent(new CustomEvent("PgsChanged")); // rem grd...do we need this???
-      }
-      if(performance.now() > deadline) 
-        return toast(`Paste failed - no clipboard data after ${timeout/1000}s`) ;
-    }
+  async pgPop() {
+    this.score = await this.getScore() ;
+    let len = this.score.pgs.length ;
+    if(len == 0) return ;
+    this.score.pgCut(len) ;
+    await this.put(this.dbKey, await this.score.toPdf()) ;
+    this.signal("pod-pgs-changed") ;
+    this.announce();
   }
 
-  pgPop() {
-    if(this.pns.length == 0) return this.signal("pod-pgs-pop", { }) ; 
-    let pn = this.pns.pop() ;
-    let pg = this.pgs.pop() ;
-    if(pg.isCut) pg.setCut(false) ;
-    else if(pg.srcScore) {
-      if(pg.srcScore === Score.activeScore) {
-        pg.srcScore = null ;
-        Score.activeScore.pgAdd(pg,pn) ;
-        Layout.activeLayout.build(false) ;
-      }
-      else toast("Can't restore delete page - score has changed") ;
-    }
-    this.relay() ;
-     this.signal("pod-pgs-changed", { pns: this.pns }) ; 
-     if(this.pns.length == 0) {
-       this.clear() ;
-       _menu_.enableCells("page/paste", false) ;
-     }
+  async pgPaste(pn) {
+    let pbScore = await this.getScore() ;
+    let pbPdf = await pbScore.toPdf() ;
+    let mergedScore = await Score.activeScore.bindScore(pbPdf, pn) ;
+    await mergedScore.activate() ;
   }
 
   // indexed database operations:
@@ -284,43 +182,8 @@ class PasteBuffer {
     });
   }
 
-  async commit() {
-    // Commit local pasteBuffer to IndexedDB
-    if((await this.get("pages"))?.data?.pdfData) return ;
-    if(this.pns.length == 0) return ;
-
-    _shade_.show("Preparing pages...");
-
-    let score = Score.activeScore ;
-
-    try {
-      // Create temporary score with pasteBuffer pages
-      let tmpScore = new Score();
-      tmpScore.mozDoc = score.mozDoc ;
-      tmpScore.pgs = this.pgs ;
-      tmpScore.maxWidth = Math.max(...this.pgs.map(p => p.width));
-      tmpScore.maxHeight = Math.max(...this.pgs.map(p => p.height));
-      // Convert to PDF
-      let pageNumbers = this.pgs.map((pg, i) => i + 1); // [1, 2, 3, ...]
-      let pdfData = await tmpScore.toPdf("stamp", false, pageNumbers);
-      // Store in IndexedDB
-      await this.put('pages', {
-        pdfData: pdfData,
-        pns: this.pns, 
-        score: score.name,
-        podId: _podId_
-      });
-      // Remove cut pgs
-      let cutPns = [] ; // first gather all cut pns
-      this.pgs.forEach((pg) => pg.isCut ? cutPns.push(score.pnOf(pg)) : null) ;
-      cutPns.sort((a, b) => b - a) ; // cut the pgs starting from hightest pn
-      cutPns.forEach((pn) => score.pgCut(pn)) ;
-      if(cutPns.length) Layout.activeLayout.build(false) ; // Update layout
-      _shade_.hide();
-     } catch (error) {
-      _shade_.hide();
-      throw error;
-    }
+  async delete() { 
+    await indexedDB.deleteDatabase(this.dbName) ;
   }
 
   async get(id) {
@@ -346,28 +209,3 @@ class PasteBuffer {
 }
 
 
-// testing:
-
-listen(document, "keydown", async (e) => {
-  if(e.key == "d") {
-    console.log("dirty: ", await _podPb_.get("pages")?.data?.pdfData) ;
-  }
-  
-  if (e.key === 'p') {
-    console.log("pgs:", _podPb_.pgs) ;
-    console.log("pns:", _podPb_.pns) ;
-    return ;
-  }
-  
-  if (e.key === 'c') {
-    _podPb_.clear() ;
-    console.log("clear pgs") ;
-    return ;
-  }
-  
-  if (e.key === 'x') {
-    _podPb_.del() ;
-    return ;
-  }
-  
-})

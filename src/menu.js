@@ -130,10 +130,21 @@ class Menu {
   );
 
   activeRing = null;
+
   collapsed = false;
   listeners = {};
   rings = {};
   scale = 1;
+
+  // The cellDeactivator (menu.cellDeactivator.run()) will deactivate the
+  // current cell in 5000 msecs (or n mseonds, if you call run(n) ;
+  // If its already scheduled, then calling it again will delay the
+  // activation further.
+  cellDeactivator = new Schedule(3500, () => {
+     if(this.inPgEvent) this.cellDeactivator.run() ;
+     else this.activateCell(null) ;
+  }) ;
+
 
   /*
      Ascii art rendering of the Menu's dom hierarchy:
@@ -303,7 +314,6 @@ class Menu {
           name: "Open",
           stash: {},
           svgPath: iconPaths["Open"], 
-
         },
         save: {
           mode: "save",
@@ -321,7 +331,7 @@ class Menu {
         },
         close: { name: "Close", svgPath: iconPaths["Close"] },
         print: { name: "Print", svgPath: iconPaths["Print"] },
-        details: { name: "Details", svgPath: iconPaths["Details"], stash: { quality: 2} },
+        details: { name: "Details", svgPath: iconPaths["Details"], stash: { quality: 2, pgFit: "Center"} },
       },
       svgPath: iconPaths["Score"],
       unredo: [], // undo/redo stack
@@ -489,7 +499,6 @@ class Menu {
         undo: {
           name: "Undo",
           svgPath: iconPaths["Undo"],
-          stash: {},
         },
         grid: {
           name: "Grid",
@@ -541,7 +550,7 @@ class Menu {
           stash: { rgb: "#ffffff", alpha: 1.0, type: "Blank" },
         },
         delete: { name: "Delete", svgPath: iconPaths["Delete Page"] },
-        cut: { name: "Cut", svgPath: iconPaths["Cut Page"] },
+        undo: { name: "Undo", svgPath: iconPaths["Undo"] },
         copy: { name: "Copy", svgPath: iconPaths["Copy Page"] },
         paste: { name: "Paste", svgPath: iconPaths["Paste Page"] },
         merge: { name: "Merge", svgPath: iconPaths["Merge"] },
@@ -557,6 +566,12 @@ class Menu {
     paths = Object.keys(rings.page.cells).map((path) => `page/${path}/`) ;
     this.listen(paths.map((path) => path + "up"), (cell) => this.activateCell(rings.page.activeCell === cell ? null :cell)) ;
     this.listen(paths.map((path) => path + "out"), (cell) =>  this.openPanel(cell)) ;
+    this.listen("page/undo/up", async () => {
+       Score.activeScore.pgUndo() ;
+       await Layout.activeLayout.build(false);
+       // await this.pgGoTo(Math.max(1, pn-1)); // rem grd, tbd
+       // animateToPaste(pg) ; rem grd...animateTo(pg, cell...)
+   })
     // numbers panel has no functionality except its panel, so allow up to open the panel
     this.listen("page/numbers/up", (cell) => panels.NumbersPanel.get(cell).show().setPosition(this.grip)) ;
 
@@ -938,9 +953,6 @@ class Menu {
     if(Score.activeScore) Score.activeScore.setEditable(ring.key == "ink" && ring.activeCell) ;
   }
 
-
-  autoOff = new Schedule(5000, () => this.activateCell(null)) ;
-
   activateCell(cell) {
     // Overlay a div onto given cell of active ring visually mark it as active.
     // Call with cell = null to deactivate active cell (if any) on the active ring
@@ -952,7 +964,7 @@ class Menu {
     this.checkEditing() ;
     let ring = this.activeRing;
 
-    // will this operation toggle the transform cell?
+    // Will this operation toggle the transform cell?
     let transformCell = this.rings.ink.cells.transform ;
     let transformToggle = (ring.activeCell !== transformCell && cell === transformCell) ||
         (ring.activeCell === transformCell && cell !== transformCell) ;
@@ -965,7 +977,7 @@ class Menu {
       ring.stash.active = cell.key;
 
       if((ring.key == "page" && cell.key != "numbers") || ring.key == "ink")
-         this.autoOff.run() ;
+         this.cellDeactivator.run() ;
 
     } else ring.activeCell = null;
 
@@ -1171,6 +1183,12 @@ class Menu {
   // the menu.
 
   async pgDownEvent(opts, pg) {
+
+    // this.cellDeactivator should not deactivate while we are "between"
+    // a pgDownEvent and a pgUpEvent, as pointer activate in this
+    // interval should keep the currently activated cell activated.
+    this.inPgEvent = true ;
+
     let canvas = pg.canvas ;
 
     let addObj = (obj) => {
@@ -1367,6 +1385,9 @@ class Menu {
       }
     }
     for (let pg of Score.activeScore.pgs) if (pg.inflated) pg.canvas.isDrawingMode = false;
+
+    this.inPgEvent = false ; // used by this.cellDeactivator
+    this.cellDeactivator.run() ; // extend activation of active cell
   }
 
   checkEditing() {

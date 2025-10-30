@@ -24,6 +24,7 @@ import {
   clamp,
   css,
   delay,
+  delayMs,
   flung,
   fontMap,
   getBox,
@@ -283,10 +284,15 @@ class Panel {
 }
 
 class AddPanel extends Panel {
+  /* the addpanel once had a "Title Page" vs "Blank Page"
+     option, but we've removed it...however we may want
+     other options in the future...in fact, it could have
+     most of "NewScore" in it */
+
   content = helm(`
      <div data-tag="body" class="Panel__body">
        Type:<br>
-       <div data-tag="type"></div>
+       <!-- <div data-tag="type"></div> -->
        <div data-tag="picker"></div>
      </div>
    `);
@@ -297,17 +303,19 @@ class AddPanel extends Panel {
     Object.assign(this, dataIndex("tag", this.content));
     let stash = cell.stash;
 
+    /*
     this.pageTypeGroup = new ButtonGroup(
       stash,
       {
         Blank: { svg: "Blank Page", radio: "type" },
-        Title: { svg: "Title Page", radio: "type" },
+        Title: { svg: "Title Page", radio: "type" }, 
       },
       null
     );
 
     this.type.replaceWith(this.pageTypeGroup.elm);
     this.pageTypeGroup.refresh();
+    */
 
     let picker = new ColorPicker(
       "Color:",
@@ -355,6 +363,19 @@ class DetailsPanel extends Panel {
 
     this.body.replaceWith(this.content);
 
+    this.fitGroup = new ButtonGroup(
+      this.cell.stash, {
+        Expand: { svg: "Blank Page", radio: "pgFit" },
+        Center: { svg: "Title Page", radio: "pgFit" }, 
+      },
+      async (e,tag,value) => {
+         console.log(tag, value) ;
+         let score = Score.activeScore;
+         score.pgFit = value ;
+         await Layout.open(_menu_.rings.layout.activeCell) ;
+      }
+    ) ;
+    
     this.qualityGroup = new SliderGroup(
       this.cell.stash,
       {
@@ -454,6 +475,8 @@ class DetailsPanel extends Panel {
           </div>`)
       );
 
+      this.content.append(helm(`<div style="text-align:center;"><br>Page Fit</div>`)) ;
+      this.content.append(this.fitGroup.elm);
       this.content.append(this.qualityGroup.elm);
 
       if (score.pdfInfo) {
@@ -1632,8 +1655,8 @@ class SymbolsPanel extends PencilPanel {
       display:inline-block;
       padding-left:.25em;
       padding-right:.25em;
-//      border: .02em solid #eee;
-//      border-radius: .2em ;
+      border: .02em solid #eee;
+      border-radius: .2em ;
    }
    .SymbolsPanel__symbol-active {
       background: ghostwhite ;
@@ -1869,31 +1892,37 @@ class PrintPanel extends Panel {
 
 }
 
+
 class PastePanel extends Panel {
 
   static css = css(
-    "PasteBufferPanel", 
-    `
-    .smufl {
-      font-family: Bravura;
-      display: inline-block;
-      transform: translateY(-.25em);
-      font-size: 1.42em;
-    } 
-    .roman {
-      font-family: 'Times New Roman';
-      display: inline-block;
-      font-weight:bold;
-      font-style: italic;
-      -webkit-text-stroke: 0.5px currentColor;
-    }
-    `
-  ) ;
+    "PastePanel", 
+     `.PastePanel__frame {
+        background-image: var(--panTexture);
+        height: auto;
+        margin-bottom: 0.2em;
+        overflow: hidden;
+        border-radius: var(--borderRadius);
+      }
+      
+      .PastePanel__sash {
+        position: relative;
+        height: auto;
+        width: max-content;
+        min-width: 100%;
+        padding: 0.8em;
+        display: flex;
+        gap: 0.8em;
+        align-items: flex-start;
+        border-radius: 0.3em;
+      }
+   `) ;
 
   content = helm(`
      <div data-tag="body" class="Panel__body">
-       Selected Pages:<br><div data-tag="ranges" style="line-height: 1.5em;margin-top:.5em;"></div>
-       <div data-tag="from"></div>
+       <div class="PastePanel__frame" data-tag="frame">
+         <div class="PastePanel__sash" data-tag="sash"></div>
+       </div>
        <div data-tag="buttons" style="border-top:1px solid #aaa;"></div>
      </div>
    `);
@@ -1903,13 +1932,29 @@ class PastePanel extends Panel {
 
     this.body.replaceWith(this.content);
     Object.assign(this, dataIndex("tag", this.content));
+
+    listen(this.sash, "pointerdown", (e) => { 
+      this.sash.setPointerCapture(e.pointerId);
+      let fs = parseFloat(getComputedStyle(this.sash).fontSize) ;
+      let offsetX = e.clientX - this.sash.offsetLeft;
+      let limit = this.sash.offsetWidth - this.frame.offsetWidth;
+      let mv = listen(this.sash, "pointermove", (emv) => {
+        let leftPx = clamp(emv.clientX - offsetX, -limit, 0) ;
+        this.sash.style.left = leftPx / fs + "em" ;
+      });
+      listen(this.sash, "pointerup", (eup) => {
+        unlisten(mv);
+      }, { once: true });
+    });
+
+
     let buttons = new ButtonGroup({}, {
       Undo: { svg: "Undo", onOff:true },
       Clear: { svg: "Cancel", onOff:true },
       },
       async (e, tag, value) => {
-        if(value == "Clear") _podPb_.pgClear() ;
-        else if(value == "Undo") _podPb_.pgPop() ;
+        if(value == "Clear") await _podPb_.pgClear() ;
+        else if(value == "Undo") await _podPb_.pgPop() ;
         // We're making the buttons look like on-off buttons, but this is not actually implemented.
         // However we can simulated turning it off button off by deleting its corresponding buttons.props
         delay(5, () => { delete buttons.props[value] ; buttons.refresh() ;}) ;
@@ -1919,54 +1964,27 @@ class PastePanel extends Panel {
     buttons.elm.style.borderTop = ".02em solid #aaa" ;   
     this.buttons.replaceWith(buttons.elm) ;
 
-    listen(_body_, "PasteBufferChanged", (e) => {
-      this.ranges.innerHTML = this.pageRangeString(e.detail.pns) ;
-
-      if(e.detail.pns.length > 0) {
-         this.from.innerHTML = `From:<br>${e.detail.score}${e.detail.podId == _podId_ ? "" : " (" + e.detail.podId + ")"}` ;
-         buttons.elm.style.display = "flex" ;
+    listen(_body_, "PasteBufferChanged", async (e) => {
+      let score = await _podPb_.getScore() ;
+      let thumbs = await Promise.all(score.pgs.map(pg => pg.getThumbElm(true)));
+      clearChildren(this.sash) ;
+      thumbs.forEach((thumb) => this.sash.append(thumb)) ;
+      this.sash.style.left = 0 ;
+      this.sash.style.transition = `left ${_gs_}s` ;
+      if(thumbs.length > 0) { 
+        let gapWidth = 0.8 * _pxPerEm_ ;
+        let sashWidth = 0.8 + (parseFloat(thumbs[0].style.width) + 0.8) * thumbs.length ;
+        let fs = parseFloat(getComputedStyle(this.sash).fontSize) ;
+        this.sash.style.left = -sashWidth + (this.frame.offsetWidth / fs) + "em";
+        delayMs(_gs_ * 1000, () => this.sash.style.transition = "unset") ;
       }
-
-      else {
-        this.from.innerHTML = "" ;
-        buttons.elm.style.display = "none" ;
-      }
-
     })
-
-    // Find out if another Podium instance "owns" paste buffer. If so,
-    // it will signal back, and we'll get the PasteBufferChanged custom event.
-   _podPb_.signal("pod-has-pgs");
   }
 
-  pageRangeString(pageNumbers) {
-
-    let formatter = (pn) => {
-      let str = pnToString(pn, true); // Get the pure text
-      let result = '';
-      for (let char of str) {
-        let code = char.charCodeAt(0);
-        // SMuFL characters typically > 0xE000 (private use area)
-        if (code >= 0xE000) result += `<span class="smufl">${char}</span>`;
-        else result += `<span class="roman">${char}</span>`;
-      }
-      return result;
-    }
-
-    if (pageNumbers.length == 0) return '<span class="smufl">\uE4E3</span>'; // whole rest
-    let sorted = [...pageNumbers].sort((a, b) => a - b);
-    let ranges = [], start = sorted[0], end = sorted[0];
-
-    for (let i = 1; i < sorted.length; i++) {
-      if (sorted[i] == end + 1) end = sorted[i];
-      else {
-        ranges.push(start == end ? formatter(start) : `${formatter(start)}\u2013${formatter(end)}`); // 2013=en-dash, *not* em-dash!
-        start = sorted[i];
-        end = sorted[i];
-      }
-    }
-    ranges.push(start == end ? formatter(start) : `${formatter(start)}\u2013${formatter(end)}`);
-    return ranges.join(', ');
+  show() {
+    super.show();
+    _podPb_.announce() ;
+    return this;
   }
 
 }

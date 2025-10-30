@@ -203,7 +203,7 @@ class Layout {
       let styles = getComputedStyle(this.elm);
       this.cell.pz = { left: styles.left, top: styles.top, fontSize: (parseFloat(styles.fontSize) / _pxPerEm_) + "em" };
     }
-for(let pg of this.score.pgs) pg.deflate() ; 
+    for(let pg of this.score.pgs) pg.deflate() ; 
     unlisten(this.pnListener);
     this.elm.remove();
   }
@@ -217,15 +217,19 @@ for(let pg of this.score.pgs) pg.deflate() ;
   async onDown(e) {
     // Subclasses should call this at the beginning of their own onDown function:
     // the convention for the mouseDown || touchDown || pointerDown event handler.
-    // If this method returns true, they should not continue processing the event.
+    // If this method returns true, they should not continue processing the event:
+    // instead, it will be processed by this method.
     // @param e event, the subclass event handler event argument
     // @return boolean, true if this method handles this event and the subclass
-    //     should not process it further.
+    //   should not process it further.
     if (e.ctrlKey || !e.isPrimary) return true;
-    // when there is an active cell in the ink ring, then we're editing a page,
+    // When there is an active cell in the ink ring, then we're editing a page,
     // so don't allow the layout code to run:
     if (_menu_.activeRing?.key == "ink" && _menu_.activeRing?.activeCell) return true;
-    if (_menu_.activeRing?.key == "page") {
+
+    if (_menu_.activeRing?.key == "page") { // Execute page ring's active cell action
+
+      _menu_.cellDeactivator.run() ;
       let pageCell = _menu_.activeRing.activeCell;
       if (!pageCell) return false;
       let pageKey = pageCell.key;
@@ -235,21 +239,22 @@ for(let pg of this.score.pgs) pg.deflate() ;
       let score = this.score;
       if (score.pgs.length == 0) pn = 1;
       else {
-        // The add/paste/fetch  ops insert before page when event is in left (or top) half of e.target,
+        // The add/paste  ops insert before page when event is in left (or top) half of e.target,
         // and after page when clicked in right (or bottom) half. We use left/right for
         // for most layouts, but VerticalLayout uses top/bottom. 
         pg = e.target.pg || e.target.closest(".canvas-container")?.pg;
         if (!pg) return true;
         pn = score.pnOf(pg);
-        if (pageKey == "add" || pageKey == "paste" || pageKey == "fetch") {
+        if (pageKey == "add" || pageKey == "paste") {
           let box = getBox(e.target);
           if (layoutKey == "vertical" && e.clientY - box.top > box.height / 2) pn++;
           else if (e.clientX - box.x > box.width / 2) pn++;
         }
       }
 
-      let animateToPaste = (pg0) => {
-        // animate the given delete/copy page by simulating moving the pasteCell.pg to the paste cell
+      let animateToCell = async (pg0, cell) => {
+        // animate the given delete/copy page by simulating moving the pasteCell.pg
+        // to the given menu cell
         let elm ;
         if(layoutKey == "table") {
            elm = pg0.thumbElm ;
@@ -271,7 +276,7 @@ for(let pg of this.score.pgs) pg.deflate() ;
            pg.elm.parentElement.append(elm) ;
         }    
         let srcBox = getBox(elm);
-        let dstBox = getBox(dataIndex("tag", _menu_.rings.page.cells.paste.elm).cellIcon);
+        let dstBox = getBox(dataIndex("tag", cell.elm).cellIcon);
         let cssText = elm.style.cssText ;
         _body_.append(elm) ;
         animate(elm, 
@@ -286,35 +291,28 @@ for(let pg of this.score.pgs) pg.deflate() ;
 
       switch (pageKey) {
 
-        case "delete": {
-          animateToPaste(pg) ;
-          _podPb_.pgDelete(pg, pn) ;
-          break ;
-        }
-
-        case "cut": {
-         // rem grd...i think this has to go into commit....or easier, if we try to go to
-         // a pg > count, just go to last pg???
-         if (this.pnStash.pn && pn == score.pgs.length) this.pnStash.pn = Math.max(this.pnStash.pn--, 1);
-         _podPb_.pgCut(pg, pn) ;
-_menu_.autoOff.run() ;
-         break;
-        }
+        // copy and paste to/from _podPb_:
 
         case "copy": { 
-          let clone = await _podPb_.pgCopy(pg, pn) ;
-          if(!clone) break ;
-          animateToPaste(clone) ;
+          _menu_.activateCell(null) ; // copy can be slow, deactivate until done
+          animateToCell(await pg.clone(true), _menu_.rings.page.cells.paste) ; // clone only used for animation
+          await _podPb_.pgCopy(pn) ;
+          _menu_.activateCell(_menu_.rings.page.cells.copy) ;
+          _menu_.cellDeactivator.run() ; // copy can be slow, so reset
           break ;
         }
 
         case "paste": { 
           _shade_.show("Pasting...") ;
+          _menu_.activateCell(null) ; // paste can be slow, deactivate until done
           await _podPb_.pgPaste(pn) ;
+          _menu_.activateCell(_menu_.rings.page.cells.paste) ;
+          _menu_.cellDeactivator.run() ; 
           _shade_.hide() ;
           break;
         }
 
+        // add, delete to/from current score
         case "add": {
           // here we "fabric"ate a new pg and add it to the score
           let stash = _menu_.rings.page.cells.add.stash;
@@ -322,34 +320,22 @@ _menu_.autoOff.run() ;
           while (alpha.length < 2) alpha = "0" + alpha;
           let pg = new Pg(score, score.maxWidth, score.maxHeight, null, null, stash.fillRgb + alpha);
           pg.inflate();
-          let top = 10;
-          if (stash.type == "Title") {
-            for (let [idx,line] of Object.entries([
-               score.name.replace(/\.pdf/i, ""), 
-               "Name: " + score.name,
-               "Created: " + new Date(score.created).toLocaleString(),
-               "Modified: " + new Date(score.modified).toLocaleString(),
-               "Pages: " + score.pgs.length,
-               "Source: " + (score.source || "n/a") ,])) {
-              let obj = new fabric.Textbox(`${line}`, {
-                fontSize: idx == 0 ? 50: 20,
-                left:10,
-                top:top,
-                textAlign: 'center',
-                width:score.maxWidth,
-              });
-              pg.canvas.add(obj);
-              top += score.maxHeight / 6;
-            }
-            pg.canvas.requestRenderAll();
-          }
           await score.pgAdd(pg, pn);
           this.pnStash.pn = 0; // No active pg for build:
           await this.build(false);
           await this.pgGoTo(pn);
-          _podPb_.pgAdded(pn) ; // let pg buffer know about new page!
           break;
         }
+
+        case "delete": {
+          animateToCell(pg, _menu_.rings.page.cells.delete) ;
+          score.pgCut(pn) ;
+          this.pnStash.pn = 0; // No active pg for build:
+          await this.build(false);
+          await this.pgGoTo(Math.max(1, pn-1));
+          break ;
+        }
+
         case "merge": {
           dialog(`Confirm: Merge all annotations on this page?<br>(cannot be undone)`, 
             { Merge: { svg: "Merge" }, Cancel: { svg: "Cancel" } },
@@ -359,26 +345,17 @@ _menu_.autoOff.run() ;
             });
           break;
         }
+
       }
 
       if (score.pgs.length == 1) {
         // Don't allow cut/delete when only 1 pg left
         _menu_.activateCell(null);
-        _menu_.enableCells("page/cut", false);
         _menu_.enableCells("page/delete", false);
       }
 
       // update e only if there is "significant" movement, not jitter
       let mv = listen(_body_, "pointermove", emv => { if(Math.hypot(emv.movementX, emv.movementY) > 5) e = emv; }) ;
-
-      // active cell deactivates if final dwell < 1sec
-///
-/*
-      listen(_body_, "pointerup", eup => { 
-        unlisten(mv) ;
-        if(eup.timeStamp - e.timeStamp < 1000) _menu_.activateCell(null) ;
-      }, { once: true}) ; */
-
       return true;
     }
     return false;
@@ -421,14 +398,13 @@ _menu_.autoOff.run() ;
     // than the score's max height/width, add a border to pad it out.
     if(pg.deferred) // reschedule the padding...
       return delay(5, () => this.pgPad(pg)) ;
-
     if (!pg.inflated || (pg.width == this.score.maxWidth && pg.height == this.score.maxHeight)) return;
-    let horz = ((this.score.maxHeight - pg.height) * pg.zoom) / 2;
-    let vert = ((this.score.maxWidth - pg.width) * pg.zoom) / 2;
+    let horz = ((this.score.maxHeight - pg.height * pg.stretch) * pg.zoom) / 2;
+    let vert = ((this.score.maxWidth - pg.width * pg.stretch) * pg.zoom) / 2;
     Object.assign(pg.elm.style, {
       borderWidth: toEm(horz) + " " + toEm(vert),
       borderStyle: "solid",
-      borderColor: pg.paddingColor || Pg.paddingColor,
+      borderColor: Pg.paddingColor,
     });
   }
 
@@ -1754,46 +1730,33 @@ class TableLayout extends Layout {
     let elm = await pg.getThumbElm(rebuild) ;
     elm.setAttribute("name", pn) ;
     elm.pg = pg ;
-    let h = (pg.height / this.score.maxHeight) * this.pgHeight;
-    let w = (pg.width / this.score.maxWidth) * this.pgWidth;
-
     Object.assign(elm.style,{
        position:"absolute",
-       height:toEm(h),
-       width:toEm(w),
+       height:toEm(this.pgHeight),
+       width:toEm(this.pgWidth),
        left:toEm(left),
        top:toEm(top),
     }) ;  
 
 
-    let hrz = (this.pgHeight - h) / 2 ; // top/bottom horizontal borders width in px
-    let vrt = (this.pgWidth - w) / 2 ; // left/right vertical borders width in px
-
-    if (pg.width != this.score.maxWidth || pg.height != this.score.maxHeight) {
-      // pad the elm 
-      Object.assign(elm.style, {
-        borderWidth: toEm(hrz) + " " + toEm(vrt),
-        borderStyle: "solid",
-        borderColor: "#eee",
-      }); 
-    }
-
     if(this.pnShow == "On") {
-      // add an page number elm (or refresh, it elm already has a page number elm) to upper left corner of elm
+      // add a page number elm (or refresh, it elm already has a page number elm) to upper left corner of elm
       let pnElm = elm.getElementsByClassName("TableLayout__pn").item(0) || helm(`<div class="TableLayout__pn"></div>`);
       pnElm.pg = pg; // Pn div is clickable
       pnElm.pn = pn; 
       Object.assign(pnElm.style, {
          background: this.bookmarks[pn] || "unset",
-         top: toEm(-hrz),
-         left: toEm(-vrt),
+         top: 0, 
+         left: 0,
       }) ;
       elm.append(pnElm) ;
       pnToDiv(pn, pnElm, false);
     }
     else
       clearChildren(elm) ;
-    if (pn == this.pnStash.pn) await this.buildPgActive(pn, elm) 
+
+    if (pn == this.pnStash.pn) 
+       await this.buildPgActive(pn, elm) 
     else this.score.pgUnuse(pg) ;
     return elm ;
   }
@@ -1810,21 +1773,9 @@ class TableLayout extends Layout {
     // now build the new active page
     let pg = await this.score.pgUse(pn, false);
     pg.elm.style.display = "block";
-    let h = (pg.height / this.score.maxHeight) * this.pgHeight;
-    let w = (pg.width / this.score.maxWidth) * this.pgWidth;
-    if (pg.width != this.score.maxWidth || pg.height != this.score.maxHeight) {
-      // short page: pad it
-      let hrz = ((this.pgHeight - h) * this.zoom) / 2; // top/bottom horizontal border width in px
-      let vrt = ((this.pgWidth - w) * this.zoom) / 2; // left/right vertical borders width in px
-      Object.assign(pg.elm.style, {
-        borderWidth: toEm(hrz) + " " + toEm(vrt),
-        borderStyle: "solid",
-        borderColor: "#eee",
-      });
-    }
-    pg.setZoom(w / pg.width);
-    if (!elm) console.trace();
-    elm.append(pg.elm);
+    pg.setZoom(this.pgHeight / pg.score.maxHeight);
+    this.pgPad(pg) ;
+    elm.append(pg.elm) ;
     elm.classList.add("TableLayout__pg-active");
   }
 

@@ -83,12 +83,13 @@ Close:
 "Close Panel":
   `<path fill="currentColor" d="M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z" />`,
 
-
 "Copy Page":
-  `<path style="transform:translate(-2px,-2px);fill:none;stroke:currentColor;stroke-width:.3" d="M3 2h17v20.5h-17Z"/>
-  <path transform=translate(-2,-2) style="fill:none;stroke:currentColor;stroke-width:0.1" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
-  <path transform=translate(2,1) style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
-  <path transform=translate(2,1) style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>`,
+  `<g style="transform:scale(.85)">
+     <path style="transform:translate(-2.5,-2.5);fill:#aaa;stroke:currentColor;stroke-width:.3" d="M3 2h17v20.5h-17Z"/>
+     <path transform=translate(-2.5,-2.5) style="fill:#aaa;stroke:currentColor;stroke-width:0.1" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+     <path transform=translate(5,3) style="fill:#ccc;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+     <path transform=translate(5,3) style="fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+   </g>`,
 
 "Cut":
   `<text y=20 x=3.5 font-size=20>\u2702\uFE0E</text>`,
@@ -106,10 +107,10 @@ Close:
     `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
      <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
      <rect x="8" y="8" width="8" height="8" fill="#aaa" stroke="none"/>
-     <path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.38) translate(18.5,20.5)" fill="#ccc" stroke-linecap="round" stroke="currentColor" stroke-width="0.8" d="m 13.7,7.93 -1.5,0.6 h 4.4 l 1.8,-3.2 
-  -1.2,0.5 -1.2,-1.1 c -0.3,-0.3 -0.6,-0.6 -0.8,-0.6 l -4.4,-0.3 0.9,0.9 z M 6.97,7.33 8.65,4.77 C 9.82,3.57 11.2,4.62 11.4,5 L 12,6.14 10,9.33 Z M 8.67,12.4 10,12.9 7.87,9.33 h -3.9 l 1.5,0.97 -0.9,1.8 c -0.3,0.3 -0.3,0.8
-   -0.3,1.1 l 2.1,3.9 0.3,-1.2 z m 3.03,6.1 -3.33,0.3 c -1.7,-0.6 -1.7,-2.3 -1.4,-2.6 l 0.8,-1.5 h 3.93 z m 3.2,-3.8 v -1.5 l -2.1,3.6 2.1,3.4 v -1.4 h 2 c 0.6,0 0.6,-0.3 0.9,-0.6 l 2.1,-3.8 -0.9,0.3 z m 3.8,-5.87 1.8,2.97
-   c 0.5,1.7 -0.9,2.6 -1.5,2.6 h -1.5 l -2.3,-3.8 z   M -4 -2 h 32 l -4 32 h -24 l -4 -32 l -1 -2 h34 l -1 2"/>`,
+     <path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.32) translate(23.5,26.5)" fill="#bbb" stroke-linecap="round" stroke="currentColor" stroke-width="1.0" d="M -4 -2 h 32 l -4 32 h -24 l -4  -32  l 1 -2 h30 l 1 2 M 8 -4 v -3 h 8 v 3"/>,
+     <path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.42) translate(14.5,18.5)" fill="#aaa" stroke-linecap="round" stroke="currentColor" stroke-width="0.8" d="
+ m 13.7,7.93 -1.5,0.6 h 4.4 l 1.8,-3.2 -1.2,0.5 -1.2,-1.1 c -0.3,-0.3 -0.6,-0.6 -0.8,-0.6 l -4.4,-0.3 0.9,0.9 z M 6.97,7.33 8.65,4.77 C 9.82,3.57 11.2,4.62 11.4,5 L 12,6.14 10,9.33 Z M 8.67,12.4 10,12.9 7.87,9.33 h -3.9 l 1.5,0.97 -0.9,1.8 c -0.3,0.3 -0.3,0.8 -0.3,1.1 l 2.1,3.9 0.3,-1.2 z  m 3.03,6.1 -3.33,0.3 c -1.7,-0.6 -1.7,-2.3 -1.4,-2.6 l 0.8,-1.5 h 3.93 z m 3.2,-3.8 v -1.5 l -2.1,3.6 2.1,3.4 v -1.4 h 2 c 0.6,0 0.6,-0.3 0.9,-0.6 l 2.1,-3.8 -0.9,0.3 z m 3.8,-5.87 1.8,2.97 c 0.5,1.7 -0.9,2.6 -1.5,2.6 h -1.5 l -2.3,-3.8 z"/>`,
+
 
 Details:
   `<defs><mask id="details">
@@ -233,9 +234,19 @@ More:
 "New Folder":
   `<path fill="#aaa" stroke="currentColor" stroke-width="1.0" d="M 15.3,12.7 A 4.42,4.06 0 0 1 10.9,16.8 4.42,4.06 0 0 1 6.48,12.7 4.42,4.06 0 0 1 10.9,8.64 4.42,4.06 0 0 1 15.3,12.7 Z M 10.9,9.73 V 15.7 M 7.98,12.6 H 14 M 2.2,18.9 V 5.14 h 5.89 c 2.11,0 1.19,1.42 1.84,1.46 l 9.97,0.1 v 12.1 z" />`,
 
-"New Page":
+"New Page Orig":
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
   <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>`,
+
+"New Page":
+  `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+   <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+   <rect x="7" y="9" width="9" height="6.5" fill="#aaa" stroke="none"/>
+   <text style="fill:currentColor;font-family:Bravura;transform:translate(9.5px,10.5px) rotate(45deg);font-size:21">\ue263</text>`,
+
+
+
+///
 
 "New Score":
   `<path fill="none" stroke="currentColor" stroke-width=".4" stroke-linecap="square" d="m 8.45,15.1 v 0.2 m 0,0.8 v 0.2 M 6.12,15.7 c -0.68,0.4 -0.68,-1.1 0.48,-0.9 0.83,0 0.96,0.4 1.04,0.9 0.13,1 -0.9,2 -2.1,2.6 v 0 M 6.79,9.67 c 0.8,-0.2 1.3,-0.8 0.9,-1.6 -0.5,-0.8 -1.1,-0.7 -1.6,-0.3 -0.7,0.6 -0.1,1.3 0.2,1.3 v 0 M 5.69,11 c 0.3,1.3 1.3,0.8 1.3,0 -0.2,-2.03 -0.4,-3.93 -0.4,-5.93 0,-0.4 0.3,-0.9 0.5,-1 0.9,0.2 0.4,1.9 -0.5,2.3 -2.3,1 -2.2,3.2 0.3,3.3 M 2.82,18.7 c 19.98,0 19.98,0 19.98,0 v -0.1 0 M 2.82,17.7 c 19.98,0 19.98,0 19.98,0 v -0.1 0 M 2.82,16.8 c 19.98,0 19.98,0 19.98,0 v -0.2 0 M 2.82,15.7 c 19.98,0 19.98,0 19.98,0 v -0.2 0 M 2.82,14.7 c 19.98,0 19.98,0 19.98,0 v -0.2 0 M 3.04,9.57 c 19.76,0 19.76,0 19.76,0 v -0.11 0 M 3.03,8.75 c 19.77,0 19.77,0 19.77,0 v -0.29 0 M 3.03,7.65 c 19.77,0 19.77,0 19.77,0 v -0.21 0 M 3.03,6.6 c 19.77,0 19.77,0 19.77,0 v -0.21 0 M 3.03,5.51 c 19.77,0 19.77,0 19.77,0 v -0.19 0 m -19.71,0 c 0,13.38 0,13.38 0,13.38 H 2.97 v 0 M 2.12,4.72 c -1.795,2.14 0.76,3.34 -0.86,7.68 1.6,4.5 -0.859,6.3 1.03,7.5" />`,
@@ -406,8 +417,14 @@ Text:
 "Title Page":
   `<path style="fill:none;stroke:#000;stroke-width:.6" d="M3 3h17v20 h-17ZM5 8H18M8 12H15"/>`,
 
+TrashOrig:
+  `<path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.6) translate(6,9.5)" fill="#aaa" stroke-linecap="round" stroke="currentColor" stroke-width="0.8" d="m 13.7,7.93 -1.5,0.6 h 4.4 l 1.8,-3.2 -1.2,0.5 -1.2,-1.1 c -0.3,-0.3 -0.6,-0.6 -0.8,-0.6 l -4.4,-0.3 0.9,0.9 z M 6.97,7.33 8.65,4.77 C 9.82,3.57 11.2,4.62 11.4,5 L 12,6.14 10,9.33 Z M 8.67,12.4 10,12.9 7.87,9.33 h -3.9 l 1.5,0.97 -0.9,1.8 c -0.3,0.3 -0.3,0.8 -0.3,1.1 l 2.1,3.9 0.3,-1.2 z m 3.03,6.1 -3.33,0.3 c -1.7,-0.6 -1.7,-2.3 -1.4,-2.6 l 0.8,-1.5 h 3.93 z m 3.2,-3.8 v -1.5 l -2.1,3.6 2.1,3.4 v -1.4 h 2 c 0.6,0 0.6,-0.3 0.9,-0.6 l 2.1,-3.8 -0.9,0.3 z m 3.8,-5.87 1.8,2.97 c 0.5,1.7 -0.9,2.6 -1.5,2.6 h -1.5 l -2.3,-3.8 z   M -4 -2 h 32 l -4 32 h -24 l -4 -32 l -1 -2 h34 l -1 2"/>`,
+
+
 Trash:
-  `<path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.6) translate(6,8)" fill="#aaa" stroke-linecap="round" stroke="currentColor" stroke-width="0.8" d="m 13.7,7.93 -1.5,0.6 h 4.4 l 1.8,-3.2 -1.2,0.5 -1.2,-1.1 c -0.3,-0.3 -0.6,-0.6 -0.8,-0.6 l -4.4,-0.3 0.9,0.9 z M 6.97,7.33 8.65,4.77 C 9.82,3.57 11.2,4.62 11.4,5 L 12,6.14 10,9.33 Z M 8.67,12.4 10,12.9 7.87,9.33 h -3.9 l 1.5,0.97 -0.9,1.8 c -0.3,0.3 -0.3,0.8 -0.3,1.1 l 2.1,3.9 0.3,-1.2 z m 3.03,6.1 -3.33,0.3 c -1.7,-0.6 -1.7,-2.3 -1.4,-2.6 l 0.8,-1.5 h 3.93 z m 3.2,-3.8 v -1.5 l -2.1,3.6 2.1,3.4 v -1.4 h 2 c 0.6,0 0.6,-0.3 0.9,-0.6 l 2.1,-3.8 -0.9,0.3 z m 3.8,-5.87 1.8,2.97 c 0.5,1.7 -0.9,2.6 -1.5,2.6 h -1.5 l -2.3,-3.8 z   M -4 -2 h 32 l -4 32 h -24 l -4 -32 l -1 -2 h34 l -1 2"/>`,
+  `<path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.6) translate(6,8)" fill="#aaa" stroke-linecap="round" stroke="currentColor" stroke-width="0.8" d="M -4 -2 h 32 l -4 32 h -24 l -4  -32  l 1 -2 h30 l 1 2 M 8 -4 v -3 h 8 v 3"/>,
+  <path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.6) translate(6,9.5)" fill="#ccc" stroke-linecap="round" stroke="currentColor" stroke-width="0.8" d="
+ m 13.7,7.93 -1.5,0.6 h 4.4 l 1.8,-3.2 -1.2,0.5 -1.2,-1.1 c -0.3,-0.3 -0.6,-0.6 -0.8,-0.6 l -4.4,-0.3 0.9,0.9 z M 6.97,7.33 8.65,4.77 C 9.82,3.57 11.2,4.62 11.4,5 L 12,6.14 10,9.33 Z M 8.67,12.4 10,12.9 7.87,9.33 h -3.9 l 1.5,0.97 -0.9,1.8 c -0.3,0.3 -0.3,0.8 -0.3,1.1 l 2.1,3.9 0.3,-1.2 z  m 3.03,6.1 -3.33,0.3 c -1.7,-0.6 -1.7,-2.3 -1.4,-2.6 l 0.8,-1.5 h 3.93 z m 3.2,-3.8 v -1.5 l -2.1,3.6 2.1,3.4 v -1.4 h 2 c 0.6,0 0.6,-0.3 0.9,-0.6 l 2.1,-3.8 -0.9,0.3 z m 3.8,-5.87 1.8,2.97 c 0.5,1.7 -0.9,2.6 -1.5,2.6 h -1.5 l -2.3,-3.8 z"/>`,
 
 TuningFork:
   `<path style="fill:currentColor;transform:scale(.7) translate(5px,6px)" d="M 1.102562,22.391872 6.8926979,15.709595 6.4539927,13.040411 C 10.3489,8.9372266 14.277758,6.993404 18.138714,0.73085919 L 19.512348,1.8269521 9.6277644,12.418518 c -1.0080639,1.850254 1.3131146,2.290741 1.8170396,1.541383 L 21.384356,3.4582128 22.59468,4.5620395 C 18.53232,6.6557468 14.903386,13.08682 11.057739,17.349209 L 8.3613917,16.885233 2.0669863,23.230394 C 1.6842162,23.407502 1.017983,22.79385 1.1025502,22.391852 Z" />`,

@@ -690,6 +690,7 @@ class PodiumSlider extends HTMLElement {
     this.append(this.elm);
 
     listen([this.knob, this.track], "pointerdown", (e) => {
+
       e.stopImmediatePropagation();
       this.adjusting = true;
       this.indicator.classList.add("Slider__knob__indicator-active");
