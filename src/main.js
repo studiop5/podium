@@ -78,7 +78,7 @@ async function main() {
       { transform: "rotate(0turn)" }, `transform ${1 / _gs_}s`);
     animate(_menu_.elm, { fontSize: 0 }, { fontSize: dim + "em" }, `font-size ${1 / _gs_}s`);
     _menu_.center();
-    new PasteBuffer().init() ;
+    await new PasteBuffer().init() ;
   }) ;
 
   {
@@ -345,13 +345,12 @@ async function main() {
   {
     /**
        Implement automatic "stashing" of Menu's settings:
-        - stash after every pointerdown event (throttled to 6.18 seconds)
+        - stash after every pointerup event (throttled to 6.18 seconds)
     **/
     let stasher = new Schedule();
-    listen(window, "pointerdown", (e) => {
+    listen(window, "pointerup", (e) => {
       stasher.cancel();
-
-      stasher.run(5000, () => {
+      stasher.run(3500, () => {
         localStorage.setItem("menu", _menu_.stashToJson());
       });
     });
@@ -382,7 +381,7 @@ async function main() {
         let response = await fetchPromise;
         if (response.ok) {
           let data = await response.arrayBuffer();
-          let score = await new Score().init(null, "", "unknown", data);
+          let score = await new Score().init(null, "", "unknown", data) ;
           toast("File downloaded");
         }
       } catch (error) {

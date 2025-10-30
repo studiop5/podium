@@ -59,7 +59,7 @@ class Pg
 
 class Pg {
   // Default color used to pad pages < maxWidth and/or maxHeight:
-  static paddingColor = "#ffffff";
+  static paddingColor = "#fff";
 
   constructor(score, width, height, json, mozPn = null, background = null) {
     //  @score: reference to Score instance this Pg is part of
@@ -87,10 +87,10 @@ class Pg {
     this.json = json;
     this.mozCanvas = null ; 
     this.mozPn = mozPn;
+    this.stretch = 1 ; // iff score.pgFit == "Expand", will stretch pg to fit math.min(score.max,score.min)
     this.thumbUrl = null;
     this.suppressStateChange = false ;
     this.width = width;
-    this.paddingColor = null;
     this.undoStack = [];
     this.zoom = 1 ;
     return this;
@@ -104,8 +104,9 @@ class Pg {
     // the fabricjs as a fabric "background image", but that route
     // was found to have poorer resolution that using a decicated
     // dom canvas, sigh.
+    if(!this.score.mozDoc) return ;
     let mozPg = await this.score.mozDoc.getPage(this.mozPn);
-    let viewport = mozPg.getViewport({ scale: this.score.quality });
+    let viewport = mozPg.getViewport({ scale: this.score.quality});
     let w = viewport.width / this.score.quality;
     let h = viewport.height / this.score.quality;
 
@@ -121,18 +122,6 @@ class Pg {
       canvasContext: ctx,
       viewport: viewport,
     }).promise;
-    if (!this.paddingColor) {
-      // In case the page needs padding, i.e. when it is narrower and/or shorter
-      // than it's score's maxWidth/maxHeight, layouts will center the page using
-      //  the color of the pixel in the page's upper left corner's color as padding.
-      // ...getImageData is expensive, so only call this when Pg is first rendered
-      let p = ctx.getImageData(50, 50, 1, 1).data;
-      let toHex = (c) => {
-        let h = c.toString(16);
-        return h.length == 1 ? "0" + h : h;
-      };
-      this.paddingColor = "#" + toHex(p[0]) + toHex(p[1]) + toHex(p[2]);
-    }
     this.rendering = false ;
     this.setZoom(this.zoom);
   }
@@ -178,6 +167,12 @@ class Pg {
        checkAbort() ;
     }
 
+    // If indicated, determine scaling factor that will "stretch" score s.t. it
+    // will expand pg to fit within score's maxWidth & maxHeight
+///
+    this.stretch = this.score.pgFit == "Expand" ? Math.min(
+       this.score.maxWidth / this.width,this.score.maxHeight / this.height) : 1 ;
+
     let domCanvas = document.createElement("canvas");
     let canvas = new fabric.Canvas(domCanvas, {
         enablePointerEvents: true,
@@ -185,7 +180,6 @@ class Pg {
         imageSmoothingEnabled: false,
     });
     checkAbort() ;
-
 
     // Setting both *without* cssOnly (in implicit px's), then *with* cssOnly
     // (in explicit em's) creates a canvas that can be resized by simply changing
@@ -232,28 +226,16 @@ class Pg {
     this.canvas = canvas ;
 
     let stateChanged = false ; // flag to indicate canvas state has changed s.t. it needs to be pushed to the undoStack
-    let ev = 0 ; // remember last Event for dwell processing (see on("mouse:up")).
 
     canvas.on("mouse:down:before", async (opts) => {
-      ev = opts.e ;
       if(_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) 
         _menu_.pgDownEvent(opts, this);
     });
 
-    // update ev iff there is "significant" movement, not jitter
-    canvas.on("mouse:move", opts => { if(Math.hypot(opts.e.movementX, opts.e.movementY) > 2) ev = opts.e ;
-  }) ;
-
     canvas.on("mouse:up", opts => {
       if(stateChanged) pushState() ;
       stateChanged = false ;
-      if (_menu_.activeRing.key == "ink")
-      {  if(_menu_.activeRing.activeCell) _menu_.pgUpEvent(opts, this); 
-         let dwell = opts.e.timeStamp - ev.timeStamp ;
-         if(dwell > 2000) _menu_.activateCell(_menu_.rings.ink.cells.transform) ; // long dwell: activate transform
-         else if(dwell > 1000)  _menu_.activateCell(null) ; // short dwell: deactive, medium: no deactivation
-         // else no dwell: no deactivate
-      }
+      if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) _menu_.pgUpEvent(opts, this); 
     });
 
 
@@ -268,7 +250,7 @@ class Pg {
       let stack = this.undoStack;
       stack.push(this.canvas.toDatalessObject());
       while (stack.length > 10) stack.shift(); // prune
-      _menu_.enableCells(["ink/undo"], true);
+      _menu_.enableCells("ink/undo");
     };
 
     canvas.on("object:added", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
@@ -320,16 +302,27 @@ class Pg {
     // - the fabric canvas is compacted into a tmp canvas through fabric's toCanvasElement(scale)
     // -  this result is blob-ized, then wrapped into an object URL.
     // -  the 2 object URLs are set as the background image of this.thumbElm
-    // -  the two object URLs are revoked on after a delay of 10 animation frames
+    // -  the two object URLs are revoked after a delay of 10 animation frames
     if (!this.thumbElm || force) {
       let deflated = !this.inflated;
       if (deflated) await this.inflate(true, false);
       let scale = 192 / Math.max(this.width, this.height);
-      let w = this.width * scale, h = this.height * scale;
+      let w = this.score.maxWidth * scale, h = this.score.maxHeight * scale;
       this.thumbElm = helm(`<div class="TableLayout__pg" style="width:${w / _pxPerEm_}em;height:${h / _pxPerEm_}em;"></div>`);
+
+// rem grd todo: use a class for these:
+this.thumbElm.style.backgroundColor = Pg.paddingColor ;
+this.thumbElm.style.backgroundRepeat = 'no-repeat';
+this.thumbElm.style.backgroundPosition = 'center center';
+///
+     if(this.score.pgFit == "Center")
+       this.thumbElm.style.backgroundSize = this.width * 100 / this.score.maxWidth + "%" ;
+
+
       // create object URL for fabric canvas
-      let fabCanvas = this.canvas.toCanvasElement(scale);
+      let fabCanvas = this.canvas.toCanvasElement(scale * this.stretch) ;
       let fabUrl = URL.createObjectURL(await new Promise((res) => fabCanvas.toBlob((b) => res(b))));
+
       if(this.mozCanvas) {
         // create obj URL for mozCanvas (from mozilla pdf src) ;
         let pdfCanvas = helm(`<canvas width="${w}" height="${h}"></canvas>`);
@@ -367,16 +360,6 @@ class Pg {
     }
   }
 
-  setCut(bool) {
-    // Mark this pg as "cut". Its otherwise a perfectly normal pg, but will
-    // be removed from the score on a subsequent "paste" operation.
-    this.isCut = bool ;
-    if(this.elm) 
-      this.elm.style.filter = bool? "brightness(75%) blur(3px)" : "none" ;
-    if(this.thumbElm)
-      this.thumbElm.style.filter = bool? "brightness(75%) blur(3px)" : "none" ;
-  }
-
   setZoom(zoom) {
     // Pg dom element is initially sized to this.width/this.height. Setting
     // @zoom to a value other than 1 will scale the element uniformally
@@ -384,13 +367,13 @@ class Pg {
     this.zoom = zoom;
     if(this.deferred) { 
       // When deferred, where actually resizing a temporary "fake" canvas which is actually a div
-      this.canvas.style.width = this.width * zoom / _pxPerEm_ + "em" ;
-      this.canvas.style.height = this.height * zoom / _pxPerEm_ + "em" ;
+      this.canvas.style.width = this.width * zoom * this.stretch / _pxPerEm_ + "em" ;
+      this.canvas.style.height = this.height * zoom * this.stretch / _pxPerEm_ + "em" ;
       this.canvas.style.lineHeight = this.canvas.style.height ;
     }
     else if(this.inflated) {
-      let emWidth = this.width * zoom / _pxPerEm_ + "em" ;
-      let emHeight = this.height * zoom / _pxPerEm_ + "em" ;
+      let emWidth = this.width * zoom  * this.stretch / _pxPerEm_ + "em" ;
+      let emHeight = this.height * zoom * this.stretch / _pxPerEm_ + "em" ;
       this.canvas.setDimensions({ width: emWidth, height: emHeight}, { cssOnly: true });
       if (this.grid) this.grid.setZoom(zoom);
       if (this.mozCanvas) {
@@ -758,18 +741,23 @@ class Score {
         pg.canvas.add(new fabric.Textbox("pg " + i));
         pg.deflate();
        */
-      /*
+///
         // For testing only, add a small and large pages to test the
         // Pg padding mechanism provided by layouts:
-        if (i == 1) pg = new Pg(score, width / 10, height / 10, null, null, "#f00");
-        else if (i == 3) pg = new Pg(score, width * 2, height * 2, null, null, "#f00");
-        else if (i == 5) pg = new Pg(score, width * 3, height * 3, null, null, "#0f0"); 
-        else pg = new Pg(score, width, height, null, null, "#000") ;
-      */
-      await score.pgAdd(pg, i);
+        if (i == 1) pg = new Pg(score, width / 10, height / 2, null, null, "#f00");
+
+        else if (i == 3) pg = new Pg(score, width / 2, height / 4, null, null, "#f00");
+        else if (i == 5) pg = new Pg(score, width / 4, height /2, null, null, "#0f0"); 
+/*
+        else if (i == 7) pg = new Pg(score, width * 4, height * 1, null, null, "#00f"); 
+        else if (i == 9) pg = new Pg(score, width * 5, height * 1, null, null, "#888"); 
+        else pg = new Pg(score, width, height, null, null, "#fff") ;
+        // else pg = new Pg(score, width, height, null, null, "#000") ;
+*/
+      await score.pgAdd(pg, i, false);
     }
     // don't init score until after pgs are added, or layouts will fail
-    await score.init(null, null, `anon${Math.round(Math.random() * 100)}.pdf`);
+    await score.init(null, null, `anon${Math.round(Math.random() * 100)}.pdf`) ;
     score.setDirty(false) ;
     return score;
   }
@@ -850,35 +838,34 @@ class Score {
   maxHeight = -1; // maxHeight among all pg's in score
   maxWidth = -1; // maxWidth among all pg's in score
   pgs = []; // array of Pg instances for all pages in a score
+  undoStack = []; // will contain pgs, tagged with undoPn whenever pgAdd(),or -undoPn whenever pgCut()
+  maxUndo = 10 ; // max size of undo stack. Don't want it too big, because it can prevent cut pg's from being gc'ed.
   mozDoc = null; // reference to mozilla pdflib document, if available
   quality = 2; // pdf rendering quality: see Pg.renderPdf()
   dirty = false ; // true iff score has been modified (i.e. requires saving) 
 
+  pgFit = "Center" ;
+
   constructor() {
     // Since constructing a score calls async functions, and since a constructor
     // can't be marked async, the constructor must be invoked as:
-    //      await new Score().init(....) ;
+    //      await new Score().init(....)<<<.activate()>>> ;
     // @clear if true (default), pasteBuffer is cleared.
-
   }
 
-  async init(source, path, name, pdfData) {
+  async init(source, path, name, pdfData=null, activate=true) {
     // Initialize a new Score, always called as part of the constructor, ex. await new Score().init(...)
     // @source one of Score.sources, identifies the data source that provides the score's data.
     //  For new scores (no external data sources), this is just null.
     // @path identifies the file path in the data source (not including name), or null for new scores.
     // @name identifies the file name of the data source (not including path)
     // @pdfData bytearray containing pdf file, or null for new scores. 
+    // @activate make this score the "active" score
 
-    // Note: new, locally created files won't have any pdfData: it will be null or undefined
-    await _podPb_.commit() ; // commit any locally uncommitted pages before replacing active score
     Object.assign(this, { source, path, name });
-    document.title = `Podium ${name ? name.replace(/\.pdf/i, ""):"*"} (${_podId_})`;
-    Score.activeScore = this;
     this.quality = _menu_.rings.score.cells.details.stash.quality ?? this.quality;
+    this.pgFit = _menu_.rings.score.cells.details.stash.pgFit ?? this.pgFit ;
 
-    // Reset _menu_ numbers cell...it caches values from previous score (possibly read from localStorage)
-    Object.assign(_menu_.rings.page.cells.numbers.stash, { pn: 1, pnOffset: 0, bookmarks: {} });
 
     if (pdfData) {
       this.size = pdfData.byteLength ;
@@ -917,7 +904,8 @@ class Score {
         this.created = scoreJson.created || this.created ;
         this.modified = scoreJson.modified || this.modified ;
         this.quality = scoreJson.quality ?? this.quality;
-        _menu_.stashFromJsonObj(scoreJson.menu);
+        if(activate) // don't use stashed values if not activating!
+          _menu_.stashFromJsonObj(scoreJson.menu);
       }
 
       // create a Pg instance for every pdf page, and calculate the
@@ -930,19 +918,28 @@ class Score {
         this.maxHeight = Math.max(height, this.maxHeight);
       } 
     }
+    if(activate) await this.activate() ;
+    return this;
+  }
 
-    // update the _menu_ state for newly created Score instance:
+  async activate() {
+    // There can be only 1 "active" score at a time...call activate to make this
+    // instance the active score
+    Score.activeScore = this;
+    document.title = `Podium ${this.name ? this.name.replace(/\.pdf/i, ""):"*"} (${_podId_})`;
+    // Reset _menu_ numbers cell...it caches values from previous score (possibly read from localStorage)
+    Object.assign(_menu_.rings.page.cells.numbers.stash, { pn: 1, pnOffset: 0, bookmarks: {} });
+    // update the _menu_ state for this Score instance:
     _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"]);
     _menu_.enableCells("ink/undo", false); // nothing to undo yet
+    _menu_.enableCells("page/undo", this.undoStack.length > 0); 
     this.pgRefresh();
-
     panels.DetailsPanel.get(_menu_.rings.score.cells.details).refresh();
-
     // layout the score using current active layout, defaulting to book layout
     _menu_.reset() ;
     let cell = _menu_.rings.layout.activeCell || _menu_.rings.layout.cells.book ;
     await Layout.open(cell) ;
-    return this;
+    return this ;
   }
 
   async toPdf(ink = "stamp", doc = false, pns = null) {
@@ -952,7 +949,7 @@ class Score {
     //      === "pdf" add fabric object as pdf object
     // @doc if true, the PDF-LIB doc object is returned, otherwise the
     //    pdf bytes that it produces is returned.
-    // @pns array of page numbers (1-based) to include, or null for all pates
+    // @pns array of page numbers (1-based) to include, or null for all pgs
     try {
       // When shade is cancelled, set cancelPdf. This will interrupt lib-pdf when
       // it next calls waitForTick by calling our monkey-patched setTimeout
@@ -991,7 +988,7 @@ class Score {
         setTimeout(_voidFunc_, 0) ;
         // add fabric objects to the page
         let pgJson = await pg.toPdf(ink, pLibPg);
-        attachment.pages[pn] = pgJson;
+        attachment.pages[j+1] = pgJson;
         if(window.gc) window.gc() ; 
       }
       // Add the pdf attachment
@@ -1017,7 +1014,7 @@ class Score {
     }
   }
 
-  async bindScore(pdfData, pn = 3) {
+  async bindScore(pdfData, pn = null) {
     // bind all pages from a given score to this score: i.e. given some score's
     // @pdfData, append all of its pages to this score.
     // todo: a shade, and logic for cancel in-process
@@ -1033,7 +1030,7 @@ class Score {
     let mergedPdfData = await docA.save();
 
     // NOTE: beware, following line changes Score.activeScore and Layout.activeLayout!
-    let mergedScore = await new Score().init(this.source, this.path, this.name, mergedPdfData);
+    let mergedScore = await new Score().init(this.source, this.path, this.name, mergedPdfData, false);
 
     // Get podium attachment from docB, if any. Note that PDFLib has no "high level" api for this, so
     // its a bit involved. Code adapted from //github.com/Hopding/pdf-lib/issues/534.
@@ -1062,6 +1059,7 @@ class Score {
     // existing json at pn needs to be shifted forward to its pg
     for (let i = pgCount - 1; i >= pn; i--) // need highest->lowest
       mergedScore.pgs[i + copyKnt].json = mergedScore.pgs[i].json;
+
     if(json) {
       // insert new json from docB
       let pageJson = JSON.parse(json).pages;
@@ -1069,7 +1067,16 @@ class Score {
         mergedScore.pgs[i].json = pageJson[j]; 
       }
     }
+    // Added merged pgs to mergedScore's undo stack
+    for(let i = 0; i < copyKnt ; i++) {
+      let pg = mergedScore.pgs[pn + i] ;
+      pg.undoPn = pn + i + 1;
+      mergedScore.undoStack.push(pg) ;
+
+    }
+    _menu_.enableCells("page/undo", copyKnt > 0) ;
     mergedScore.setDirty() ;
+    return mergedScore ;
   }
 
   getActiveObject() {
@@ -1080,27 +1087,39 @@ class Score {
     return null;
   }
 
-  pgAdd(pg, pn) {
+  pgAdd(pg, pn, push=true) {
     // Add a new page as page pn (1-based), possibly numbered
     this.pgs.splice(pn - 1, 0, pg);
     this.pgRefresh();
     this.setDirty() ;
-    return pg;
+    pg.undoPn = pn ;
+    if(push) {
+      this.undoStack.push(pg) ;
+      while(this.undoStack.length > this.maxUndo) this.undoStack.shift() ;
+      _menu_.enableCells("page/undo") ;
+    }
+    return pg ;
   }
 
-  pgCut(pn) {
+  pgCut(pn, push=true) {
     // cut page at
     // @pn (1-based)
     // @return the cut page for possible pasting as part of cut/paste operation
-    let cutPage = this.pgs.splice(pn - 1, 1)[0];
+    let cutPg = this.pgs.splice(pn - 1, 1)[0];
     this.pgRefresh(false);
     this.setDirty() ;
-    return cutPage;
+    cutPg.undoPn = -pn ;
+    if(push) {
+      this.undoStack.push(cutPg) ;
+      while(this.undoStack.length > this.maxUndo) this.undoStack.shift() ;
+      _menu_.enableCells("page/undo") ;
+    }
+    return cutPg ;
   }
 
   pnOf(pg) {
     // @return the 1-based page number of the give pg instance, or 0 if not found
-    return this.pgs.findIndex((pgN) => pgN === pg) + 1;
+    return this.pgs.indexOf(pg) + 1;
   }
 
   pgRefresh(resetMax = true) {
@@ -1116,8 +1135,18 @@ class Score {
         this.maxHeight = Math.max(pg.height, this.maxHeight);
       });
     }
-    _menu_.enableCells(["page/delete", "page/cut", "page/copy", "page/merge"], this.pgs.length > 0);
+    _menu_.enableCells(["page/delete", "page/copy", "page/merge"], this.pgs.length > 0);
   }
+
+  pgUndo() {
+    if(this.undoStack.length) {
+      let pg = this.undoStack.pop() ;
+      if(pg.undoPn > 0) this.pgCut(pg.undoPn, false) ;
+      else this.pgAdd(pg, -pg.undoPn, false) ;
+    }
+    _menu_.enableCells("page/undo", this.undoStack.length) ;
+  }
+
 
   async pgUse(pn, nonblocking=true) {
     // Layouts "use" a Pg when they want to actively display it,

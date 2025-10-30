@@ -231,7 +231,7 @@ class FileSrc {
           if (tag == "Cancel") return;
           _shade_.show("Downloading file");
           let { data, size, created, modified } = await src.getFile(score.path, score.name);
-          score = await new Score().init(score.source, score.path, score.name, data);
+          score = await new Score().init(score.source, score.path, score.name, data) ;
           Score.visit(score, { size, created, modified });
           toast("File reverted.");
         } catch (error) {
