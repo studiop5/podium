@@ -33,6 +33,7 @@ import {
   iconSvg,
   listen,
   pnToString,
+  pxToEm,
   unlisten,
   dataIndex,
   clearChildren,
@@ -46,7 +47,7 @@ import {
 } from "./common.js";
 import { FileSrc, FileListView, FileSystemView, LocalFileView } from "./file.js";
 import { Layout } from "./layout.js";
-import { Score } from "./score.js";
+import { Pg, Score } from "./score.js";
 import { smuflTable, bravuraGroups, bravuraOffsets } from "./smufl.js";
 import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
 export { panels };
@@ -369,7 +370,6 @@ class DetailsPanel extends Panel {
         Center: { svg: "Title Page", radio: "pgFit" }, 
       },
       async (e,tag,value) => {
-         console.log(tag, value) ;
          let score = Score.activeScore;
          score.pgFit = value ;
          await Layout.open(_menu_.rings.layout.activeCell) ;
@@ -1969,15 +1969,21 @@ class PastePanel extends Panel {
       let thumbs = await Promise.all(score.pgs.map(pg => pg.getThumbElm(true)));
       clearChildren(this.sash) ;
       thumbs.forEach((thumb) => this.sash.append(thumb)) ;
-      this.sash.style.left = 0 ;
-      this.sash.style.transition = `left ${_gs_}s` ;
       if(thumbs.length > 0) { 
-        let gapWidth = 0.8 * _pxPerEm_ ;
-        let sashWidth = 0.8 + (parseFloat(thumbs[0].style.width) + 0.8) * thumbs.length ;
-        let fs = parseFloat(getComputedStyle(this.sash).fontSize) ;
-        this.sash.style.left = -sashWidth + (this.frame.offsetWidth / fs) + "em";
+        let thumbWidth = parseFloat(thumbs[0].style.width) ;
+        // Set the frame's width s.t. exactly 2 thumbnails fit.
+        this.body.style.width = "unset" ;
+        let frameWidth = 0.8 + thumbWidth + 0.8 + thumbWidth + 0.8  ;
+        let sashWidth = 0.8 + (thumbWidth + 0.8) * thumbs.length ;
+        this.sash.style.left = this.frame.style.width = frameWidth + "em" ;
+        delay(1, () => {
+          this.sash.style.transition = `left ${_gs_}s` ;
+          this.sash.style.left = frameWidth - sashWidth + "em";
+        })
         delayMs(_gs_ * 1000, () => this.sash.style.transition = "unset") ;
       }
+      else this.body.style.width = "12em" ;
+
     })
   }
 

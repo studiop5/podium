@@ -229,7 +229,6 @@ class Layout {
 
     if (_menu_.activeRing?.key == "page") { // Execute page ring's active cell action
 
-      _menu_.cellDeactivator.run() ;
       let pageCell = _menu_.activeRing.activeCell;
       if (!pageCell) return false;
       let pageKey = pageCell.key;
@@ -289,6 +288,8 @@ class Layout {
         });
       };
 
+      _menu_.autoOff.run() ;
+
       switch (pageKey) {
 
         // copy and paste to/from _podPb_:
@@ -298,7 +299,6 @@ class Layout {
           animateToCell(await pg.clone(true), _menu_.rings.page.cells.paste) ; // clone only used for animation
           await _podPb_.pgCopy(pn) ;
           _menu_.activateCell(_menu_.rings.page.cells.copy) ;
-          _menu_.cellDeactivator.run() ; // copy can be slow, so reset
           break ;
         }
 
@@ -307,7 +307,6 @@ class Layout {
           _menu_.activateCell(null) ; // paste can be slow, deactivate until done
           await _podPb_.pgPaste(pn) ;
           _menu_.activateCell(_menu_.rings.page.cells.paste) ;
-          _menu_.cellDeactivator.run() ; 
           _shade_.hide() ;
           break;
         }
@@ -345,7 +344,6 @@ class Layout {
             });
           break;
         }
-
       }
 
       if (score.pgs.length == 1) {
@@ -354,8 +352,6 @@ class Layout {
         _menu_.enableCells("page/delete", false);
       }
 
-      // update e only if there is "significant" movement, not jitter
-      let mv = listen(_body_, "pointermove", emv => { if(Math.hypot(emv.movementX, emv.movementY) > 5) e = emv; }) ;
       return true;
     }
     return false;
@@ -1583,6 +1579,8 @@ class TableLayout extends Layout {
           box-shadow: -.05em .05em 0.5em #8888, .25em .25em 1.5em #8888; 
           background-size: contain;
           z-index: 1;
+          background-repeat: no-repeat;
+          background-position: center center;
         }
         .TableLayout__pg-active {
          /* active page is larger than others, and on top in z-order */

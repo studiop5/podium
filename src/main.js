@@ -100,9 +100,6 @@ async function main() {
           move menu to pointer location and expand
     **/
 
-    // defeat browser's built-in pinch-zoom
-    listen(_body_, "touchmove", (e) => e.preventDefault(), { passive: false });
-
     // store element to pan/zoom globally
     window._pzTarget_ = _body_;
 

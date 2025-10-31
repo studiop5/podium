@@ -182,6 +182,7 @@ css(
     left:0;
     top:0 ;
     user-select: none ;
+    touch-action: none ;
   }
   *:not(input):not(textarea) {
     -webkit-user-select: none;  /* disable selection/Copy of UIWebView */
