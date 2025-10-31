@@ -118,7 +118,6 @@ class PasteBuffer {
   announce() {
    // Create and send a PasteBufferChanged event
    _body_.dispatchEvent(new CustomEvent("PasteBufferChanged")) ;
-//
   }
 
   signal(msg, data={}) {
@@ -133,6 +132,7 @@ class PasteBuffer {
     let pdfData = (await this.get(this.dbKey))?.data ;
     if(pdfData) this.score = await new Score().init("podPb",_podId_,_podId_,pdfData, false) ;
     else this.score = new Score() ;
+    this.score.pgFit = Score.activeScore?.pgFit || "Center" ;
     return this.score ;
   }
 

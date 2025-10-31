@@ -26,9 +26,6 @@ import { Layout } from "./layout.js";
 import { panels } from "./panel.js";
 export { Grid, Pg, Score };
 
-
-
-
 // -skip
 
 { 
@@ -60,6 +57,8 @@ class Pg
 class Pg {
   // Default color used to pad pages < maxWidth and/or maxHeight:
   static paddingColor = "#fff";
+  // Max size (width OR height) of Pg thumbnails, in px  
+  static thumbSize = 192
 
   constructor(score, width, height, json, mozPn = null, background = null) {
     //  @score: reference to Score instance this Pg is part of
@@ -169,14 +168,16 @@ class Pg {
 
     // If indicated, determine scaling factor that will "stretch" score s.t. it
     // will expand pg to fit within score's maxWidth & maxHeight
-///
     this.stretch = this.score.pgFit == "Expand" ? Math.min(
        this.score.maxWidth / this.width,this.score.maxHeight / this.height) : 1 ;
 
     let domCanvas = document.createElement("canvas");
+    // allowTouchScrolling needs to be false, else certain browers (chrome mobile, at
+    // least) will create an "Intervention event", trying to scroll, when we've
+    // explicitly "preventDefault() touchmove on body in main.js.
     let canvas = new fabric.Canvas(domCanvas, {
         enablePointerEvents: true,
-        allowTouchScrolling: true,
+        allowTouchScrolling: false, // Required!
         imageSmoothingEnabled: false,
     });
     checkAbort() ;
@@ -306,32 +307,31 @@ class Pg {
     if (!this.thumbElm || force) {
       let deflated = !this.inflated;
       if (deflated) await this.inflate(true, false);
-      let scale = 192 / Math.max(this.width, this.height);
-      let w = this.score.maxWidth * scale, h = this.score.maxHeight * scale;
-      this.thumbElm = helm(`<div class="TableLayout__pg" style="width:${w / _pxPerEm_}em;height:${h / _pxPerEm_}em;"></div>`);
 
-// rem grd todo: use a class for these:
-this.thumbElm.style.backgroundColor = Pg.paddingColor ;
-this.thumbElm.style.backgroundRepeat = 'no-repeat';
-this.thumbElm.style.backgroundPosition = 'center center';
-///
-     if(this.score.pgFit == "Center")
-       this.thumbElm.style.backgroundSize = this.width * 100 / this.score.maxWidth + "%" ;
-
+      // create div hat will display the thumbnail
+      let maxW = this.score.maxWidth, maxH = this.score.maxHeight ;
+      this.thumbElm = helm(
+        `<div class="TableLayout__pg" style="width:${maxW / _pxPerEm_}em;height:${maxH / _pxPerEm_}em;"></div>`);
+      this.thumbElm.style.backgroundColor = Pg.paddingColor ;
+      if(this.score.pgFit == "Center")
+        this.thumbElm.style.backgroundSize = this.width * 100 / this.score.maxWidth + "%" ;
 
       // create object URL for fabric canvas
+      let scale = Pg.thumbSize / Math.max(this.width, this.height);
       let fabCanvas = this.canvas.toCanvasElement(scale * this.stretch) ;
       let fabUrl = URL.createObjectURL(await new Promise((res) => fabCanvas.toBlob((b) => res(b))));
 
       if(this.mozCanvas) {
         // create obj URL for mozCanvas (from mozilla pdf src) ;
-        let pdfCanvas = helm(`<canvas width="${w}" height="${h}"></canvas>`);
-        pdfCanvas.getContext("2d").drawImage(this.mozCanvas, 0, 0, w, h);
+        let pdfCanvas = helm(`<canvas width="${maxW}" height="${maxH}"></canvas>`);
+        pdfCanvas.getContext("2d").drawImage(this.mozCanvas, 0, 0, maxW, maxH);
         let pdfUrl = URL.createObjectURL(await new Promise((res) => pdfCanvas.toBlob((b) => res(b))));
+        // set both fabricCanvas (annotations) and pdfCanvas (pdf image) as background to thumbElm
         this.thumbElm.style.backgroundImage = "url('" + fabUrl + "'), url('" + pdfUrl + "')";
         delay(10, () => { URL.revokeObjectURL(pdfUrl); URL.revokeObjectURL(fabUrl);  }); // delay is needed!
       }
-      else {
+      else { // no pdf src:
+        // set fabricCanvas (annotations) as background to thumbElm
         this.thumbElm.style.backgroundImage = "url('" + fabUrl + "')";
         delay(10, () => URL.revokeObjectURL(fabUrl)) ;
       }
@@ -748,6 +748,7 @@ class Score {
 
         else if (i == 3) pg = new Pg(score, width / 2, height / 4, null, null, "#f00");
         else if (i == 5) pg = new Pg(score, width / 4, height /2, null, null, "#0f0"); 
+
 /*
         else if (i == 7) pg = new Pg(score, width * 4, height * 1, null, null, "#00f"); 
         else if (i == 9) pg = new Pg(score, width * 5, height * 1, null, null, "#888"); 
@@ -984,7 +985,7 @@ class Score {
         let pg = this.pgs[pn-1];
         // if pg is "backed" by a page in mozDoc (1-based), copy page to dstDoc, otherwise add a new "empty" page
         if (pg.mozPn) pLibPg = dstPLibDoc.addPage((await dstPLibDoc.copyPages(srcPLibDoc, [pg.mozPn-1]))[0]);
-        else pLibPg = dstPLibDoc.addPage([this.maxWidth, this.maxHeight]);
+        else pLibPg = dstPLibDoc.addPage([pg.width, pg.height]);
         setTimeout(_voidFunc_, 0) ;
         // add fabric objects to the page
         let pgJson = await pg.toPdf(ink, pLibPg);
@@ -1017,7 +1018,6 @@ class Score {
   async bindScore(pdfData, pn = null) {
     // bind all pages from a given score to this score: i.e. given some score's
     // @pdfData, append all of its pages to this score.
-    // todo: a shade, and logic for cancel in-process
     // @pn one-based index of where to insert the pages from pdfData.
     //     ..when null or < 1, converted to 1 (i.e. first page).
     pn = clamp(pn, 1, this.pgs.length + 1) -1 ; // convert pn to 0-based in [0, this.pgs.length-1]
@@ -1028,10 +1028,7 @@ class Score {
     let copiedPages = await docA.copyPages(docB, docB.getPageIndices());
     copiedPages.forEach((page,idx) => docA.insertPage(pn + idx, page));
     let mergedPdfData = await docA.save();
-
-    // NOTE: beware, following line changes Score.activeScore and Layout.activeLayout!
     let mergedScore = await new Score().init(this.source, this.path, this.name, mergedPdfData, false);
-
     // Get podium attachment from docB, if any. Note that PDFLib has no "high level" api for this, so
     // its a bit involved. Code adapted from //github.com/Hopding/pdf-lib/issues/534.
     let json = null;
@@ -1072,9 +1069,9 @@ class Score {
       let pg = mergedScore.pgs[pn + i] ;
       pg.undoPn = pn + i + 1;
       mergedScore.undoStack.push(pg) ;
-
     }
     _menu_.enableCells("page/undo", copyKnt > 0) ;
+    mergedScore.pgRefresh() ;
     mergedScore.setDirty() ;
     return mergedScore ;
   }

@@ -73,7 +73,7 @@ class Menu {
       background: radial-gradient(#aaa 25%, #fff 100%);
     } 
     .Menu__cell-active {
-      background: radial-gradient(#fff 64%, #ccc 73%) ;
+      background: radial-gradient(#fff 64%, #ccc 73%) ; 
     } 
     .Menu__cell-panel {
     }
@@ -136,12 +136,14 @@ class Menu {
   rings = {};
   scale = 1;
 
-  // The cellDeactivator (menu.cellDeactivator.run()) will deactivate the
+  // The autoOff scheduler  (_menu_.autoOff.run()) will deactivate the
   // current cell in 5000 msecs (or n mseonds, if you call run(n) ;
   // If its already scheduled, then calling it again will delay the
   // activation further.
-  cellDeactivator = new Schedule(3500, () => {
-     if(this.inPgEvent) this.cellDeactivator.run() ;
+
+  inPgEvent = false ;
+  autoOff = new Schedule(3500, () => {
+     if(this.inPgEvent) this.autoOff.run() ;
      else this.activateCell(null) ;
   }) ;
 
@@ -977,7 +979,7 @@ class Menu {
       ring.stash.active = cell.key;
 
       if((ring.key == "page" && cell.key != "numbers") || ring.key == "ink")
-         this.cellDeactivator.run() ;
+         this.autoOff.run() ;
 
     } else ring.activeCell = null;
 
@@ -1184,11 +1186,6 @@ class Menu {
 
   async pgDownEvent(opts, pg) {
 
-    // this.cellDeactivator should not deactivate while we are "between"
-    // a pgDownEvent and a pgUpEvent, as pointer activate in this
-    // interval should keep the currently activated cell activated.
-    this.inPgEvent = true ;
-
     let canvas = pg.canvas ;
 
     let addObj = (obj) => {
@@ -1206,6 +1203,12 @@ class Menu {
     if (!activeCell) return;
 
     if(this.checkEditing()) return ;
+
+    // this.autoOff should not deactivate while we are "between"
+    // a pgDownEvent and a pgUpEvent, as pointer activate in this
+    // interval should keep the currently activated cell activated.
+    this.inPgEvent = true ;
+
 
     this.newlyCreated = null ;
     let target = opts.target ;
@@ -1376,6 +1379,9 @@ class Menu {
   }
 
   pgUpEvent(opts, pg) {
+    this.inPgEvent = false ; // used by this.autoOff
+    this.autoOff.run() ; // extend activation of active cell
+
     Score.activeScore.setDirty(true) ;
     if (pg) {
       if (this.newlyCreated && this.newlyCreated.podiumType == "text") {
@@ -1385,9 +1391,6 @@ class Menu {
       }
     }
     for (let pg of Score.activeScore.pgs) if (pg.inflated) pg.canvas.isDrawingMode = false;
-
-    this.inPgEvent = false ; // used by this.cellDeactivator
-    this.cellDeactivator.run() ; // extend activation of active cell
   }
 
   checkEditing() {
