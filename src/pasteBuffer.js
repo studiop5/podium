@@ -132,7 +132,6 @@ class PasteBuffer {
     let pdfData = (await this.get(this.dbKey))?.data ;
     if(pdfData) this.score = await new Score().init("podPb",_podId_,_podId_,pdfData, false) ;
     else this.score = new Score() ;
-    this.score.pgFit = Score.activeScore?.pgFit || "Center" ;
     return this.score ;
   }
 
@@ -144,13 +143,23 @@ class PasteBuffer {
   }
  
   async pgCopy(pn) {
-    let pgPdf = await Score.activeScore.toPdf("stamp", false, [pn]) ;
-    let pbScore = await this.getScore() ;
-    this.score = await pbScore.bindScore(pgPdf, pbScore.pgs.length + 1) ;
-    await this.put(this.dbKey, await this.score.toPdf()) ;
-    this.signal("pod-pgs-changed") ;
-    this.announce();
-    _menu_.enableCells("page/paste", true) ;
+    try {
+      let pgPdf = await Score.activeScore.toPdf("stamp", false, [pn]) ;
+      let pbScore = await this.getScore() ;
+      _shade_.show("Adding page to paste buffer...") ;
+      this.score = await pbScore.bindScore(pgPdf, pbScore.pgs.length + 1) ;
+      await this.put(this.dbKey, await this.score.toPdf()) ;
+      this.signal("pod-pgs-changed") ;
+      this.announce();
+      _menu_.enableCells("page/paste", true) ;
+    } catch (err) {
+      if (err.cause === 'fileSrc' || err.message?.includes('catalog') || err.message?.includes('Invalid object')) {
+        dialog("Unable to copy page:<br>" + err.message);
+      } else throw err; 
+    }
+    finally {
+      _shade_.hide();
+    }
   }
 
   async pgPop() {

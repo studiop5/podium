@@ -1693,29 +1693,26 @@ class TableLayout extends Layout {
           animate(this.elm, null, this.centerLT(), `left, top ${_gs_}s`) ;
         }
       }
-
       await gen(0) ;
     }
 
     else {
-      // ...then all thumbnails already built
-      delay(1, async () => {
-        for(let {pn, top, left} of this.gridCoords) {
-          let gridHeight = top + pgHeight + gridMargin * 2 ;
-          grid.style.height = toEm(gridHeight) ;
-          let nextTop = innerHeight - gridHeight - Layout.margin ;
-          if (nextTop < Layout.margin) this.toXY(Layout.margin, nextTop) ;
-          grid.append(await this.buildPg(pn, left, top));
-        }
-       let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon) ;
-       if(this.cell.pz) animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0}, this.cell.pz, `left, top, font-size ${_gs_}s`) ;
-       else { 
-         if(this.fit == "Height") // reduce fontSize so layout fits window's height
-           this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / table.offsetHeight  + "em" ;
-         animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
-           this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}s`) ;
-        }
-      }) ;
+      void _body.offsetWidth ;
+      for(let {pn, top, left} of this.gridCoords) {
+        let gridHeight = top + pgHeight + gridMargin * 2 ;
+        grid.style.height = toEm(gridHeight) ;
+        let nextTop = innerHeight - gridHeight - Layout.margin ;
+        if (nextTop < Layout.margin) this.toXY(Layout.margin, nextTop) ;
+        grid.append(await this.buildPg(pn, left, top));
+      }
+     let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon) ;
+     if(this.cell.pz) animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0}, this.cell.pz, `left, top, font-size ${_gs_}s`) ;
+     else { 
+       if(this.fit == "Height") // reduce fontSize so layout fits window's height
+         this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / table.offsetHeight  + "em" ;
+       animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
+         this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}s`) ;
+      }
     }
   }
 

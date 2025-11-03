@@ -58,7 +58,7 @@ class Pg {
   // Default color used to pad pages < maxWidth and/or maxHeight:
   static paddingColor = "#fff";
   // Max size (width OR height) of Pg thumbnails, in px  
-  static thumbSize = 192
+  static thumbSize = 192;
 
   constructor(score, width, height, json, mozPn = null, background = null) {
     //  @score: reference to Score instance this Pg is part of
@@ -309,7 +309,9 @@ class Pg {
       if (deflated) await this.inflate(true, false);
 
       // create div hat will display the thumbnail
-      let maxW = this.score.maxWidth, maxH = this.score.maxHeight ;
+      let scale = Pg.thumbSize / Math.max(this.width, this.height);
+      let maxW = this.score.maxWidth * scale, maxH = this.score.maxHeight * scale;
+
       this.thumbElm = helm(
         `<div class="TableLayout__pg" style="width:${maxW / _pxPerEm_}em;height:${maxH / _pxPerEm_}em;"></div>`);
       this.thumbElm.style.backgroundColor = Pg.paddingColor ;
@@ -317,7 +319,6 @@ class Pg {
         this.thumbElm.style.backgroundSize = this.width * 100 / this.score.maxWidth + "%" ;
 
       // create object URL for fabric canvas
-      let scale = Pg.thumbSize / Math.max(this.width, this.height);
       let fabCanvas = this.canvas.toCanvasElement(scale * this.stretch) ;
       let fabUrl = URL.createObjectURL(await new Promise((res) => fabCanvas.toBlob((b) => res(b))));
 
@@ -328,12 +329,12 @@ class Pg {
         let pdfUrl = URL.createObjectURL(await new Promise((res) => pdfCanvas.toBlob((b) => res(b))));
         // set both fabricCanvas (annotations) and pdfCanvas (pdf image) as background to thumbElm
         this.thumbElm.style.backgroundImage = "url('" + fabUrl + "'), url('" + pdfUrl + "')";
-        delay(10, () => { URL.revokeObjectURL(pdfUrl); URL.revokeObjectURL(fabUrl);  }); // delay is needed!
+        delay(300, () => { URL.revokeObjectURL(pdfUrl); URL.revokeObjectURL(fabUrl);  }); // *long* delay is needed!
       }
       else { // no pdf src:
         // set fabricCanvas (annotations) as background to thumbElm
         this.thumbElm.style.backgroundImage = "url('" + fabUrl + "')";
-        delay(10, () => URL.revokeObjectURL(fabUrl)) ;
+        delay(300, () => URL.revokeObjectURL(fabUrl)) ;
       }
       if (deflated) this.deflate();
     }

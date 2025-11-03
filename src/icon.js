@@ -70,6 +70,10 @@ Brush:
 Cancel:
   `<path fill="#aaa" stroke="currentColor" stroke-width="1.8" d="${circlePath(10,12, 12)} M6 12.5h12"/>`,
 
+Center:
+  `<rect x="2" y="2" width="20" height="20" fill="none" stroke="currentColor" stroke-width="0.6"/>
+   <rect x="6" y="6" width="12" height="12" fill="#aaa" stroke="currentColor" stroke-width="0.6"/>`,
+
 Clock:
   `<path fill="#ccc" stroke="currentColor" stroke-width="1.2" d="M 3.42,12.9 H 5.13 M 11.8,4.68 V 6.36 M 11.6,19.7 v 1.7 M 18.4,13 H 20 M 8.11,8.11 11.8,13.2 11.2,8.24 M 20.3,13 A 8.57,8.57 0 0 1 11.7,21.6 8.57,8.57 0 0 1 3.13,13 8.57,8.57 0 0 1 11.7,4.43 8.57,8.57 0 0 1 20.3,13 Z" />`,
 
@@ -132,6 +136,10 @@ Drive:
 
 Dropbox:
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-35.3175 -50 306.085 300"><defs id="defs112"><style id="style110">.cls-1{fill:#0061ff}</style></defs><path id="polygon116" class="cls-1" d="M58.86 75l58.87-37.5L58.86 0 0 37.5z"/><path id="polygon118" class="cls-1" d="M176.59 75l58.86-37.5L176.59 0l-58.86 37.5z"/><path id="polygon120" class="cls-1" d="M117.73 112.5L58.86 75 0 112.5 58.86 150z"/><path id="polygon122" class="cls-1" d="M176.59 150l58.86-37.5L176.59 75l-58.86 37.5z"/><path id="polygon124" class="cls-1" d="M176.59 162.5L117.73 125l-58.87 37.5 58.87 37.5z"/></svg>`,
+
+Expand:
+  `<rect x="2" y="2" width="20" height="20" fill="#aaa" stroke="currentColor" stroke-width="0.6"/>
+   <path fill="none" stroke="currentColor" stroke-width="1.2" d="M7,7L4,4M17,7L20,4M7,17L4,20M17,17L20,20"/>`,
 
 File:
   `<path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />`,

@@ -217,13 +217,19 @@ class Panel {
     unlisten(...this.listeners);
   }
 
-  constrain() {
-   // Ensure at least 50% of the panel header's width and 100% of its height stays onscreen
-   delay(10, () => {  // must delay until after any screen.orientation change, see main.js
-     this.elm.style.left = clamp(this.elm.offsetLeft, 0, innerWidth) + "px" ;
-     this.elm.style.top = clamp(this.elm.offsetTop, this.panel.offsetHeight/2,
-       innerHeight  - this.header.offsetHeight + this.panel.offsetHeight / 2) + "px" ;
-   }) ;
+ constrain() {
+    // Ensure at least 50% of the panel header's width and 100% of its height stays onscreen
+    delay(10, () => {  // must delay until after any screen.orientation change, see main.js
+      let newLeft = clamp(this.elm.offsetLeft, 0, innerWidth);
+      let newTop = clamp(this.elm.offsetTop, this.panel.offsetHeight/2,
+        innerHeight - this.header.offsetHeight + this.panel.offsetHeight / 2);
+      if (this.elm.offsetLeft != newLeft) {
+        this.elm.style.left = newLeft + "px";
+      }
+      if (this.elm.offsetTop != newTop) {
+        this.elm.style.top = newTop + "px";
+      }
+    });
   }
 
   setIcon(svgPath) {
@@ -238,7 +244,9 @@ class Panel {
     this.title.innerText = title;
   }
 
-  show() {
+  show(onShown = null) {
+    // onShown, if supplied, is a function that is called
+    // when the standard show animation is completed.
     let elm = this.elm;
     this.setIcon(this.cell.svgPath);
     this.setTitle(this.cell.name);
@@ -247,8 +255,13 @@ class Panel {
     elm.style.fontSize = 0;
     elm.style.transition = "font-size 0.35s";
     _body_.append(elm);
-    delay(1, () => (elm.style.fontSize = fontSize));
-    schedule(350, () => (elm.style.transition = "unset"));
+    listen(elm,"transitionend", () => {
+        elm.style.transition = "unset" ;
+        if(onShown) onShown();
+      },
+      { once:true}) ;
+    void _body_.offsetWidth ;
+    elm.style.fontSize = fontSize ;
     _pzTarget_ = elm;
     return this;
   }
@@ -366,8 +379,8 @@ class DetailsPanel extends Panel {
 
     this.fitGroup = new ButtonGroup(
       this.cell.stash, {
-        Expand: { svg: "Blank Page", radio: "pgFit" },
-        Center: { svg: "Title Page", radio: "pgFit" }, 
+        Expand: { svg: "Expand", radio: "pgFit" },
+        Center: { svg: "Center", radio: "pgFit" }, 
       },
       async (e,tag,value) => {
          let score = Score.activeScore;
@@ -1800,10 +1813,7 @@ class PianoPanel extends Panel {
 
   show() {
     super.show();
-    // Following must happen in next animation frame, otherwise
-    // panel.elm.fontSize will read as 0 (as it is being animated),
-    // and piano.show() needs the correct value
-    delay(1, () => this.piano.show());
+    this.piano.show();
     return this;
   }
 }
@@ -1899,7 +1909,10 @@ class PastePanel extends Panel {
     "PastePanel", 
      `.PastePanel__frame {
         background-image: var(--panTexture);
-        height: auto;
+        height: 6em;
+        width: 100%;
+        padding:.8em 0;
+        box-sizing: border-box;
         margin-bottom: 0.2em;
         overflow: hidden;
         border-radius: var(--borderRadius);
@@ -1907,14 +1920,14 @@ class PastePanel extends Panel {
       
       .PastePanel__sash {
         position: relative;
-        height: auto;
+        height:100% ;
         width: max-content;
         min-width: 100%;
-        padding: 0.8em;
+        padding: 0 0.8em;
+        box-sizing: border-box;
         display: flex;
         gap: 0.8em;
         align-items: flex-start;
-        border-radius: 0.3em;
       }
    `) ;
 
@@ -1966,30 +1979,28 @@ class PastePanel extends Panel {
 
     listen(_body_, "PasteBufferChanged", async (e) => {
       let score = await _podPb_.getScore() ;
-      let thumbs = await Promise.all(score.pgs.map(pg => pg.getThumbElm(true)));
+      let thumbs = [] ;
+      for(let pg of score.pgs) thumbs.push(await pg.getThumbElm(true));
+
       clearChildren(this.sash) ;
-      thumbs.forEach((thumb) => this.sash.append(thumb)) ;
       if(thumbs.length > 0) { 
-        let thumbWidth = parseFloat(thumbs[0].style.width) ;
-        // Set the frame's width s.t. exactly 2 thumbnails fit.
-        this.body.style.width = "unset" ;
-        let frameWidth = 0.8 + thumbWidth + 0.8 + thumbWidth + 0.8  ;
-        let sashWidth = 0.8 + (thumbWidth + 0.8) * thumbs.length ;
-        this.sash.style.left = this.frame.style.width = frameWidth + "em" ;
-        delay(1, () => {
-          this.sash.style.transition = `left ${_gs_}s` ;
-          this.sash.style.left = frameWidth - sashWidth + "em";
-        })
+        this.sash.style.fontSize = "1em" ; // reset to known "baseline"
+        void _body_.offsetWidth ;
+        thumbs.forEach((thumb) => this.sash.append(thumb)) ;
+        this.sash.style.fontSize = this.sash.offsetHeight / thumbs[0].offsetHeight   + "em" ;
+        let frameWidth = pxToEm(this.frame.offsetWidth, this.sash) ;
+        let sashWidth = pxToEm(this.sash.offsetWidth, this.sash) ;
+        this.sash.style.left = frameWidth ;
+        void _body_.offsetWidth ;
+        this.sash.style.transition = `left ${_gs_}s` ;
+        this.sash.style.left = parseFloat(frameWidth) - parseFloat(sashWidth) - .8 + "em";
         delayMs(_gs_ * 1000, () => this.sash.style.transition = "unset") ;
       }
-      else this.body.style.width = "12em" ;
-
     })
   }
 
   show() {
-    super.show();
-    _podPb_.announce() ;
+    super.show(() => _podPb_.announce());
     return this;
   }
 
