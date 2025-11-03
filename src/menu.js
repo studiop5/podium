@@ -255,7 +255,8 @@ class Menu {
     // add class Menu__cell-panel to all cells that have a panels
     for(let ring of Object.values(this.rings))
        for(let cell of Object.values(ring.cells))
-          if(panels[cell.name + "Panel"])
+///          if(panels[cell.name + "Panel"])
+          if(panels[cell.key.charAt(0).toUpperCase() + cell.key.slice(1) + "Panel"])
              cell.elm.classList.add("Menu__cell-panel") ;
 
     // set initial cell state
@@ -644,8 +645,8 @@ class Menu {
 
     // Add a "key" key to every cell so that, given a cell,
     // we know immediately what its key is. Add a "ring" entry
-    // to every (non-ring) cell so that, given such a cell,
-    // we know immediately what ring it is on.
+    // to every outer ring cell so that, given such a cell,
+    // we know immediately what inner ring it belongs to.
     for (let [ringKey, ringCell] of Object.entries(this.rings)) {
       ringCell["key"] = ringKey;
       for (let [cellKey, cell] of Object.entries(ringCell.cells)) {

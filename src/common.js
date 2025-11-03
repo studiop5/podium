@@ -1570,25 +1570,21 @@ function helm(html) {
 function hide(elm, onElm) {
   // Common code for animating the hiding of a gui element.
   // @elm will be moved toward
-  // @onElm, and collapsed to size 0 during a 309ms annimation,
+  // @onElm, and collapsed to size 0 during a 500ms annimation,
   // then elm's visibility will be set hidden, and its size restored.
   if (elm.hiding) return;
-  else elm.hiding = true; // prevent hiding until schedule(350...) has run
-  // ensure left/top are in pixels: transition is wacky with calc or % sizes
+  else elm.hiding = true; // prevent hiding until schedule(500...) has run
   let { left, top } = getComputedStyle(elm);
   let fontSize = elm.style.fontSize; // this MUST come from style, NOT from getComputedStyle
   elm.style.left = left;
   elm.style.top = top;
   elm.style.transition = "top 0.5s, left 0.5s,font-size 0.5s";
-  delay(2, () => {
-    let elmBox = getBox(elm);
-    let onElmBox = getBox(onElm);
-    elm.style.left =
-      elm.offsetLeft - elmBox.x + onElmBox.x + onElmBox.width / 2 + "px";
-    elm.style.top =
-      elm.offsetTop - elmBox.y + onElmBox.y + onElmBox.height / 2 + "px";
-    elm.style.fontSize = 0;
-  });
+  void _body_.offsetWidth ;
+  let elmBox = getBox(elm);
+  let onElmBox = getBox(onElm);
+  elm.style.left = onElmBox.x + onElmBox.width / 2 + "px";
+  elm.style.top = onElmBox.y + onElmBox.height / 2 + "px";
+  elm.style.fontSize = 0;
   schedule(500, () => {
     elm.style.left = left;
     elm.style.top = top;
