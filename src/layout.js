@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { sleep, animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, getBox,   helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, unlisten,} from "./common.js";
+import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, getBox,   helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, unlisten,} from "./common.js";
 import { panels } from "./panel.js";
 import { Pg, Score } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
@@ -178,7 +178,6 @@ class Layout {
   }
 
   pnStash = _menu_.rings.page.cells.numbers.stash;
-  pastePanel = panels.PastePanel.get(_menu_.rings.page.cells.paste) ;
   margin = 12; // in px: initial margin between layout and viewport
 
   constructor(score, cell) {
@@ -362,7 +361,7 @@ class Layout {
     // of "next","prev","first","last".  If pnStashbookMarks is true, then
     // subclass should just call super, because bookMarks processing
     // is identical for all layouts.
-    let bookmarks = Object.keys(this.pnStash.bookmarks);
+   let bookmarks = Object.keys(this.pnStash.bookmarks);
     if (bookmarks.length == 0) return;
     let pn = bookmarks[0];
     if (bookmarks.length > 1) {
@@ -1598,7 +1597,7 @@ class TableLayout extends Layout {
    `
   );
 
-  bookmarkScheduler = new Schedule();
+  bMarkTimer = new Schedule();
 
   elm = helm(`
     <div class="pz">
@@ -1739,6 +1738,7 @@ class TableLayout extends Layout {
       let pnElm = elm.getElementsByClassName("TableLayout__pn").item(0) || helm(`<div class="TableLayout__pn"></div>`);
       pnElm.pg = pg; // Pn div is clickable
       pnElm.pn = pn; 
+console.log(pn, this.bookmarks) ;
       Object.assign(pnElm.style, {
          background: this.bookmarks[pn] || "unset",
          top: 0, 
@@ -1774,16 +1774,92 @@ class TableLayout extends Layout {
     elm.classList.add("TableLayout__pg-active");
   }
 
-  async onDown(e) {
-    if (await super.onDown(e)) {
-      return;
+
+  Cursor = class {
+    // This embedded class manages dragging to reorder pgs
+    slots = [null, null, null, null]; 
+    slotStyles = ['', '', '', ''];
+
+    constructor(e, layout) {
+      this.layout = layout;
+      this.active = e.target.closest(".TableLayout__pg");
+      this.ghost = this.active.cloneNode(false);
+      this.ghost.style.opacity = 0 ;
+      this.active.parentElement.insertBefore(this.ghost, this.active);
+      this.activeStyles = this.active.style.cssText;
+      Object.assign(this.active.style, { pointerEvents: "none", opacity: ".8", zIndex: 99}) ;
+      let box = getBox(e.target);
+      this.offset = e.clientX - box.x + box.width / 2;
+      this.slotTrans = [-2, -4, 2, 4].map(d => `translateX(${box.width/d}px)`);
+      this.active.style.transition = "top .25s ease-in-out";
     }
+
+    mv(emv) {
+      let {slots, slotStyles, slotTrans, transform, active} = this;
+      this.active.style.left = emv.clientX - this.offset + "px";
+      let target = document.elementFromPoint(emv.clientX, emv.clientY);
+
+      if(target.classList.contains("TableLayout__pg")) {
+        let box = getBox(target);
+        let newSlots = emv.clientX < box.x + box.width / 2
+          ? [target.previousSibling, target.previousSibling?.previousSibling,
+             target, target?.nextSibling]
+          : [target, target?.previousSibling,
+             target.nextSibling, target.nextSibling?.nextSibling];
+        if(newSlots[0] != slots[0] || newSlots[3] != slots[3]) {
+          // restore old styles
+          slots.forEach((elm, i) => elm && (elm.style.cssText = slotStyles[i]));
+          // apply new styles
+          newSlots.forEach((elm, i) => {
+            if(elm) {
+              slotStyles[i] = elm.style.cssText;
+              elm.style.transform = slotTrans[i];
+              elm.style.transition = "transform 0.25s ease-in-out";
+            }
+          });
+          this.slots = newSlots;
+        }
+        this.active.style.top = target.style.top ;
+      }
+    }
+
+
+    async up(eup) {
+      this.ghost.remove() ;
+      this.slots.forEach((elm, i) => elm && (elm.style.cssText = this.slotStyles[i]));
+      let fromPn = parseInt(this.active.getAttribute("name"));
+      let toPn = this.slots[0] ? parseInt(this.slots[0].getAttribute("name")) : 0;
+      if(toPn < fromPn) toPn++ ;
+      this.active.style.cssText = this.activeStyles;
+      if(fromPn != toPn) {
+        let marks = this.layout.bookmarks;
+        let newMarks = {};
+        for(let [pn, color] of Object.entries(marks)) {
+          pn = parseInt(pn);
+          if(pn == fromPn) newMarks[toPn] = color;  // moved page keeps its bookmark
+          else if(fromPn < toPn && pn > fromPn && pn <= toPn) newMarks[pn - 1] = color;  // shift left
+          else if(fromPn > toPn && pn >= toPn && pn < fromPn) newMarks[pn + 1] = color;  // shift right
+          else newMarks[pn] = color;  // unchanged
+        }
+        this.layout.pnStash.bookmarks = newMarks;
+console.log(1, this.layout.pnStash) ;
+        this.layout.score.pgMv(fromPn, toPn);
+        await this.layout.build(false);
+        await this.layout.pgGoTo(toPn);
+      }
+    }
+
+  }
+
+  async onDown(e) {
+    if (await super.onDown(e)) return;
+    this.grid.setPointerCapture(e.pointerId) ;
     let pg = e.target.pg || e.target.parentElement.pg;
     if (!pg) return;
     let pn = this.score.pnOf(pg);
-    this.pgGoTo(pn);
+    await this.pgGoTo(pn);
 
-    this.bookmarkScheduler.run(_longPressMs_, () => {
+    this.bMarkTimer.run(_longPressMs_, () => {
       let style = this.grid.children.namedItem(pn).firstChild.style;
       if (this.bookmarks[pn]) {
         delete this.bookmarks[pn];
@@ -1791,7 +1867,24 @@ class TableLayout extends Layout {
       } else style.background = this.bookmarks[pn] = randomColor();
       _body_.dispatchEvent(new CustomEvent("BookmarkChanged"));
     });
-    listen(this.table, "pointerup", () => this.bookmarkScheduler.cancel(), { once: true });
+
+    let cursor = null ;
+
+    let mv = listen(this.grid, "pointermove", (emv) => {
+     mvmt(e, emv) ;
+     if(e.moved) {
+       this.bMarkTimer.cancel() ;
+       if(!cursor) cursor = new this.Cursor(e, this) ;
+       cursor.mv(emv) ;
+     }
+    }) ;
+
+    listen(window, "pointerup", (eup) => {
+        if(e.moved) cursor.up(eup) ;
+        unlisten(mv) ;
+        this.bMarkTimer.cancel();
+      },
+     { once: true });
   }
 
   async pgGoTo(pn) {
@@ -1900,7 +1993,7 @@ class Pager {
     else if (position == "right") this.pager.style.right = 0;
     else if (position == "top") this.pager.style.top = 0;
     else if (position == "bottom") this.pager.style.bottom = 0;
-    this.bookmarkScheduler = new Schedule();
+    this.bMarkTimer = new Schedule();
     this.cursorBackground = cssIndex("Pager", ".Pager__cursor", "background-color");
     this.ptrMsgBackground = cssIndex("ptrMsg", ".ptrMsg", "background-color");
     this.pnListener = listen(_body_, "PnChanged", (e) => {
@@ -1992,7 +2085,7 @@ class Pager {
 
     setCursor(e[CLIENTY], Math.abs(e[CLIENTX] - cursorBox[X] - cursorBox[WIDTH]/2));
 
-    this.bookmarkScheduler.run(_longPressMs_, () => {
+    this.bMarkTimer.run(_longPressMs_, () => {
       let pn = pnStash.pn;
       if (bookmarks[pn]) {
          delete bookmarks[pn];
@@ -2008,14 +2101,14 @@ class Pager {
 
     let mv = listen(pager, "pointermove", (emv) => {
       let moved = mvmt(e, emv, 6, 6) ;
-      if(moved) this.bookmarkScheduler.cancel();
+      if(moved) this.bMarkTimer.cancel();
       setCursor(emv[CLIENTY], Math.abs(emv[CLIENTX] - cursorBox[X] - cursorBox[WIDTH] / 2));
     });
 
     listen(pager, "pointerup", (e) => {
         unlisten(mv);
         this.cursor.classList.remove("Pager__cursor-active");
-        this.bookmarkScheduler.cancel();
+        this.bMarkTimer.cancel();
         this.buildCursor();
         _body_.dispatchEvent(new CustomEvent("PnChanged", { detail: this }));
       },

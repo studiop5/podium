@@ -277,24 +277,6 @@ css(
     align-items: center ;
     justify-content: center ;
   }
-
-
-
-  Option 1: Vertical-align adjustment
-  /* In your pnToDiv-generated elements */
-  .bravura-char {
-    font-family: Bravura;
-    vertical-align: -0.15em; /* Adjust as needed */
-  }
-
-  .times-char {
-    font-family: "Times New Roman";
-    vertical-align: baseline;
-  }
-
-
-
-
 }`
 );
 
