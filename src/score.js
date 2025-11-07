@@ -304,19 +304,21 @@ class Pg {
     // -  this result is blob-ized, then wrapped into an object URL.
     // -  the 2 object URLs are set as the background image of this.thumbElm
     // -  the two object URLs are revoked after a delay of 10 animation frames
+///
     if (!this.thumbElm || force) {
       let deflated = !this.inflated;
+      let score = this.score ;
       if (deflated) await this.inflate(true, false);
 
       // create div hat will display the thumbnail
-      let scale = Pg.thumbSize / Math.max(this.width, this.height);
-      let maxW = this.score.maxWidth * scale, maxH = this.score.maxHeight * scale;
+      let scale = Pg.thumbSize / Math.max(score.maxWidth, score.maxHeight);
+      let maxW = score.maxWidth * scale, maxH = score.maxHeight * scale;
 
       this.thumbElm = helm(
         `<div class="TableLayout__pg" style="width:${maxW / _pxPerEm_}em;height:${maxH / _pxPerEm_}em;"></div>`);
       this.thumbElm.style.backgroundColor = Pg.paddingColor ;
-      if(this.score.pgFit == "Center")
-        this.thumbElm.style.backgroundSize = this.width * 100 / this.score.maxWidth + "%" ;
+      if(score.pgFit == "Center")
+        this.thumbElm.style.backgroundSize = this.width * 100 / score.maxWidth + "%" ;
 
       // create object URL for fabric canvas
       let fabCanvas = this.canvas.toCanvasElement(scale * this.stretch) ;
@@ -930,7 +932,7 @@ class Score {
     Score.activeScore = this;
     document.title = `Podium ${this.name ? this.name.replace(/\.pdf/i, ""):"*"} (${_podId_})`;
     // Reset _menu_ numbers cell...it caches values from previous score (possibly read from localStorage)
-    Object.assign(_menu_.rings.page.cells.numbers.stash, { pn: 1, pnOffset: 0, bookmarks: {} });
+    Object.assign(_menu_.rings.page.cells.numbers.stash, { pn: 1, pnOffset: 0, bookmarks: {}});
     // update the _menu_ state for this Score instance:
     _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"]);
     _menu_.enableCells("ink/undo", false); // nothing to undo yet
@@ -1114,6 +1116,18 @@ class Score {
     }
     return cutPg ;
   }
+
+  pgMv(fromPn, toPn) {
+    // move pg at fromPn to toPn (1-based)
+    fromPn = clamp(fromPn, 1, this.pgs.length) ;
+    toPn = clamp(toPn, 1, this.pgs.length) ;
+    if(fromPn != toPn) {
+      let tmpPg = this.pgs[fromPn-1] ;
+      this.pgs[fromPn-1] = this.pgs[toPn-1] ;
+      this.pgs[toPn-1] = tmpPg ;
+    }
+  }
+
 
   pnOf(pg) {
     // @return the 1-based page number of the give pg instance, or 0 if not found

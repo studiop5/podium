@@ -343,16 +343,26 @@ async function main() {
     /**
        Implement automatic "stashing" of Menu's settings:
         - stash after every pointerup event (throttled to 6.18 seconds)
+       Implement automatic extension of menu's autooff timer
     **/
     let stasher = new Schedule();
-    listen(window, "pointerup", (e) => {
-      stasher.cancel();
-      stasher.run(3500, () => {
-        localStorage.setItem("menu", _menu_.stashToJson());
-      });
-    });
-  }
+    let busyGuard = new Schedule();
 
+    listen(window, "pointerdown", (e) => {
+      _menu_.busy = true;
+      busyGuard.run(20000, () => _menu_.busy = false);  // 20 second safety timeout
+    }) ;
+
+    listen(window, "pointerup", (e) => {
+      _menu_.busy = false;
+      busyGuard.cancel();  
+      if(_menu_.activeRing?.activeCell) _menu_.autoOff.run() ; // extend activation
+      // run the stasher
+      stasher.cancel();
+      stasher.run(3500, () => localStorage.setItem("menu", _menu_.stashToJson())) ;;
+    })
+  }
+  
     /**
   {
 

@@ -32,6 +32,7 @@ import {
   hide,
   iconSvg,
   listen,
+  mvmt,
   pnToString,
   pxToEm,
   unlisten,
@@ -48,7 +49,7 @@ import {
 import { FileSrc, FileListView, FileSystemView, LocalFileView } from "./file.js";
 import { Layout } from "./layout.js";
 import { Pg, Score } from "./score.js";
-import { smuflTable, bravuraGroups, bravuraOffsets } from "./smufl.js";
+import { smuflTable } from "./smufl.js";
 import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
 export { panels };
 
@@ -298,12 +299,12 @@ class Panel {
 }
 
 class AddPanel extends Panel {
-  /* the addpanel once had a "Title Page" vs "Blank Page"
-     option, but we've removed it...however we may want
-     other options in the future...in fact, it could have
-     most of "NewScore" in it */
+    /* the addpanel once had a "Title Page" vs "Blank Page"
+       option, but we've removed it...however we may want
+       other options in the future...in fact, it could have
+       most of "NewScore" in it */
 
-  content = helm(`
+    content = helm(`
      <div data-tag="body" class="Panel__body">
        Type:<br>
        <!-- <div data-tag="type"></div> -->
@@ -311,37 +312,37 @@ class AddPanel extends Panel {
      </div>
    `);
 
-  constructor(cell) {
-    super(cell);
-    this.body.replaceWith(this.content);
-    Object.assign(this, dataIndex("tag", this.content));
-    let stash = cell.stash;
+    constructor(cell) {
+        super(cell);
+        this.body.replaceWith(this.content);
+        Object.assign(this, dataIndex("tag", this.content));
+        let stash = cell.stash;
 
-    /*
-    this.pageTypeGroup = new ButtonGroup(
-      stash,
-      {
-        Blank: { svg: "Blank Page", radio: "type" },
-        Title: { svg: "Title Page", radio: "type" }, 
-      },
-      null
-    );
+        /*
+          this.pageTypeGroup = new ButtonGroup(
+          stash,
+          {
+          Blank: { svg: "Blank Page", radio: "type" },
+          Title: { svg: "Title Page", radio: "type" }, 
+          },
+          null
+          );
 
-    this.type.replaceWith(this.pageTypeGroup.elm);
-    this.pageTypeGroup.refresh();
-    */
+          this.type.replaceWith(this.pageTypeGroup.elm);
+          this.pageTypeGroup.refresh();
+        */
 
-    let picker = new ColorPicker(
-      "Color:",
-      stash.fillRgb,
-      stash.fillAlpha,
-      (rgb, alpha) => {
-        stash.fillRgb = rgb;
-        stash.fillAlpha = alpha;
-      }
-    );
-    this.picker.replaceWith(picker.elm);
-  }
+        let picker = new ColorPicker(
+            "Color:",
+            stash.rgb,
+            stash.alpha,
+            (rgb, alpha) => {
+                stash.rgb = rgb;
+                stash.alpha = alpha;
+            }
+        );
+        this.picker.replaceWith(picker.elm);
+    }
 }
 
 class ClockPanel extends Panel {
@@ -1401,6 +1402,7 @@ class PencilPanel extends Panel {
     let { alpha, rgb, style, width } = this.cell.stash;
     clearChildren(this.preview);
     let path =
+      // svg paths...
       style == "Free"
         ? "M10 50C66 -50 132 150 190 50"
         : style == "L-R"
@@ -1538,11 +1540,11 @@ class RastrumPanel extends PencilPanel {
     },
     gap: {
       throttle: 250,
-      min: 1,
-      max: 25,
+      min: 5,
+      max: 40,
       step: 1,
-      value: 6,
-      msg: "Line Spacing: {value} px",
+      value: 8,
+      msg: "Staff Space: {value} px",
     },
     bars: {
       throttle: 250,
@@ -1643,153 +1645,154 @@ class ReviewPanel extends Panel {
   }
 }
 
-class SymbolsPanel extends PencilPanel {
+class SymbolsPanel extends Panel {
+
   static css = css(
-    "SymbolsPanel",
-    `
-    .SymbolsPanel__symbolsList {
-      background-image: var(--panTexture);
-      position:relative;
-      font-family:Bravura;
-      height:2em;
-      width:max-content;
-      min-width:100%;
-      margin-bottom:.2em ;
-      display:flex ;
-      align-items: center ;
-   }
-   .SymbolsPanel__preview {
-     background: unset ;
-     font-size:2em ;
-     height:4em ;
-     margin: unset ;
-   }
+    "SymbolsPanel", 
+     `.SymbolsPanel__frame {
+        background-image: var(--panTexture);
+        height: 6em;
+        width: 100%;
+        padding:.8em 0;
+        box-sizing: border-box;
+        margin-bottom: 0.2em;
+        overflow: hidden;
+        border-radius: var(--borderRadius);
+      }
+
+      .SymbolsPanel__sash {
+        font-family:Bravura;
+        position: relative;
+        height:100% ;
+        width: max-content;
+        min-width: 100%;
+        padding: 0 0.8em;
+        box-sizing: border-box;
+        display: flex;
+        gap: 0.4em;
+        align-items: flex-start;
+      }
+
    .SymbolsPanel__symbol {
-      display:inline-block;
-      padding-left:.25em;
-      padding-right:.25em;
-      border: .02em solid #eee;
+      background-color: white;
+      padding: 0 .4em;
       border-radius: .2em ;
+      opacity:0.5 ;
    }
+
    .SymbolsPanel__symbol-active {
-      background: ghostwhite ;
+     opacity: 1;
    }
-  `
-  );
 
-  groups = helm(`<select></select>`);
+   `) ;
 
-  slidersDef = {
-    size: { min: 1, max: 100, step: 1, value: 1, msg: "Font Size: {value} px" },
-  };
-
-  buttonsDef = null;
+  content = helm(`
+     <div data-tag="body" class="Panel__body">
+       <div class="SymbolsPanel__frame" data-tag="frame">
+         <div class="SymbolsPanel__sash" data-tag="sash"></div>
+       </div>
+      Symbols Group:<br>
+      <select data-tag="groups"></select>
+      <div data-tag="picker"></div>
+      <div data-tag="staffSpace"></div>
+      <br><a href="https://w3c.github.io/smufl/latest/index.html" target="_blank" rel="noopener noreferrer">SMuFL</a>
+     </div>
+   `);
 
   constructor(cell) {
     super(cell);
-    this.preview.after(helm(`<div>Symbols Group:</div>`));
-///    for (let group of Object.keys(smuflTable)) {
-    for (let group of Object.keys(bravuraGroups)) {
+    this.body.replaceWith(this.content) ;
+    Object.assign(this, dataIndex("tag", this.content));
+    let stash = cell.stash ;
+    for (let group of Object.keys(smuflTable)) {
       this.groups.append(
         helm(
           `<option ${
-            cell.stash.group == group ? "selected" : ""
+            stash.group == group ? "selected" : ""
           }>${group}</option>`
         )
       );
     }
-    this.picker.before(this.groups);
-
-    Object.assign(
-      this,
-      dataIndex(
-        "tag",
-        helm(`
-       <div data-tag="symbolsFrame" class="PencilPanel__preview SymbolsPanel__preview">
-          <div data-tag="symbolsList" class="SymbolsPanel__symbolsList"></div>
-       </div>`)
-      )
-    );
-
-    this.preview.replaceWith(this.symbolsFrame);
-    let dragListener = null;
 
     listen(this.groups, "change", () => {
-      clearChildren(this.symbolsList);
-
-///      for (let codePoint of smuflTable[this.groups.value]) {
-      for (let codePoint of bravuraGroups[this.groups.value]) {
-        let offset = (bravuraOffsets[codePoint] || 0) * 20 ;
-console.log(offset) ;
+      clearChildren(this.sash);
+      for (let codePoint of smuflTable[this.groups.value]) {
         let symbol = helm(
-          `<div style="transform: translateY(${offset}px)" class="SymbolsPanel__symbol ${codePoint == cell.stash.codePoint ? "SymbolsPanel__symbol-active": "" }">{codePoint}</div>`
+          `<div class="SymbolsPanel__symbol ${codePoint == stash.codePoint ? "SymbolsPanel__symbol-active": "" }">${codePoint}</div>`
         );
-        symbol.textContent = `${codePoint}`;
-        this.symbolsList.append(symbol);
-        this.symbolsList.style.left = "0";
+        this.sash.append(symbol);
+        this.sash.style.left = "0";
+        stash.group = this.groups.value ;
       }
-      unlisten(dragListener);
+    }) ;
 
-      this.dragListener = listen(this.symbolsList, "pointerdown", (e) => {
-        this.symbolsList.setPointerCapture(e.pointerId);
-        let offsetX = e.clientX - this.symbolsList.offsetLeft;
-        let limit = this.symbolsList.offsetWidth - this.panel.offsetWidth;
-        let mv = listen(this.symbolsList, "pointermove", (emv) => {
-          this.symbolsList.style.left =
-            clamp(emv.clientX - offsetX, -limit, 0) + "px";
-        });
-        listen(
-          this.symbolsList,
-          "pointerup",
-          (eup) => {
-            unlisten(mv);
-          },
-          { once: true }
-        );
+    this.groups.dispatchEvent(new Event("change")) ;
+
+
+    listen(this.sash, "pointerdown", (e) => { 
+      this.sash.setPointerCapture(e.pointerId);
+      let fs = parseFloat(getComputedStyle(this.sash).fontSize) ;
+      let offsetX = e.clientX - this.sash.offsetLeft;
+      let limit = this.sash.offsetWidth - this.frame.offsetWidth;
+
+      let mv = listen(this.sash, "pointermove", (emv) => {
+        let leftPx = clamp(emv.clientX - offsetX, -limit, 0) ;
+        this.sash.style.left = leftPx / fs + "em" ;
+         mvmt(e, emv) ;
       });
-      this.cell.stash.group = this.groups.value;
+
+      listen(this.sash, "pointerup", (eup) => {
+        unlisten(mv);
+        if(!e.moved) {
+          let target = document.elementFromPoint(e.clientX, e.clientY) ;
+          if(target?.classList.contains("SymbolsPanel__symbol")) {
+          Array.from(this.sash.children).forEach((child) => child.classList.remove("SymbolsPanel__symbol-active"));
+            target.classList.add("SymbolsPanel__symbol-active");
+            stash.codePoint = target.textContent;
+           _menu_.activateCell(cell) ;
+          }
+       }
+      }, {once:true}) ;
     });
 
-    listen(this.symbolsList, "pointerdown", (e) => {
-      Array.from(this.symbolsList.children).forEach((child) =>
-        child.classList.remove("SymbolsPanel__symbol-active")
-      );
-      e.target.classList.add("SymbolsPanel__symbol-active"); 
-      this.cell.stash.codePoint = e.target.textContent;
-      _menu_.activateCell(cell);
-      listen(
-        this.symbolsList,
-        "pointerup",
-        (eup) => {
-          if (eup.timeStamp - e.timeStamp > _longPressMs_)
-            _menu_.activateCell(cell, true);
-        },
-        { once: true }
-      );
+
+    let picker = new ColorPicker(
+        "Color:",
+        stash.rgb,
+        stash.alpha,
+        (rgb, alpha) => {
+          stash.rgb = rgb ;
+          stash.alpha = alpha ;
+          this.update();
+        }
+    );
+    this.picker.replaceWith(picker.elm);
+
+    let staffSpace = new SliderGroup(
+      stash,  { size: { min: 5, max: 40, step: 1, value: 8, msg: "Staff Space: {value} px" }},
+      (e, tag, value) => {
+        stash.tag = value;
+        this.update() ;
     });
-    this.groups.dispatchEvent(new Event("change"));
+
+    this.staffSpace.replaceWith(staffSpace.elm);
+    this.staffSpace = staffSpace ;
+    this.update();
   }
 
+
   update() {
-    let { alpha, rgb, size, height } = this.cell.stash;
-    for (let symbol of [...this.symbolsList.children])
-      Object.assign(symbol.style, {
-        color: rgb,
-        transparency: alpha,
-        fontSize: size + "px",
-        fontHeight: height + "px",
-      });
-    let active = Score.activeScore.getActiveObject();
-    if (active && active.type == "textbox") {
-      let color = fabric.Color.fromHex(rgb);
-      color.setAlpha(alpha);
-      let config = {
-        fill: color.toRgba(),
-        fontSize: size,
-        lineHeight: height / size,
-      };
-      active.setSelectionStyles(config, 0, active.text.length);
-      active.canvas.requestRenderAll();
+    let { alpha, group, rgb, size, height } = this.cell.stash;
+     this.groups.value = group ;
+     this.sash.style.color = rgb ;
+     this.sash.style.transparency = alpha ;
+     this.frame.style.fontSize = (size - 5) / 95 + 1 + "em" ;
+     let active = Score.activeScore.getActiveObject();
+     if (active && active.podiumType == "symbols") {
+       let color = fabric.Color.fromHex(rgb);
+       color.setAlpha(alpha);
+       active.setSelectionStyles({fill: color.toRgba(), fontSize: size * 4 }, 0, active.text.length);
+       active.canvas.requestRenderAll();
     }
   }
 }

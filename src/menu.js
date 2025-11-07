@@ -79,11 +79,11 @@ class Menu {
     }
     .Menu__cell-panel::after {
       content: "";
-      width:2em ;
+      width:5em ;
       height:2em;
-      border-radius: .8em;
+      border-radius: 0.8em;
       background-image: var(--panTexture);
-      left:calc(50% - 1em);
+      left:calc(50% - 2.5em);
       top:-1.25em;
       position:absolute;
     } 
@@ -141,10 +141,9 @@ class Menu {
   // If its already scheduled, then calling it again will delay the
   // activation further.
 
-  inPgEvent = false ;
-  autoOff = new Schedule(3500, () => {
-     if(this.inPgEvent) this.autoOff.run() ;
-     else this.activateCell(null) ;
+  busy = false ;  autoOff = new Schedule(3500, () => {
+    if(this.busy) this.autoOff.run() ;
+    else this.activateCell(null) ;
   }) ;
 
 
@@ -252,18 +251,11 @@ class Menu {
       }
     }
 
-    // add class Menu__cell-panel to all cells that have a panels
-    for(let ring of Object.values(this.rings))
-       for(let cell of Object.values(ring.cells))
-///          if(panels[cell.name + "Panel"])
-          if(panels[cell.key.charAt(0).toUpperCase() + cell.key.slice(1) + "Panel"])
-             cell.elm.classList.add("Menu__cell-panel") ;
 
     // set initial cell state
     this.enableCells(["layout", "ink", "ink/paste", "page", "score/close", "score/save", "score/details", "score/print", "page/paste"], false);
 
     this.stashDefaults = this.stashToJson();
-
     // load menu stash from localStorage
     try {
       let json = localStorage.getItem("menu") ?? this.stashDefaults;
@@ -438,7 +430,7 @@ class Menu {
 
       },
       name: "Layout",
-      stash: { active: "book", },
+      stash: { active: "book"},
       svgPath: iconPaths["Layout"],
     } ;
 
@@ -487,7 +479,7 @@ class Menu {
         rastrum: {
           name: "Rastrum",
           svgPath: iconPaths["Rastrum"],
-            stash: {  alpha:"1", gap:5, bars:0, lines: 5, rgb: "#000000", style:"L-R", width: .75, barsWidth:.75}, // "L-R" or "T-B"
+            stash: {  alpha:"1", gap:85, bars:0, lines: 5, rgb: "#000000", style:"L-R", width: .75, barsWidth:.75}, // "L-R" or "T-B"
         },
         text: {
           name: "Text",
@@ -497,7 +489,7 @@ class Menu {
         symbols: {
           name: "Symbols",
           svgPath: iconPaths["Symbols"],
-          stash: {alpha:"1", rgb:"000000", font: "Bravura", size: 20, height: 20,rgb: "#000000", group: "4.5. Clefs", codePoint: "\ue050"},
+          stash: {alpha:"1", rgb:"000000", font: "Bravura", size: 8, group: "4.5. Clefs", codePoint: "\ue050"},
         },
         undo: {
           name: "Undo",
@@ -536,7 +528,10 @@ class Menu {
 
     paths = Object.keys(rings.ink.cells).map((key) => `ink/${key}/`) ;
     this.listen(paths.map((path) => path + "up"),(cell) => this.activateCell(rings.ink.activeCell === cell ? null :cell));
-    this.listen(paths.map((path) => path + "long"),(cell) => this.activateCell(cell, true));
+    this.listen(paths.map((path) => path + "long"),(cell) => this.activateCell(cell));
+    // All but 4 cells in the ink ring have panels...remove those from paths...
+    paths = paths.filter((key) => !["ink/undo/","ink/cut/","ink/paste/","ink/transform/"].includes(key)) ;
+    // ..then listen for "out" on all remaining paths:
     this.listen(paths.map((path) => path + "out"),(cell) => this.openPanel(cell)) ; 
 
     // Page ring
@@ -545,7 +540,7 @@ class Menu {
         numbers: {
           name: "Numbers",
           svgPath: iconPaths["Numbers"],
-          stash: { pn: 1, first: 1, prelim: 0, bookmarks: {}, forward: "Pages", reverse: "Pages" },
+          stash: { pn: 1, first: 1, prelim: 0, forward: "Pages", reverse: "Pages", bookmarks: {} },
         },
         add: {
           name: "Add",
@@ -568,12 +563,11 @@ class Menu {
     this.listen("page/up", () => this.activateRing(rings.page));
     paths = Object.keys(rings.page.cells).map((path) => `page/${path}/`) ;
     this.listen(paths.map((path) => path + "up"), (cell) => this.activateCell(rings.page.activeCell === cell ? null :cell)) ;
-    this.listen(paths.map((path) => path + "out"), (cell) =>  this.openPanel(cell)) ;
+    this.listen(["page/numbers/","page/paste/","page/add/"].map((path) => path + "out"), (cell) =>  this.openPanel(cell)) ;
+
     this.listen("page/undo/up", async () => {
        Score.activeScore.pgUndo() ;
        await Layout.activeLayout.build(false);
-       // await this.pgGoTo(Math.max(1, pn-1)); // rem grd, tbd
-       // animateToPaste(pg) ; rem grd...animateTo(pg, cell...)
    })
     // numbers panel has no functionality except its panel, so allow up to open the panel
     this.listen("page/numbers/up", (cell) => panels.NumbersPanel.get(cell).show().setPosition(this.grip)) ;
@@ -640,8 +634,8 @@ class Menu {
    this.listen("more/volume/up", (cell) => panels.VolumePanel.get(cell).show().setPosition(this.grip)) ;
    this.listen("more/help/up", (cell) => panels.HelpPanel.get(cell).show().setPosition(this.grip)) ;
 
-    // grip: no cells here, just handlers
-    this.listen("up", () => this.collapse());
+   // grip: no cells here, just handlers
+   this.listen("up", () => this.collapse());
 
     // Add a "key" key to every cell so that, given a cell,
     // we know immediately what its key is. Add a "ring" entry
@@ -720,6 +714,10 @@ class Menu {
         </div>`);
           ring.elm.append(cell.elm);
           cell.ring = ring;
+          // iff the cell is associated with a panel, it will have an "out" listener: add the Menu__cell-panel 
+          // class to visually distinguish it.
+          if(this.listeners[`${diskKey}/${cellKey}/out`])
+            cell.elm.classList.add("Menu__cell-panel") ;
         }); // forEach((cell)
       }
     }); // forEach(([key, ring
@@ -1205,12 +1203,6 @@ class Menu {
 
     if(this.checkEditing()) return ;
 
-    // this.autoOff should not deactivate while we are "between"
-    // a pgDownEvent and a pgUpEvent, as pointer activate in this
-    // interval should keep the currently activated cell activated.
-    this.inPgEvent = true ;
-
-
     this.newlyCreated = null ;
     let target = opts.target ;
 
@@ -1294,11 +1286,9 @@ class Menu {
         let rgba = color.toRgba();
         let config = {
           fill: rgba,
-          fontSize: size,
-          lineHeight: height / size,
+          fontSize: size * 4, // * 4 because size is in "pixels per staff space" and there's normally 4 spaces / staff
           editable: false,
           selectable: true,
-          cursorColor: "black",
           left: opts.absolutePointer.x,
           top: opts.absolutePointer.y,
           hasControls: false,
@@ -1380,7 +1370,6 @@ class Menu {
   }
 
   pgUpEvent(opts, pg) {
-    this.inPgEvent = false ; // used by this.autoOff
     this.autoOff.run() ; // extend activation of active cell
 
     Score.activeScore.setDirty(true) ;
