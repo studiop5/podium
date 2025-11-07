@@ -321,7 +321,7 @@ class Menu {
           // Note capitalization of Width, Height, as these tags
           // are shown in the NewScore panel. Values are always in
           // pdf pts
-          stash: { pages: 5, size: "A4", Width:595, Height:842 },
+          stash: { pages: 5, size: "A4", Width:595, Height:842, rgb: "#fff", alpha:1.0 },
           svgPath: iconPaths["New Score"],
         },
         close: { name: "Close", svgPath: iconPaths["Close"] },
@@ -353,10 +353,13 @@ class Menu {
 
     this.listen("score/new/up", async (cell) => {
       if(!await checkUnsaved()) return ;
+      let alpha = parseInt(cell.stash.alpha * 255).toString(16) ;
+      while (alpha.length < 2) alpha = "0" + alpha;
       await Score.newScore(
         cell.stash.pages,
         cell.stash.Width,
         cell.stash.Height,
+        cell.stash.rgb + alpha,
       );
     });
 
@@ -540,12 +543,12 @@ class Menu {
         numbers: {
           name: "Numbers",
           svgPath: iconPaths["Numbers"],
-          stash: { pn: 1, first: 1, prelim: 0, forward: "Pages", reverse: "Pages", bookmarks: {} },
+          stash: { forward: "Pages", reverse: "Pages"},
         },
         add: {
           name: "Add",
           svgPath: iconPaths["New Page"],
-          stash: { rgb: "#ffffff", alpha: 1.0, type: "Blank" },
+          stash: { rgb: "#ffffff", alpha: 1.0, Width: 612, Height: 792, size: "Match Score" },
         },
         delete: { name: "Delete", svgPath: iconPaths["Delete Page"] },
         undo: { name: "Undo", svgPath: iconPaths["Undo"] },

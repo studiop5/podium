@@ -66,6 +66,25 @@ class Panel
   subclass, and is simply ignored if singleton already exists.
 **/
 
+
+let PAGE_SIZE_SELECT = `
+  <select class="FontPanel__select" data-tag="presets">
+    <option value="score">Match Score</option>
+    <option value="custom">Custom:</option>
+    <option value="mm/279/420">A3</option>
+    <option value="mm/210/297">A4</option>
+    <option value="mm/250/353">B4</option>
+    <option value="in/6.5/10.5">Octavo</option>
+    <option value="in/8.5/11">Letter</option>
+    <option value="in/9/12">Folio</option>
+    <option value="in/9.5/12.5">Hand Copy (Trad)</option>
+    <option value="in/11/14">Orchestral Parts (MOLA)</option>
+    <option value="in/17/11">Ledger</option>
+    <option value="in/8.5/14.0">Legal</option>
+    <option value="in/11/17">Tabloid</option>
+  </select>
+`;
+
 class Panel {
   static get(cell) {
     return panels[cell.key] || (panels[cell.key] = new this(cell));
@@ -82,7 +101,7 @@ class Panel {
       border-radius: var(--borderRadius);
       filter: var(--bodyShadow);
       box-shadow: 0.3em 0.3em 1.6em #aaa inset, -0.3em -0.3em 1.6em #aaa inset;
-      background: #ddd;
+      background: #ddd; 
       z-index: 100;
     }
     .Panel__header {
@@ -298,51 +317,82 @@ class Panel {
   }
 }
 
+
+
 class AddPanel extends Panel {
-    /* the addpanel once had a "Title Page" vs "Blank Page"
-       option, but we've removed it...however we may want
-       other options in the future...in fact, it could have
-       most of "NewScore" in it */
+  content = helm(`
+    <div data-tag="options" class="Panel__body">
+      <div data-tag="picker"></div>
+      Size:<br>
+      ${PAGE_SIZE_SELECT}
+      <div data-tag="custom"></div>
+    </div>
+  `);
 
-    content = helm(`
-     <div data-tag="body" class="Panel__body">
-       Type:<br>
-       <!-- <div data-tag="type"></div> -->
-       <div data-tag="picker"></div>
-     </div>
-   `);
+  constructor(cell) {
+    super(cell);
+    Object.assign(this, dataIndex("tag", this.content));
+    this.body.append(this.content);
+    let stash = cell.stash;
+     // Color picker
+    let picker = new ColorPicker(
+      "Color:",
+      stash.rgb,
+      stash.alpha,
+      (rgb, alpha) => {
+        stash.rgb = rgb;
+        stash.alpha = alpha;
+      }
+    );
+    this.picker.replaceWith(picker.elm);
+    this.setupSizeSelection(stash);
+  }
 
-    constructor(cell) {
-        super(cell);
-        this.body.replaceWith(this.content);
-        Object.assign(this, dataIndex("tag", this.content));
-        let stash = cell.stash;
+  setupSizeSelection(stash) {
+    // Extract the size selection logic into a method
+    let sizeMsg = (tag, val) => {
+      let pt = val.toFixed(0);
+      let mm = (val * (1 / 2.8346456693)).toFixed(0);
+      let inch = (val * (1 / 72)).toFixed(2);
+      return `${tag}: ${pt} pt, ${mm} mm, ${inch} in`;
+    };
+    let disable = stash.size != "Custom:";
 
-        /*
-          this.pageTypeGroup = new ButtonGroup(
-          stash,
-          {
-          Blank: { svg: "Blank Page", radio: "type" },
-          Title: { svg: "Title Page", radio: "type" }, 
-          },
-          null
-          );
+    this.customGroup = new SliderGroup(stash,
+      { Width: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
+        Height: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
+      }, null);
+    this.custom.replaceWith(this.customGroup.elm);
 
-          this.type.replaceWith(this.pageTypeGroup.elm);
-          this.pageTypeGroup.refresh();
-        */
+    listen(this.presets, ["input", "change"], (e) => {
+      stash.size = e.target.selectedOptions[0].textContent;
+      if (e.target.value == "score") { // Match current score dimensions
+        let score = Score.activeScore;
+        stash.Width = score.maxWidth;
+        stash.Height = score.maxHeight;
+        this.customGroup.defs.Height.disabled = true;
+        this.customGroup.defs.Width.disabled = true;
+      }
+      else if (e.target.value == "custom") {
+        this.customGroup.defs.Height.disabled = false;
+        this.customGroup.defs.Width.disabled = false;
+      } else {
+        let [unit, width, height] = e.target.value.split("/");
+        let toPts = unit == "in" ? 72 : unit == "mm" ? 2.8346456693 : 1;
+        stash.Width = width * toPts;
+        stash.Height = height * toPts;
+        this.customGroup.defs.Height.disabled = true;
+        this.customGroup.defs.Width.disabled = true;
+      }
+      this.customGroup.refresh();
+    });
 
-        let picker = new ColorPicker(
-            "Color:",
-            stash.rgb,
-            stash.alpha,
-            (rgb, alpha) => {
-                stash.rgb = rgb;
-                stash.alpha = alpha;
-            }
-        );
-        this.picker.replaceWith(picker.elm);
-    }
+    this.customGroup.refresh();
+    let size = [...this.presets.children].find(
+      (option) => option.textContent == stash.size
+    );
+    if (size) size.selected = true;
+  }
 }
 
 class ClockPanel extends Panel {
@@ -1107,98 +1157,20 @@ class MetronomePanel extends Panel {
   }
 }
 
-class NewPanel extends Panel {
-  // Options list consisting of selection of common page sizes, plus
-  // ability to enter custom size
-  content = helm(`
-      <div data-tag="options" class="Panel__body">
-         <div data-tag="pages"></div>
-        Size:<br>
-        <select class="FontPanel__select" data-tag="presets">
-          <option value="custom">Custom:</option>
-          <option value="mm/279/420">A3</option>
-          <option value="mm/210/297">A4</option>
-          <option value="mm/250/353">B4</option>
-          <option value="in/6.5/10.5">Octavo</option>
-          <option value="in/8.5/11">Letter</option>
-          <option value="in/9/12">Folio</option>
-          <option value="in/9.5/12.5">Hand Copy (Trad)</option>
-          <option value="in/11/14">Orchestral Parts (MOLA)</option>
-          <option value="in/17/11">Ledger</option>
-          <option value="in/8.5/14.0">Legal</option>
-          <option value="in/11/17">Tabloid</option>
-       </select>
-       <div data-tag="custom"></div>
-      </div>`);
+
+class NewPanel extends AddPanel {
 
   constructor(cell) {
-    super(cell);
-    Object.assign(this, dataIndex("tag", this.content));
-    this.body.appendChild(this.content);
-
-    this.pagesGroup = new SliderGroup(
-      this.cell.stash,
-      {
-        pages: { min: 1, max: 100, msg: "{value} pages", step: 1 },
-      },
-      null
-    );
-    this.pages.replaceWith(this.pagesGroup.elm);
-
-    let sizeMsg = (tag, val) => {
-      let pt = val.toFixed(0);
-      let mm = (val * (1 / 2.8346456693)).toFixed(0);
-      let inch = (val * (1 / 72)).toFixed(2);
-      return `${tag}: ${pt} pt, ${mm} mm, ${inch} in`;
-    };
-
-    let disable = this.cell.stash.size != "Custom:";
-
-    this.customGroup = new SliderGroup(
-      this.cell.stash,
-      {
-        Width: { min: 1, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
-        Height: { min: 1, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
-      },
-      null
-    );
-    this.custom.replaceWith(this.customGroup.elm);
-
-    listen(this.presets, ["input", "change"], (e) => {
-      cell.stash.size = e.target.selectedOptions[0].textContent;
-      if (e.target.value == "custom") {
-        // enable sliders:
-        this.customGroup.defs.Height.disabled = false;
-        this.customGroup.defs.Width.disabled = false;
-      } else {
-        let [unit, width, height] = e.target.value.split("/");
-        // stash the page size in pdf pts
-        let toPts =
-          unit == "in"
-            ? 72
-            : unit == "mm"
-            ? 2.8346456693
-            : unit == "pt"
-            ? 1
-            : 1;
-        cell.stash.Width = width * toPts;
-        cell.stash.Height = height * toPts;
-        // disable user interaction with sliders:
-        this.customGroup.defs.Height.disabled = true;
-        this.customGroup.defs.Width.disabled = true;
-      }
-      this.customGroup.refresh();
-    });
-
+    super(cell); 
+    let matchScoreOption = [...this.presets.children].find(opt => opt.value === "score");
+    if (matchScoreOption) matchScoreOption.remove();
+    this.pagesGroup = new SliderGroup( cell.stash,
+      {  pages: { min: 1, max: 100, msg: "{value} pages", step: 1 }, }, null );
+     this.body.prepend(this.pagesGroup.elm) ;    
     this.pagesGroup.refresh();
-    this.customGroup.refresh();
-
-    let size = [...this.presets.children].find(
-      (option) => option.textContent == this.cell.stash.size
-    );
-    if (size) size.selected = true;
   }
 }
+
 
 class NumbersPanel extends Panel {
   content = helm(`

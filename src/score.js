@@ -74,6 +74,7 @@ class Pg {
     this.background = background;
     this.canvas = null; // fabricjs canvas
     this.isCut = false ; // marker for pgs that are "cut" in the gui
+    this.bookmark = null ;; // Color string if this pg is bookmarked, else null
     this.deferred = false; // true while pdf rendering deferred for non-blocking
     this.editable = false;
     this.elm = null; // shortcut for this.canvas.wrapperEl: the base element of the fabric canvas dom
@@ -304,7 +305,6 @@ class Pg {
     // -  this result is blob-ized, then wrapped into an object URL.
     // -  the 2 object URLs are set as the background image of this.thumbElm
     // -  the two object URLs are revoked after a delay of 10 animation frames
-///
     if (!this.thumbElm || force) {
       let deflated = !this.inflated;
       let score = this.score ;
@@ -633,6 +633,7 @@ class Pg {
     // The returned json will not contain any fabricjs objects with the "merge" property:
     // these will have been encorporated directly into the pdf.
     json.objects = json.objects.filter((obj) => !obj.merge);
+    json.bookmark = this.bookmark ;
     return json;
   }
 
@@ -729,7 +730,8 @@ class Score {
     odrive: "OneDrive",
   });
 
-  static async newScore(pgKnt, width, height) {
+  static async newScore(pgKnt, width, height, color) {
+///
     // Create a new score that consists entirely of empty pages,
     // not backed by and pdf.
     // @pgKnt number of pages in the new score
@@ -737,14 +739,13 @@ class Score {
     // @height in px
     let score = new Score();
     for (let i = 1; i <= pgKnt; i++) {
-      let pg = new Pg(score, width, height, null, null, "#fff");
+      let pg = new Pg(score, width, height, null, null, color);
       /*
         // for testing only, add a page number to each page:
         await pg.inflate();
         pg.canvas.add(new fabric.Textbox("pg " + i));
         pg.deflate();
-       */
-///
+
         // For testing only, add a small and large pages to test the
         // Pg padding mechanism provided by layouts:
         if (i == 1) pg = new Pg(score, width / 10, height / 2, null, null, "#f00");
@@ -752,7 +753,6 @@ class Score {
         else if (i == 3) pg = new Pg(score, width / 2, height / 4, null, null, "#f00");
         else if (i == 5) pg = new Pg(score, width / 4, height /2, null, null, "#0f0"); 
 
-/*
         else if (i == 7) pg = new Pg(score, width * 4, height * 1, null, null, "#00f"); 
         else if (i == 9) pg = new Pg(score, width * 5, height * 1, null, null, "#888"); 
         else pg = new Pg(score, width, height, null, null, "#fff") ;
@@ -848,6 +848,14 @@ class Score {
   quality = 2; // pdf rendering quality: see Pg.renderPdf()
   dirty = false ; // true iff score has been modified (i.e. requires saving) 
 
+  numbers = {
+    pn: 1, // current pn
+    first: 1, // first pn to display
+    prelim: 0, // Number of preliminary (roman numberal) pages
+    forward: "Pages", // Forward arrow behavior: "Pages or "Bookmarks"
+    reverse: "Pages"  // Reverse...
+   }
+
   pgFit = "Center" ;
 
   constructor() {
@@ -908,6 +916,10 @@ class Score {
         this.created = scoreJson.created || this.created ;
         this.modified = scoreJson.modified || this.modified ;
         this.quality = scoreJson.quality ?? this.quality;
+        this.numbers = scoreJson.numbers ?? this.numbers ;
+        this.pn = scoreJson.pn ?? 1;
+        this.first = scoreJson.first ?? 1;
+        this.prelim = scoreJson.prelin ??0;
         if(activate) // don't use stashed values if not activating!
           _menu_.stashFromJsonObj(scoreJson.menu);
       }
@@ -917,7 +929,9 @@ class Score {
       for (let i = 1; i <= this.mozDoc.numPages; i++) {
         let mozPage = await this.mozDoc.getPage(i);
         let [left, top, width, height] = mozPage.view ;
-        this.pgs.push(new Pg(this, width, height, scoreJson?.pages ? scoreJson.pages[i] : null, i));
+        let pgJson = scoreJson?.pages ? scoreJson.pages[i]:null ;
+        this.pgs.push(new Pg(this, width, height, pgJson, i));
+        if(pgJson?.bookmark) this.pgs[this.pgs.length -1].bookmark = pgJson.bookmark ;
         this.maxWidth = Math.max(width, this.maxWidth);
         this.maxHeight = Math.max(height, this.maxHeight);
       } 
@@ -931,8 +945,6 @@ class Score {
     // instance the active score
     Score.activeScore = this;
     document.title = `Podium ${this.name ? this.name.replace(/\.pdf/i, ""):"*"} (${_podId_})`;
-    // Reset _menu_ numbers cell...it caches values from previous score (possibly read from localStorage)
-    Object.assign(_menu_.rings.page.cells.numbers.stash, { pn: 1, pnOffset: 0, bookmarks: {}});
     // update the _menu_ state for this Score instance:
     _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"]);
     _menu_.enableCells("ink/undo", false); // nothing to undo yet
@@ -941,7 +953,8 @@ class Score {
     panels.DetailsPanel.get(_menu_.rings.score.cells.details).refresh();
     // layout the score using current active layout, defaulting to book layout
     _menu_.reset() ;
-    let cell = _menu_.rings.layout.activeCell || _menu_.rings.layout.cells.book ;
+    let layoutKey = _menu_.rings.layout.stash.active || "book"  ;
+    let cell = _menu_.rings.layout.cells[layoutKey] ;
     await Layout.open(cell) ;
     return this ;
   }
@@ -976,6 +989,7 @@ class Score {
         maxWidth: this.maxWidth,
         maxHeight: this.maxHeight,
         quality: this.quality,
+        numbers: this.numbers,
         pages: {},
         menu: _menu_.stashToJsonObj(),
       };
@@ -1123,8 +1137,8 @@ class Score {
     toPn = clamp(toPn, 1, this.pgs.length) ;
     if(fromPn != toPn) {
       let tmpPg = this.pgs[fromPn-1] ;
-      this.pgs[fromPn-1] = this.pgs[toPn-1] ;
-      this.pgs[toPn-1] = tmpPg ;
+      let pg = this.pgs.splice(fromPn - 1, 1)[0];  // Remove from old position
+      this.pgs.splice(toPn - 1, 0, pg);    
     }
   }
 
