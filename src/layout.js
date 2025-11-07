@@ -177,7 +177,10 @@ class Layout {
     _shade_.hide();
   }
 
-  pnStash = _menu_.rings.page.cells.numbers.stash;
+  get pnStash() {
+    return this.score.numbers;
+  }
+
   margin = 12; // in px: initial margin between layout and viewport
 
   constructor(score, cell) {
@@ -186,10 +189,6 @@ class Layout {
     this.cell = cell;
     this.pnListener = listen(_body_, ["PnChanged"], (e) => {
       if (e.detail instanceof Layout) return;
-      // Ignore event if it comes from a Pager whose direction is "right" (or "bottom").  Pagers
-      // come in pairs (left,right or top,bottom). Both will fire this event when either changes,
-      // but we only want to react once.
-      if (e.detail instanceof Pager && ["right", "bottom"].includes(e.detail.direction)) return;
       this.pgGoTo(this.pnStash.pn);
     });
     delay(1, () => (this.elm.dataset.tag = this.constructor.name)); // run after subclass constructor
@@ -316,7 +315,7 @@ class Layout {
           let stash = _menu_.rings.page.cells.add.stash;
           let alpha = parseInt(stash.alpha * 255).toString(16);
           while (alpha.length < 2) alpha = "0" + alpha;
-          let pg = new Pg(score, score.maxWidth, score.maxHeight, null, null, stash.fillRgb + alpha);
+          let pg = new Pg(score, stash.Width, stash.Height, null, null, stash.rgb + alpha);
           pg.inflate();
           await score.pgAdd(pg, pn);
           this.pnStash.pn = 0; // No active pg for build:
@@ -361,7 +360,10 @@ class Layout {
     // of "next","prev","first","last".  If pnStashbookMarks is true, then
     // subclass should just call super, because bookMarks processing
     // is identical for all layouts.
-   let bookmarks = Object.keys(this.pnStash.bookmarks);
+    let bookmarks = [];
+    this.score.pgs.forEach((pg, i) => {
+      if (pg.bookmark) bookmarks.push(i + 1); // pn is 1-based
+    });
     if (bookmarks.length == 0) return;
     let pn = bookmarks[0];
     if (bookmarks.length > 1) {
@@ -694,7 +696,8 @@ class BookLayout extends Layout {
       this.pagerLeft.elm.remove();
       this.pagerRight.elm.remove();
     } ;
-
+    this.pagerLeft.build() ;
+    this.pagerRight.build() ;
     if(!animated) return ;
     this.pgGoTo(this.pnStash.pn);
 
@@ -1173,13 +1176,13 @@ class ScrollLayout extends Layout {
 
     // Create left/right (top/bottom) pager instances:
     this.pagerLeft = new Pager(this.props.LEFT, (stash, adjusting, cursor) => 
-       pnToDiv(this.pnStash.pn, cursor));
+       pnToDiv(stash.pn, cursor));
     Object.assign(this.pagerLeft.elm.style, {
       left: 0,
       zIndex: 20,
     });
     this.pagerRight = new Pager(this.props.RIGHT, (stash, adjusting, cursor) => 
-       pnToDiv(Math.min(this.pnStash.pn + this.cell.geo.pgShow - 1, this.cell.geo.pgCount), cursor));
+       pnToDiv(Math.min(stash.pn + this.cell.geo.pgShow - 1, this.cell.geo.pgCount), cursor));
     Object.assign(this.pagerRight.elm.style, {
       right: 0,
       zIndex: 20,
@@ -1317,7 +1320,8 @@ class ScrollLayout extends Layout {
       this.pagerLeft.elm.remove();
       this.pagerRight.elm.remove();
     } ;
-
+    this.pagerLeft.build() ;
+    this.pagerRight.build() ;
     if(!animated) return await this.pgGoTo(this.pnStash.pn);
 
     // 
@@ -1626,8 +1630,9 @@ class TableLayout extends Layout {
     // rows are added. This works fine for initial builds, but is too much if
     // we're rebuilding after a cut or paste.
     this.animated = animated ;
-    Object.assign(this, this.cell.stash);
-    Object.assign(this, this.pnStash);
+    Object.assign(this, this.cell.stash) ;
+    Object.assign(this, this.pnStash) ;
+
     // pages is from cell.stash: it determines the number of pages per row
     let { grid, pages, score, table } = this ;
 
@@ -1738,9 +1743,8 @@ class TableLayout extends Layout {
       let pnElm = elm.getElementsByClassName("TableLayout__pn").item(0) || helm(`<div class="TableLayout__pn"></div>`);
       pnElm.pg = pg; // Pn div is clickable
       pnElm.pn = pn; 
-console.log(pn, this.bookmarks) ;
       Object.assign(pnElm.style, {
-         background: this.bookmarks[pn] || "unset",
+         background: this.score.pgs[pn -1].bookmark  || "unset",
          top: 0, 
          left: 0,
       }) ;
@@ -1832,17 +1836,6 @@ console.log(pn, this.bookmarks) ;
       if(toPn < fromPn) toPn++ ;
       this.active.style.cssText = this.activeStyles;
       if(fromPn != toPn) {
-        let marks = this.layout.bookmarks;
-        let newMarks = {};
-        for(let [pn, color] of Object.entries(marks)) {
-          pn = parseInt(pn);
-          if(pn == fromPn) newMarks[toPn] = color;  // moved page keeps its bookmark
-          else if(fromPn < toPn && pn > fromPn && pn <= toPn) newMarks[pn - 1] = color;  // shift left
-          else if(fromPn > toPn && pn >= toPn && pn < fromPn) newMarks[pn + 1] = color;  // shift right
-          else newMarks[pn] = color;  // unchanged
-        }
-        this.layout.pnStash.bookmarks = newMarks;
-console.log(1, this.layout.pnStash) ;
         this.layout.score.pgMv(fromPn, toPn);
         await this.layout.build(false);
         await this.layout.pgGoTo(toPn);
@@ -1861,10 +1854,11 @@ console.log(1, this.layout.pnStash) ;
 
     this.bMarkTimer.run(_longPressMs_, () => {
       let style = this.grid.children.namedItem(pn).firstChild.style;
-      if (this.bookmarks[pn]) {
-        delete this.bookmarks[pn];
-        style.background = "unset";
-      } else style.background = this.bookmarks[pn] = randomColor();
+     if(pg.bookmark) {
+       pg.bookmark = null ;
+       style.background = "unset";
+     } else style.background = pg.bookmark = randomColor() ;
+
       _body_.dispatchEvent(new CustomEvent("BookmarkChanged"));
     });
 
@@ -1982,7 +1976,6 @@ class Pager {
   constructor(position, formatFunc) {
     // position is one of "left", "right", "top", "bottom"
     Object.assign(this, dataIndex("tag", this.elm));
-    this.pnStash = _menu_.rings.page.cells.numbers.stash;
     this.formatFunc = formatFunc;
     this.position = position;
     this.props = ["left", "right"].includes(position) ? NORMAL_PROPS : ORTHO_PROPS;
@@ -2012,6 +2005,10 @@ class Pager {
     unlisten(this.pnListener, this.bookmarkListener, this.pointerListener);
   }
 
+  get pnStash() {
+    return Score.activeScore.numbers ;
+  }
+
   build() {
     this.buildCursor();
     this.buildBookmarks();
@@ -2037,14 +2034,17 @@ class Pager {
     let pgSpan = 100 / pgCount;
     // bookmarks for positions right and bottom are on opposite side of those for left and top
     let leftPercent = ["left", "top"].includes(this.position) ? 70 : -10;
-    for (let [index, color] of Object.entries(this.pnStash.bookmarks))
+
+    Score.activeScore.pgs.forEach((pg, i) => {
+      if(!pg.bookmark) return ;
       this.elm.append(
         helm(
           `<div data-tag="bookmark" class="Pager__bookmark"
-         style='${TOP}:${(index - 1) * pgSpan}%;
-           ${HEIGHT}:${pgSpan}%;${WIDTH}:40%;${LEFT}:${leftPercent}%;background:${color};'</div>`
+         style='${TOP}:${i * pgSpan}%;
+           ${HEIGHT}:${pgSpan}%;${WIDTH}:40%;${LEFT}:${leftPercent}%;background:${pg.bookmark};'</div>`
         )
       );
+    });
   }
 
   onDown(e) {
@@ -2054,7 +2054,6 @@ class Pager {
     let pgCount = Score.activeScore.pgs.length ;
     let cursorBox = getBox(cursor);
     let pagerBox = getBox(pager);
-    let bookmarks = pnStash.bookmarks ;
     pager.setPointerCapture(e.pointerId);
     cursor.classList.add("Pager__cursor-active");
 
@@ -2072,9 +2071,9 @@ class Pager {
       let newPos = origin + dY - cursorOffset  ;
       cursor.style[TOP] = clamp(newPos, 0, pagerBox[HEIGHT] - cursorBox[HEIGHT]) + "px"; 
       newPos += cursorBox[HEIGHT] / 2 ; // compensate for cursor height
-      pnStash.pn = clamp(1, Math.floor((newPos / pagerBox[HEIGHT]) * pgCount) + 1, pgCount) ;
+      pnStash.pn = clamp(Math.floor((newPos / pagerBox[HEIGHT]) * pgCount) + 1, 1, pgCount) ;
       // are we at a bookmark? 
-      let bkCl = bookmarks[pnStash.pn] ;
+      let bkCl = Score.activeScore.pgs[pnStash.pn -1].bookmark;
       if(bkCl) cursor.style.color = ptrDiv.style.color = bkCl ;
       else cursor.style.color = ptrDiv.style.color = "black" ;
       clearChildren(cursor);
@@ -2087,14 +2086,15 @@ class Pager {
 
     this.bMarkTimer.run(_longPressMs_, () => {
       let pn = pnStash.pn;
-      if (bookmarks[pn]) {
-         delete bookmarks[pn];
-         cursor.style.color = "black" ;
-         ptrDiv.style.color = "black" ;
-
+      let pg = Score.activeScore.pgs[pn - 1];
+      if (pg.bookmark) {
+        pg.bookmark = null;
+        cursor.style.color = "black";
+        ptrDiv.style.color = "black";
       }
-      else { let bkCl = bookmarks[pn] = randomColor();
-         cursor.style.color = ptrDiv.style.color = bkCl ;
+      else {
+        let bkCl = pg.bookmark = randomColor();
+        cursor.style.color = ptrDiv.style.color = bkCl;
       }
       _body_.dispatchEvent(new CustomEvent("BookmarkChanged"));
     });
