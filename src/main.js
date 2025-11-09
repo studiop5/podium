@@ -62,6 +62,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
 
 async function main() {
 
+  // Initialize theme from localStorage
+  let savedTheme = localStorage.getItem("theme") || "light";
+  document.documentElement.setAttribute("data-theme", savedTheme);
+
   initFabric();
   // Create the menu. It's fontSize is set s.t. it's outer ring
   // will cover _gsgs_ (_gs_ for mobile) * narrowest screen dimension.

@@ -741,14 +741,13 @@ class Surface
 class Surface {
   static css = css(
     "Surface",
-    ` 
+    `
     .Surface {
       font-size:1em;
       position:absolute;
       width:8em;
       height:8em;
       z-index:100;
-      filter:var(--bodyShadow);
     }`
   );
 

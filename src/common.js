@@ -96,8 +96,11 @@ let sandSvg =
   "url('data:image/svg+xml;base64," + btoa(`
       <svg width='3em' height='3em' viewBox='0 0 175 175' xmlns='http:/\/www.w3.org/2000/svg'>
         <filter id='noiseFilter'>
-          <feTurbulence type='turbulence' baseFrequency='0.5' numOctaves='5' stitchTiles='stitch'/>
-        </filter>  
+          <feTurbulence type='turbulence' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/>
+          <feComponentTransfer>
+            <feFuncA type='linear' slope='0.3'/>
+          </feComponentTransfer>
+        </filter>
         <g><rect width='100%' height='100%' filter='url(#noiseFilter)'/></g>
       </svg>`) +
   "')";
@@ -119,7 +122,6 @@ let paperSvg =
         <rect width='100%' height='100%' fill='#CD853F' filter='url(#paperFilter)'/>
       </svg>`) +
     "')";
-
 
 
 // css helpers:
@@ -154,26 +156,162 @@ let css = (name, rules) => {
   return cssIndex(name);
 };
 
-css(
-  // common css declarations. note: if you change bodyColor, be sure
-  // change the background-color style declarations in pod.html and
-  // podium.html. Those are defined so that there is not a brief
-  // flash of white screen before the background paints.
 
-  "common",
-  `
+css( // common css declarations. note: if you change bodyColor, be sure to 
+     // change the background-color style declarations in pod.html and
+   // podium.html. Those are defined so that there is not a brief 
+   // flash of white screen before the background paints.
+
+  "common", `
+
   :root {
-    --textShadow: .5px .5px #fff6,-1px -1px #fff6,.5px -1px #fff6,-1px .5px #fff6; 
-    --bodyShadow: drop-shadow(.1em .125em .2em #6668);
-    --borderRadius: .8em;
+    /* Layout & Structure */
+    --borderRadius: .4em;
     --border: .1em solid white;
-    --bodyColor: #c9c9c9;
+    --panelWidth: 12em;
+
+    /* Light theme colors */
+    --bodyColor: #a8a8a8;
     --panTexture: ${sandSvg};
     --layoutTexture: ${paperSvg};
-    --panelWidth: 12em;
+
+    /* Shadows */
+    --textShadow: .5px .5px #fff6,-1px -1px #fff6,.5px -1px #fff6,-1px .5px #fff6;
+    --bodyShadow: drop-shadow(.1em .125em .2em #6668);
+    --menuShadow: 0 0 0 transparent;
+    --panelShadow: drop-shadow(.08em .1em .2em #0006);
+
+    /* Menu colors */
+    --menu-cell-bg: linear-gradient(135deg, #d0d0d0 0%, #b8b8b8 100%);
+    --menu-cell-selected-bg: #b0b0b0;
+    --menu-cell-active-bg: #fff;
+    --menu-disk-bg: linear-gradient(135deg, #d4d4d4 0%, #c0c0c0 100%);
+    --menu-grip-bg: #b8b8b8;
+    --menu-grip-selected-bg: #b0b0b0;
+    --menu-panel-indicator: #a8a8a8;
+    --menu-panel-indicator-highlight: #fff2;
+    --menu-panel-indicator-shadow: #0001;
+    --menu-icon-color: #333;
+    --menu-drawer-front: #e8e8e8;
+
+    /* Panel colors */
+    --panel-bg: #c8c8c8;
+    --panel-header-bg: #b8b8b8;
+    --panel-header-selected-bg: #b0b0b0;
+    --panel-inset-shadow: -0.15em -0.15em 0.3em #fff3 inset,
+                          0.15em 0.15em 0.3em #0002 inset;
+
+    /* Slider colors */
+    --slider-knob-bg: #b8b8b8;
+    --slider-knob-selected-bg: #b0b0b0;
+    --slider-knob-shadow: -0.1em -0.1em 0.2em #fff2 inset,
+                          0.1em 0.1em 0.2em #0001 inset;
+
+    /* Select dropdown colors */
+    --select-option-bg: #fff;
+    --select-option-text: #333;
+
+    /* Text shadow for contrast */
+    --text-shadow-contrast: 0 0 0.3em rgba(255, 255, 255, 0.8);
+
+    /* Color palette */
+    --color-primary: #4a90e2;
+    --color-primary-active: #3a7bc8;
+    --color-surface: #f5f5f5;
+    --color-surface-selected: #e8e8e8;
+    --color-text: #333333;
+    --color-text-secondary: #666666;
+    --color-text-muted: #999999;
+    --color-border: #dddddd;
+    --color-border-light: #eeeeee;
+    --color-shadow: rgba(0, 0, 0, 0.1);
+    --color-shadow-strong: rgba(0, 0, 0, 0.2);
+    --color-background-overlay: rgba(255, 255, 255, 0.9);
+
+    /* Spacing system */
+    --spacing-xs: 0.25em;
+    --spacing-sm: 0.5em;
+    --spacing-md: 1em;
+    --spacing-lg: 1.5em;
+    --spacing-xl: 2em;
+
+    /* Typography */
+    --font-size-xs: 0.75em;
+    --font-size-sm: 0.875em;
+    --font-size-base: 1em;
+    --font-size-lg: 1.125em;
+    --font-size-xl: 1.25em;
+    --line-height-tight: 1.25;
+    --line-height-base: 1.5;
+    --line-height-loose: 1.75;
+
+    /* Transitions */
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.3s ease;
+    --transition-slow: 0.5s ease;
+
+    /* Z-index layers */
+    --z-base: 1;
+    --z-dropdown: 10;
+    --z-sticky: 20;
+    --z-menu: 100;
+    --z-modal: 1000;
   }
+
+  /* Dark theme */
+  [data-theme="dark"] {
+    --bodyColor: #2d2d2d;
+    --color-surface: #3d3d3d;
+    --color-surface-selected: #4d4d4d;
+    --color-text: #e0e0e0;
+    --color-text-secondary: #a0a0a0;
+    --color-text-muted: #707070;
+    --color-border: #555555;
+    --color-border-light: #444444;
+    --color-shadow: rgba(0, 0, 0, 0.3);
+    --color-shadow-strong: rgba(0, 0, 0, 0.5);
+    --color-background-overlay: rgba(0, 0, 0, 0.7);
+    --textShadow: .5px .5px #0006,-1px -1px #0006,.5px -1px #0006,-1px .5px #0006;
+    --bodyShadow: drop-shadow(.1em .125em .2em #000a);
+    --panelShadow: drop-shadow(.08em .1em .2em #000c);
+
+    /* Menu colors - dark theme */
+    --menu-cell-bg: linear-gradient(135deg, #4a4a4a 0%, #383838 100%);
+    --menu-cell-selected-bg: #505050;
+    --menu-cell-active-bg: #5a5a5a;
+    --menu-disk-bg: linear-gradient(135deg, #4e4e4e 0%, #3c3c3c 100%);
+    --menu-grip-bg: #383838;
+    --menu-grip-selected-bg: #505050;
+    --menu-panel-indicator: #606060;
+    --menu-panel-indicator-highlight: #fff1;
+    --menu-panel-indicator-shadow: #0003;
+    --menu-icon-color: #d0d0d0;
+    --menu-drawer-front: #505050;
+
+    /* Panel colors - dark theme */
+    --panel-bg: #3a3a3a;
+    --panel-header-bg: #383838;
+    --panel-header-selected-bg: #505050;
+    --panel-inset-shadow: -0.15em -0.15em 0.3em #fff1 inset,
+                          0.15em 0.15em 0.3em #0004 inset;
+
+    /* Slider colors - dark theme */
+    --slider-knob-bg: #383838;
+    --slider-knob-selected-bg: #505050;
+    --slider-knob-shadow: -0.1em -0.1em 0.2em #fff1 inset,
+                          0.1em 0.1em 0.2em #0003 inset;
+
+    /* Select dropdown colors - dark theme */
+    --select-option-bg: #1a1a1a;
+    --select-option-text: #e0e0e0;
+
+    /* Text shadow for contrast - dark theme */
+    --text-shadow-contrast: 0 0 0.3em rgba(0, 0, 0, 0.8);
+  }
+
+
   body {
-    font-family: Arial;
+    font-family: 'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', sans-serif;
     margin: 0;
     padding: 0;
     background-color: var(--bodyColor);
@@ -197,11 +335,22 @@ css(
   select {
     border-radius: var(--borderRadius);
     background-color: #0000 ;
-    height:2em;
-    font-size: .6em;
-    margin:0 1em 1em 0em;
-    text-align: center ;
-    width:90%;
+    color: var(--color-text);
+    height:2.5em;
+    font-size: var(--font-size-sm);
+    margin-left: var(--spacing-md);
+    margin-right: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    padding: 0;
+    text-align: center;
+    text-align-last: center;
+    display: block;
+    width: calc(100% - 2em);
+    box-sizing: border-box;
+  }
+  select option {
+    background-color: var(--select-option-bg);
+    color: var(--select-option-text);
   }
   input[type=color] {
     border-color: #888;
@@ -256,7 +405,7 @@ css(
     left: 0px;
     display: inline;
     width: .5em;
-    background-image: linear-gradient(to left, transparent, #bebebe 53%, #b4b4b4);
+    background-image: linear-gradient(to left, transparent, var(--panel-header-bg) 53%, var(--panel-header-bg));
   }
   .fadeRight {
     z-index: 1;
@@ -264,7 +413,7 @@ css(
     right: 0px;
     display: block;
     width: .5em;
-    background-image: linear-gradient(to right, transparent, #bebebe 53%, #b4b4b4);
+    background-image: linear-gradient(to right, transparent, var(--panel-header-bg) 53%, var(--panel-header-bg));
   }
   /* Create illusion of a raised edge */
   .raisedEdge {
@@ -272,6 +421,21 @@ css(
     filter: var(--bodyShadow) ;
     box-shadow: 0.1em 0.1em 0.6em #888 inset, 0 0 19px #0000 ;
     background: var(--bodyColor);
+  }
+  /* Shared styling for floating messages (toast, ptrMsg) */
+  .floatingMsg {
+    border-radius: var(--borderRadius);
+    filter: var(--panelShadow);
+    background: var(--bodyColor);
+    background-image: var(--panTexture);
+    color: var(--color-text);
+    font-size: var(--font-size-sm);
+    padding: 0.5em 0.8em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.2;
   }
   /* Center child(ren) both vert/horz */
   .centerChild {
@@ -281,6 +445,8 @@ css(
   }
 }`
 );
+
+
 
 /**
 class ButtonGroup
@@ -294,35 +460,35 @@ class ButtonGroup {
     "ButtonGroup",
     `
     .ButtonGroup {
-      display:flex;
-      justify-content:space-around ;
-      margin-top: .5em;
+      display: flex;
+      justify-content: space-around;
+      margin-top: var(--spacing-sm);
     }
     .ButtonGroup__button {
-      text-align:center ;
-      font-size:.8em;
-      color: #444 ;
-      width: 3.5em ;
-      height: 3.5em ;
-      padding-top:.2em;
-      white-space: nowrap;        
+      text-align: center;
+      font-size: var(--font-size-sm);
+      color: var(--color-text);
+      width: 3.5em;
+      height: 3.5em;
+      padding-top: var(--spacing-xs);
+      white-space: nowrap;
     }
     .ButtonGroup__icon {
     }
     .ButtonGroup__button-active {
-      box-shadow: 0.1em 0.1em 0.2em #aaa inset, -0.1em -0.2em 0.2em #bbb inset ;
-      border-radius:0.2em;        
-      background: #bbb8;
+      box-shadow: 0.1em 0.1em 0.2em var(--color-shadow-strong) inset, -0.1em -0.2em 0.2em var(--color-shadow-strong) inset;
+      border-radius: calc(var(--borderRadius) / 4);
+      background: var(--color-surface-selected);
     }
     .ButtonGroup__button-toggle {
       background-image: ${ButtonGroup.toggleButtonSvg};
     }
     .ButtonGroup__button-disabled {
-      color: #777;
+      color: var(--color-text-muted);
       left: 0;
     }
     .ButtonGroup__button-selected {
-      background: #7778;
+      background: var(--color-surface-selected);
     }
    `
   );
@@ -499,46 +665,89 @@ class ColorPicker {
   static css = css(
     "ColorPicker",
     `.ColorPicker {
-       margin: 0 1.2em 0 2.2em;
-       position:relative;
+       margin: 0 var(--spacing-md);
+       position: relative;
        text-align: center;
-       font-size:.8em;
-       display:flex ;
-       align-items:center ;
+       font-size: var(--font-size-sm);
+       display: flex;
+       align-items: center;
+       gap: var(--spacing-md);
+       box-sizing: border-box;
+       width: calc(100% - var(--spacing-md) * 2);
+      }
+      .ColorPicker__colorWrapper {
+        position: relative;
+        flex: 1;
+        height: 2.5em;
+        border-radius: var(--borderRadius);
+        border: 0.1em solid #aaa;
+        background-image:
+          linear-gradient(45deg, #ccc 25%, transparent 25%),
+          linear-gradient(-45deg, #ccc 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #ccc 75%),
+          linear-gradient(-45deg, transparent 75%, #ccc 75%);
+        background-size: 0.5em 0.5em;
+        background-position: 0 0, 0 0.25em, 0.25em -0.25em, -0.25em 0;
+        box-sizing: border-box;
+        cursor: pointer;
+        overflow: hidden;
       }
       .ColorPicker__color {
-        border-color:#0000;
-        background:#0000;
-        width:100% ;
-        height:3em;
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+     }
+     .ColorPicker__colorDisplay {
+        position: absolute;
+        inset: 0;
+        border-radius: var(--borderRadius);
+        pointer-events: none;
      }
      .ColorPicker__alpha {
-        flex-basis: 50%;
-        margin-left: 1em ;
+        width: 2.5em;
+        height: 2.5em;
+        flex-shrink: 0;
+        cursor: pointer;
+        border-radius: 50%;
+        border: 0.1em solid #aaa;
+        box-sizing: border-box;
      }
      .ColorPicker__alphaSlider {
-      z-index: 1000;
-      background-color:white;
-      border-radius: var{--borderRadius};
-      padding:.5em 1em 1.25em 1em;
-      filter: var(--bodyShadow);
-      position:absolute;
-      left:-2.7em;
-      width:80%;
-      border-radius:.8em;
+      z-index: var(--z-modal);
+      background: #c8c8c8;
+      border-radius: var(--borderRadius);
+      padding: var(--spacing-md);
+      filter: var(--panelShadow);
+      box-shadow: -0.15em -0.15em 0.3em #fff3 inset,
+                  0.15em 0.15em 0.3em #0002 inset;
+      position: absolute;
+      left: -2.7em;
+      width: 80%;
      }
       `
   );
 
   elm = helm(`
    <div>
-   <div style="font-size:.8em" data-tag="title"></div>
+   <div style="font-size:.8em; margin-bottom: var(--spacing-xs)" data-tag="title"></div>
    <div class="ColorPicker">
-      <input data-tag="color" class = "ColorPicker__color" type="color" colorpick-eyedropper-active="true" list="recentColors"></input>
+      <div class="ColorPicker__colorWrapper">
+        <input data-tag="color" class="ColorPicker__color" type="color" colorpick-eyedropper-active="true" list="recentColors"></input>
+        <div data-tag="colorDisplay" class="ColorPicker__colorDisplay"></div>
+      </div>
       <svg data-tag="alpha" class="ColorPicker__alpha" viewBox="0 0 24 24">
-          <circle style="fill:#fff;" cx="8" cy="12" r="8"/>
-          <circle style="fill:#aaa;" cx="8" cy="12" r="2"/>
-          <circle data-tag="alphaCircle" style="fill:#888;opacity:1;" cx="12" cy="12" r="8"/>
+          <defs>
+            <pattern id="checkerboard" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
+              <rect x="0" y="0" width="2" height="2" fill="#ccc"/>
+              <rect x="2" y="2" width="2" height="2" fill="#ccc"/>
+              <rect x="2" y="0" width="2" height="2" fill="#fff"/>
+              <rect x="0" y="2" width="2" height="2" fill="#fff"/>
+            </pattern>
+          </defs>
+          <circle fill="url(#checkerboard)" cx="12" cy="12" r="11"/>
+          <circle data-tag="alphaCircle" style="fill:#888;opacity:1;" cx="12" cy="12" r="9"/>
         </svg>
         <div data-tag="alphaSlider"></div>
      </div>
@@ -550,6 +759,7 @@ class ColorPicker {
     this.title.innerHTML = title;
     let stash = { rgb, alpha };
     this.color.value = rgb;
+    this.colorDisplay.style.backgroundColor = rgb;
     this.alphaCircle.style.fill = rgb;
     this.alphaCircle.style.opacity = alpha;
 
@@ -575,6 +785,7 @@ class ColorPicker {
 
     listen(this.color, ["input", "change"], (e) => {
       this.alphaCircle.style.fill = stash.rgb = this.color.value;
+      this.colorDisplay.style.backgroundColor = this.color.value;
       if (handler) handler(stash.rgb, stash.alpha);
       if (e.type == "change") ColorPicker.pushRecentColor(stash.rgb);
     });
@@ -610,40 +821,45 @@ class PodiumSlider extends HTMLElement {
   static css = css(
     "PodiumSlider",
     `.Slider {
-       position:absolute;
+       position: absolute;
        width: calc(100% - 4em);
        height: 2em;
-       left: 2em ;
+       left: 2em;
      }
      .Slider__track {
-       flex-box ;
-       position:absolute;
+       flex-box;
+       position: absolute;
        top: calc(50% - .2em);
-       height:.5em ;
-       width:100%;
-       background: #aaa;
-       border-radius:.8em;
+       height: .5em;
+       width: 100%;
+       background: var(--color-border);
+       border-radius: var(--borderRadius);
      }
      .Slider__knob {
-       position:absolute;
-       width:3.5em ;
-       height:2.6em ;
-       top: calc(50% - 1.3em) ;
+       position: absolute;
+       width: 2.8em;
+       height: 2.8em;
+       top: calc(50% - 1.4em);
+       background: var(--slider-knob-bg);
        background-image: var(--panTexture);
+       box-shadow: var(--slider-knob-shadow);
+     }
+     .Slider__knob-selected {
+       background: var(--slider-knob-selected-bg);
      }
      .Slider__knob__indicator {
-        position:relative;
-        pointer-events:none ;
-        border-radius:100%;
-        width:.6em ;
-        height:.6em ;
-        top:calc(50% - .3em);
-        left:calc(50% - .3em);
-        background: #888;
+        position: relative;
+        pointer-events: none;
+        border-radius: 100%;
+        width: .6em;
+        height: .6em;
+        top: calc(50% - .3em);
+        left: calc(50% - .3em);
+        background: var(--color-border);
      }
      .Slider__knob__indicator-active {
-        position: relative ;         
-        background-color: lawngreen;
+        position: relative;
+        background-color: #6c6;
      }
      `
   );
@@ -678,6 +894,7 @@ class PodiumSlider extends HTMLElement {
 
       e.stopImmediatePropagation();
       this.adjusting = true;
+      this.knob.classList.add("Slider__knob-selected");
       this.indicator.classList.add("Slider__knob__indicator-active");
       this.updateGeometry();
       let { knobBox, sliderBox } = this;
@@ -729,6 +946,7 @@ class PodiumSlider extends HTMLElement {
           e.stopImmediatePropagation();
           unlisten(mv);
           this.adjusting = false;
+          this.knob.classList.remove("Slider__knob-selected");
           this.indicator.classList.remove("Slider__knob__indicator-active");
           // notify listeners that slider is finished
           this.dispatchEvent(new Event("change", { bubbles: true }));
@@ -764,12 +982,8 @@ class PodiumSlider extends HTMLElement {
     this.pos = pos;
     let value = pos * (this.max - this.min) + this.min;
     this.value = (Math.round(value / this.step) * this.step).toPrecision(6); // discrete-ize value in this.step
-    //    let knobLeft = pos * this.sliderBox.width - this.knobBox.width / 2;
     let knobLeft = pos * this.sliderBox.width - this.knobBox.width / 2;
-    //    this.knob.style.left = knobLeft + "px";
-    //    this.knob.style.left = knobLeft / parseFloat(getComputedStyle(this.slider).fontSize) + "em";
     this.knob.style.left = pxToEm(knobLeft, this.slider);
-    //    this.knob.style.left = toEm(knobLeft * parseFloat(getComputedStyle(this.slider).fontSize));
   }
 }
 
@@ -875,28 +1089,28 @@ class Shade {
   static css = css(
     "Shade",
     `.Shade {
-      backdrop-filter: blur(.3em) ;
-      opacity: 0 ;
-      transition: opacity 1s ease-in;
-      background: radial-gradient(circle at center,#eee 0, #eee 10em, transparent 20em);
-      width:100%;
-      height:100%;
-      display:flex;
-      align-items:center ;
-      justify-content:center;
-      position:absolute;
-      z-index:100000;
+      backdrop-filter: blur(.3em);
+      opacity: 0;
+      transition: opacity var(--transition-slow);
+      background: radial-gradient(circle at center, var(--color-surface) 0, var(--color-surface) 10em, transparent 20em);
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      z-index: 100000;
       }
       .Shade__body {
-       font-family:Bravura;
+       font-family: Bravura;
        font-size: ${60 / _dvPxRt_}px;
        line-height: ${60 / _dvPxRt_}px;
        animation: colors 3s linear infinite;
-       text-align: center ;
+       text-align: center;
       }
       @keyframes colors {
       	0% { color: #88f; }
-      	33% {color: #8f8; }
+      	33% { color: #8f8; }
       	66% { color: #f88; }
       }
    `
@@ -981,22 +1195,22 @@ class SliderGroup {
   static css = css(
     "SliderGroup",
     `.SliderGroup {
-       font-size:.8em;
-       color:#333;
-       margin-top:.8em;
-       text-align:center;
+       font-size: var(--font-size-sm);
+       color: var(--color-text);
+       margin: var(--spacing-md) var(--spacing-md) 0 var(--spacing-md);
+       text-align: center;
       }
     .SliderGroup__SliderBlock {
-       margin-bottom: .5em;
+       margin-bottom: var(--spacing-md);
      }
      .SliderGroup__SliderBlock__Slider {
-        display:block ;
-        width: 100% ;
+        display: block;
+        width: 100%;
         height: 2em;
-        margin-top: .5em;
+        margin-top: var(--spacing-sm);
      }
      .SliderGroup__SliderBlock__Slider-disabled {
-       opacity:  0.35;
+       opacity: 0.35;
        pointer-events: none;
      }
    `
@@ -1159,42 +1373,43 @@ class TabView {
   static css = css(
     "TabView",
     `.Tab__tag {
-       display:inline-block;
-       height:3em;
-       line-height:3em;
-       width:8em;
+       display: inline-block;
+       height: 3em;
+       line-height: 3em;
+       width: 8em;
        text-align: center;
     }
     .Tab__tag-selected {
-      border-radius: var(--borderRadius) ;
-      background-color: #8888;
+      border-radius: var(--borderRadius);
+      background-color: var(--color-surface-selected);
     }
     .TabView__frame {
-       margin-top: .5em;
-       width:100% ;
-       height:3em ; 
+       margin-top: var(--spacing-sm);
+       width: 100%;
+       height: 3em;
     }
     .TabView__sash {
-       position:relative;
-       display:flex;
-       width:max-content;
-       min-width:100%;
-       height:3em ; 
-       background-image: ${sandSvg} ;
+       position: relative;
+       display: flex;
+       width: max-content;
+       min-width: 100%;
+       height: 3em;
+       background: var(--panel-header-bg);
+       background-image: var(--panTexture);
     }
     .TabView__sash-edge {
-      top:3.5em ;
-      height:8em ;
-    }     
+      top: 3.5em;
+      height: 8em;
+    }
     .TabView__faces {
-       height:calc(100% - 3em);
-       width:100%;
-       top:3em;
+       height: calc(100% - 3em);
+       width: 100%;
+       top: 3em;
    }
    .TabView__face {
-       position:absolute ;
-       width:100%;
-       height:100%;
+       position: absolute;
+       width: 100%;
+       height: 100%;
    }
   `
   );
@@ -1782,17 +1997,12 @@ css(
   "ptrMsg",
   `
    .ptrMsg {
-      position:absolute ;
-      width:fit-content;
-      padding:.05em .2em;
-      height:2em;
-      line-height:2em;
-      font-size: .8em;
-      text-align:center ;
-      text-shadow: var(--textShadow);
-      transition: opacity ease-out .5s ;
-      z-index:1000 ;
-      background-color: #eee ;
+      position: absolute;
+      width: fit-content;
+      height: fit-content;
+      transition: opacity ease-out .5s;
+      z-index: 1000;
+      background-color: var(--bodyColor);
    }`
 );
 
@@ -1802,7 +2012,7 @@ function ptrMsg(e, msgFunc, styles) {
   // obscured by the pointer: normally, above the pointer, but
   // to the left or right of the pointer as the pointer approaches
   // the top of the screen, etc.
-  let div = helm(`<div class="ptrMsg raisedEdge" style="${styles}"></div>`);
+  let div = helm(`<div class="ptrMsg floatingMsg" style="${styles}"></div>`);
   _body_.append(div);
 
   // when pointer is not a mouse, double distance between it and the div,
@@ -1889,11 +2099,11 @@ function strToHash(str) {
 
 function toast(innerHtml) {
   // display a "toast", i.e. a brief message that automatically dismisses
-  // after _gs_ seconds. 
+  // after _gs_ seconds.
   // @param innerHtml the html content of the toast.
   let elm = helm(
     `<div style="position:absolute;display:flex;justify-content:center;align-items: center;height: 100vh;width:100vw;">
-       <div class="raisedEdge" style="z-index:1000;position:absolute;width:fit-content;height:fit-content;padding:1em;opacity:0;transition:opacity ${_gs_}s ease-in">${innerHtml}</div>
+       <div class="floatingMsg" style="z-index:1000;position:absolute;width:fit-content;height:fit-content;opacity:0;transition:opacity ${_gs_}s ease-in">${innerHtml}</div>
      </div>`
   );
   _body_.append(elm);
