@@ -875,8 +875,8 @@ class Score {
     // @activate make this score the "active" score
 
     Object.assign(this, { source, path, name });
-    this.quality = _menu_.rings.score.cells.details.stash.quality ?? this.quality;
-    this.pgFit = _menu_.rings.score.cells.details.stash.pgFit ?? this.pgFit ;
+    this.quality = _menu_.rings.score.cells.info.stash.quality ?? this.quality;
+    this.pgFit = _menu_.rings.score.cells.info.stash.pgFit ?? this.pgFit ;
 
 
     if (pdfData) {
@@ -946,11 +946,11 @@ class Score {
     Score.activeScore = this;
     document.title = `Podium ${this.name ? this.name.replace(/\.pdf/i, ""):"*"} (${_podId_})`;
     // update the _menu_ state for this Score instance:
-    _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"]);
+    _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/info", "score/print"]);
     _menu_.enableCells("ink/undo", false); // nothing to undo yet
-    _menu_.enableCells("page/undo", this.undoStack.length > 0); 
+    _menu_.enableCells("page/undo", this.undoStack.length > 0);
     this.pgRefresh();
-    panels.DetailsPanel.get(_menu_.rings.score.cells.details).refresh();
+    panels.InfoPanel.get(_menu_.rings.score.cells.info).refresh();
     // layout the score using current active layout, defaulting to book layout
     _menu_.reset() ;
     let layoutKey = _menu_.rings.layout.stash.active || "book"  ;

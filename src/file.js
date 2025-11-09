@@ -1605,7 +1605,7 @@ class FileListView {
       display: block;
       width: 100%;
       height: .8em;
-      background-image: linear-gradient(to top, transparent, #ddd);
+      background-image: linear-gradient(to top, transparent, var(--panel-bg));
     }
     Flv-fade-bottom {
       z-index: 1;
@@ -1614,7 +1614,7 @@ class FileListView {
       display: block;
       width: 100%;
       height: .8em;
-      background-image: linear-gradient(to bottom, transparent, #bebebe 53%, #b4b4b4);
+      background-image: linear-gradient(to bottom, transparent, var(--panel-header-bg) 53%, var(--panel-header-bg));
     }
     .Flv {
       position: absolute;
@@ -1652,6 +1652,7 @@ class FileListView {
       display:flex;
       align-items:center;
       column-gap:.5em;
+      text-shadow: var(--text-shadow-contrast);
     }
     .Flv-list__file-details {
       display:flex;
@@ -1690,6 +1691,9 @@ class FileListView {
       display:flex;
       align-items:center;
       padding:.5em;
+      margin: 0 0.25em;
+      border-radius: var(--borderRadius);
+      text-shadow: var(--text-shadow-contrast);
     }
     /* file name input element */
     .Flv-save__file
@@ -1833,9 +1837,17 @@ class FileListView {
 
   colorFromText(text) {
     // Return a css background from given text using
-    // a hash, and using an alpha value of 2 so the color is subtle.
+    // a hash, with no alpha so the color looks identical in both light and dark modes.
+    // Mix with white to create pastel colors.
     let hex = strToHash(text).toString(16);
-    return "#" + hex.substring(0, 3) + "2";
+    let r = parseInt(hex.substring(0, 2), 16);
+    let g = parseInt(hex.substring(2, 4), 16);
+    let b = parseInt(hex.substring(4, 6), 16);
+    // Mix 50% with white (255, 255, 255) to create pastel
+    r = Math.round((r + 255) / 2);
+    g = Math.round((g + 255) / 2);
+    b = Math.round((b + 255) / 2);
+    return "#" + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
   }
 
   onListDown(e) {

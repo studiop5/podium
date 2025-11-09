@@ -70,7 +70,7 @@ class Panel
 let PAGE_SIZE_SELECT = `
   <select class="FontPanel__select" data-tag="presets">
     <option value="score">Match Score</option>
-    <option value="custom">Custom:</option>
+    <option value="custom">Custom</option>
     <option value="mm/279/420">A3</option>
     <option value="mm/210/297">A4</option>
     <option value="mm/250/353">B4</option>
@@ -96,57 +96,61 @@ class Panel {
     .Panel { /* marker only */
     }
     .Panel__elm {
-      position:fixed;
+      position: fixed;
       overflow: hidden;
       border-radius: var(--borderRadius);
-      filter: var(--bodyShadow);
-      box-shadow: 0.3em 0.3em 1.6em #aaa inset, -0.3em -0.3em 1.6em #aaa inset;
-      background: #ddd; 
-      z-index: 100;
+      filter: var(--panelShadow);
+      box-shadow: var(--panel-inset-shadow);
+      background: var(--panel-bg);
+      z-index: 90;
     }
     .Panel__header {
+      background: var(--panel-header-bg);
       background-image: var(--panTexture);
-      height:3em;
-      width:100%;
+      height: 3em;
+      width: 100%;
+      color: var(--color-text);
     }
     .Panel__header-selected {
-      background: #aaa;
+      background: var(--panel-header-selected-bg);
     }
     .Panel__icon {
-      position:absolute;
+      position: absolute;
       width: 2em;
-      height:2em;
-      top: .5em;
-      left: .5em;
+      height: 2em;
+      top: var(--spacing-sm);
+      left: var(--spacing-sm);
       pointer-events: none;
     }
-    .Panel__title
-    { position:absolute;
-      height:3em;
-      width:100%;
+    .Panel__title {
+      position: absolute;
+      height: 3em;
+      width: 100%;
       text-align: center;
       vertical-align: middle;
-      line-height: 3em; 
+      line-height: 3em;
       font-weight: bold;
+      color: var(--color-text);
       pointer-events: none;
     }
     .Panel__closer {
-      position:absolute;
+      position: absolute;
       width: 3em;
-      height:3em;
-      top: 0em;
-      right: 0em;
-     }
-     .Panel__body {
-       font-size: 1em;
-       margin:.5em;
-       width: 12em;
-       text-align:center;
-     }
-     .Panel__fader {
-       transition: opacity .25s linear;
-     }
-   `
+      height: 3em;
+      top: 0;
+      right: 0;
+    }
+    .Panel__body {
+      font-size: var(--font-size-base);
+      margin: var(--spacing-sm);
+      min-width: 13em;
+      text-align: center;
+      color: var(--color-text);
+    }
+    .Panel__fader {
+      transition: opacity var(--transition-normal);
+    }
+  `
   );
 
   elm = helm(`
@@ -323,7 +327,7 @@ class AddPanel extends Panel {
   content = helm(`
     <div data-tag="options" class="Panel__body">
       <div data-tag="picker"></div>
-      Size:<br>
+      <div style="margin-top: var(--spacing-md); margin-bottom: 0.1em">Size</div>
       ${PAGE_SIZE_SELECT}
       <div data-tag="custom"></div>
     </div>
@@ -336,7 +340,7 @@ class AddPanel extends Panel {
     let stash = cell.stash;
      // Color picker
     let picker = new ColorPicker(
-      "Color:",
+      "Color",
       stash.rgb,
       stash.alpha,
       (rgb, alpha) => {
@@ -419,7 +423,7 @@ class ClockPanel extends Panel {
   }
 }
 
-class DetailsPanel extends Panel {
+class InfoPanel extends Panel {
   content = helm(`<div style="margin:1em;width:20em;"></div>`);
 
   constructor(cell) {
@@ -746,20 +750,15 @@ class GridPanel extends Panel {
   }
 }
 
-class HelpPanel extends Panel {
+class SettingsPanel extends Panel {
   static css = css(
-    "HelpPanel",
+    "SettingsPanel",
     `.Credit {
-        font-size:1em ;
-        margin:1.2em;
+        font-size: var(--font-size-base);
+        margin: var(--spacing-lg);
      }
      `
   );
-
-  helpFace = helm(`
-      <object type="application/pdf" data="https:/\/www.studiop5.org/Guidebook.pdf" 
-       style="padding:1em;width:100%;height:100%;overflow:auto;"></object>
-      `);
 
   licenseFace = helm(`<p style="padding:2em;overflow:auto;text-align:center;">
   <br><b>Podium</b><br><br>
@@ -799,36 +798,71 @@ for more details.</p>
          `);
 
   aboutFace = helm(
-    `<div style="display:flex;align-items:center;flex-direction:column;justify-content:center;padding:1em;font-size:1.5em;">
-        <div>Podium</div>        
-        ${iconSvg("Podium", { style: "width:4em;" })}
-        <div>Version ${_podiumVersion_}</div>
-        <div style="margin-top:1em;">Factory Reset:</div>
-        <div data-tag="buttons"></div><br>
-        <span>
+    `<div style="position:relative;width:100%;height:100%;box-sizing:border-box;">
+        <div style="position:absolute;top:35%;left:50%;transform:translate(-50%,-50%);text-align:center;font-size:1.5em;">
+          <div>Podium</div>
+          ${iconSvg("Podium", { style: "width:4em;" })}
+          <div>Version ${_podiumVersion_}</div>
+        </div>
+        <div style="position:absolute;bottom:10em;left:50%;transform:translateX(-50%);font-size:1.2em;text-align:center;">
           <a target="_blank" rel="noopener noreferrer" href="https:/\/www.studiop5.org/privacy.html">Privacy</a>&nbsp;
           <a target="_blank" rel="noopener noreferrer" href="https:/\/www.studiop5.org/terms.html">Terms</a>&nbsp;
           <a target="_blank" rel="noopener noreferrer" href="https:/\/github.com/studiop5/podium">Github</a>&nbsp;
           <a href="mailto:glen@studiop5.org">Contact \u2709</a>
-        </span>       
+        </div>
+     </div>`
+  );
+
+  settingsFace = helm(
+    `<div style="display:flex;align-items:center;flex-direction:column;justify-content:center;padding:1em;font-size:1.5em;">
+        <div style="margin-top:1em;">Theme:</div>
+        <div data-tag="theme"></div>
+        <div style="margin-top:1em;">Factory Reset:</div>
+        <div data-tag="buttons"></div>
      <div>`
+  );
+
+  releaseNotesFace = helm(
+    `<div style="padding:2em;overflow:auto;text-align:center;">
+        <p>Release notes coming soon...</p>
+     </div>`
   );
 
   constructor(cell) {
     super(cell);
-    let tabView = new TabView(this, "About", "Help", "Credits", "License");
+    let tabView = new TabView(this, "About", "Settings", "Release Notes", "Credits", "License");
     Object.assign(this.body.style, {
       margin: 0,
       width: "90vw",
       maxWidth: "30em",
       height: "90vh",
-      maxHeight: "30em",
+      maxHeight: "35em",
     });
 
-    let about = tabView.tabs["About"];
-    about.face.append(this.aboutFace);
-    Object.assign(this, dataIndex("tag", this.aboutFace));
-    let buttons = dataIndex("tag", this.aboutFace).buttons;
+    // About tab
+    tabView.tabs["About"].face.append(this.aboutFace);
+
+    // Settings tab
+    let settings = tabView.tabs["Settings"];
+    settings.face.append(this.settingsFace);
+
+    // Theme switcher
+    let theme = dataIndex("tag", this.settingsFace).theme;
+    let themeStash = { theme: localStorage.getItem("theme") || "light" };
+    theme.replaceWith(
+      new ButtonGroup(
+        themeStash,
+        { Light: { svg: "Page", radio: "theme" }, Dark: { svg: "Ink", radio: "theme" } },
+        (e, prop, tag) => {
+          themeStash.theme = tag.toLowerCase();
+          document.documentElement.setAttribute("data-theme", themeStash.theme);
+          localStorage.setItem("theme", themeStash.theme);
+        }
+      ).elm
+    );
+
+    // Factory reset buttons
+    let buttons = dataIndex("tag", this.settingsFace).buttons;
     buttons.replaceWith(
       new ButtonGroup(
         cell,
@@ -847,11 +881,34 @@ for more details.</p>
         }
       ).elm
     );
-    tabView.tabs["Help"].face.append(this.helpFace);
+
+    // Release Notes tab
+    tabView.tabs["Release Notes"].face.append(this.releaseNotesFace);
+
+    // Credits and License tabs
     tabView.tabs["Credits"].face.append(this.creditsFace);
     tabView.tabs["License"].face.append(this.licenseFace);
+
     this.body.append(tabView.elm);
     tabView.tabs["About"].select();
+  }
+}
+
+class HelpPanel extends Panel {
+  constructor(cell) {
+    super(cell);
+    Object.assign(this.body.style, {
+      margin: 0,
+      padding: 0,
+      width: "90vw",
+      maxWidth: "50em",
+      height: "90vh",
+      maxHeight: "40em",
+    });
+    this.body.append(
+      helm(`<object type="application/pdf" data="https:/\/www.studiop5.org/Guidebook.pdf"
+       style="width:100%;height:100%;"></object>`)
+    );
   }
 }
 
@@ -1068,11 +1125,10 @@ class MetronomePanel extends Panel {
       { flex-flow:column;
       }
       .Metronome__patterns
-      { border-radius:.4em;
-        border:1px solid #fff;
-        font-size:1em;
-        text-align:center;
-        margin:1em 0 1em 0;
+      { border-radius: calc(var(--borderRadius) / 2);
+        font-size: var(--font-size-base);
+        text-align: center;
+        margin: var(--spacing-md) 0;
       }
     }
     `
@@ -1165,7 +1221,8 @@ class NewPanel extends AddPanel {
     let matchScoreOption = [...this.presets.children].find(opt => opt.value === "score");
     if (matchScoreOption) matchScoreOption.remove();
     this.pagesGroup = new SliderGroup( cell.stash,
-      {  pages: { min: 1, max: 100, msg: "{value} pages", step: 1 }, }, null );
+      {  pages: { min: 1, max: 100, 
+          msg: (tag, val) => `${val.toFixed(0)} page${val > 1 ? "s":""}`, step: 1 }, }, null );
      this.body.prepend(this.pagesGroup.elm) ;    
     this.pagesGroup.refresh();
   }
@@ -1176,11 +1233,17 @@ class NumbersPanel extends Panel {
   content = helm(`
      <div data-tag="body" class="Panel__body">
        <div data-tag="sliders"></div>
-       Key Map:<br><br>
-       \u21e7 or  \u21e8
-       <div data-tag="forward"></div>
-       \u21e6 or \u21e9
-       <div data-tag="reverse"></div>
+       <div style="font-size: var(--font-size-sm); margin-top: calc(var(--spacing-md) + 1em); margin-bottom: 0.1em">Footpedal Keys</div>
+       <div style="margin: 0 var(--spacing-md)">
+         <div style="display: flex; align-items: center; gap: 0.5em; margin-bottom: 0.5em">
+           <div style="min-width: 4em; text-align: left; font-size: 0.9em">Next (\u21e7/\u21e8):</div>
+           <div data-tag="forward" style="flex: 1"></div>
+         </div>
+         <div style="display: flex; align-items: center; gap: 0.5em">
+           <div style="min-width: 4em; text-align: left; font-size: 0.9em">Prev (\u21e6/\u21e9):</div>
+           <div data-tag="reverse" style="flex: 1"></div>
+         </div>
+       </div>
      </div>
    `);
 
@@ -1211,7 +1274,7 @@ class NumbersPanel extends Panel {
         max: 1000,
         value: cell.stash.pnOffset,
         step: 1,
-        msg: () => `First Page Number: ${cell.stash.first}`,
+        msg: () => `First #: ${cell.stash.first}`,
         throttle: 500,
       },
       prelim: {
@@ -1219,7 +1282,7 @@ class NumbersPanel extends Panel {
         max: 100,
         value: cell.stash.pnOffset,
         step: 1,
-        msg: () => `Prelim (Roman) Pages: ${cell.stash.prelim}`,
+        msg: () => `Roman: ${cell.stash.prelim}`,
         throttle: 500,
       },
     };
@@ -1231,6 +1294,18 @@ class NumbersPanel extends Panel {
     );
 
     this.sliders.replaceWith(this.pnSliderGroup.elm);
+
+    // Make the "First #" and "Roman" sliders smaller and narrower
+    let sliderBlocks = this.pnSliderGroup.elm.querySelectorAll('.SliderGroup__SliderBlock');
+    [sliderBlocks[1], sliderBlocks[2]].forEach(block => {
+      if (block) {
+        block.style.fontSize = '.8em';
+        block.style.width = '80%';
+        block.style.marginLeft = 'auto';
+        block.style.marginRight = 'auto';
+        block.style.position = 'relative';
+      }
+    });
 
     this.forwardGroup = new ButtonGroup(
       this.cell.stash,
@@ -1278,13 +1353,19 @@ class PencilPanel extends Panel {
   static css = css(
     "PencilPanel",
     `.PencilPanel__preview {
-       overflow:hidden;
-       height:6em;
-       border: 1px solid #ccc;
-       border-radius:var(--borderRadius);
-       margin:1em;
-       background: repeating-linear-gradient(to top, transparent 0,transparent .2em,#ccc .2em,#ddd .4em),
-           repeating-linear-gradient(to left, transparent 0,transparent .2em,#ccc .2em,#ddd .4em);
+       overflow: hidden;
+       height: 6em;
+       border: 1px solid var(--color-border);
+       border-radius: var(--borderRadius);
+       margin: var(--spacing-md);
+       background-color: #fff;
+       background-image:
+         linear-gradient(45deg, #e8e8e8 25%, transparent 25%),
+         linear-gradient(-45deg, #e8e8e8 25%, transparent 25%),
+         linear-gradient(45deg, transparent 75%, #e8e8e8 75%),
+         linear-gradient(-45deg, transparent 75%, #e8e8e8 75%);
+       background-size: 0.5em 0.5em;
+       background-position: 0 0, 0 0.25em, 0.25em -0.25em, -0.25em 0;
       }
     `
   );
@@ -1325,10 +1406,10 @@ class PencilPanel extends Panel {
     // This code block is delayed so that it runs after any subclass constructor:
     delay(1, () => {
       if (this.buttonsDef)
-        this.sliders.after(helm(`<div style="font-size:.8em">Styles:</div>`));
+        this.sliders.after(helm(`<div style="font-size:.8em">Styles</div>`));
 
       let picker = new ColorPicker(
-        "Color:",
+        "Color",
         stash.rgb,
         stash.alpha,
         (rgb, alpha) => {
@@ -1457,8 +1538,9 @@ class TextPanel extends PencilPanel {
 
   constructor(cell) {
     super(cell);
-    this.preview.after(helm(`<div style="font-size:.8em;">Font:</div>`));
-    this.picker.before(this.fonts);
+    let fontLabel = helm(`<div style="font-size:.8em; margin-top: var(--spacing-md); margin-bottom: 0.1em">Font</div>`);
+    this.picker.after(fontLabel);
+    fontLabel.after(this.fonts);
     this.preview.append(this.text);
     this.listeners.push(listen(this.fonts, "change", () => this.update()));
     this.preview.append(this.text);
@@ -1620,8 +1702,9 @@ class ReviewPanel extends Panel {
 class SymbolsPanel extends Panel {
 
   static css = css(
-    "SymbolsPanel", 
+    "SymbolsPanel",
      `.SymbolsPanel__frame {
+        background: #f5f5f5;
         background-image: var(--panTexture);
         height: 6em;
         width: 100%;
@@ -1630,6 +1713,7 @@ class SymbolsPanel extends Panel {
         margin-bottom: 0.2em;
         overflow: hidden;
         border-radius: var(--borderRadius);
+        border: 1px solid var(--color-border);
       }
 
       .SymbolsPanel__sash {
@@ -1646,10 +1730,10 @@ class SymbolsPanel extends Panel {
       }
 
    .SymbolsPanel__symbol {
-      background-color: white;
-      padding: 0 .4em;
-      border-radius: .2em ;
-      opacity:0.5 ;
+      background-color: #f5f5f5;
+      padding: 0 var(--spacing-sm);
+      border-radius: calc(var(--borderRadius) / 4);
+      opacity: 0.5;
    }
 
    .SymbolsPanel__symbol-active {
@@ -1659,15 +1743,15 @@ class SymbolsPanel extends Panel {
    `) ;
 
   content = helm(`
-     <div data-tag="body" class="Panel__body">
+     <div data-tag="body" class="Panel__body" style="width: 13em">
        <div class="SymbolsPanel__frame" data-tag="frame">
          <div class="SymbolsPanel__sash" data-tag="sash"></div>
        </div>
-      Symbols Group:<br>
+      Symbols Group<br>
       <select data-tag="groups"></select>
       <div data-tag="picker"></div>
       <div data-tag="staffSpace"></div>
-      <br><a href="https://w3c.github.io/smufl/latest/index.html" target="_blank" rel="noopener noreferrer">SMuFL</a>
+      <div style="margin: var(--spacing-md); height: 2.5em; display: flex; align-items: center; justify-content: center;"><a href="https://w3c.github.io/smufl/latest/index.html" target="_blank" rel="noopener noreferrer">SMuFL</a></div>
      </div>
    `);
 
@@ -1729,7 +1813,7 @@ class SymbolsPanel extends Panel {
 
 
     let picker = new ColorPicker(
-        "Color:",
+        "Color",
         stash.rgb,
         stash.alpha,
         (rgb, alpha) => {
@@ -1911,7 +1995,7 @@ class PastePanel extends Panel {
        <div class="PastePanel__frame" data-tag="frame">
          <div class="PastePanel__sash" data-tag="sash"></div>
        </div>
-       <div data-tag="buttons" style="border-top:1px solid #aaa;"></div>
+       <div data-tag="buttons" style="border-top: 1px solid var(--color-border);"></div>
      </div>
    `);
 
@@ -1949,7 +2033,7 @@ class PastePanel extends Panel {
         _body_.dispatchEvent(new CustomEvent("PnStashChanged")) ;
       }
     ) ;
-    buttons.elm.style.borderTop = ".02em solid #aaa" ;   
+    buttons.elm.style.borderTop = ".02em solid var(--color-border)" ;   
     this.buttons.replaceWith(buttons.elm) ;
 
     listen(_body_, "PasteBufferChanged", async (e) => {
@@ -1982,11 +2066,27 @@ class PastePanel extends Panel {
 }
 
 class StopwatchPanel extends Panel {
+  static css = css(
+    "StopwatchPanel",
+    `.Stopwatch__splits {
+      width: 100%;
+      overflow: hidden;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.9em;
+      border-radius: var(--borderRadius);
+      padding: 0.5em;
+      box-sizing: border-box;
+      border: 0.1em solid #aaa;
+      background: #fff;
+     }
+    `
+  );
+
   content = helm(
     `<div data-tag="body" style="display:flex;flex-flow:column;align-items:center;margin:1em;text-align:center;">
        <div data-tag="options"></div>
        Splits:
-       <textarea data-tag="splits" style="width:100%;overflow:hidden;font-size:1em;border-radius:.8em;"></textarea>
+       <textarea data-tag="splits" class="Stopwatch__splits"></textarea>
      </div>`
   );
 
@@ -1995,6 +2095,7 @@ class StopwatchPanel extends Panel {
     this.body.replaceWith(this.content);
     Object.assign(this, dataIndex("tag", this.content));
 
+    this.cell.stash.state == "Start";
     let stopWatch = (this.stopWatch = new Stopwatch(this));
     this.optionsGroup = new ButtonGroup(
       this.cell.stash,
@@ -2040,7 +2141,7 @@ let panels = {
   BookPanel,
   ClockPanel,
   CopyPanel,
-  DetailsPanel,
+  InfoPanel,
   GridPanel,
   HorizontalPanel,
   HelpPanel,
@@ -2056,6 +2157,7 @@ let panels = {
   RastrumPanel,
   ReviewPanel,
   SavePanel,
+  SettingsPanel,
   StopwatchPanel,
   TextPanel,
   SymbolsPanel,

@@ -46,86 +46,96 @@ class Menu {
       position: absolute;
     }
     .Menu__holder {
-      position:absolute;
-      clip-path: circle() ;
-      transition: opacity .5s; 
-      z-index:101 ;
-      filter: drop-shadow(.01em .125em .2em #6668);
-      transform: translateZ(0) ; /* fix for ipad compositing */
-      will-change: transform ; /* fix for ipad compositing */
-    } 
+      position: absolute;
+      transition: opacity var(--transition-slow);
+      z-index: 101;
+      filter: drop-shadow(.08em .1em .15em #0003);
+      transform: translateZ(0); /* fix for ipad compositing */
+      will-change: transform; /* fix for ipad compositing */
+      border-radius: 50%;
+      overflow: hidden;
+    }
     .Menu__ring {
-      position:absolute;
-      visibility:hidden; 
-      z-index:100;
+      position: absolute;
+      visibility: hidden;
+      z-index: var(--z-menu);
     }
     .Menu__cell {
       text-align: center;
-      position:absolute;
-      background: radial-gradient(#c9c9c9 45%, #ccc 66%, #b9b9b9 70%);  
+      position: absolute;
+      background: var(--menu-cell-bg);
+      color: var(--menu-icon-color);
     }
     .Menu__cell-contents {
-      margin-top:.4em;
-      pointer-events:none;
-      transform-origin:center;
+      margin-top: var(--spacing-sm);
+      pointer-events: none;
+      transform-origin: center;
+      position: relative;
+      z-index: 1;
      }
     .Menu__cell-selected {
-      background: radial-gradient(#aaa 25%, #fff 100%);
-    } 
+      background: var(--menu-cell-selected-bg);
+    }
     .Menu__cell-active {
-      background: radial-gradient(#fff 64%, #ccc 73%) ; 
-    } 
+      background: var(--menu-cell-active-bg);
+    }
     .Menu__cell-panel {
     }
     .Menu__cell-panel::after {
       content: "";
-      width:5em ;
-      height:2em;
-      border-radius: 0.8em;
-      background-image: var(--panTexture);
-      left:calc(50% - 2.5em);
-      top:-1.25em;
-      position:absolute;
-    } 
+      width: 0.3em;
+      height: 0.6em;
+      background: var(--menu-panel-indicator);
+      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+      left: calc(50% - 0.15em);
+      top: 0.1em;
+      position: absolute;
+      box-shadow: -0.02em -0.02em 0.04em var(--menu-panel-indicator-highlight) inset,
+                  0.02em 0.02em 0.04em var(--menu-panel-indicator-shadow) inset;
+    }
     .Menu__cellIcon {
-      transform: translateY(5%) ;
+      transform: translateY(5%);
     }
     .Menu__disk {
-      position:relative;
-      border-radius:50%;
-      z-index:103;
-      transition: opacity .5s; 
+      position: relative;
+      border-radius: 50%;
+      z-index: 103;
+      transition: opacity var(--transition-slow);
       overflow: hidden;
+      filter: drop-shadow(.04em .05em .1em #0002);
     }
     .Menu__diskCell {
       text-align: center;
-      position:absolute;
-      background: radial-gradient(#c9c9c9 54%, #ccc 58%, #b9b9b9 70%);  
+      position: absolute;
+      background: var(--menu-disk-bg);
+      color: var(--menu-icon-color);
     }
     .Menu__cell-disabled {
-      color: #888288;
-    } 
+      color: var(--color-text-muted);
+    }
     .Menu__diskIcon {
-      position: absolute ;
-      left:50%;
-      top:50%;
-      transform: translate(-50%,-50%) ;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
     }
     .Menu__diskCell-active {
-      background: radial-gradient(#fff, #fff 54%, #fff 60%, #ddd 70%);  
-    } 
+      background: var(--menu-cell-active-bg);
+    }
     .Menu__diskCell-selected {
-        background: radial-gradient(#ddd, #aaa 100%) ;
-    } 
+        background: var(--menu-cell-selected-bg);
+    }
     .Menu__grip {
-      position:absolute;
-      border-radius:50%;
-      z-index:105;
+      position: absolute;
+      border-radius: 50%;
+      z-index: 105;
+      background: var(--menu-grip-bg);
       background-image: var(--panTexture);
+      filter: drop-shadow(.05em .06em .12em #0003);
     }
     .Menu__grip-selected {
-     background: #aaa ;
-    } 
+     background: var(--menu-grip-selected-bg);
+    }
     `
   );
 
@@ -181,7 +191,7 @@ class Menu {
                  <div data-tag="disk" class="Menu__disk"></div>
                </div>
              </div>
-             <div data-tag="grip" class="Menu__grip raisedEdge"></div>
+             <div data-tag="grip" class="Menu__grip"></div>
              <datalist data-tag="recentColors" id="recentColors"></datalist>
            </div>`);
 
@@ -191,10 +201,10 @@ class Menu {
       ringRadius: 11,
       diskRadius: 6.5,
       gripRadius: 1.75,
-      cellGap: 0.05,
-      ringGap: 0.05, // i.e. ring cell gap
+      cellGap: 0.025,
+      ringGap: 0.025, // i.e. ring cell gap
       cellIcon: 1.85,
-      fontSize: 0.8,
+      fontSize: 0.7,
     };
   }
 
@@ -253,7 +263,7 @@ class Menu {
 
 
     // set initial cell state
-    this.enableCells(["layout", "ink", "ink/paste", "page", "score/close", "score/save", "score/details", "score/print", "page/paste"], false);
+    this.enableCells(["layout", "ink", "ink/paste", "page", "score/close", "score/save", "score/info", "score/print", "page/paste"], false);
 
     this.stashDefaults = this.stashToJson();
     // load menu stash from localStorage
@@ -326,7 +336,7 @@ class Menu {
         },
         close: { name: "Close", svgPath: iconPaths["Close"] },
         print: { name: "Print", svgPath: iconPaths["Print"] },
-        details: { name: "Details", svgPath: iconPaths["Details"], stash: { quality: 2, pgFit: "Center"} },
+        info: { name: "Info", svgPath: iconPaths["Info"], stash: { quality: 2, pgFit: "Center"} },
       },
       svgPath: iconPaths["Score"],
       unredo: [], // undo/redo stack
@@ -346,10 +356,10 @@ class Menu {
        this.activateCell(null) ;
     }) ;
 
-    this.listen(["score/details/out", "score/open/out","score/save/out","score/new/out","score/print/out"], (cell) => this.openPanel(cell)) ;
-    // The print, details, bind cells have no /up functionality, so we let the up action  open their panels:
+    this.listen(["score/info/out", "score/open/out","score/save/out","score/new/out","score/print/out"], (cell) => this.openPanel(cell)) ;
+    // The print, info, bind cells have no /up functionality, so we let the up action  open their panels:
     this.listen("score/print/up", (cell) => panels.PrintPanel.get(cell).show().setPosition(this.grip)) ;
-    this.listen("score/details/up", (cell) => panels.DetailsPanel.get(cell).show().setPosition(this.grip)) ;
+    this.listen("score/info/up", (cell) => panels.InfoPanel.get(cell).show().setPosition(this.grip)) ;
 
     this.listen("score/new/up", async (cell) => {
       if(!await checkUnsaved()) return ;
@@ -371,9 +381,9 @@ class Menu {
       Score.activeScore = null;
       for(let panel of Object.values(panels)) {
          // Several panels need to close when the Score closes, otherwise they will have stale state.
-         if(panel.cell && ["Details", "Save", "Paste", "Print"].includes(panel.cell.name)) panel.close() ;
+         if(panel.cell && ["Info", "Save", "Paste", "Print"].includes(panel.cell.name)) panel.close() ;
       }
-      _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"], false);
+      _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/info", "score/print"], false);
     });
 
 
@@ -616,6 +626,7 @@ class Menu {
           svgPath: iconPaths["Volume"],
           stash: { volume:1},
         },
+        settings: { name: "Settings", svgPath: iconPaths["Options"], stash: {} },
         help: { name: "Help", svgPath: iconPaths["Help"], stash: {} },
       },
       name: "More",
