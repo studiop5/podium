@@ -122,7 +122,7 @@ class PasteBuffer {
 
   signal(msg, data={}) {
     // Send given message to all other existing podium tabs through localStorage
-    let payload = Object.assign({podId: _podId_, score: Score.activeScore?.name || '?', ts: Date.now()}, data) ;
+    let payload = Object.assign({podId: _podId_, score: _score_?.name || '?', ts: Date.now()}, data) ;
     localStorage.setItem(msg, JSON.stringify(payload)) ;
   }
 
@@ -144,7 +144,7 @@ class PasteBuffer {
  
   async pgCopy(pn) {
     try {
-      let pgPdf = await Score.activeScore.toPdf("stamp", false, [pn]) ;
+      let pgPdf = await _score_.toPdf("stamp", false, [pn]) ;
       let pbScore = await this.getScore() ;
       _shade_.show("Adding page to paste buffer...") ;
       this.score = await pbScore.bindScore(pgPdf, pbScore.pgs.length + 1) ;
@@ -175,7 +175,7 @@ class PasteBuffer {
   async pgPaste(pn) {
     let pbScore = await this.getScore() ;
     let pbPdf = await pbScore.toPdf() ;
-    let mergedScore = await Score.activeScore.bindScore(pbPdf, pn) ;
+    let mergedScore = await _score_.bindScore(pbPdf, pn) ;
     await mergedScore.activate() ;
   }
 

@@ -59,11 +59,11 @@ let errDialog = (error, stack, msg) => {
 
 
 let checkUnsaved = async (msg = "Warning: current score has unsaved changes. Open anyway?", close = false) => {
-  // Display a confirm dialog if there is a dirty Score.activeScore that would be overriden
+  // Display a confirm dialog if there is a dirty _score_ that would be overriden
   // without saving by opening a new Score. Return promise that resolves to true iff user clicks "Open".
   // When close if true, "Open" is replaced with "Close".
   return new Promise(async (accept, reject) => {
-    if(Score.activeScore && Score.activeScore.dirty) {
+    if(_score_ && _score_.dirty) {
       dialog(msg,
         close ?  { Close: { svg: "Close"}, Cancel: { svg: "Cancel" } }:
                  { Open: { svg: "Open" }, Cancel: { svg: "Cancel" } },
@@ -207,7 +207,7 @@ class FileSrc {
   }
 
   static async openActiveScore(cell) {
-    let score = Score.activeScore;
+    let score = _score_;
     let src = score ? FileSrc.get(score.source) : null;
     if (!src) {
       // menu's score/open/up called, but no active score:
@@ -245,7 +245,7 @@ class FileSrc {
   }
 
   static async saveActiveScore(cell) {
-    let score = Score.activeScore;
+    let score = _score_;
     let src = FileSrc.get(score.source);
     if (!src) {
       let panel = panels[cell.name + "Panel"].get(cell);
@@ -1564,7 +1564,7 @@ class LocalFileView {
   }
 
   async putFile() {
-    let score = Score.activeScore;
+    let score = _score_;
     _shade_.show("Saving file");
     _shade_.onCancel = () => { throw new Error() } ;
     try {
@@ -1652,7 +1652,7 @@ class FileListView {
       display:flex;
       align-items:center;
       column-gap:.5em;
-      text-shadow: var(--text-shadow-contrast);
+      color: #fff;
     }
     .Flv-list__file-details {
       display:flex;
@@ -1661,7 +1661,7 @@ class FileListView {
     }
      .Flv-list__file-properties {
        font-size:.75em;
-       color:grey;
+       color: var(--file-properties-color);
        margin:.5em;
     }
     .Flv-path__sash {
@@ -1693,7 +1693,7 @@ class FileListView {
       padding:.5em;
       margin: 0 0.25em;
       border-radius: var(--borderRadius);
-      text-shadow: var(--text-shadow-contrast);
+      color: #fff;
     }
     /* file name input element */
     .Flv-save__file
@@ -1811,7 +1811,6 @@ class FileListView {
     let modified = properties.modified ? new Date(properties.modified).toLocaleString() : null;
     let iconName = isDir ? "Folder" : this.iconsByExtension[name.slice(name.lastIndexOf("."))];
     let color = this.colorFromText(name);
-
     let elm = helm(`
        <div ${isDir ? "data-dir='true'":""} data-name="${escapeHtml(name)}" data-path="${escapeHtml(path)}" data-source="${escapeHtml(source)}" class="Flv-list__file">
          <div class="Flv-list__file-header">
@@ -1840,13 +1839,15 @@ class FileListView {
     // a hash, with no alpha so the color looks identical in both light and dark modes.
     // Mix with white to create pastel colors.
     let hex = strToHash(text).toString(16);
+
     let r = parseInt(hex.substring(0, 2), 16);
     let g = parseInt(hex.substring(2, 4), 16);
     let b = parseInt(hex.substring(4, 6), 16);
+
     // Mix 50% with white (255, 255, 255) to create pastel
-    r = Math.round((r + 255) / 2);
-    g = Math.round((g + 255) / 2);
-    b = Math.round((b + 255) / 2);
+    r = Math.round((r + 255) / 4);
+    g = Math.round((g + 255) / 4);
+    b = Math.round((b + 255) / 4);
     return "#" + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
   }
 
@@ -2055,10 +2056,10 @@ class FileSystemView extends FileListView {
 
   select(tabView, tab) {
     if (this.panel.mode == "save") {
-      if (!Score.activeScore) return;
+      if (!_score_) return;
       this.fsvSave.classList.remove("void");
       this.flvList__frame.classList.add("Flv-list__frame--save-mode");
-      this.fsvSave__file.value = Score.activeScore.name;
+      this.fsvSave__file.value = _score_.name;
       let uploadButton = new ButtonGroup({}, { Upload: { svg: "Upload" } }, async () => await this.putFile(this.fsvSave__file.value));
       uploadButton.elm.style = "position:absolute;right:4em;top:4.5em;";
       this.uploadButton.replaceWith(uploadButton.elm);
@@ -2068,8 +2069,8 @@ class FileSystemView extends FileListView {
     }
     let storedPath = localStorage.getItem(this.source) || "" ;
     this.setPath(this.path ||
-       Score.activeScore?.source == this.source ?
-         Score.activeScore?.path :  storedPath, true);
+       _score_?.source == this.source ?
+         _score_?.path :  storedPath, true);
   }
 
   populateFsvPath() {
@@ -2246,8 +2247,8 @@ class FileSystemView extends FileListView {
           })
         );
       _shade_.show("Uploading file");
-      let score = Score.activeScore;
-      let data = await Score.activeScore.toPdf();
+      let score = _score_;
+      let data = await _score_.toPdf();
       await this.src.putFile(this.path, name, data);
       score.update({ source: this.source, name: name, path: this.path });
       Score.visit(score, { size: data.length, modified: Date.now() });

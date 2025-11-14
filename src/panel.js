@@ -371,7 +371,7 @@ class AddPanel extends Panel {
     listen(this.presets, ["input", "change"], (e) => {
       stash.size = e.target.selectedOptions[0].textContent;
       if (e.target.value == "score") { // Match current score dimensions
-        let score = Score.activeScore;
+        let score = _score_;
         stash.Width = score.maxWidth;
         stash.Height = score.maxHeight;
         this.customGroup.defs.Height.disabled = true;
@@ -438,7 +438,7 @@ class InfoPanel extends Panel {
         Center: { svg: "Center", radio: "pgFit" }, 
       },
       async (e,tag,value) => {
-         let score = Score.activeScore;
+         let score = _score_;
          score.pgFit = value ;
          await Layout.open(_menu_.rings.layout.activeCell) ;
       }
@@ -469,7 +469,7 @@ class InfoPanel extends Panel {
       },
       async (e, tag, value) => {
         this.cell.stash.tag = value;
-        let score = Score.activeScore;
+        let score = _score_;
         if (score) {
           score.quality = value;
           for (let pg of score.pgs) if (pg.inflated) await pg.renderPdf();
@@ -503,8 +503,8 @@ class InfoPanel extends Panel {
   refresh() {
     this.qualityGroup.refresh();
     clearChildren(this.content);
-    if (Score.activeScore) {
-      let score = Score.activeScore;
+    if (_score_) {
+      let score = _score_;
 
       this.content.append(
         helm(
@@ -750,11 +750,11 @@ class GridPanel extends Panel {
   }
 }
 
-class SettingsPanel extends Panel {
+class HelpPanel extends Panel {
   static css = css(
-    "SettingsPanel",
+    "HelpPanel",
     `.Credit {
-        font-size: var(--font-size-base);
+        font-size: var(--font-size-sm);
         margin: var(--spacing-lg);
      }
      `
@@ -763,10 +763,10 @@ class SettingsPanel extends Panel {
   licenseFace = helm(`<p style="padding:2em;overflow:auto;text-align:center;">
   <br><b>Podium</b><br><br>
   Copyright 2025 Glendon Diener<br><br>
- 
+
   Podium is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br><br>
 
-  Podium is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+  Podium is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
       <a target="_blank" rel="noopener noreferrer" href="https:/\/www.gnu.org/licenses/agpl-3.0-standalone.html">GNU Affero Public License</a>
 for more details.</p>
       `);
@@ -776,6 +776,14 @@ for more details.</p>
           <a href="https:/\/github.com/steinbergmedia/bravura">Bravura</a> Version 1.1<br>
           © 2019, Steinberg Media Technologies GmbH<br>
           SIL Open Font License
+        </div><div class="Credit">
+          <a href="https://filipposfragkogiannis.com/fonts/vercetti-regular">Vercetti</a> Version 1.1<br>
+          Designer: Filippos Fragkogiannis<br>
+          Licence Amicale V. 0.2
+        </div><div class="Credit">
+          <a href="https://github.com/foliojs/fontkit">fontkit</a> Version 1.1.1<br>
+          Author: Devon Govett
+          MIT license
         </div><div class="Credit">
           <a href="https:/\/github.com/fabricjs">fabricjs</a> Version 5.2.1<br>
           © 2008-2015 Printio (Juriy Zaytsev, Maxim Chernyak)<br>
@@ -787,7 +795,7 @@ for more details.</p>
           <a href="https:/\/github.com/Hopding/pdf-lib">pdf-lib</a> Version 1.17.1<br>
           © 2019 Andrew Dillon<br>
           MIT license
-        </div><div class="Credit"> 
+        </div><div class="Credit">
           <a href="https:/\/github.com/sfzinstruments/SalamanderGrandPiano">Salamander Grand Piano V2 Yamaha C5</a><br>
           Author: Alexander Holm<br>
           Creative Commons 3.0
@@ -815,58 +823,55 @@ for more details.</p>
 
   settingsFace = helm(
     `<div style="display:flex;align-items:center;flex-direction:column;justify-content:center;padding:1em;font-size:1.5em;">
-        <div style="margin-top:1em;">Theme:</div>
-        <div data-tag="theme"></div>
         <div style="margin-top:1em;">Factory Reset:</div>
         <div data-tag="buttons"></div>
      <div>`
   );
 
   releaseNotesFace = helm(
-    `<div style="padding:2em;overflow:auto;text-align:center;">
-        <p>Release notes coming soon...</p>
+    `<div style="padding:2em;">
+        Release 1.1, December 2024
+        <ul>
+          <li>Copy/Paste pages between scores in different tabs
+          <li>Table Layout: drag to reorder pages
+          <li>New dark theme and theme switcher cell in more ring
+          <li>Fixed a bug 'r two
+        </ul>
      </div>`
+  );
+
+  helpFace = helm(
+    `<object type="application/pdf" data="https:/\/www.studiop5.org/Guidebook.pdf"
+       style="width:100%;height:100%;"></object>`
   );
 
   constructor(cell) {
     super(cell);
-    let tabView = new TabView(this, "About", "Settings", "Release Notes", "Credits", "License");
+    let tabView = new TabView(this, "About", "Doc", "Release Notes", "Storage", "Credits", "License");
     Object.assign(this.body.style, {
       margin: 0,
       width: "90vw",
-      maxWidth: "30em",
+      maxWidth: "50em",
       height: "90vh",
-      maxHeight: "35em",
+      maxHeight: "40em",
     });
 
     // About tab
     tabView.tabs["About"].face.append(this.aboutFace);
 
-    // Settings tab
-    let settings = tabView.tabs["Settings"];
-    settings.face.append(this.settingsFace);
+    // Release Notes tab
+    tabView.tabs["Release Notes"].face.append(this.releaseNotesFace);
 
-    // Theme switcher
-    let theme = dataIndex("tag", this.settingsFace).theme;
-    let themeStash = { theme: localStorage.getItem("theme") || "light" };
-    theme.replaceWith(
-      new ButtonGroup(
-        themeStash,
-        { Light: { svg: "Page", radio: "theme" }, Dark: { svg: "Ink", radio: "theme" } },
-        (e, prop, tag) => {
-          themeStash.theme = tag.toLowerCase();
-          document.documentElement.setAttribute("data-theme", themeStash.theme);
-          localStorage.setItem("theme", themeStash.theme);
-        }
-      ).elm
-    );
+    // Storage tab
+    let settings = tabView.tabs["Storage"];
+    settings.face.append(this.settingsFace);
 
     // Factory reset buttons
     let buttons = dataIndex("tag", this.settingsFace).buttons;
     buttons.replaceWith(
       new ButtonGroup(
         cell,
-        { Menu: { svg: "Ink" }, Recent: { svg: "Recent" } },
+        { Menu: { svg: "Menu" }, Recent: { svg: "Score" }, Buffer: { svg: "Paste Page" } },
         (e, prop, tag) => {
           if (tag == "Menu") {
             _menu_.stashFromJson(_menu_.stashDefaults);
@@ -877,38 +882,23 @@ for more details.</p>
             for(let src of Object.values(Score.sources)) // set all "last opened directory" paths to the root path
               localStorage.setItem(src, "") ;
             toast("Recent list cleared");
+          } else if (tag == "Buffer") {
+            _podPb_.clear();
+            toast("Paste buffer cleared");
           }
         }
       ).elm
     );
 
-    // Release Notes tab
-    tabView.tabs["Release Notes"].face.append(this.releaseNotesFace);
-
     // Credits and License tabs
     tabView.tabs["Credits"].face.append(this.creditsFace);
     tabView.tabs["License"].face.append(this.licenseFace);
 
+    // Doc tab
+    tabView.tabs["Doc"].face.append(this.helpFace);
+
     this.body.append(tabView.elm);
     tabView.tabs["About"].select();
-  }
-}
-
-class HelpPanel extends Panel {
-  constructor(cell) {
-    super(cell);
-    Object.assign(this.body.style, {
-      margin: 0,
-      padding: 0,
-      width: "90vw",
-      maxWidth: "50em",
-      height: "90vh",
-      maxHeight: "40em",
-    });
-    this.body.append(
-      helm(`<object type="application/pdf" data="https:/\/www.studiop5.org/Guidebook.pdf"
-       style="width:100%;height:100%;"></object>`)
-    );
   }
 }
 
@@ -965,7 +955,7 @@ class LayoutPanel extends Panel {
 
     let handler = (e, tag, value, props) => {
       if (tag == "fit") this.cell.pz = null; // reset pz-set marker so layout will use fit setting
-      if (Score.activeScore && this.cell === Layout.activeLayout.cell) {
+      if (_score_ && this.cell === Layout.activeLayout.cell) {
         Layout.activeLayout.build();
       }
     };
@@ -1253,7 +1243,7 @@ class NumbersPanel extends Panel {
     Object.assign(this, dataIndex("tag", this.content));
 
     this.schedule = new Schedule();
-    let score = Score.activeScore;
+    let score = _score_;
 
     let formatPn = () => {
       return `Page: ${pnToString(cell.stash.pn, -cell.stash.pnOffset)} 
@@ -1310,8 +1300,8 @@ class NumbersPanel extends Panel {
     this.forwardGroup = new ButtonGroup(
       this.cell.stash,
       {
-        Pages: { svg: "Next Page", radio: "forward" },
-        Marks: { svg: "Next Mark", radio: "forward" },
+        Pages: { svg: "Page", radio: "forward" },
+        Marks: { svg: "Mark", radio: "forward" },
       },
       (e, tag, value) => {
         this.cell.stash.tag = value;
@@ -1322,8 +1312,8 @@ class NumbersPanel extends Panel {
     this.reverseGroup = new ButtonGroup(
       this.cell.stash,
       {
-        Pages: { svg: "Next Page", radio: "reverse" },
-        Marks: { svg: "Next Mark", radio: "reverse" },
+        Pages: { svg: "Page", radio: "reverse" },
+        Marks: { svg: "Mark", radio: "reverse" },
       },
       (e, tag, value) => {
         this.cell.stash.tag = value;
@@ -1333,7 +1323,7 @@ class NumbersPanel extends Panel {
 
     listen(_body_, ["PnChanged"], (e) => {
       if (e.detail === this) return;
-      let score = Score.activeScore;
+      let score = _score_;
       defs.pn.suffix = ` of ${score.pgs.length}`;
       defs.pn.value = cell.stash.pn;
       this.pnSliderGroup.refresh();
@@ -1470,7 +1460,7 @@ class PencilPanel extends Panel {
       )
     );
 
-    let active = Score.activeScore.getActiveObject();
+    let active = _score_.getActiveObject();
 
     if (!active || active.type != "path") return;
     let color = fabric.Color.fromHex(rgb);
@@ -1554,7 +1544,7 @@ class TextPanel extends PencilPanel {
     this.text.style.lineHeight = height / _pxPerEm_ + "em";
     this.text.style.color = rgb + Math.round(alpha * 255).toString(16);
     Object.assign(this.preview.style, fontMap[this.fonts.value]);
-    let active = Score.activeScore.getActiveObject();
+    let active = _score_.getActiveObject();
     if (active && active.type == "textbox") {
       let color = fabric.Color.fromHex(rgb);
       color.setAlpha(alpha);
@@ -1576,6 +1566,14 @@ class TextPanel extends PencilPanel {
 
 class RastrumPanel extends PencilPanel {
   slidersDef = {
+    gap: {
+      throttle: 250,
+      min: 5,
+      max: 40,
+      step: 1,
+      value: 8,
+      msg: "Staff Space: {value} px",
+    },
     lines: {
       throttle: 250,
       min: 1,
@@ -1591,14 +1589,6 @@ class RastrumPanel extends PencilPanel {
       step: 0.1,
       value: 1,
       msg: "Line Width: {value} px",
-    },
-    gap: {
-      throttle: 250,
-      min: 5,
-      max: 40,
-      step: 1,
-      value: 8,
-      msg: "Staff Space: {value} px",
     },
     bars: {
       throttle: 250,
@@ -1617,6 +1607,20 @@ class RastrumPanel extends PencilPanel {
 
   constructor(cell) {
     super(cell);
+
+    delay(3, () => { // Must be delayed to allow superclass constructor to finish
+      // Make the "Lines" and "Line Width" sliders smaller and narrower
+      let sliderBlocks = this.sliders.elm.querySelectorAll('.SliderGroup__SliderBlock');
+      [sliderBlocks[1], sliderBlocks[2]].forEach(block => {
+        if (block) {
+          block.style.fontSize = '.8em';
+          block.style.width = '80%';
+          block.style.marginLeft = 'auto';
+          block.style.marginRight = 'auto';
+          block.style.position = 'relative';
+        }
+      });
+    }) ;
   }
 
   update() {
@@ -1658,7 +1662,7 @@ class RastrumPanel extends PencilPanel {
       )
     );
 
-    let active = Score.activeScore.getActiveObject();
+    let active = _score_.getActiveObject();
 
     if (!active || active.type != "path") return;
     let brush = active.canvas.freeDrawingBrush;
@@ -1704,7 +1708,7 @@ class SymbolsPanel extends Panel {
   static css = css(
     "SymbolsPanel",
      `.SymbolsPanel__frame {
-        background: #f5f5f5;
+        background: var(--panel-header-bg);
         background-image: var(--panTexture);
         height: 6em;
         width: 100%;
@@ -1713,7 +1717,6 @@ class SymbolsPanel extends Panel {
         margin-bottom: 0.2em;
         overflow: hidden;
         border-radius: var(--borderRadius);
-        border: 1px solid var(--color-border);
       }
 
       .SymbolsPanel__sash {
@@ -1734,6 +1737,8 @@ class SymbolsPanel extends Panel {
       padding: 0 var(--spacing-sm);
       border-radius: calc(var(--borderRadius) / 4);
       opacity: 0.5;
+      height: 100%;
+      line-height: 4.5em;      
    }
 
    .SymbolsPanel__symbol-active {
@@ -1843,7 +1848,7 @@ class SymbolsPanel extends Panel {
      this.sash.style.color = rgb ;
      this.sash.style.transparency = alpha ;
      this.frame.style.fontSize = (size - 5) / 95 + 1 + "em" ;
-     let active = Score.activeScore.getActiveObject();
+     let active = _score_.getActiveObject();
      if (active && active.podiumType == "symbols") {
        let color = fabric.Color.fromHex(rgb);
        color.setAlpha(alpha);
@@ -1895,7 +1900,7 @@ class PrintPanel extends Panel {
     // PrintPanel is constructed, which should be the first time
     // its opened on a new score.  BUG, todo: should also reset when
     // pg's are added or removed
-    let scoreLength = Score.activeScore.pgs.length ;
+    let scoreLength = _score_.pgs.length ;
     let props = { first:1, last: scoreLength } ;
 
     cell = _menu_.rings.page.cells.numbers ; // for pnToString
@@ -1911,7 +1916,7 @@ class PrintPanel extends Panel {
           let pns = [] ;
           for(let i = props.first ; i <= props.last ; i++)
             pns.push(i) ;
-          let data = await Score.activeScore.toPdf(value == "Ink" ? "pdf" : "none", false, pns) ;
+          let data = await _score_.toPdf(value == "Ink" ? "pdf" : "none", false, pns) ;
           let dataUrl = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
           window.open(dataUrl).print();
         }
@@ -1951,9 +1956,9 @@ class PrintPanel extends Panel {
     this.last.replaceWith(this.lastSlider.elm) ;
 
     listen(_body_, ["PnChanged"], (e) => {
-      this.firstSlider.defs.first.max = this.lastSlider.defs.last.max = Score.activeScore.pgs.length ;
-      props.last  = Math.min(Score.activeScore.pgs.length, props.last) ;
-      props.first  = Math.min(Score.activeScore.pgs.length, props.first) ;
+      this.firstSlider.defs.first.max = this.lastSlider.defs.last.max = _score_.pgs.length ;
+      props.last  = Math.min(_score_.pgs.length, props.last) ;
+      props.first  = Math.min(_score_.pgs.length, props.first) ;
       this.firstSlider.refresh() ;
       this.lastSlider.refresh() ;
     }) ;
@@ -2157,7 +2162,6 @@ let panels = {
   RastrumPanel,
   ReviewPanel,
   SavePanel,
-  SettingsPanel,
   StopwatchPanel,
   TextPanel,
   SymbolsPanel,
