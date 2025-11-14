@@ -177,32 +177,33 @@ class Piano {
     .Piano__options {
       position:absolute;
       width:27em;
-      height:15.75em;
+      height:15.5em;
       top:3.125em;
       z-index:150;
-      background:#ddd;
+      background: var(--panel-bg);
       border-radius: var(--borderRadius);
       overflow:hidden;
       left: calc(50% - 13.5em);
       filter: var(--bodyShadow);
       visibility:hidden ;
       text-align:center ;
-      box-shadow: 0.3em 0.3em 1.6em #aaa inset, -0.3em -0.3em 1.6em #aaa inset ;
+      box-shadow: var(--panel-inset-shadow);
+      color: var(--body-color);
     }
     .Piano__options__options {
       margin: .5em 6.5em .5em 6.5em;
       padding: 1em;
-      font-size: .65em;
+      font-size: .93em;
       line-height: 1.45em ;
       text-align:left;
-      background:#ccc;
+      background: var(--color-surface-selected);
       border-radius:var(--borderRadius);
     }
     .Piano__options__option {
        /* marker only */
     }
-    .Piano__options__option-active { 
-      background: #8888;
+    .Piano__options__option-active {
+      background: var(--color-accent);
       border-radius: .2em;
      }
     `

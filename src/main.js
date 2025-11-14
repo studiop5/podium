@@ -274,8 +274,9 @@ async function main() {
     listen(document, "keydown", (e) => {
       if(e.target.type == "text") return ;  // ignore keydown from a text input
       let layout = Layout.activeLayout;
-      let { forward, reverse } = _menu_.rings.page.cells.numbers.stash;
       if (!layout) return;
+      let forward = _score_?.forward ?? "Pages";
+      let reverse = _score_?.reverse ?? "Pages";
       let forwardBookMarks = e.ctrlKey || forward == "Marks";
       let reverseBookMarks = e.ctrlKey || reverse == "Marks";
       switch (e.code) {

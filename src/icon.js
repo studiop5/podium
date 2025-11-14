@@ -136,6 +136,10 @@ Drive:
 Dropbox:
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-35.3175 -50 306.085 300"><defs id="defs112"><style id="style110">.cls-1{fill:#0061ff}</style></defs><path id="polygon116" class="cls-1" d="M58.86 75l58.87-37.5L58.86 0 0 37.5z"/><path id="polygon118" class="cls-1" d="M176.59 75l58.86-37.5L176.59 0l-58.86 37.5z"/><path id="polygon120" class="cls-1" d="M117.73 112.5L58.86 75 0 112.5 58.86 150z"/><path id="polygon122" class="cls-1" d="M176.59 150l58.86-37.5L176.59 75l-58.86 37.5z"/><path id="polygon124" class="cls-1" d="M176.59 162.5L117.73 125l-58.87 37.5 58.87 37.5z"/></svg>`,
 
+Dark:
+  `<path fill="currentColor" stroke="currentColor" stroke-width="0.3" d="M 16,6 A 7,7 0 0 0 9,13 A 7,7 0 0 0 16,20 A 7,7 0 0 0 21,18.5 A 8,8 0 0 1 13,12 A 8,8 0 0 1 15.5,5 A 7,7 0 0 0 16,6 Z"/>
+   <circle fill="currentColor" cx="18.5" cy="8.5" r="0.6"/>`,
+
 Expand:
   `<rect x="2" y="2" width="20" height="20" fill="#aaa" stroke="currentColor" stroke-width="0.6"/>
    <path fill="none" stroke="currentColor" stroke-width="1.2" d="M7,7L4,4M17,7L20,4M7,17L4,20M17,17L20,20"/>`,
@@ -202,6 +206,9 @@ Jpg:
 Layout:
   `<path fill="none" stroke="currentColor" stroke-width="0.8" d="m 12.1,1.82 v 2.13 m 0,8.35 v 3.9 M 16.8,11 A 3.88,4.91 86.2 0 1 11.9,14.3 3.88,4.91 86.2 0 1 7.09,11.1 M 11.4,8.08 C 10.3,7.89 9.88,6.88 9.99,5.76 10.1,4.65 11.1,3.81 12.2,3.84 c 1.1,0 2,0.92 2.1,2.04 0,1.11 -0.4,2 -1.5,2.13 M 4.97,21 12.2,7.03 19.8,21"/>`,
 
+Light:
+  `<circle fill="currentColor" cx="12" cy="12" r="4"/>
+   <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M12,2.5v2M12,19.5v2M21.5,12h-2M4.5,12h-2M18.4,5.6l-1.4,1.4M7,17l-1.4,1.4M18.4,18.4l-1.4-1.4M7,7L5.6,5.6"/>`,
 
 Local:
   `<path fill-rule="evenodd" fill="#aaa" stroke="currentColor" stroke-width="1.2" d="m 6.22,13.5 v 2.8 M 5.39,13.5 v 2.8 M 6.35,5.65 V 8.47 M 5.5,5.66 v 2.85 m 5.4,3.99 -2.03,2 m 7.43,-7.19 -2,2 m -0.2,3.19 2,2 M 8.87,7.29 10.9,9.25 m 3.7,1.55 a 2.09,2.22 0 0 1 -2.1,2.2 2.09,2.22 0 0 1 -2.1,-2.2 2.09,2.22 0 0 1 2.1,-2.22 2.09,2.22 0 0 1 2.1,2.22 m -9.51,9.5 v 1.8 h 2.2 V 20.3 M 5.97,4.49 H 19 V 17.8 H 5.73 Z M 3.57,20.1 V 2.13 H 21.5 V 20.2 Z m 14.23,0.2 v 1.8 H 20 v -1.8" />`,
@@ -210,6 +217,17 @@ Local:
 
 "L-R":
   `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M4 12h21 M8 8l-4 4l4 4M19 8l4 4l-4 4"/>`,
+
+Mark:
+  `<path style="fill:currentColor;stroke:currentColor;stroke-width:0.8;" d="M 8,3 L 8,21 L 12,17 L 16,21 L 16,3 Z"/>`,
+
+Menu:
+  `<circle style="fill:currentColor;" cx="12" cy="12" r="2.5"/>
+   <circle style="fill:none;stroke:currentColor;stroke-width:0.8;" cx="12" cy="12" r="5"/>
+   <circle style="fill:none;stroke:currentColor;stroke-width:0.8;" cx="12" cy="12" r="8"/>
+   <line style="stroke:currentColor;stroke-width:0.8;" x1="6.35" y1="6.35" x2="17.65" y2="17.65"/>
+   <line style="stroke:currentColor;stroke-width:0.8;" x1="17.65" y1="6.35" x2="6.35" y2="17.65"/>`,
+
 
  Merge:
   `<text transform="rotate(0) skewX(0)" y="4.8" x="5" font-size="13px" font-family="Bravura" fill="currentColor">\ue1d4</text>
@@ -347,9 +365,6 @@ Rastrum:
   `<path fill="#aaa" stroke="currentColor" stroke-width=".6" d="M 15.6,2.74 17,1.48 22.4,6.75 21.1,8.04 Z M 0.472,17.8 6.59,10 C 9.69,8.18 12.9,6.65 15.5,4.16 l 4.2,4.17 C 17.4,10.7 15.5,14 13.5,17.3 l -7.55,6.2 6.15,-7.6 -7.56,6 C 4.31,22.1 11.1,14 10.6,14.4 l -7.49,6.1 6.21,-7.6 -7.65,6.2 c -0.59,0.5 6.51,-8.2 6.06,-7.8 z"/>`,
 
 
-Recent:
-  `<path transform="translate(0,-2)" fill="#aaa" stroke="currentColor" stroke-width="1.2" d="M 3.42,12.9 H 5.13 M 11.8,4.68 V 6.36 M 11.6,19.7 v 1.7 M 18.4,13 H 20 M 8.11,8.11 11.8,13.2 11.2,8.24 M 20.3,13 A 8.57,8.57 0 0 1 11.7,21.6 8.57,8.57 0 0 1 3.13,13 8.57,8.57 0 0 1 11.7,4.43 8.57,8.57 0 0 1 20.3,13 Z" />`,
-
 Replace:
   `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M 2.28,16.6 12.3,5.33 11.2,3.9 h 5.4 v 5.72 l -1.3,-1.1 -5.55,5.98 -1.51,-1.3 0.11,6.1 5.15,-0.1 -1,-1.6 9.9,-11.03"/>`,
 
@@ -408,7 +423,7 @@ Table:
   `<path fill="#aaa" stroke-width="0.6" stroke="currentColor" d="${circlePath(2,12,3)} ${circlePath(2,4,10)} ${circlePath(2,20,10)} ${circlePath(2,4,20)} ${circlePath(2,20,20)} M4,10h16v10h-16zM12,10v-6.5" />`,
 
 Text:
-  `<text x="0" y="16" font-size="14px" fill="currentColor">Abc</text>` ,
+  `<text x="0" y="16" font-size="12px" fill="currentColor">Abc</text>` ,
 
 "Title Page":
   `<path style="fill:none;stroke:#000;stroke-width:.6" d="M3 3h17v20 h-17ZM5 8H18M8 12H15"/>`,

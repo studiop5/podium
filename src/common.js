@@ -87,10 +87,11 @@ window._maxMoveEvents_ = 5 ; // see flung() below
 window._moveEvents_ = [] ; // see flung() below
 window._msPerObj_ = 1 ; // for pdf printing, see score.toPdf()
 window._pxPerEm_ = 25; // initial document.body's font size value: defines pixels in 1 em
+window._score_ = null; // current active score instance
 window._voidFunc_ = () => {} ; 
 
-//  svg textures used as background images:
-let sandSvg =
+// svg texture used for all draggable elements
+let panSvg =
   // Note: you must escape second / in a url, otherwise builder.py will parse
   // them as comments.
   "url('data:image/svg+xml;base64," + btoa(`
@@ -105,23 +106,31 @@ let sandSvg =
       </svg>`) +
   "')";
 
-let paperSvg =
-  // Note: you must escape second / in a url, otherwise builder.py will parse
-  // them as comments.
+let panSvgDark =
   "url('data:image/svg+xml;base64," + btoa(`
-    <svg width='3em' height='3em' viewBox='0 0 100 100' xmlns='http:/\/www.w3.org/2000/svg'>
-      <filter id='paperFilter'>
-        <feTurbulence type="fractalNoise" baseFrequency='0.15' 
-         result='noise' numOctaves="4" stitchTiles='stitch' seed='42'/>
-        <feColorMatrix in='noise' type='saturate' values='0'/>
-        <feComponentTransfer>
-          <feFuncA type='linear' slope='0.3' intercept='0.1'/>
-          </feComponentTransfer>
-          <feComposite in2='SourceGraphic' operator='multiply' result='textured'/>
-        </filter>  
-        <rect width='100%' height='100%' fill='#CD853F' filter='url(#paperFilter)'/>
+      <svg width='3em' height='3em' viewBox='0 0 175 175' xmlns='http:/\/www.w3.org/2000/svg'>
+        <defs>
+          <filter id='noiseFilterDark'>
+            <feTurbulence type='turbulence' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/>
+            <feComponentTransfer>
+              <feFuncA type='linear' slope='0.3'/>
+            </feComponentTransfer>
+          </filter>
+          <filter id='glowFilter'>
+            <feGaussianBlur stdDeviation='2' result='blur'/>
+            <feComponentTransfer in='blur' result='glow'>
+              <feFuncA type='linear' slope='1.5' intercept='0.2'/>
+            </feComponentTransfer>
+            <feMerge>
+              <feMergeNode in='glow'/>
+              <feMergeNode in='SourceGraphic'/>
+            </feMerge>
+          </filter>
+        </defs>
+        <rect width='100%' height='100%' fill='rgba(255,255,255,0.02)' filter='url(#glowFilter)'/>
+        <rect width='100%' height='100%' filter='url(#noiseFilterDark)'/>
       </svg>`) +
-    "')";
+  "')";
 
 
 // css helpers:
@@ -171,21 +180,28 @@ css( // common css declarations. note: if you change bodyColor, be sure to
     --panelWidth: 12em;
 
     /* Light theme colors */
-    --bodyColor: #a8a8a8;
-    --panTexture: ${sandSvg};
-    --layoutTexture: ${paperSvg};
+    --bodyColor: #c8c8c8;
+    --panTexture: ${panSvg};
+
+    /* Typography */
+    --body-font-family: Vercetti, sans-serif;
+    --body-font-weight: 400;
+    --body-letter-spacing: .02em;
+    --body-line-height: 1.2;
+    --body-color: #1f2328;
 
     /* Shadows */
     --textShadow: .5px .5px #fff6,-1px -1px #fff6,.5px -1px #fff6,-1px .5px #fff6;
     --bodyShadow: drop-shadow(.1em .125em .2em #6668);
     --menuShadow: 0 0 0 transparent;
     --panelShadow: drop-shadow(.08em .1em .2em #0006);
+    --layout-shadow: .25em .25em 1.5em #888;
 
     /* Menu colors */
-    --menu-cell-bg: linear-gradient(135deg, #d0d0d0 0%, #b8b8b8 100%);
-    --menu-cell-selected-bg: #b0b0b0;
-    --menu-cell-active-bg: #fff;
-    --menu-disk-bg: linear-gradient(135deg, #d4d4d4 0%, #c0c0c0 100%);
+    --menu-cell-bg: radial-gradient(#c9c9c9 45%, #ccc 66%, #b4b4b4 72%);
+    --menu-cell-selected-bg: radial-gradient(#aaa 25%, #fff 100%);
+    --menu-cell-active-bg: radial-gradient(#fff 64%, #ccc 73%);
+    --menu-disk-bg: radial-gradient(#888, #c9c9c9 25%, #ccc 58%, #b4b4b4 75%);
     --menu-grip-bg: #b8b8b8;
     --menu-grip-selected-bg: #b0b0b0;
     --menu-panel-indicator: #a8a8a8;
@@ -193,6 +209,12 @@ css( // common css declarations. note: if you change bodyColor, be sure to
     --menu-panel-indicator-shadow: #0001;
     --menu-icon-color: #333;
     --menu-drawer-front: #e8e8e8;
+    --menu-cell-box-shadow: none;
+    --menu-grip-shadow: drop-shadow(-0.08em -0.1em 0.15em rgba(255,255,255,0.4))
+                        drop-shadow(0.1em 0.12em 0.2em #8884);
+    --menu-grip-box-shadow: -0.2em -0.2em 0.4em #888c inset,
+                            0.2em 0.2em 0.4em #aaa4 inset;
+    --menu-disk-shadow: none;
 
     /* Panel colors */
     --panel-bg: #c8c8c8;
@@ -212,13 +234,17 @@ css( // common css declarations. note: if you change bodyColor, be sure to
     --select-option-text: #333;
 
     /* Text shadow for contrast */
-    --text-shadow-contrast: 0 0 0.3em rgba(255, 255, 255, 0.8);
+    --text-shadow-contrast: 0 0 0.2em rgba(255, 255, 255, 0.5), 1px 1px 1px rgba(255, 255, 255, 0.3);
+
+    /* File list colors */
+    --file-properties-color: #ccc;
 
     /* Color palette */
     --color-primary: #4a90e2;
     --color-primary-active: #3a7bc8;
     --color-surface: #f5f5f5;
     --color-surface-selected: #e8e8e8;
+    --color-accent: #aaa;
     --color-text: #333333;
     --color-text-secondary: #666666;
     --color-text-muted: #999999;
@@ -259,51 +285,75 @@ css( // common css declarations. note: if you change bodyColor, be sure to
   }
 
   /* Dark theme */
-  [data-theme="dark"] {
-    --bodyColor: #2d2d2d;
-    --color-surface: #3d3d3d;
-    --color-surface-selected: #4d4d4d;
-    --color-text: #e0e0e0;
-    --color-text-secondary: #a0a0a0;
-    --color-text-muted: #707070;
-    --color-border: #555555;
-    --color-border-light: #444444;
+  [data-theme="Dark"] {
+    --bodyColor: #242424;
+    --panTexture: ${panSvgDark};
+
+    /* File list colors */
+    --file-properties-color: #aaa;
+
+    /* Typography - dark theme */
+    --body-font-family: Vercetti, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --body-font-weight: 400;
+    --body-letter-spacing: .02em;
+    --body-line-height: 1.2;
+    --body-color: #e5e5e5;
+
+    --color-surface: #2e2e2e;
+    --color-surface-selected: #4a4a4a;
+    --color-text: #e5e5e5;
+    --color-text-secondary: #a8a090;
+    --color-text-muted: #808080;
+    --color-accent: #b8a890;
+    --color-border: #404040;
+    --color-border-light: #353535;
     --color-shadow: rgba(0, 0, 0, 0.3);
     --color-shadow-strong: rgba(0, 0, 0, 0.5);
     --color-background-overlay: rgba(0, 0, 0, 0.7);
     --textShadow: .5px .5px #0006,-1px -1px #0006,.5px -1px #0006,-1px .5px #0006;
     --bodyShadow: drop-shadow(.1em .125em .2em #000a);
     --panelShadow: drop-shadow(.08em .1em .2em #000c);
+    --layout-shadow: .25em .25em 1.5em #000;
 
     /* Menu colors - dark theme */
-    --menu-cell-bg: linear-gradient(135deg, #4a4a4a 0%, #383838 100%);
-    --menu-cell-selected-bg: #505050;
-    --menu-cell-active-bg: #5a5a5a;
-    --menu-disk-bg: linear-gradient(135deg, #4e4e4e 0%, #3c3c3c 100%);
-    --menu-grip-bg: #383838;
-    --menu-grip-selected-bg: #505050;
-    --menu-panel-indicator: #606060;
+    --menu-cell-bg: linear-gradient(135deg, #383838 0%, #2e2e2e 100%);
+    --menu-cell-selected-bg: #404040;
+    --menu-cell-active-bg: #484848;
+    --menu-disk-bg: linear-gradient(135deg, #3a3a3a 0%, #303030 100%);
+    --menu-grip-bg: #2e2e2e;
+    --menu-grip-selected-bg: #404040;
+    --menu-panel-indicator: #505050;
     --menu-panel-indicator-highlight: #fff1;
     --menu-panel-indicator-shadow: #0003;
-    --menu-icon-color: #d0d0d0;
-    --menu-drawer-front: #505050;
+    --menu-icon-color: #e5e5e5;
+    --menu-drawer-front: #404040;
+    --menu-cell-box-shadow: -0.15em -0.15em 0.3em #0004 inset,
+                            0.15em 0.15em 0.3em #fff1 inset,
+                            2px 2px 3px rgba(255,255,255,0.06),
+                            -3px -3px 6px rgba(0,0,0,0.65);
+    --menu-grip-shadow: drop-shadow(3px 3px 4px rgba(255,255,255,0.08))
+                        drop-shadow(-4px -4px 8px rgba(0,0,0,0.7));
+    --menu-grip-box-shadow: -0.2em -0.2em 0.4em #0005 inset,
+                            0.2em 0.2em 0.4em #fff2 inset;
+    --menu-disk-shadow: drop-shadow(2px 2px 3px rgba(255,255,255,0.06))
+                        drop-shadow(-3px -3px 6px rgba(0,0,0,0.65));
 
     /* Panel colors - dark theme */
-    --panel-bg: #3a3a3a;
-    --panel-header-bg: #383838;
-    --panel-header-selected-bg: #505050;
-    --panel-inset-shadow: -0.15em -0.15em 0.3em #fff1 inset,
-                          0.15em 0.15em 0.3em #0004 inset;
+    --panel-bg: #2e2e2e;
+    --panel-header-bg: #2c2c2c;
+    --panel-header-selected-bg: #404040;
+    --panel-inset-shadow: -0.15em -0.15em 0.3em #0004 inset,
+                          0.15em 0.15em 0.3em #fff1 inset;
 
     /* Slider colors - dark theme */
-    --slider-knob-bg: #383838;
-    --slider-knob-selected-bg: #505050;
+    --slider-knob-bg: #2c2c2c;
+    --slider-knob-selected-bg: #404040;
     --slider-knob-shadow: -0.1em -0.1em 0.2em #fff1 inset,
                           0.1em 0.1em 0.2em #0003 inset;
 
     /* Select dropdown colors - dark theme */
     --select-option-bg: #1a1a1a;
-    --select-option-text: #e0e0e0;
+    --select-option-text: #e5e5e5;
 
     /* Text shadow for contrast - dark theme */
     --text-shadow-contrast: 0 0 0.3em rgba(0, 0, 0, 0.8);
@@ -311,7 +361,11 @@ css( // common css declarations. note: if you change bodyColor, be sure to
 
 
   body {
-    font-family: 'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', sans-serif;
+    font-family: var(--body-font-family);
+    font-weight: var(--body-font-weight);
+    letter-spacing: var(--body-letter-spacing);
+    line-height: var(--body-line-height);
+    color: var(--body-color);
     margin: 0;
     padding: 0;
     background-color: var(--bodyColor);
@@ -1374,14 +1428,15 @@ class TabView {
     "TabView",
     `.Tab__tag {
        display: inline-block;
-       height: 3em;
-       line-height: 3em;
+       height: 2.2em;
+       line-height: 2.2em;
        width: 8em;
        text-align: center;
+       margin: 0.4em;
     }
     .Tab__tag-selected {
       border-radius: var(--borderRadius);
-      background-color: var(--color-surface-selected);
+      background-color: var(--panel-bg);
     }
     .TabView__frame {
        margin-top: var(--spacing-sm);
@@ -1424,7 +1479,7 @@ class TabView {
       // Title is a string to diplay on the tag. If iconPaths[title] exists,
       // the tag will display that icon to the left of title.
       this.tag.textContent = title;
-      if (iconPaths[title])
+      if (iconPaths[title] && title !== "Doc")
         this.tag.prepend(
           helm(
             `${iconSvg(title, {
@@ -1906,18 +1961,19 @@ function mvmt(e, emv, xLimit = 8, yLimit = 6) {
 function pnToDiv(pn, div, autoSize = true) {
   // Standard way to display a page number in a div using Bravura font,
   // or using Times Italic roman numerals for front matter. It pulls
-  // data from the _menu_ page ring's numbers cell
+  // data from the active score
   // @pn the page number: when number + pnOffset < 0 (front matter),
   // @div caller-supplied div to display the page number in
-  // @autoSize whne true,the div's font size is adjusted down from 30px so that the
+  // @autoSize when true,the div's font size is adjusted down from 30px so that the
   //   page number will fit the div without overflow.
-  let roman = pn - _menu_.rings.page.cells.numbers.stash.prelim <= 0;
+  let prelim = _score_?.prelim ?? 0;
+  let roman = pn - prelim <= 0;
   div.style.fontFamily = roman ? "Times" : "Bravura";
   div.style.fontStyle = roman ? "italic" : "normal";
   let str = pnToString(pn, true);
 
-  if (autoSize) {
-    // Determ ine font size is needed so str will fit within 90% of the div's width
+  if (autoSize && div.offsetWidth > 0) {
+    // Determine font size needed so str will fit within 90% of the div's width
     let elm = helm(
       `<div style="visibility:hidden;position:absolute">${str}</div>`
     );
@@ -1925,8 +1981,14 @@ function pnToDiv(pn, div, autoSize = true) {
     elm.style.fontStyle = div.style.fontStyle;
     elm.style.fontSize = 30 / _dvPxRt_ + "px"; // max font size we allow
     _body_.append(elm);
-    while (elm.offsetWidth > div.offsetWidth * 0.9)
-      elm.style.fontSize = parseInt(elm.style.fontSize) - 0.5 + "px";
+
+    if (elm.offsetWidth > div.offsetWidth * 0.9) {
+      let targetWidth = div.offsetWidth * 0.9;
+      let currentFontSize = parseInt(elm.style.fontSize);
+      let scaleFactor = targetWidth / elm.offsetWidth;
+      elm.style.fontSize = Math.floor(currentFontSize * scaleFactor) + "px";
+    }
+
     div.style.fontSize = elm.style.fontSize;
     elm.remove();
   }
@@ -1949,7 +2011,8 @@ function pnToString(pn, useSMuFL = false) {
   // glyphs unavailable in other fonts.  Roman numeral algo adapted,
   // with thanks, from:
   // August@https:/\/stackoverflow.com/questions/9083037/convert-a-number-into-a-roman-numeral-in-javascript
-  let { prelim, first } = _menu_.rings.page.cells.numbers.stash;
+  let prelim = _score_?.prelim ?? 0;
+  let first = _score_?.first ?? 1;
 
   pn = parseInt(pn);
   prelim = parseInt(prelim);

@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, getBox,   helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, unlisten,} from "./common.js";
+import { Spot, animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, delayMs, dialog, getBox,   helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, unlisten,} from "./common.js";
 import { panels } from "./panel.js";
 import { Pg, Score } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
@@ -111,9 +111,42 @@ class Layout
 
 class Layout {
   static borderSize = 0.1; // in em's
-  static borderColor =  "#8B4513";
   static margin = 20 / _dvPxRt_; // default margin between layout and viewport
   static activeLayout = null;
+
+  static recto =
+    // Define the texture/color used as the background in all layouts
+    // Note: you must escape second / in a url, otherwise builder.py will parse
+    // them as comments.
+    "url('data:image/svg+xml;base64," + btoa(`
+      <svg width='3em' height='3em' viewBox='0 0 100 100' xmlns='http:/\/www.w3.org/2000/svg'>
+        <filter id='paperFilter'>
+          <feTurbulence type="fractalNoise" baseFrequency='0.5' 
+           result='noise' numOctaves="4" stitchTiles='stitch' seed='42'/>
+          <feColorMatrix in='noise' type='saturate' values='0'/>
+          <feComponentTransfer>
+            <feFuncA type='linear' slope='0.3' intercept='0.5'/>
+            </feComponentTransfer>
+            <feComposite in2='SourceGraphic' operator='multiply' result='textured'/>
+          </filter>  
+          <rect width='100%' height='100%' fill='#CD853F' filter='url(#paperFilter)'/>
+        </svg>`) +
+      "')";
+
+
+  static css = css("Layout", `
+    .Layout {
+      position: absolute;
+      box-shadow: var(--layout-shadow);
+      border-radius: var(--borderRadius);
+      border: ${0.1}em solid #8B4513;
+      box-sizing: border-box;
+      background-image:
+        linear-gradient(145deg, #f958 0%, #A748 100%),
+        ${Layout.recto}
+    }
+  `);
+
 
   // startElm and endElm are displayed Layout.pgAlert to show a div whenever the user
   // attempts to navigate to a page that's before the start or past the end of a score.
@@ -166,9 +199,9 @@ class Layout {
    }
 
   static async open(cell) {
-    if (!Score.activeScore) return;
+    if (!_score_) return;
     _shade_.show("Formatting");
-    let score = Score.activeScore; // assumes there is an activeScore
+    let score = _score_; // assumes there is an activeScore
     if (Layout.activeLayout) Layout.activeLayout.destructor();
     if (cell.key == "book") await new BookLayout(score, cell).build();
     else if (cell.key == "horizontal" || cell.key == "vertical") await new ScrollLayout(score, cell).build();
@@ -212,6 +245,41 @@ class Layout {
     // change, re-orientation, or request to jump to specific page.
   }
 
+
+
+  async animateToCell(pg, cell, layoutKey) {
+    // animate the given deleted/copied page by simulating moving the pasteCell.pg
+    // to the given menu cell
+    let elm ;
+    if(layoutKey == "table") elm = pg ;
+    else {
+       // need to resize fabric's components to match 
+       pg.canvas.lowerCanvasEl.style.width = pg.canvas.lowerCanvasEl.style.width ;
+       pg.canvas.upperCanvasEl.style.width = pg.canvas.upperCanvasEl.style.width ;
+       pg.canvas.lowerCanvasEl.style.height = pg.canvas.lowerCanvasEl.style.height ;
+       pg.canvas.upperCanvasEl.style.height = pg.canvas.upperCanvasEl.style.height ;
+       if(pg.mozCanvas) {
+         pg.mozCanvas.style.height = elm.style.height ;
+         pg.mozCanvas.style.width = elm.style.width ;
+       }
+       pg.elm.parentElement.append(elm) ;
+    }    
+    let srcBox = getBox(elm);
+    let dstBox = getBox(dataIndex("tag", cell.elm).cellIcon);
+    let cssText = elm.style.cssText ;
+    _body_.append(elm) ;
+    animate(elm, 
+     { left: srcBox.x + "px", top: srcBox.y + "px", zIndex:100 },
+     { left: dstBox.x + dstBox.width / 2 + "px", top: dstBox.y +dstBox.height / 2 +  "px", fontSize: 0 },
+      `all ${_gs_}s`,
+       () => {
+         elm.remove() ;
+         elm.style.cssText = cssText ;
+    });
+  };
+
+
+
   async onDown(e) {
     // Subclasses should call this at the beginning of their own onDown function:
     // the convention for the mouseDown || touchDown || pointerDown event handler.
@@ -230,7 +298,7 @@ class Layout {
       let pageCell = _menu_.activeRing.activeCell;
       if (!pageCell) return false;
       let pageKey = pageCell.key;
-      let layoutKey = _menu_.rings.layout.activeCell.key;
+      let layoutKey = Layout.activeLayout.cell.key;
       let pasteCell = _menu_.rings.page.cells.paste;
       let pg, pn;
       let score = this.score;
@@ -250,7 +318,7 @@ class Layout {
       }
 
       let animateToCell = async (pg0, cell) => {
-        // animate the given delete/copy page by simulating moving the pasteCell.pg
+        // animate the given deleted/copied page by simulating moving the pasteCell.pg
         // to the given menu cell
         let elm ;
         if(layoutKey == "table") {
@@ -461,21 +529,10 @@ class BookLayout
 **/
 
 class BookLayout extends Layout {
-  static borderColor =  "#8B4513";
   static bindingColor =  "#8B4513";
   static css = css(
     "BookLayout",
-    `
-          .BookLayout {
-            touch-action:none;
-            position:absolute;
-            box-shadow: .25em .25em 1.5em #888;
-            border-radius: var(--borderRadius);
-            border: ${Layout.borderSize}em solid ${Layout.borderColor};
-            background-image: var(--layoutTexture) ;
-            box-sizing: border-box ;
-            font-size: 1em ;
-          }  
+    `  
           .BookLayout__spine {
             position:absolute;
             left:50%;
@@ -485,12 +542,26 @@ class BookLayout extends Layout {
            }
           .BookLayout__binding {
              height:100%; 
-             width:1.8em;
-             left:calc(50% - .9em);
-             top:0%;
-             background: ${BookLayout.bindingColor};
+             width:2em;
+             left:calc(50% - 1em);
              position:absolute;
              pointer-events: none ;
+             background: linear-gradient(to right,
+               #fff  0%,  
+               #6004  4%,
+               #6008  8%,
+               #6224  47%,
+               #6114  50%,
+               #6224  53%,
+               #5008  90%,
+               #0004  93%,
+               #eee4  100% 
+             ),linear-gradient(160deg,
+               #fff0 0%,
+               #6444 100%
+             ) ;
+             mix-blend-mode: multiply;
+             opacity: 0.4;
           }
          .BookLayout__slot {
             position:absolute;
@@ -525,7 +596,7 @@ class BookLayout extends Layout {
 
   elm = helm(`
     <div class="pz">
-      <div data-tag="book" class="BookLayout">
+      <div data-tag="book" class="Layout" style="overflow:visible">
         <div data-tag="binding" class="BookLayout__binding"></div>
         <div data-tag="spine" class="BookLayout__spine">
           <div data-slot="A" class="BookLayout__slot"></div>
@@ -692,12 +763,12 @@ class BookLayout extends Layout {
     if(this.pnShow == "On") {
       this.book.append(this.pagerLeft.elm);
       this.book.append(this.pagerRight.elm);
+      this.pagerLeft.build() ;
+      this.pagerRight.build() ;
     } else {
       this.pagerLeft.elm.remove();
       this.pagerRight.elm.remove();
-    } ;
-    this.pagerLeft.build() ;
-    this.pagerRight.build() ;
+    }
     if(!animated) return ;
     this.pgGoTo(this.pnStash.pn);
 
@@ -1051,14 +1122,6 @@ class BookLayout extends Layout {
     this.shadow.remove();
   }
 
- show() {
-  // for debugging only
-  this.slots.forEach((slot, idx) => {
-     console.log("slot " + idx + " " + slot.dataset.slot + 
-         " pg " + (slot.firstElementChild? slot.firstElementChild.dataset.pg : "empty")) ;
-    })
-  }
-
 }
 
 /**
@@ -1075,26 +1138,47 @@ class ScrollLayout
   scrolling, and the value "height" for vertical scrolling.
 **/
 
+
 class ScrollLayout extends Layout {
+
+  // Define svg for "back" of scroll, i.e. visible on the left/right scrollers
+  static verso = "url('data:image/svg+xml;base64," + btoa(`
+  <!-- leather-worn-amber.svg -->
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+    <defs>
+      <filter id="leatherWear" color-interpolation-filters="sRGB">
+        <!-- large organic grain pattern -->
+        <feTurbulence type="fractalNoise"
+          baseFrequency="0.23" numOctaves="3" seed="8"
+          stitchTiles="stitch" result="noise"/>
+        <feColorMatrix in="noise" type="matrix"
+          values="1.7 0 0 0 0
+                  0 1.7 0 0 0
+                  0 0 1.7 0 0
+                  0 0 0 1 0" result="contrast"/>
+        <feDiffuseLighting in="contrast"
+          surfaceScale="2.8" diffuseConstant="1.15"
+          lighting-color="#fff9e0" result="lit">
+          <feDistantLight azimuth="230" elevation="55"/>
+        </feDiffuseLighting>
+        <feBlend in="contrast" in2="lit" mode="multiply" result="grain"/>
+      </filter>
+    </defs>
+    <rect width="128" height="128" fill="#f88a2d"/>
+    <!-- texture overlay -->
+    <rect width="128" height="128" filter="url(#leatherWear)" opacity="0.28"/>
+  </svg>
+  `) +  "')";
+
   static css = css(
     "ScrollLayout",
-    `   .ScrollLayout {
-            position:absolute;
-            margin: ${Layout.margin}px ; 
-         }
-         .ScrollLayout__frame {
+    `   .ScrollLayout__frame {
           position:absolute ;
           overflow: hidden ;
         }
-        .ScrollLayout__holder {
-          position:absolute;
-         }
-
         .ScrollLayout__sash {
           position: relative;
-          overflow: hidden; 
-          border: ${Layout.borderSize}em solid ${Layout.borderColor};
-          box-sizing: border-box ;
+          pointer-events: auto;
         }
         .ScrollLayout__roll {
           position:absolute;
@@ -1109,13 +1193,14 @@ class ScrollLayout extends Layout {
         .ScrollLayout__roll::after {
           content:"";
           position:absolute;
-          background-image:linear-gradient(to right, #0000 35% , #ccc2 50%, #0000 65% );
-        }
+        } 
         .ScrollLayout-texture {
-          position:absolute; 
+          position:absolute;
           height:100%;
-          background-image: var(--layoutTexture);
-        }
+          background-image: 
+            linear-gradient(to right, #0000 35% , #ccc2 50%, #0000 65% ),
+            ${ScrollLayout.verso}
+        } 
    `
   );
 
@@ -1137,13 +1222,13 @@ class ScrollLayout extends Layout {
 
   elm = helm(`
     <div class="pz">
-      <div data-tag="scroll" class="ScrollLayout">
+      <div data-tag="scroll" class="Layout" style="border:none;">
         <div data-tag="leftRoll" class="ScrollLayout__roll">
           <div data-tag="leftRollPattern" class="ScrollLayout-texture"></div>
           <div data-tag="leftRollShadow" class="ScrollLayout__roll-shadow"></div>
         </div>
         <div data-tag="frame" class="ScrollLayout__frame">
-           <div data-tag="sash" class="ScrollLayout__sash ScrollLayout-texture"></div>
+           <div data-tag="sash" class="ScrollLayout__sash"></div>
         </div>
         <div data-tag="rightRoll" class="ScrollLayout__roll">
           <div data-tag="rightRollPattern" class="ScrollLayout-texture"></div>
@@ -1165,14 +1250,7 @@ class ScrollLayout extends Layout {
     _body_.append(this.elm);
     this.pointerListener = listen(this.elm, ["pointerdown"], this.onDown.bind(this));
 
-    if(cell.key == "horizontal") {
-      this.sash.style.borderRight = this.sash.style.borderLeft = "unset" ;
-      this.props = NORMAL_PROPS ;
-    }
-    else {
-      this.sash.style.borderBottom = this.sash.style.borderTop = "unset" ;
-      this.props = ORTHO_PROPS ;
-    }
+    this.props = cell.key == "horizontal" ? NORMAL_PROPS : ORTHO_PROPS ;
 
     // Create left/right (top/bottom) pager instances:
     this.pagerLeft = new Pager(this.props.LEFT, (stash, adjusting, cursor) => 
@@ -1302,8 +1380,9 @@ class ScrollLayout extends Layout {
         [WIDTH]: g.rollGirth + "px",
         [roll === this.leftRoll ? LEFT : RIGHT]: 0,
         [TOP]: 0,
+       
         // box shadow adds caps on top & bottom or rolls
-        boxShadow: LEFT == "left" ? "0 -3px 0 #000,0 3px 0 #000" : "-3px 0 0 #000,3px 0 0 #000",
+        boxShadow: LEFT == "left" ? "0 -3px 0 #8B4513,0 3px 0 #8B4513" : "-3px 0 0 #8B4513,3px 0 0 #8B4513",
       });
 
     // left/right roll pattern: simulated rolled-up portion of scroll
@@ -1316,14 +1395,13 @@ class ScrollLayout extends Layout {
     if(this.pnShow == "On") {
       this.leftRoll.append(this.pagerLeft.elm);
       this.rightRoll.append(this.pagerRight.elm);
+      this.pagerLeft.build() ;
+      this.pagerRight.build() ;
     } else {
       this.pagerLeft.elm.remove();
       this.pagerRight.elm.remove();
-    } ;
-    this.pagerLeft.build() ;
-    this.pagerRight.build() ;
+    }
     if(!animated) return await this.pgGoTo(this.pnStash.pn);
-
     // 
     // animate centering of layout's screen position
     //
@@ -1334,7 +1412,6 @@ class ScrollLayout extends Layout {
       { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
       this.cell.pz ? this.cell.pz : this.centerLT({ fontSize: "1em"}),
       `left, top, font-size ${_gs_}s`) ;
-
     await this.pgGoTo(this.pnStash.pn);
   }
 
@@ -1568,11 +1645,7 @@ class TableLayout extends Layout {
         .TableLayout__table {
           position: absolute;
           touch-action:none;
-          box-shadow: .25em .25em 1.5em #888;
-          border-radius: var(--borderRadius);
-          background-image: var(--layoutTexture);
           overflow:hidden;
-          border: ${Layout.borderSize}em solid ${Layout.borderColor};
         }
         .TableLayout__grid {
           margin: ${TableLayout.gridMargin};
@@ -1605,7 +1678,7 @@ class TableLayout extends Layout {
 
   elm = helm(`
     <div class="pz">
-      <div data-tag="table" class="TableLayout__table">
+      <div data-tag="table" class="Layout TableLayout__table">
         <div data-tag="grid" class="TableLayout__grid">
         </div>
       <div>
@@ -1636,13 +1709,8 @@ class TableLayout extends Layout {
     // pages is from cell.stash: it determines the number of pages per row
     let { grid, pages, score, table } = this ;
 
-    clearChildren(grid);
-    this.elm.style.fontSize = "1em" ;
-
     // Compute layout at a 1em fontSize
     clearChildren(grid);
-    let pgCount = score.pgs.length;
-
     let gridMargin = parseFloat(TableLayout.gridMargin) * _pxPerEm_ ;
     let tableWidth = innerWidth - Layout.margin * 2  ;
     let gridWidth = tableWidth - gridMargin * 2 ;
@@ -1651,15 +1719,16 @@ class TableLayout extends Layout {
     let pgWidth = gridWidth / ((pages - 1) * hStep + 1);
     let pgHeight = (score.maxHeight / score.maxWidth) * pgWidth;
 
-    let xStep = pgWidth * hStep;
-    let yStep = pgHeight * vStep;
     table.style.width = toEm(tableWidth) ;
     grid.style.width = `calc(${toEm(tableWidth)} - ${gridMargin * 2}px)` ;
     this.pgWidth = pgWidth ;
     this.pgHeight = pgHeight ;
-
+    this.gridMargin = gridMargin ;
     // pre-compute position of pgs in the grid
     this.gridCoords = [] ;
+    let xStep = pgWidth * hStep;
+    let yStep = pgHeight * vStep;
+    let pgCount = score.pgs.length;
     for (let pn = 1, top = 0 ; pn <= pgCount; top += yStep) {
       for (let col = 0, left = 0; col < pages && pn <= pgCount; pn++, col++, left += xStep) 
           this.gridCoords.push({pn, top,  left}) ;
@@ -1669,10 +1738,10 @@ class TableLayout extends Layout {
     this.toXY(Layout.margin, Layout.margin + gridMargin + pgHeight / 2) ;
 
     // Now add all pages
-
-    if(this.score.pgs.find((pg) => pg.thumbUrl == null)) {
+    if(this.score.pgs.find((pg) => pg.thumbElm == null)) { 
       // ...then one or more thumbnails are not built: animate the (possibly lengthy) building process
       let cancelled = false ;
+
       let dialogElm = dialog("",{ Cancel: { svg: "Cancel" } }, (e,_x,_y,args) => {
         cancelled = true ;
         args.close() ;
@@ -1701,7 +1770,7 @@ class TableLayout extends Layout {
     }
 
     else {
-      void _body.offsetWidth ;
+      void _body_.offsetWidth ;
       for(let {pn, top, left} of this.gridCoords) {
         let gridHeight = top + pgHeight + gridMargin * 2 ;
         grid.style.height = toEm(gridHeight) ;
@@ -1710,12 +1779,19 @@ class TableLayout extends Layout {
         grid.append(await this.buildPg(pn, left, top));
       }
      let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon) ;
-     if(this.cell.pz) animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0}, this.cell.pz, `left, top, font-size ${_gs_}s`) ;
+
+     if(this.cell.pz)
+       if(this.animated)
+         animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
+            this.cell.pz, `left, top, font-size ${_gs_}s`) ;
+       else this.elm.style.cssText = this.cell.pz ;
      else { 
        if(this.fit == "Height") // reduce fontSize so layout fits window's height
          this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / table.offsetHeight  + "em" ;
-       animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
-         this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}s`) ;
+       if(this.animated) 
+         animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
+           this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}s`) ;
+       else Object.assign(this.elm.style, this.centerLT()) ;
       }
     }
   }
@@ -1724,10 +1800,9 @@ class TableLayout extends Layout {
   {
     // build elm to hold thumbnail
     let {left, top} = this.gridCoords[pn-1] ;
-
     let pg = this.score.pgs[pn - 1];
     let elm = await pg.getThumbElm(rebuild) ;
-    elm.setAttribute("name", pn) ;
+    elm.pn = pn ;
     elm.pg = pg ;
     Object.assign(elm.style,{
        position:"absolute",
@@ -1761,106 +1836,169 @@ class TableLayout extends Layout {
   }
 
   async buildPgActive(pn, elm) {
-    // Find the current active page...if there is one, uniquely, it'll have a canvas-container child element
-    let active = this.grid.getElementsByClassName("canvas-container").item(0)?.parentElement;
-    if (active) {
-      // "unuse" pg, then force re-build of its thumbnail, as it could have been "inked"
-      active.replaceWith(await this.buildPg(active.getAttribute("name"), true));
-      this.score.pgUnuse(active.pg);
+    if (this.active) {
+      // Turn current active elm into a normal, "inactive" elm. 
+      // get inactive, a new, up-to-date thumbnail
+      let inactive = await this.active.pg.getThumbElm(true) ;
+      // copy pg, pn, and, if existing, move pagenumber to inactive
+      inactive.pg = this.active.pg ;
+      inactive.pn = this.active.pn ;
+      let pnElm = this.active.querySelector(".TableLayout__pn") ;
+      if(pnElm) inactive.append(pnElm) ;
+      this.score.pgUnuse(inactive.pg);
+      // give inactive correct coords, then en-dom it:
+      let {left, top} = this.gridCoords[inactive.pn-1] ;
+      Object.assign(inactive.style,{
+         position:"absolute",
+         height:toEm(this.pgHeight),
+         width:toEm(this.pgWidth),
+         left:toEm(left),
+         top:toEm(top),
+      }) ;  
+      this.active.replaceWith(inactive) ;
     }
-
-    // now build the new active page
-    let pg = await this.score.pgUse(pn, false);
+    // Now build the new active pg:
+    let pg = elm.pg = await this.score.pgUse(pn, false);
+    elm.pn = pn ;
     pg.elm.style.display = "block";
+    // increase zoom to help distinguish active pg
     pg.setZoom(this.pgHeight / pg.score.maxHeight);
     this.pgPad(pg) ;
     elm.append(pg.elm) ;
     elm.classList.add("TableLayout__pg-active");
+    this.active = elm ;
   }
 
 
   Cursor = class {
     // This embedded class manages dragging to reorder pgs
-    slots = [null, null, null, null]; 
-    slotStyles = ['', '', '', ''];
+
+    // Here, we slide the active thumbnail elm. As we do, up to
+    // 2 thumbnails to the left of it move slightly left, and
+    // up to 2 thumbnails to the right of it move slightly to the
+    // right to create a "split" where the active thumbnail will
+    // be moved on pointer up. The 4 thunbmails involved in
+    // the split are stored in the split array: it acts like
+    // a moving window of elements. A visual split is created
+    // by translating split 0 and 1 to the left and 2 and 3
+    // to the right.  A correspnding splitSyles array
+    //that store their original styles for easy
+    // reverting.
+
+    splits = [null, null, null, null]; 
+    splitsStyle = ['', '', '', ''];
 
     constructor(e, layout) {
+      this.e = e;
       this.layout = layout;
-      this.active = e.target.closest(".TableLayout__pg");
-      this.ghost = this.active.cloneNode(false);
-      this.ghost.style.opacity = 0 ;
-      this.active.parentElement.insertBefore(this.ghost, this.active);
-      this.activeStyles = this.active.style.cssText;
-      Object.assign(this.active.style, { pointerEvents: "none", opacity: ".8", zIndex: 99}) ;
+      this.gridMargin = parseInt(this.layout.gridMargin);
+      this.active = this.layout.active;
+      let actBox = getBox(this.active) ;
+      Object.assign(this.active.style, { pointerEvents:"none", position: "absolute", opacity: ".95", zIndex: 99}) ;
+      this.offset = { x: actBox.width / 2, y:actBox.height / 2} ;
+      _body_.append(this.active) ;
+      // create list of transitions for our "splits"
       let box = getBox(e.target);
-      this.offset = e.clientX - box.x + box.width / 2;
-      this.slotTrans = [-2, -4, 2, 4].map(d => `translateX(${box.width/d}px)`);
-      this.active.style.transition = "top .25s ease-in-out";
+      this.splitsTransform = [-4, -2, 2, 4].map(d => `translateX(${box.width/d}px)`);
     }
 
     mv(emv) {
-      let {slots, slotStyles, slotTrans, transform, active} = this;
-      this.active.style.left = emv.clientX - this.offset + "px";
+      let {splits, splitsStyle, splitsTrans, transform, active} = this;
+      this.active.style.left = emv.clientX - this.offset.x + "px";
+      this.active.style.top = emv.clientY - this.offset.y + "px";
       let target = document.elementFromPoint(emv.clientX, emv.clientY);
-
-      if(target.classList.contains("TableLayout__pg")) {
+      if(target?.classList.contains("TableLayout__pg")) {
         let box = getBox(target);
-        let newSlots = emv.clientX < box.x + box.width / 2
-          ? [target.previousSibling, target.previousSibling?.previousSibling,
+        let newSplits = emv.clientX < box.x + box.width / 2
+          ? [target.previousSibling?.previousSibling,target.previousSibling, 
              target, target?.nextSibling]
-          : [target, target?.previousSibling,
+          : [target?.previousSibling,target, 
              target.nextSibling, target.nextSibling?.nextSibling];
-        if(newSlots[0] != slots[0] || newSlots[3] != slots[3]) {
-          // restore old styles
-          slots.forEach((elm, i) => elm && (elm.style.cssText = slotStyles[i]));
-          // apply new styles
-          newSlots.forEach((elm, i) => {
+        if(newSplits[1] != splits[1] || newSplits[2] != splits[2]) {
+          splits.forEach((elm, i) => elm && (elm.style.cssText = splitsStyle[i]));  // restore old styles
+          newSplits.forEach((elm, i) => { // apply new styles
             if(elm) {
-              slotStyles[i] = elm.style.cssText;
-              elm.style.transform = slotTrans[i];
-              elm.style.transition = "transform 0.25s ease-in-out";
+              splitsStyle[i] = elm.style.cssText;
+              elm.style.transform = this.splitsTransform[i];
+              elm.style.transition = "0.25s ease-in-out";
             }
           });
-          this.slots = newSlots;
+          this.splits = newSplits;
         }
-        this.active.style.top = target.style.top ;
+        this.toPn = this.splits[1]?.pn || 0 ;
+      }
+      else if(target) {
+        if(!target.closest(".TableLayout__table")) { // dragged out of table
+          this.splits.forEach((elm, i) => elm && (elm.style.cssText = this.splitsStyle[i]));
+          this.toPn = null ;
+        }
+        else { // dragged over table...no split...move active back home
+          this.toPn = this.active.pn ;
+        }
       }
     }
-
 
     async up(eup) {
-      this.ghost.remove() ;
-      this.slots.forEach((elm, i) => elm && (elm.style.cssText = this.slotStyles[i]));
-      let fromPn = parseInt(this.active.getAttribute("name"));
-      let toPn = this.slots[0] ? parseInt(this.slots[0].getAttribute("name")) : 0;
-      if(toPn < fromPn) toPn++ ;
-      this.active.style.cssText = this.activeStyles;
-      if(fromPn != toPn) {
-        this.layout.score.pgMv(fromPn, toPn);
+      this.splits.forEach((elm, i) => elm && (elm.style.cssText = this.splitsStyle[i]));
+      let score = this.layout.score ;
+      if(this.toPn == null) {
+        let active = this.active;
+        score.pgUnuse(active.pg) ;
+        score.pgCut(active.pn) ;
+        this.layout.animateToCell(active, _menu_.rings.page.cells.delete, "table") ;
+        delayMs(2000, () => active.remove()) ;
+        this.layout.active = null ; // !!Critica...do this, else build() will change active!
         await this.layout.build(false);
-        await this.layout.pgGoTo(toPn);
+        return ;
+      }        
+      if(this.active.pn > this.toPn) this.toPn++ ;
+      score.pgMv(this.active.pn, this.toPn);
+      // re-insert this.active at its new position:
+      //  this.toPn is 1-based, so we -1 it to make it 0-based
+      //    pn == 1: prepend active
+      //        0 1 2 3 4
+      //       XA B C D E
+      //    pn > 1:  additional -1, so pn - 2:
+      //      0 1 2 3 4 
+      //      AXB C D E
+      if(this.toPn == 1) this.layout.grid.prepend(this.active);
+      else {
+         let sibling = this.layout.grid.children.item(this.toPn-2) ;
+         sibling.after(this.active) ;
       }
+      Object.assign(this.active.style, { pointerEvents: "auto", opacity: "1", zIndex: 2}) ;
+      // put each thumbElm into its correct grid location
+      for(let {left, pn, top} of this.layout.gridCoords) {
+        let elm = score.pgs[pn-1].thumbElm ;
+        let pnElm = elm.querySelector(".TableLayout__pn") ;
+        if(pnElm) pnToDiv(pn, pnElm, false) ;
+        elm.pn = pn ;
+        elm.pg = score.pgs[pn-1];
+        Object.assign(elm.style, { left:toEm(left), top:toEm(top) }) ;
+      }
+      this.layout.pnPost(this.toPn) ; 
     }
-
   }
 
   async onDown(e) {
     if (await super.onDown(e)) return;
     this.grid.setPointerCapture(e.pointerId) ;
-    let pg = e.target.pg || e.target.parentElement.pg;
-    if (!pg) return;
-    let pn = this.score.pnOf(pg);
-    await this.pgGoTo(pn);
+    let elm = e.target.closest(".TableLayout__pg") ;
+    if(!elm) return ;
+    let {pg, pn} = elm ;
 
-    this.bMarkTimer.run(_longPressMs_, () => {
-      let style = this.grid.children.namedItem(pn).firstChild.style;
-     if(pg.bookmark) {
-       pg.bookmark = null ;
-       style.background = "unset";
-     } else style.background = pg.bookmark = randomColor() ;
-
+    let pnElm = elm.querySelector(".TableLayout__pn") ;
+    if(pnElm) {
+      this.bMarkTimer.run(_longPressMs_, () => {
+        // toggle bookmark for this pg
+        if(pg.bookmark) {
+          pg.bookmark = null ;
+          pnElm.style.background = "unset";
+        } else pnElm.style.background = pg.bookmark = randomColor() ;
+      }) ;
       _body_.dispatchEvent(new CustomEvent("BookmarkChanged"));
-    });
+    };
+    await this.pgGoTo(pn) ;
 
     let cursor = null ;
 
@@ -1882,17 +2020,16 @@ class TableLayout extends Layout {
   }
 
   async pgGoTo(pn) {
-    pn = clamp(pn, 1, this.score.pgs.length); // clamp out-of-range pn
     if (this.pnOffset != this.pnStash.pnOffset) {
       // Front Matter count has changed: re-number pages
       this.pnOffset = this.pnStash.pnOffset;
-      for (let pnElm of [...document.getElementsByClassName("TableLayout__pn")]) pnToDiv(pnElm.pn, pnElm, false);
+      for (let pnElm of [...document.getElementsByClassName("TableLayout__pn")])
+         pnToDiv(pnElm.pn, pnElm, false);
     }
     if (pn == this.pnStash.pn) return pn; // active page was reselected, noop
     this.pnPost(pn);
-    // build "new" active pg
-    let active = this.grid.children.item(pn - 1);
-    this.buildPgActive(pn, active);
+    // turn elm at pn into an active (full) pg
+    await this.buildPgActive(pn, this.grid.children.item(pn - 1)) ;
     return pn;
   }
 
@@ -1949,7 +2086,8 @@ class Pager {
      }
      .Pager__cursor {
        position:absolute;
-       text-shadow: var(--textShadow);
+       color: #1f2328;
+       text-shadow: .5px .5px #fff6,-1px -1px #fff6,.5px -1px #fff6,-1px .5px #fff6;
        z-Index:1 ;
        border-radius: .4em ;
        background-color: #0000 ;
@@ -2006,7 +2144,7 @@ class Pager {
   }
 
   get pnStash() {
-    return Score.activeScore.numbers ;
+    return _score_.numbers ;
   }
 
   build() {
@@ -2022,7 +2160,7 @@ class Pager {
     // The cursor is positioned s.t. pg 1 is always at the top of the pager, and the max page is always at the bottom
     // of the pager.  Its Position is expressed as a percentage so that when a layout is scaled by adjusting
     // the font size of its pz element, the pager position will automatically adjust.
-    let topPx = (this.pnStash.pn -1) * (pagerBox[HEIGHT] - cursorBox[HEIGHT]) / (Score.activeScore.pgs.length - 1) ;
+    let topPx = (this.pnStash.pn -1) * (pagerBox[HEIGHT] - cursorBox[HEIGHT]) / (_score_.pgs.length - 1) ;
     this.cursor.style[TOP] = 100 * topPx / pagerBox[HEIGHT] + "%" ;
     this.formatFunc(this.pnStash, false, this.cursor);
   }
@@ -2030,12 +2168,12 @@ class Pager {
   buildBookmarks() {
     let { LEFT, HEIGHT, TOP, WIDTH } = this.props;
     for (let elm of [...this.elm.children]) if (elm.dataset.tag == "bookmark") elm.remove();
-    let pgCount = Score.activeScore.pgs.length;
+    let pgCount = _score_.pgs.length;
     let pgSpan = 100 / pgCount;
     // bookmarks for positions right and bottom are on opposite side of those for left and top
     let leftPercent = ["left", "top"].includes(this.position) ? 70 : -10;
 
-    Score.activeScore.pgs.forEach((pg, i) => {
+    _score_.pgs.forEach((pg, i) => {
       if(!pg.bookmark) return ;
       this.elm.append(
         helm(
@@ -2051,7 +2189,7 @@ class Pager {
     e.stopImmediatePropagation(); // don't let event propagate to the layout
     let { TOP, WIDTH, HEIGHT, CLIENTX, CLIENTY, X, Y } = this.props;
     let { cursor, pager, pnStash } = this;
-    let pgCount = Score.activeScore.pgs.length ;
+    let pgCount = _score_.pgs.length ;
     let cursorBox = getBox(cursor);
     let pagerBox = getBox(pager);
     pager.setPointerCapture(e.pointerId);
@@ -2073,7 +2211,7 @@ class Pager {
       newPos += cursorBox[HEIGHT] / 2 ; // compensate for cursor height
       pnStash.pn = clamp(Math.floor((newPos / pagerBox[HEIGHT]) * pgCount) + 1, 1, pgCount) ;
       // are we at a bookmark? 
-      let bkCl = Score.activeScore.pgs[pnStash.pn -1].bookmark;
+      let bkCl = _score_.pgs[pnStash.pn -1].bookmark;
       if(bkCl) cursor.style.color = ptrDiv.style.color = bkCl ;
       else cursor.style.color = ptrDiv.style.color = "black" ;
       clearChildren(cursor);
@@ -2086,7 +2224,7 @@ class Pager {
 
     this.bMarkTimer.run(_longPressMs_, () => {
       let pn = pnStash.pn;
-      let pg = Score.activeScore.pgs[pn - 1];
+      let pg = _score_.pgs[pn - 1];
       if (pg.bookmark) {
         pg.bookmark = null;
         cursor.style.color = "black";

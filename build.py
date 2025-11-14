@@ -29,7 +29,7 @@ if args.font:
     #      (re)build font.js        #
     #################################
 
-    fontFileName = 'lib/Bravura.woff2'
+    fontFileName = 'lib/Bravura.otf'
     outFileName = 'build/font.js'
 
     with open(outFileName, 'wb') as outFile:
@@ -45,7 +45,7 @@ if args.font:
         outFile.write(b"""\";
     
     // Load CSS font from the same data
-    let fontFile = new FontFace("Bravura", "url(data:font/woff2;charset=utf-8;base64," + bravuraBase64 + ")");
+    let fontFile = new FontFace("Bravura", "url(data:font/otf;charset=utf-8;base64," + bravuraBase64 + ")");
     document.fonts.add(fontFile);
     await fontFile.load();
     
@@ -60,6 +60,18 @@ if args.font:
       }
       return this._bytes;
     }.bind({});
+
+    // Vercetti font
+    const vercettiBase64 = \"""")
+
+        with open('lib/Vercetti-Regular.woff2','rb') as inFile:
+            outFile.write(base64.b64encode(inFile.read()))
+
+        outFile.write(b"""\";
+
+    let vercettiFont = new FontFace("Vercetti", "url(data:font/woff2;charset=utf-8;base64," + vercettiBase64 + ")");
+    document.fonts.add(vercettiFont);
+    await vercettiFont.load();
   }
   """)
 

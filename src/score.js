@@ -74,7 +74,7 @@ class Pg {
     this.background = background;
     this.canvas = null; // fabricjs canvas
     this.isCut = false ; // marker for pgs that are "cut" in the gui
-    this.bookmark = null ;; // Color string if this pg is bookmarked, else null
+    this.bookmark = null; // Color string if this pg is bookmarked, else null
     this.deferred = false; // true while pdf rendering deferred for non-blocking
     this.editable = false;
     this.elm = null; // shortcut for this.canvas.wrapperEl: the base element of the fabric canvas dom
@@ -85,14 +85,14 @@ class Pg {
     this.score = score;
     this.height = height;
     this.json = json;
-    this.mozCanvas = null ; 
+    this.mozCanvas = null; 
     this.mozPn = mozPn;
-    this.stretch = 1 ; // iff score.pgFit == "Expand", will stretch pg to fit math.min(score.max,score.min)
+    this.stretch = 1; // iff score.pgFit == "Expand", will stretch pg to fit math.min(score.max,score.min)
     this.thumbUrl = null;
-    this.suppressStateChange = false ;
+    this.suppressStateChange = false;
     this.width = width;
     this.undoStack = [];
-    this.zoom = 1 ;
+    this.zoom = 1;
     return this;
   }
 
@@ -122,7 +122,7 @@ class Pg {
       canvasContext: ctx,
       viewport: viewport,
     }).promise;
-    this.rendering = false ;
+    this.rendering = false;
     this.setZoom(this.zoom);
   }
 
@@ -194,7 +194,7 @@ class Pg {
     canvas.setDimensions( {
         width: this.width / _pxPerEm_ + "em",
         height: this.height / _pxPerEm_ + "em",
-    },  { cssOnly: true }   );
+    }, { cssOnly: true } );
 
     if (this.json) await new Promise((resolve, reject) => 
       canvas.loadFromJSON(this.json, () => resolve()));
@@ -310,7 +310,7 @@ class Pg {
       let score = this.score ;
       if (deflated) await this.inflate(true, false);
 
-      // create div hat will display the thumbnail
+      // create div that will display the thumbnail
       let scale = Pg.thumbSize / Math.max(score.maxWidth, score.maxHeight);
       let maxW = score.maxWidth * scale, maxH = score.maxHeight * scale;
 
@@ -479,7 +479,7 @@ class Pg {
           if (!pdfFontName) pdfFontName = "Times-Roman";
           let pdfFont = this.score.embeddedFonts[pdfFontName];
           if (!pdfFont) {
-            let fontData = fontData[pdfFontName];
+            let fontData = window.fontData[pdfFontName];
             if (typeof fontData == 'function') fontData = fontData();
             pdfFont = await pLibPg.doc.embedFont(fontData ?? pdfFontName);
             this.score.embeddedFonts[pdfFontName] = pdfFont;
@@ -731,7 +731,6 @@ class Score {
   });
 
   static async newScore(pgKnt, width, height, color) {
-///
     // Create a new score that consists entirely of empty pages,
     // not backed by and pdf.
     // @pgKnt number of pages in the new score
@@ -740,12 +739,12 @@ class Score {
     let score = new Score();
     for (let i = 1; i <= pgKnt; i++) {
       let pg = new Pg(score, width, height, null, null, color);
-      /*
+
         // for testing only, add a page number to each page:
         await pg.inflate();
-        pg.canvas.add(new fabric.Textbox("pg " + i));
+        pg.canvas.add(new fabric.Textbox("pg " + i, { left:80, top:80, fontSize:80}));
         pg.deflate();
-
+/*
         // For testing only, add a small and large pages to test the
         // Pg padding mechanism provided by layouts:
         if (i == 1) pg = new Pg(score, width / 10, height / 2, null, null, "#f00");
@@ -944,6 +943,7 @@ class Score {
     // There can be only 1 "active" score at a time...call activate to make this
     // instance the active score
     Score.activeScore = this;
+    _score_ = this;
     document.title = `Podium ${this.name ? this.name.replace(/\.pdf/i, ""):"*"} (${_podId_})`;
     // update the _menu_ state for this Score instance:
     _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/info", "score/print"]);
@@ -1136,8 +1136,8 @@ class Score {
     fromPn = clamp(fromPn, 1, this.pgs.length) ;
     toPn = clamp(toPn, 1, this.pgs.length) ;
     if(fromPn != toPn) {
-      let tmpPg = this.pgs[fromPn-1] ;
-      let pg = this.pgs.splice(fromPn - 1, 1)[0];  // Remove from old position
+      this.setDirty() ;
+      let pg = this.pgs.splice(fromPn - 1, 1)[0];
       this.pgs.splice(toPn - 1, 0, pg);    
     }
   }

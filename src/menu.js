@@ -49,7 +49,7 @@ class Menu {
       position: absolute;
       transition: opacity var(--transition-slow);
       z-index: 101;
-      filter: drop-shadow(.08em .1em .15em #0003);
+      filter: drop-shadow(.1em .2em .2em #0004);
       transform: translateZ(0); /* fix for ipad compositing */
       will-change: transform; /* fix for ipad compositing */
       border-radius: 50%;
@@ -65,6 +65,7 @@ class Menu {
       position: absolute;
       background: var(--menu-cell-bg);
       color: var(--menu-icon-color);
+      box-shadow: var(--menu-cell-box-shadow);
     }
     .Menu__cell-contents {
       margin-top: var(--spacing-sm);
@@ -102,7 +103,7 @@ class Menu {
       z-index: 103;
       transition: opacity var(--transition-slow);
       overflow: hidden;
-      filter: drop-shadow(.04em .05em .1em #0002);
+      filter: var(--menu-disk-shadow);
     }
     .Menu__diskCell {
       text-align: center;
@@ -131,7 +132,8 @@ class Menu {
       z-index: 105;
       background: var(--menu-grip-bg);
       background-image: var(--panTexture);
-      filter: drop-shadow(.05em .06em .12em #0003);
+      filter: var(--menu-grip-shadow);
+      box-shadow: var(--menu-grip-box-shadow);
     }
     .Menu__grip-selected {
      background: var(--menu-grip-selected-bg);
@@ -261,7 +263,6 @@ class Menu {
       }
     }
 
-
     // set initial cell state
     this.enableCells(["layout", "ink", "ink/paste", "page", "score/close", "score/save", "score/info", "score/print", "page/paste"], false);
 
@@ -378,7 +379,8 @@ class Menu {
       Layout.activeLayout.destructor() ;
       Layout.activeLayout.elm.remove();
       Layout.activeLayout = null ;
-      Score.activeScore = null;
+      _score_ = null;
+      _score_ = null;
       for(let panel of Object.values(panels)) {
          // Several panels need to close when the Score closes, otherwise they will have stale state.
          if(panel.cell && ["Info", "Save", "Paste", "Print"].includes(panel.cell.name)) panel.close() ;
@@ -418,7 +420,7 @@ class Menu {
             fit: "Auto", // "Auto", "Width","Height","None"
             gap: 0.2, // [0,10]% of fit dimension
             pnShow: "On",
-            pgShow: 1, // [1,Score.activeScore.pages.length)
+            pgShow: 1, // [1,_score_.pages.length)
             pgSnap: 0, // 0 = disabled
           },
           svgPath: iconPaths["Vertical Scroll"],
@@ -428,7 +430,7 @@ class Menu {
           pz: null,
           stash: {
             fit: "Auto", // "Auto", "Width","Height" (note: no "None")
-            pages: 15, // [2,Score.activeScore.pages.length)
+            pages: 15, // [2,_score_.pages.length)
             horizontalGap: 0, // [-100,100]%
             verticalGap: 0, // [-100,100]%
             pnShow: "On",
@@ -553,7 +555,6 @@ class Menu {
         numbers: {
           name: "Numbers",
           svgPath: iconPaths["Numbers"],
-          stash: { forward: "Pages", reverse: "Pages"},
         },
         add: {
           name: "Add",
@@ -579,7 +580,7 @@ class Menu {
     this.listen(["page/numbers/","page/paste/","page/add/"].map((path) => path + "out"), (cell) =>  this.openPanel(cell)) ;
 
     this.listen("page/undo/up", async () => {
-       Score.activeScore.pgUndo() ;
+       _score_.pgUndo() ;
        await Layout.activeLayout.build(false);
    })
     // numbers panel has no functionality except its panel, so allow up to open the panel
@@ -626,7 +627,7 @@ class Menu {
           svgPath: iconPaths["Volume"],
           stash: { volume:1},
         },
-        settings: { name: "Settings", svgPath: iconPaths["Options"], stash: {} },
+        theme: { name: "Theme", svgPath: iconPaths["Light"], stash: {} },
         help: { name: "Help", svgPath: iconPaths["Help"], stash: {} },
       },
       name: "More",
@@ -637,7 +638,26 @@ class Menu {
     this.listen("more/up", () => this.activateRing(rings.more));
 
     paths = Object.keys(rings.more.cells).map((path) => `more/${path}/`) ;
+    // All but 1 cell in the more ring have panels...remove it from paths...
+    paths = paths.filter((key) => !["more/theme/"].includes(key)) ;
+
     this.listen(paths.map((path) => path + "out"),  (cell) => this.openPanel(cell)) ;
+
+    this.listen("more/theme/up", (cell) => {
+      let theme = localStorage.getItem("theme") || "Light" ;
+      theme = theme == "Dark" ? "Light" : "Dark" ;
+      document.documentElement.setAttribute("data-theme", theme) ;
+      dataIndex("tag", rings.more.cells.theme.elm).cellIcon.innerHTML = iconPaths[theme] ;
+      localStorage.setItem("theme", theme);
+    });
+
+    // Set initial icon for theme cell
+    let theme = localStorage.getItem("theme") || "Light" ;
+    document.documentElement.setAttribute("data-theme", theme) ;
+    // Need to delay for menu to be built:
+    delay(10, () => dataIndex("tag", rings.more.cells.theme.elm).cellIcon.innerHTML = iconPaths[theme]) ;
+
+
 
     // more ring's cells have no functionality except their panels, so allow .../up to open the panel
    this.listen("more/metronome/up", (cell) => panels.MetronomePanel.get(cell).show().setPosition(this.grip)) ;
@@ -965,7 +985,7 @@ class Menu {
     ring.cellElm.classList.add("Menu__diskCell-active");
     this.activeRing = ring;
     // Score is editable iff ink is activeRing, and it has an activeCell
-    if(Score.activeScore) Score.activeScore.setEditable(ring.key == "ink" && ring.activeCell) ;
+    if(_score_) _score_.setEditable(ring.key == "ink" && ring.activeCell) ;
   }
 
   activateCell(cell) {
@@ -996,11 +1016,11 @@ class Menu {
 
     } else ring.activeCell = null;
 
-    if(Score.activeScore && ring.key == "ink") {
+    if(_score_ && ring.key == "ink") {
       // Score is editable iff ink is activeRing, and it has an activeCell
-      Score.activeScore.setEditable(ring.activeCell) ;
+      _score_.setEditable(ring.activeCell) ;
       // Score is transformable iff ink is activeRing, and transform cell is active
-      if(transformToggle) Score.activeScore.setTransformable(cell === transformCell) ;
+      if(transformToggle) _score_.setTransformable(cell === transformCell) ;
     }
   }
 
@@ -1386,7 +1406,7 @@ class Menu {
   pgUpEvent(opts, pg) {
     this.autoOff.run() ; // extend activation of active cell
 
-    Score.activeScore.setDirty(true) ;
+    _score_.setDirty(true) ;
     if (pg) {
       if (this.newlyCreated && this.newlyCreated.podiumType == "text") {
         // For text objects, immediately enter editing:
@@ -1394,7 +1414,7 @@ class Menu {
         this.newlyCreated.selectAll() ; 
       }
     }
-    for (let pg of Score.activeScore.pgs) if (pg.inflated) pg.canvas.isDrawingMode = false;
+    for (let pg of _score_.pgs) if (pg.inflated) pg.canvas.isDrawingMode = false;
   }
 
   checkEditing() {
@@ -1420,7 +1440,7 @@ class Menu {
           dataUrl,
           (img) => {
             // If necessary, scale image so that it will fit the Score
-            let { maxWidth, maxHeight } = Score.activeScore;
+            let { maxWidth, maxHeight } = _score_;
             if (img.width > img.height && img.width > maxWidth) img.scaleToWidth(maxWidth);
             else if (img.height > maxHeight) img.scaleToHeight(maxHeight);
             this.pasteObj = img;
