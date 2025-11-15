@@ -11,12 +11,13 @@ import pdb
 import sys
 
 if len(sys.argv) == 1:
-   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, cert=False) ;
+   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, ext=False, cert=False) ;
 else:
   parser = argparse.ArgumentParser()
   parser.add_argument('-s','--sample', action='store_true', help='(re)build build/sample.js')
   parser.add_argument('-f','--font', action='store_true', help='(re)build build/font.js')
   parser.add_argument('-p','--podium', action='store_true', help='(re)build build/podium.html')
+  parser.add_argument('-e','--ext', action='store_true', help='(re)build browser extension in ext/')
   parser.add_argument('-c','--cert', action='store_true', help='(re)build certificate')
   parser.add_argument('-v','--verbose', action='store_true')
   args = parser.parse_args()
@@ -72,6 +73,42 @@ if args.font:
     let vercettiFont = new FontFace("Vercetti", "url(data:font/woff2;charset=utf-8;base64," + vercettiBase64 + ")");
     document.fonts.add(vercettiFont);
     await vercettiFont.load();
+
+    // Store Vercetti data for PDF-lib
+    window.fontData["Vercetti"] = function() {
+      if (!this._bytes) {
+        const binary = atob(vercettiBase64);
+        this._bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          this._bytes[i] = binary.charCodeAt(i);
+        }
+      }
+      return this._bytes;
+    }.bind({});
+
+    // Patrick Hand font
+    const patrickHandBase64 = \"""")
+
+        with open('lib/PatrickHand-Regular.ttf','rb') as inFile:
+            outFile.write(base64.b64encode(inFile.read()))
+
+        outFile.write(b"""\";
+
+    let patrickHandFont = new FontFace("Patrick Hand", "url(data:font/ttf;charset=utf-8;base64," + patrickHandBase64 + ")");
+    document.fonts.add(patrickHandFont);
+    await patrickHandFont.load();
+
+    // Store Patrick Hand data for PDF-lib
+    window.fontData["Patrick Hand"] = function() {
+      if (!this._bytes) {
+        const binary = atob(patrickHandBase64);
+        this._bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          this._bytes[i] = binary.charCodeAt(i);
+        }
+      }
+      return this._bytes;
+    }.bind({});
   }
   """)
 
@@ -160,177 +197,299 @@ export {pianoSamples}
       except OSError:
         pass
 
-if args.podium: 
-    #####################################################
-    #                                                   #
-    #  (re)build build/podium.html from src/podium.html #
-    #    ...a 1-file, all-included build                #
-    #                                                   #
-    #####################################################
+# Define Packager class (used by both --podium and --ext builds)
+import shutil
 
-    import shutil
-    import sys
+class Packager(object):
 
-    class Packager(object):
-    
-        inSkip = False
-        inComment = False
-        inString = False
+    inSkip = False
+    inComment = False
+    inString = False
+    inTemplateLiteral = False
 
-        def __init__(self, inFileName, inFileObj, outFileObj):
-            if args.verbose: print(f'packaging {inFileName}') ;
-            lineNumber = 0
-            for line in inFileObj:
-                lineNumber += 1
-                # process skip directive
-                if "// +skip" in line:
-                    self.inSkip = True
-                elif "// -skip" in line:
-                    self.inSkip = False
-                if self.inSkip:
-                    continue
-                # process "<!--[" and "]-->": xml comments
-                # surrounding square brackets. These lines
-                # are simply stripped from the output..this
-                # allows commenting out html for "unprocessed"
-                # files, while uncommenting them in the
-                # "processed" file.
-                if "<!--[" in line:
-                  continue ;
-                if "]-->" in line:
-                  continue ;
-                # process "// #write directive:
-                # Look for line like this: // #write blah blah blah
-                # When found, write "blah blah blah" (or whatever) to
-                # the output
-                if "// #write " in line:
-                   outFileObj.write(line.replace("// #write ","")) ;
-                   continue ;
-                # Process included file directive:
-                # Look for lines like this: // #include build/score.js 
-                #   or // #include build.score.js deflateAs
-                # When found, include the given file in the output.
-                if "// #include " in line: 
-                    includedFilePath = line.split()[2] ;
-                    if args.verbose: print("including ", includedFilePath) ;
-                    outFileObj.write(line.replace("#include","#inclusion", 1)) ;
-                    with open(includedFilePath) as includedFileObj:
-                        if "minified" in line:
-                            Packager(includedFilePath, includedFileObj, outFileObj)
-                        elif "deflateAs" in line:
-                            stringName = line.split()[-1] ;
-                            self.deflateAs(stringName, includedFilePath, outFileObj) ;
-                        elif "b64gzip" in line:
-                            self.b64gzip(includedFilePath, outFileObj) 
-                        elif "urlBlob" in line:
-                            urlName = line.split()[-1] ;
-                            outFileObj.write(f"\n\nfunction {urlName}_func() {{\n") ;
-                            shutil.copyfileobj(includedFileObj, outFileObj)
-                            outFileObj.write("}\n") ;
-                            outFileObj.write(f'let {urlName} = window.URL.createObjectURL(new Blob(["(" + {urlName}_func.toString() + ")"], {{type: "text/javascript"}}));\n');
-                        else:
-                            shutil.copyfileobj(includedFileObj, outFileObj)
-                    continue 
-                # The source code uses only double-coded strings, "":
-                # (single quoted strings, '', are only used within double-quoted strings)
-                # In javascript, double-quoted strings must not span multiple lines.
-                # This can be a problem for prettier.js-processed code, as it
-                # will freely split quoted strings that are within template
-                # literals.  Perfectly legal, but our feeble parsing is not
-                # smart enough to notice template literals, so we disallow
-                # this splitting.  Where needed, source code can use the directive
-                # // prettier-ignore
-                # ...to stop prettier from splitting such code.
-                if self.inString:
-                    print(f"Error at {inFileName}:{lineNumber}, unterminated string |{line}|")
-                charCount = len(line)
-                i = 0
-                outLine = ''
-                while i < charCount:
-                    char = line[i]
-                    if char == '"':
-                        self.inString = False if self.inString else True
-                    if not self.inString and i < charCount - 1:
-                        nextChar = line[i+1]
-                        if char == '/':
-                            if nextChar == '/':
-                                # Urls not within a double-quote string can contain "//" that looks like a comment to us. In javascript, 
-                                # they should be escaped "/\/" in order to not be thus interpreted.
-                                # We print a warning if we see something that looks like an un-escaped url.
-                                loweredLine = line.lower()
-                                if "http://" in loweredLine or "https://" in loweredLine:
-                                    print(f"Warning, at {inFileName}:{lineNumber}, un-escaped url |{line}|")
-                                # emit everything up to the comment
-                                outLine = outLine.strip()
-                                if len(outLine) > 0:
-                                    outFileObj.write(outLine)
-                                # force breaking to next line:
-                                outLine = "" 
-                                i = charCount
-                                break 
-                            if not self.inComment and nextChar == '*':
-                                self.inComment = True
-                                i += 2
-                                continue
-                        if self.inComment and char == '*' and nextChar == '/':
-                            self.inComment = False
-                            i += 2
-                            continue
-                        if not self.inComment and char == '/' and nextChar == '*':
-                            self.inComment = False
-                            i += 2
-                            continue
-                    if not self.inComment:
+    def __init__(self, inFileName, inFileObj, outFileObj):
+        if args.verbose: print(f'packaging {inFileName}') ;
+        lineNumber = 0
+        for line in inFileObj:
+            lineNumber += 1
+            # process skip directive
+            if "// +skip" in line:
+                self.inSkip = True
+            elif "// -skip" in line:
+                self.inSkip = False
+            if self.inSkip:
+                continue
+            # process "<!--[" and "]-->": xml comments
+            # surrounding square brackets. These lines
+            # are simply stripped from the output..this
+            # allows commenting out html for "unprocessed"
+            # files, while uncommenting them in the
+            # "processed" file.
+            if "<!--[" in line:
+              continue ;
+            if "]-->" in line:
+              continue ;
+            # process "// #write directive:
+            # Look for line like this: // #write blah blah blah
+            # When found, write "blah blah blah" (or whatever) to
+            # the output
+            if "// #write " in line:
+               outFileObj.write(line.replace("// #write ","")) ;
+               continue ;
+            # Process included file directive:
+            # Look for lines like this: // #include build/score.js 
+            #   or // #include build.score.js deflateAs
+            # When found, include the given file in the output.
+            if "// #include " in line: 
+                includedFilePath = line.split()[2] ;
+                if args.verbose: print("including ", includedFilePath) ;
+                outFileObj.write(line.replace("#include","#inclusion", 1)) ;
+                with open(includedFilePath) as includedFileObj:
+                    if "minified" in line:
+                        Packager(includedFilePath, includedFileObj, outFileObj)
+                    elif "deflateAs" in line:
+                        stringName = line.split()[-1] ;
+                        self.deflateAs(stringName, includedFilePath, outFileObj) ;
+                    elif "b64gzip" in line:
+                        self.b64gzip(includedFilePath, outFileObj) 
+                    elif "urlBlob" in line:
+                        urlName = line.split()[-1] ;
+                        outFileObj.write(f"\n\nfunction {urlName}_func() {{\n") ;
+                        shutil.copyfileobj(includedFileObj, outFileObj)
+                        outFileObj.write("}\n") ;
+                        outFileObj.write(f'let {urlName} = window.URL.createObjectURL(new Blob(["(" + {urlName}_func.toString() + ")"], {{type: "text/javascript"}}));\n');
+                    else:
+                        shutil.copyfileobj(includedFileObj, outFileObj)
+                continue 
+            # The source code uses only double-quoted strings, "":
+            # (single quoted strings, '', are only used within double-quoted strings)
+            # In javascript, double-quoted strings must not span multiple lines.
+            # Template literals (backticks) CAN span multiple lines and can contain
+            # double-quoted strings (like SVG attributes), so we track them separately.
+            if self.inString and not self.inTemplateLiteral:
+                print(f"Error at {inFileName}:{lineNumber}, unterminated string |{line}|")
+            charCount = len(line)
+            i = 0
+            outLine = ''
+            while i < charCount:
+                char = line[i]
+
+                # Not in a comment - check for strings and template literals
+                if not self.inComment:
+                    # Check if we're entering/exiting a template literal
+                    if char == '`' and (i == 0 or line[i-1] != '\\'):
+                        self.inTemplateLiteral = not self.inTemplateLiteral
                         outLine += char
-                    i += 1
-                outLine = outLine.strip() ;
-                if len(outLine) > 0:
-                    outFileObj.write(outLine)
-                    outFileObj.write('\n')
-     
-        def deflateAs(self, stringName, includedFilePath, outFileObj):
-            # constents of includedFilePath:
-            # gzip-compressed > base64 encoded > written to outFileObj
-            # as contents of string variable with given name
-            outFileObj.write(f'let {stringName} = "') ;
-            with open(includedFilePath, 'rb') as inFile:
-                fileContents = inFile.read()
-                fileContentsCompressed = gzip.compress(fileContents) # bytes object
-                fileContentsB64 = base64.b64encode(fileContentsCompressed) # encoded bytes
-                fileContentsUtf8 = fileContentsB64.decode('utf-8') 
-                outFileObj.write(fileContentsUtf8) ;
-            outFileObj.write('" ;\n') ;
+                        i += 1
+                        continue
 
+                    # If we're in a template literal, just copy characters
+                    # (don't track double quotes inside template literals)
+                    if self.inTemplateLiteral:
+                        outLine += char
+                        i += 1
+                        continue
 
-    """
-function inflate(b64GzipString) { 
-  // returns blob
-  let gzipString = atob(b64GzipString) ;
-  let gzipBlob = new Blob([gzipString]) ;
-  let decompressor = new DecompressionStream("gzip");
-  let decompressedStream = gzipBlob.stream().pipeThrough(decompressor);
-  let reader = decompressedStream.getReader() ;
-  let chunks = [] ;
-  reader.read().then(function nextChunk({done,value}) {
-    if(done) return new Blob(chunks, {type:"application/javascript"}) ;
-    chunks.push(chunk) ;
-    reader.read().then(nextChunk) ;
-  });
-}
+                    # Check if we're entering/exiting a double-quoted string
+                    if char == '"' and (i == 0 or line[i-1] != '\\'):  # Check for escaped quotes
+                        self.inString = not self.inString
+                        outLine += char
+                        i += 1
+                        continue
 
-    """
+                    # If we're in a string, just copy the character
+                    if self.inString:
+                        outLine += char
+                        i += 1
+                        continue
 
-    def build(inFileName, outFileName):
-        with open(inFileName) as inFileObj:
-            with open(outFileName,"w") as outFileObj:
-                Packager(inFileName, inFileObj, outFileObj)
-    
+                # Check for comments
+                if i < charCount - 1:
+                    nextChar = line[i+1]
+                    if char == '/':
+                        if nextChar == '/':
+                            # Found a comment - emit everything up to here
+                            outLine = outLine.strip()
+                            if len(outLine) > 0:
+                                outFileObj.write(outLine)
+                                outFileObj.write('\n')
+                            outLine = ''  # Clear outLine so it doesn't get written again after the loop
+                            # Skip rest of line
+                            break
+                        if nextChar == '*':
+                            self.inComment = True
+                            i += 2
+                            continue
+                    if self.inComment and char == '*' and nextChar == '/':
+                        self.inComment = False
+                        i += 2
+                        continue
+
+                if not self.inComment:
+                    outLine += char
+                i += 1
+            outLine = outLine.strip() ;
+            if len(outLine) > 0:
+                outFileObj.write(outLine)
+                outFileObj.write('\n')
+ 
+    def deflateAs(self, stringName, includedFilePath, outFileObj):
+        # constents of includedFilePath:
+        # gzip-compressed > base64 encoded > written to outFileObj
+        # as contents of string variable with given name
+        outFileObj.write(f'let {stringName} = "') ;
+        with open(includedFilePath, 'rb') as inFile:
+            fileContents = inFile.read()
+            fileContentsCompressed = gzip.compress(fileContents) # bytes object
+            fileContentsB64 = base64.b64encode(fileContentsCompressed) # encoded bytes
+            fileContentsUtf8 = fileContentsB64.decode('utf-8') 
+            outFileObj.write(fileContentsUtf8) ;
+        outFileObj.write('" ;\n') ;
+
+# Helper function to build using Packager (used by both --podium and --ext builds)
+def build(inFileName, outFileName):
+    with open(inFileName) as inFileObj:
+        with open(outFileName,"w") as outFileObj:
+            Packager(inFileName, inFileObj, outFileObj)
+
+if args.podium:
     # Build 1-file, all-included version of podium as "build/podium.html":
-    build("src/podium.html", "build/podium.html") 
-
+    build("src/podium.html", "build/podium.html")
     if args.verbose: print('-- podium.html (re)built.')
 
 if(args.cert):
     if shutil.which('openssl') == None:
          sys.exit("Fatal error: creating certificate requires openssl executable in your path.") ;
     os.system('openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout key.pem -out cert.pem') ;
+
+if args.ext:
+    #####################################################
+    #                                                   #
+    #  Build browser extension in ext/                  #
+    #                                                   #
+    #####################################################
+
+    import json
+
+    # Create extension directory and clean up old files from previous builds
+    os.makedirs('ext', exist_ok=True)
+    os.makedirs('ext/icons', exist_ok=True)
+
+    # Create subdirectories for multi-file approach (like ext.old)
+    import shutil
+    os.makedirs('ext/build', exist_ok=True)
+    os.makedirs('ext/src', exist_ok=True)
+    os.makedirs('ext/lib', exist_ok=True)
+
+    # Copy library files
+    if args.verbose: print('Copying library files...')
+    shutil.copy('lib/fabric.min.js', 'ext/lib/fabric.min.js')
+    shutil.copy('lib/pdf.min.js', 'ext/lib/pdf.min.js')
+    shutil.copy('lib/pdf.worker.min.js', 'ext/lib/pdf.worker.min.js')
+    shutil.copy('lib/pdf-lib.min.js', 'ext/lib/pdf-lib.min.js')
+    shutil.copy('lib/fontkit.umd.min.js', 'ext/lib/fontkit.umd.min.js')
+
+    # Copy source files (excluding ext.js which has its own version in ext/)
+    if args.verbose: print('Copying source files...')
+    for src_file in ['common.js', 'file.js', 'layout.js', 'menu.js',
+                     'panel.js', 'score.js', 'smufl.js', 'tool.js', 'canvas.js', 'pasteBuffer.js', 'icon.js']:
+        shutil.copy(f'src/{src_file}', f'ext/src/{src_file}')
+
+    # Copy and patch main.js to fix pdf.worker path for extension
+    with open('src/main.js', 'r') as f:
+        main_js = f.read()
+    main_js = main_js.replace(
+        'pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";',
+        'pdfjsLib.GlobalWorkerOptions.workerSrc = "lib/pdf.worker.min.js";'
+    )
+    with open('ext/src/main.js', 'w') as f:
+        f.write(main_js)
+
+    # Note: ext/ext.js is checked into git and not copied from src/
+    # src/ext.js is a stub, ext/ext.js has the real implementation
+
+    # Copy build artifacts (font.js, sample.js)
+    if args.verbose: print('Copying build artifacts...')
+    shutil.copy('build/font.js', 'ext/build/font.js')
+    shutil.copy('build/sample.js', 'ext/build/sample.js')
+    # Also copy to src/ so they can be imported as modules
+    shutil.copy('build/font.js', 'ext/src/font.js')
+    shutil.copy('build/sample.js', 'ext/src/sample.js')
+
+    # Note: podium.html, manifest.json, background.js, ext.js, and README.md are static files
+    # checked into git under ext/ and not generated by the build process
+
+    # Generate icons from SVG
+    podium_icon_svg = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="{size}" height="{size}">
+  <path fill="#8B4513" stroke="#654321" stroke-width=".6" stroke-linejoin="round"
+    d="M4 23v-3h16v3h1.5h-19Z M7 20v-14h10v14 M7 12h-2l-3 -10 h20l-3 10h-2"/>
+  <text x="10" y="14" font-family="serif" font-size="12px" fill="#000">𝄞</text>
+</svg>'''
+
+    # Try to generate icons using cairosvg (preferred) or ImageMagick
+    icons_generated = False
+
+    try:
+        import cairosvg
+        for size in [16, 48, 128]:
+            svg_content = podium_icon_svg.format(size=size)
+            cairosvg.svg2png(bytestring=svg_content.encode('utf-8'),
+                           write_to=f'ext/icons/icon{size}.png',
+                           output_width=size,
+                           output_height=size)
+        icons_generated = True
+        if args.verbose: print('Generated icons using cairosvg')
+    except ImportError:
+        # Try ImageMagick as fallback
+        if shutil.which('convert'):
+            for size in [16, 48, 128]:
+                svg_content = podium_icon_svg.format(size=size)
+                svg_file = f'ext/icons/icon{size}.svg'
+                with open(svg_file, 'w') as f:
+                    f.write(svg_content)
+                os.system(f'convert {svg_file} -resize {size}x{size} ext/icons/icon{size}.png 2>/dev/null')
+                os.remove(svg_file)
+            icons_generated = True
+            if args.verbose: print('Generated icons using ImageMagick')
+        else:
+            if args.verbose: print('Warning: Could not generate icons (install cairosvg or ImageMagick)')
+
+    # Create a simple README for the extension
+    readme = '''# Podium Browser Extension
+
+## Installation
+
+### Chrome/Edge:
+1. Open chrome://extensions/ (or edge://extensions/)
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Select the `ext/` directory
+
+### Firefox:
+1. Open about:debugging#/runtime/this-firefox
+2. Click "Load Temporary Add-on"
+3. Select the `manifest.json` file in the `ext/` directory
+
+## Usage
+
+Right-click on any PDF link and select "Open with Podium" to view the PDF in Podium.
+
+## Icons
+
+You need to add icon files (icon16.png, icon48.png, icon128.png) to the ext/icons/ directory.
+These should be PNG images at 16x16, 48x48, and 128x128 pixels respectively.
+'''
+
+    with open('ext/README.md', 'w') as f:
+        f.write(readme)
+    if args.verbose: print('Created ext/README.md')
+
+    print('-- Browser extension built in ext/')
+    if not icons_generated:
+        print('   NOTE: Icons not generated. Install cairosvg (pip install cairosvg)')
+        print('         or ImageMagick, then rebuild, or manually add icons to ext/icons/:')
+        print('         - icon16.png (16x16)')
+        print('         - icon48.png (48x48)')
+        print('         - icon128.png (128x128)')
+    else:
+        print('   Icons generated successfully in ext/icons/')

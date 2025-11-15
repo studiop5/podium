@@ -106,6 +106,7 @@ class Pg {
     // dom canvas, sigh.
     if(!this.score.mozDoc) return ;
     let mozPg = await this.score.mozDoc.getPage(this.mozPn);
+    if(this.inflateCtrl?.signal?.aborted) return ;
     let viewport = mozPg.getViewport({ scale: this.score.quality});
     let w = viewport.width / this.score.quality;
     let h = viewport.height / this.score.quality;
@@ -711,12 +712,14 @@ class Score
   stored in browser-local storage.
 
   Because Scores can consume a lot of memory, only one Score, referenced
-  as Score.activeScore, is supported.
+  as Score.activeScore, or by window._score_, can be loaded at a time.
 **/
+
 
 class Score {
   static activeScore = null;
-  static MAX_INFLATED = 6; // maximum number of unused inflated pgs: see Score.pgUnuse()
+ // maximum number of unused inflated pgs: see Score.pgUnuse()
+  static MAX_INFLATED = (navigator.deviceMemory >= 8) ? 12 : 6;
 
   // Define constants to identify the various sources that Scores
   // can be created from.  These will be strings that are shown to

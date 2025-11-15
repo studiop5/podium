@@ -5,3 +5,9 @@ key.pem
 notes
 .aider*
 CLAUDE.md
+
+# Extension build artifacts (keep static files: podium.html, manifest.json, background.js, ext.js, README.md)
+ext/build/
+ext/src/
+ext/lib/
+ext/icons/

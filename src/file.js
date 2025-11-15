@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-export { checkUnsaved, FileSrc, FileListView, FileSystemView, LocalFileView };
+export { checkUnsaved, escapeHtml, FileSrc, FileListView, FileSystemView, LocalFileView };
 import { css, ButtonGroup, clamp, clearChildren, dataIndex, delay, getBox, helm, iconSvg, listen, mvmt, dialog, Schedule, strToHash, toast, unlisten } from "./common.js";
 import { Score } from "./score.js";
 import { panels } from "./panel.js";

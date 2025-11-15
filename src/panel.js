@@ -17,11 +17,15 @@
 
   You should have received a copy of the GNU Affero General Public
   License along with Podium. If not, see
-  <https:/\/www.gnu.org/licenses/>.
+  <https://www.gnu.org/licenses/>.
 **/
 
 import {
+  ButtonGroup,
+  dataIndex,
   clamp,
+  clearChildren,
+  ColorPicker,
   css,
   delay,
   delayMs,
@@ -35,16 +39,13 @@ import {
   mvmt,
   pnToString,
   pxToEm,
-  unlisten,
-  dataIndex,
-  clearChildren,
-  ButtonGroup,
-  ColorPicker,
+  reflow,
   SliderGroup,
   schedule,
   Schedule,
   TabView,
   toast,
+  unlisten,
 } from "./common.js";
 import { FileSrc, FileListView, FileSystemView, LocalFileView } from "./file.js";
 import { Layout } from "./layout.js";
@@ -284,7 +285,7 @@ class Panel {
         if(onShown) onShown();
       },
       { once:true}) ;
-    void _body_.offsetWidth ;
+    reflow() ;
     elm.style.fontSize = fontSize ;
     _pzTarget_ = elm;
     return this;
@@ -767,13 +768,13 @@ class HelpPanel extends Panel {
   Podium is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br><br>
 
   Podium is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-      <a target="_blank" rel="noopener noreferrer" href="https:/\/www.gnu.org/licenses/agpl-3.0-standalone.html">GNU Affero Public License</a>
+      <a target="_blank" rel="noopener noreferrer" href="https://www.gnu.org/licenses/agpl-3.0-standalone.html">GNU Affero Public License</a>
 for more details.</p>
       `);
 
   creditsFace = helm(`<div>
         <div class="Credit">
-          <a href="https:/\/github.com/steinbergmedia/bravura">Bravura</a> Version 1.1<br>
+          <a href="https://github.com/steinbergmedia/bravura">Bravura</a> Version 1.1<br>
           © 2019, Steinberg Media Technologies GmbH<br>
           SIL Open Font License
         </div><div class="Credit">
@@ -785,18 +786,18 @@ for more details.</p>
           Author: Devon Govett
           MIT license
         </div><div class="Credit">
-          <a href="https:/\/github.com/fabricjs">fabricjs</a> Version 5.2.1<br>
+          <a href="https://github.com/fabricjs">fabricjs</a> Version 5.2.1<br>
           © 2008-2015 Printio (Juriy Zaytsev, Maxim Chernyak)<br>
         </div><div class="Credit">
-          <a href="https:/\/github.com/mozilla/pdf.js">pdf</a> Version 2.0<br>
+          <a href="https://github.com/mozilla/pdf.js">pdf</a> Version 2.0<br>
           © 2023 Mozilla Foundation<br>
           Apache License<br>
         </div><div class="Credit">
-          <a href="https:/\/github.com/Hopding/pdf-lib">pdf-lib</a> Version 1.17.1<br>
+          <a href="https://github.com/Hopding/pdf-lib">pdf-lib</a> Version 1.17.1<br>
           © 2019 Andrew Dillon<br>
           MIT license
         </div><div class="Credit">
-          <a href="https:/\/github.com/sfzinstruments/SalamanderGrandPiano">Salamander Grand Piano V2 Yamaha C5</a><br>
+          <a href="https://github.com/sfzinstruments/SalamanderGrandPiano">Salamander Grand Piano V2 Yamaha C5</a><br>
           Author: Alexander Holm<br>
           Creative Commons 3.0
         </div><div class="Credit">
@@ -813,9 +814,9 @@ for more details.</p>
           <div>Version ${_podiumVersion_}</div>
         </div>
         <div style="position:absolute;bottom:10em;left:50%;transform:translateX(-50%);font-size:1.2em;text-align:center;">
-          <a target="_blank" rel="noopener noreferrer" href="https:/\/www.studiop5.org/privacy.html">Privacy</a>&nbsp;
-          <a target="_blank" rel="noopener noreferrer" href="https:/\/www.studiop5.org/terms.html">Terms</a>&nbsp;
-          <a target="_blank" rel="noopener noreferrer" href="https:/\/github.com/studiop5/podium">Github</a>&nbsp;
+          <a target="_blank" rel="noopener noreferrer" href="https://www.studiop5.org/privacy.html">Privacy</a>&nbsp;
+          <a target="_blank" rel="noopener noreferrer" href="https://www.studiop5.org/terms.html">Terms</a>&nbsp;
+          <a target="_blank" rel="noopener noreferrer" href="https://github.com/studiop5/podium">Github</a>&nbsp;
           <a href="mailto:glen@studiop5.org">Contact \u2709</a>
         </div>
      </div>`
@@ -841,7 +842,7 @@ for more details.</p>
   );
 
   helpFace = helm(
-    `<object type="application/pdf" data="https:/\/www.studiop5.org/Guidebook.pdf"
+    `<object type="application/pdf" data="https://www.studiop5.org/Guidebook.pdf"
        style="width:100%;height:100%;"></object>`
   );
 
@@ -1522,6 +1523,8 @@ class TextPanel extends PencilPanel {
         <option>Times-Italic</option>
         <option>Times-BoldItalic</option>
         <option>Bravura</option>
+        <option>Vercetti</option>
+        <option>Patrick Hand</option>
       </select>`);
 
   text = helm(`<div>Abc<br>123<br></div>`);
@@ -2049,13 +2052,13 @@ class PastePanel extends Panel {
       clearChildren(this.sash) ;
       if(thumbs.length > 0) { 
         this.sash.style.fontSize = "1em" ; // reset to known "baseline"
-        void _body_.offsetWidth ;
+        reflow();
         thumbs.forEach((thumb) => this.sash.append(thumb)) ;
         this.sash.style.fontSize = this.sash.offsetHeight / thumbs[0].offsetHeight   + "em" ;
         let frameWidth = pxToEm(this.frame.offsetWidth, this.sash) ;
         let sashWidth = pxToEm(this.sash.offsetWidth, this.sash) ;
         this.sash.style.left = frameWidth ;
-        void _body_.offsetWidth ;
+        reflow();
         this.sash.style.transition = `left ${_gs_}s` ;
         this.sash.style.left = parseFloat(frameWidth) - parseFloat(sashWidth) - .8 + "em";
         delayMs(_gs_ * 1000, () => this.sash.style.transition = "unset") ;
