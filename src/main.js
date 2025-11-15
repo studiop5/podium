@@ -28,10 +28,12 @@
 // python3 build.py --podium.  All text  between +/- skip fill be stripped out,
 // and all the following // #include files will be  textually included.
 
-import { animate, delay,  helm, listen, schedule, Schedule, unlisten } from "./common.js";
+import { animate, delay, dialog, helm, listen, schedule, Schedule, toast, unlisten } from "./common.js";
 import "./font.js";
+import { escapeHtml } from "./file.js";
 import { Menu } from "./menu.js";
 import { Layout } from "./layout.js";
+import { Score } from "./score.js";
 import { initFabric } from "./canvas.js";
 import { PasteBuffer } from "./pasteBuffer.js";
 
@@ -83,6 +85,12 @@ async function main() {
     animate(_menu_.elm, { fontSize: 0 }, { fontSize: dim + "em" }, `font-size ${1 / _gs_}s`);
     _menu_.center();
     await new PasteBuffer().init() ;
+
+    // Extension-specific code: load PDF from URL parameter if present
+    // In bundled build, ext.js is a no-op stub
+    // In browser extension, ext.js has the real implementation
+    let { loadPdfFromUrl } = await import("./ext.js");
+    await loadPdfFromUrl();
   }) ;
 
   {
@@ -358,7 +366,7 @@ async function main() {
       busyGuard.run(20000, () => _menu_.busy = false);  // 20 second safety timeout
     }) ;
 
-    listen(window, "pointerup", (e) => {
+    listen(window, ["pointerup","keydown"], (e) => {
       _menu_.busy = false;
       busyGuard.cancel();  
       if(_menu_.activeRing?.activeCell) _menu_.autoOff.run() ; // extend activation
@@ -367,41 +375,6 @@ async function main() {
       stasher.run(3500, () => localStorage.setItem("menu", _menu_.stashToJson())) ;;
     })
   }
-  
-    /**
-  {
-
-        If url query parameter "file" defined, open it. This is
-        experimental code for running podium as a browser extension:
-        not currently called by anything.
-
-
-    if (location.search) {
-      //    let file = new URLSearchParams(location.search).get("file");
-      //    if (!file) return;
-      //    let url = new URL(file);
-      //    let path = `${url.protocol}//${url.host}${url.pathname}`;
-      //    console.log("path:", path);
-      let path = location.search.substring(6);
-
-      try {
-        let fetchPromise = await fetch(path, {
-          method: "GET",
-          //        credentials: "include",
-          //        mode: "cors",
-        });
-        let response = await fetchPromise;
-        if (response.ok) {
-          let data = await response.arrayBuffer();
-          let score = await new Score().init(null, "", "unknown", data) ;
-          toast("File downloaded");
-        }
-      } catch (error) {
-        dialog(`Error opening url <i>${path}</i><br>${error}<br>`);
-      }
-    }
-  }
-  **/
 
   {
     /**

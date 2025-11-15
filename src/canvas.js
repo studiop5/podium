@@ -21,7 +21,7 @@
 **/
 
 export { initFabric, Grid };
-import { getBox, helm, listen, unlisten } from "../common.js";
+import { getBox, helm, listen, unlisten } from "./common.js";
 // -skip
 
 /**
@@ -188,7 +188,7 @@ function initFabric() {
           let y = (origin.y + i) * zoom;
           ctx.moveTo(origin.x * zoom, y);
           ctx.lineTo(ptr.x * zoom, y);
-        } /* else if (style == "T-B") */ else {
+        } else {  // style == "T-B"
           let x = (origin.x + i) * zoom;
           ctx.moveTo(x, origin.y * zoom);
           ctx.lineTo(x, ptr.y * zoom);

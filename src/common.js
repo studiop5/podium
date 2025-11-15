@@ -45,6 +45,7 @@ export {
   mvmt,
   pnToDiv,
   pnToString,
+  reflow,
   rotatePoint,
   ptrMsg,
   sleep,
@@ -1797,6 +1798,8 @@ let fontMap = {
     fontWeight: "bold",
   },
   Bravura: { fontFamily: "Bravura", fontStyle: "normal", fontWeight: "normal" },
+  Vercetti: { fontFamily: "Vercetti", fontStyle: "normal", fontWeight: "normal" },
+  "Patrick Hand": { fontFamily: "Patrick Hand", fontStyle: "normal", fontWeight: "normal" },
 };
 
 let fontUnmap = // reverse dict to look up pdf font name given string of form "fontFamily/fontStyle/fontWeight"
@@ -1833,7 +1836,7 @@ function hide(elm, onElm) {
   elm.style.left = left;
   elm.style.top = top;
   elm.style.transition = "top 0.5s, left 0.5s,font-size 0.5s";
-  void _body_.offsetWidth ;
+  reflow();
   let elmBox = getBox(elm);
   let onElmBox = getBox(onElm);
   elm.style.left = onElmBox.x + onElmBox.width / 2 + "px";
@@ -2125,6 +2128,10 @@ function pxToEm(px, elm) {
   return parseFloat(px) / parseFloat(getComputedStyle(elm).fontSize) + "em";
 }
 
+function reflow() {
+  // access offsetWidth to force browser reflow
+  void _body_.offsetWidth;
+}
 function rotatePoint(pX, pY, cX, cY, theta) {
   // rotate point pX,Py theta rads counterclockwise about cX,Cy,
   // returning result as a point object of the form {x:<xVal>, y:<yVal>}

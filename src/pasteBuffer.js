@@ -211,7 +211,11 @@ class PasteBuffer {
       let store = tx.objectStore(this.storeName);
       let request = store.put({ id:id, data:data});
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        if (request.error.name === 'QuotaExceededError') 
+          dialog("Paste buffer full. Clear some pages first.");
+        reject(request.error);
+      };
     });
   }
 

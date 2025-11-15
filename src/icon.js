@@ -492,3 +492,5 @@ delay(50, () => {
   delay(50, () => console.log(`<link rel="icon" type="image/png"  href="` + c.toDataURL(`image/png`, 1.0) + `">`));
 });
 */
+
+

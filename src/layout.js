@@ -1711,6 +1711,7 @@ class TableLayout extends Layout {
 
     // Compute layout at a 1em fontSize
     clearChildren(grid);
+    this.elm.style.fontSize = "1em" ;
     let gridMargin = parseFloat(TableLayout.gridMargin) * _pxPerEm_ ;
     let tableWidth = innerWidth - Layout.margin * 2  ;
     let gridWidth = tableWidth - gridMargin * 2 ;
@@ -1770,35 +1771,34 @@ class TableLayout extends Layout {
     }
 
     else {
-      void _body_.offsetWidth ;
-      for(let {pn, top, left} of this.gridCoords) {
-        let gridHeight = top + pgHeight + gridMargin * 2 ;
-        grid.style.height = toEm(gridHeight) ;
-        let nextTop = innerHeight - gridHeight - Layout.margin ;
-        if (nextTop < Layout.margin) this.toXY(Layout.margin, nextTop) ;
-        grid.append(await this.buildPg(pn, left, top));
-      }
-     let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon) ;
-
-     if(this.cell.pz)
-       if(this.animated)
+      // ...then all thumbnails already built
+      delay(1, async () => {
+        for(let {pn, top, left} of this.gridCoords) {
+          let gridHeight = top + pgHeight + gridMargin * 2 ;
+          grid.style.height = toEm(gridHeight) ;
+          let nextTop = innerHeight - gridHeight - Layout.margin ;
+          if (nextTop < Layout.margin) this.toXY(Layout.margin, nextTop) ;
+          grid.append(await this.buildPg(pn, left, top));
+        }
+       let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon) ;
+       if(this.cell.pz)
          animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
-            this.cell.pz, `left, top, font-size ${_gs_}s`) ;
-       else this.elm.style.cssText = this.cell.pz ;
-     else { 
-       if(this.fit == "Height") // reduce fontSize so layout fits window's height
-         this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / table.offsetHeight  + "em" ;
-       if(this.animated) 
-         animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
-           this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}s`) ;
-       else Object.assign(this.elm.style, this.centerLT()) ;
-      }
+           this.cell.pz, `left, top, font-size ${_gs_}s`) ;
+       else { 
+         if(this.fit == "Height") // reduce fontSize so layout fits window's height
+           this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / table.offsetHeight  + "em" ;
+         if(this.animated)
+           animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
+             this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}s`) ;
+         else 
+             this.centerLT({ fontSize: this.elm.style.fontSize}) ; 
+        }
+      }) ;
     }
-  }
+}
 
   async buildPg(pn, rebuild=false)
-  {
-    // build elm to hold thumbnail
+  {  // build elm to hold thumbnail
     let {left, top} = this.gridCoords[pn-1] ;
     let pg = this.score.pgs[pn - 1];
     let elm = await pg.getThumbElm(rebuild) ;
@@ -1894,7 +1894,7 @@ class TableLayout extends Layout {
       this.gridMargin = parseInt(this.layout.gridMargin);
       this.active = this.layout.active;
       let actBox = getBox(this.active) ;
-      Object.assign(this.active.style, { pointerEvents:"none", position: "absolute", opacity: ".95", zIndex: 99}) ;
+      Object.assign(this.active.style, { pointerEvents:"none", position: "absolute", opacity: ".75", zIndex: 99}) ;
       this.offset = { x: actBox.width / 2, y:actBox.height / 2} ;
       _body_.append(this.active) ;
       // create list of transitions for our "splits"
@@ -1927,15 +1927,13 @@ class TableLayout extends Layout {
         }
         this.toPn = this.splits[1]?.pn || 0 ;
       }
-      else if(target) {
-        if(!target.closest(".TableLayout__table")) { // dragged out of table
-          this.splits.forEach((elm, i) => elm && (elm.style.cssText = this.splitsStyle[i]));
-          this.toPn = null ;
-        }
-        else { // dragged over table...no split...move active back home
-          this.toPn = this.active.pn ;
-        }
+      else if(!target?.closest(".TableLayout__table")) {
+        // move outside table: reset split
+        this.splits.forEach((elm, i) => elm && (elm.style.cssText = this.splitsStyle[i]));
+        this.toPn = null ;  
       }
+      else if(this.toPn == null) // released over table...no split...move active back home
+         this.toPn = this.active.pn ;
     }
 
     async up(eup) {
@@ -1953,14 +1951,8 @@ class TableLayout extends Layout {
       }        
       if(this.active.pn > this.toPn) this.toPn++ ;
       score.pgMv(this.active.pn, this.toPn);
-      // re-insert this.active at its new position:
-      //  this.toPn is 1-based, so we -1 it to make it 0-based
-      //    pn == 1: prepend active
-      //        0 1 2 3 4
-      //       XA B C D E
-      //    pn > 1:  additional -1, so pn - 2:
-      //      0 1 2 3 4 
-      //      AXB C D E
+      // re-insert this.active at its new position: when pn == 1: prepend, else -1 it to make it 0-based, plus
+      // additional -1 to identify element we'll insert after:
       if(this.toPn == 1) this.layout.grid.prepend(this.active);
       else {
          let sibling = this.layout.grid.children.item(this.toPn-2) ;
