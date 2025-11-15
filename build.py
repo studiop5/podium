@@ -11,17 +11,45 @@ import pdb
 import sys
 
 if len(sys.argv) == 1:
-   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, ext=False, cert=False) ;
+   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, ext=False, cert=False, clean=False) ;
 else:
   parser = argparse.ArgumentParser()
   parser.add_argument('-s','--sample', action='store_true', help='(re)build build/sample.js')
   parser.add_argument('-f','--font', action='store_true', help='(re)build build/font.js')
   parser.add_argument('-p','--podium', action='store_true', help='(re)build build/podium.html')
   parser.add_argument('-e','--ext', action='store_true', help='(re)build browser extension in ext/')
-  parser.add_argument('-c','--cert', action='store_true', help='(re)build certificate')
+  parser.add_argument('--certificate', action='store_true', dest='cert', help='(re)build certificate')
+  parser.add_argument('-c','--clean', action='store_true', help='clean build artifacts from build/ and ext/')
   parser.add_argument('-v','--verbose', action='store_true')
   args = parser.parse_args()
 
+if args.clean:
+    #################################
+    #      Clean build artifacts    #
+    #################################
+    import shutil
+
+    if args.verbose: print('Cleaning build artifacts...')
+
+    # Remove build directory contents
+    if os.path.exists('build'):
+        shutil.rmtree('build')
+        if args.verbose: print('Removed build/')
+
+    # Remove extension build artifacts (keep static files)
+    if os.path.exists('ext'):
+        # Remove directories
+        for dirname in ['build', 'src', 'lib', 'icons']:
+            dirpath = os.path.join('ext', dirname)
+            if os.path.exists(dirpath):
+                shutil.rmtree(dirpath)
+                if args.verbose: print(f'Removed ext/{dirname}/')
+
+        # Remove generated podium.html if it exists (we now keep it as static)
+        # Actually, podium.html is now static, so don't remove it
+
+    if args.verbose: print('Clean complete.')
+    sys.exit(0)
 
 os.system('mkdir build 2> /dev/null') ;
 
@@ -65,12 +93,12 @@ if args.font:
     // Vercetti font
     const vercettiBase64 = \"""")
 
-        with open('lib/Vercetti-Regular.woff2','rb') as inFile:
+        with open('lib/Vercetti-Regular.otf','rb') as inFile:
             outFile.write(base64.b64encode(inFile.read()))
 
         outFile.write(b"""\";
 
-    let vercettiFont = new FontFace("Vercetti", "url(data:font/woff2;charset=utf-8;base64," + vercettiBase64 + ")");
+    let vercettiFont = new FontFace("Vercetti", "url(data:font/otf;charset=utf-8;base64," + vercettiBase64 + ")");
     document.fonts.add(vercettiFont);
     await vercettiFont.load();
 
