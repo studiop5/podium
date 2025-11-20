@@ -511,7 +511,8 @@ class ButtonGroup
 **/
 
 class ButtonGroup {
-  static toggleButtonSvg = `url('data:image/svg+xml;base64,<svg width="100%" height="100%" viewBox="0 0 24 24" xmlns="http:/\/www.w3.org/2000/svg"><path style="fill:none;stroke:black;stroke-width:0.5px" d="M5 15.5L4 16.5L5 17.5M19 15.4L20 16.5L19 17.5"/></svg>'`;
+  static toggleButtonSvg = `url("data:image/svg+xml;${encodeURIComponent('<svg width="100%" height="100%" viewBox="0 0 24 24" xmlns="http:/\/www.w3.org/2000/svg"><path style="fill:none;stroke:black;stroke-width:0.5px" d="M5 15.5L4 16.5L5 17.5M19 15.4L20 16.5L19 17.5"/></svg>')}")'`;
+
 
   static css = css(
     "ButtonGroup",
@@ -623,11 +624,11 @@ class ButtonGroup {
         }
       }
       if (disabled) {
-        elm.classList.add("ButtonGroup__disabled");
-        iconElm.classList.add("ButtonGroup__disabled");
+        elm.classList.add("ButtonGroup__button-disabled");
+        iconElm.classList.add("ButtonGroup__button-disabled");
       } else {
-        elm.classList.remove("ButtonGroup__disabled");
-        iconElm.classList.remove("ButtonGroup__disabled");
+        elm.classList.remove("ButtonGroup__button-disabled");
+        iconElm.classList.remove("ButtonGroup__button-disabled");
       }
     }
   }

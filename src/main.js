@@ -333,6 +333,7 @@ async function main() {
 
   listen(window, ["resize", "fullscreenchange"], (e) => {
     delay(10, () => { // must run *after*  screen orientation change
+      _menu_.center() ;
       let layout = Layout.activeLayout;
       if (layout) {
         rebuildThrottle.cancel();

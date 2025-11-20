@@ -326,8 +326,6 @@ class Panel {
 
 }
 
-
-
 class AddPanel extends Panel {
   content = helm(`
     <div data-tag="options" class="Panel__body">
@@ -1213,7 +1211,7 @@ class NewPanel extends AddPanel {
 
   constructor(cell) {
     super(cell); 
-    let matchScoreOption = [...this.presets.children].find(opt => opt.value === "score");
+    let matchScoreOption = [...this.presets.children].find(opt => opt.value == "score");
     if (matchScoreOption) matchScoreOption.remove();
     this.pagesGroup = new SliderGroup( cell.stash,
       {  pages: { min: 1, max: 100, 
@@ -1970,15 +1968,19 @@ class PastePanel extends Panel {
     });
 
     let buttons = new ButtonGroup({}, {
-        Clear: { svg: "Cancel", onOff:true },
-        Undo: { svg: "Undo", onOff:true },
+        Clear: { svg: "Cancel" },
+        Undo: { svg: "Undo" },
       },
       async (e, tag, value) => {
         if(value == "Clear") await _podPb_.pgClear();
         else if(value == "Undo") await _podPb_.pgPop();
-        // We're making the buttons look like on-off buttons, but this is not actually implemented.
-        // However we can simulated turning it off button off by deleting its corresponding buttons.props
-        delay(5, () => { delete buttons.props[value]; buttons.refresh();});
+        delay(10, () => {
+          // We don't have a button type for "one shot" (button causes
+          // handler to run, but immediately goes back to initial state),
+          // can easily simulate it:
+          delete buttons.props[value]; 
+          buttons.refresh();
+        });
       }
     );
     buttons.elm.style.borderTop = ".02em solid var(--color-border)";   
@@ -1992,6 +1994,7 @@ class PastePanel extends Panel {
       _shade_.hide();
       clearChildren(this.sash);
       if(thumbs.length > 0) { 
+        _menu_.enableCells("page/paste",true) ;
         this.sash.style.fontSize = "1em"; // reset to known "baseline"
         reflow();
         thumbs.forEach((thumb) => this.sash.append(thumb));
@@ -2003,7 +2006,15 @@ class PastePanel extends Panel {
         this.sash.style.transition = `left ${_gs_}ms`;
         this.sash.style.left = parseFloat(frameWidth) - parseFloat(sashWidth) - .8 + "em";
         delayMs(_gs_, () => this.sash.style.transition = "unset");
+        buttons.defs.Undo.disabled = false;
+        buttons.defs.Clear.disabled = false;
       }
+      else {
+        _menu_.enableCells("page/paste",false)
+        buttons.defs.Undo.disabled = true ;
+        buttons.defs.Clear.disabled = true;
+      }
+      buttons.refresh() ;
     })
   }
 

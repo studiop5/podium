@@ -1286,7 +1286,7 @@ class Menu {
         return (canvas.isDrawingMode = true);
       }
 
-      case "text": {
+      case "text": { // actually, a fabric textbox obj
         let { font, size, height, rgb, alpha } = activeCell.stash;
         let color = fabric.Color.fromHex(rgb);
         color.setAlpha(alpha);
@@ -1313,7 +1313,7 @@ class Menu {
         return textbox;
       }
 
-      case "symbols": {
+      case "symbols": { // actually, a fabric text obj
         let { alpha, codePoint, height, rgb, size } = activeCell.stash;
         let color = fabric.Color.fromHex(rgb);
         color.setAlpha(alpha);
