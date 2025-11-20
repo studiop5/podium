@@ -77,8 +77,8 @@ window._podiumVersion_ = "1.0";
 window._body_ = document.body;
 window._dvPxRt_ = 1 + (devicePixelRatio - 1) * 0.3;
 window._frMs_ = 0.06; // initial estimate of number of frames per millisecond (60fps)
-window._gs_ = 0.618; // golden section
-window._gsgs_ = _gs_ * _gs_; // shorter golden section!
+window._gs_ = 618; // golden section (reciprocal) msec (.618 seconds)
+window._gsgs_ = (_gs_ * _gs_) / 1000; // shorter golden section!
 window._longPressMs_ = 750;
 window._mobile_ =
   /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -238,7 +238,8 @@ css( // common css declarations. note: if you change bodyColor, be sure to
     --text-shadow-contrast: 0 0 0.2em rgba(255, 255, 255, 0.5), 1px 1px 1px rgba(255, 255, 255, 0.3);
 
     /* File list colors */
-    --file-properties-color: #ccc;
+    --file-properties-color: #333;
+    --file-text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.5);
 
     /* Color palette */
     --color-primary: #4a90e2;
@@ -291,7 +292,8 @@ css( // common css declarations. note: if you change bodyColor, be sure to
     --panTexture: ${panSvgDark};
 
     /* File list colors */
-    --file-properties-color: #aaa;
+    --file-properties-color: #ddd;
+    --file-text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.9);
 
     /* Typography - dark theme */
     --body-font-family: Vercetti, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -1146,7 +1148,7 @@ class Shade {
     `.Shade {
       backdrop-filter: blur(.3em);
       opacity: 0;
-      transition: opacity var(--transition-slow);
+//      transition: opacity var(--transition-slow);
       background: radial-gradient(circle at center, var(--color-surface) 0, var(--color-surface) 10em, transparent 20em);
       width: 100%;
       height: 100%;
@@ -1196,16 +1198,15 @@ class Shade {
     })
   }
 
-  show(message = "Loading") {
+  show(message = "Loading", fadeIn=1500) {
     this.message = message;
     this.msgStack.push(message);
     this.msg.innerHTML = message;
-    if (!this.elm.attached) {
-      _body_.append(this.elm);
-      this.elm.style.opacity = 0;
-      this.elm.style.transition = "opacity 1s ease-in";
-      this.scheduler.run(1500, () => (this.elm.style.opacity = 1));
-    }
+    _body_.append(this.elm);
+    this.elm.style.opacity = 0;
+    reflow();
+    this.elm.style.transition = `opacity ${fadeIn}ms ease-in`;
+    this.scheduler.run(fadeIn, () => (this.elm.style.opacity = 1));
   }
 
   update(message) {
@@ -1581,7 +1582,7 @@ class Timer {
     this.title = title;
     this.startTime = performance.now();
     this.prevTime = this.startTime;
-    console.log(`Timer ${this.title} started.`);
+    console.log(`Timer ${this.title} started.`);q
   }
 
   lap(tag = "") {
@@ -1607,15 +1608,12 @@ function animate(elm, from, to, transition, finalize) {
   // @to ending css styles. If null, current styles are used.
   // @transition transition def...set to "unset"  after transition has completed
   // @finalize (optional)...function to run after transition has completed
-  if (from) for (let [k, v] of Object.entries(from)) elm.style[k] = v;
-  delay(1, () => (elm.style.transition = transition));
-  delay(2, () => {
-    for (let [k, v] of Object.entries(to)) elm.style[k] = v;
-  });
-  listen(
-    elm,
-    "transitionend",
-    () => {
+  if(from) 
+    for (let [k, v] of Object.entries(from)) elm.style[k] = v;
+  reflow() ;
+  elm.style.transition = transition;
+  for (let [k, v] of Object.entries(to)) elm.style[k] = v;
+  listen(elm, "transitionend", () => {
       elm.style.transition = "unset";
       if (finalize) finalize();
     },
@@ -1932,7 +1930,6 @@ function unlisten(...listenerArgs) {
   //          [[target, type, func, options], [target, type, func, options],...],
   //          ...) ;
   for (let listeners of listenerArgs) {
-    //    if (listeners) listeners.forEach((listener) => listener[0].removeEventListener(listener[1], listener[2], listener[3]));
     if (listeners)
       listeners.forEach((listener) => {
         listener[0].removeEventListener(listener[1], listener[2], listener[3]);
@@ -1969,7 +1966,7 @@ function pnToDiv(pn, div, autoSize = true) {
   // @div caller-supplied div to display the page number in
   // @autoSize when true,the div's font size is adjusted down from 30px so that the
   //   page number will fit the div without overflow.
-  let prelim = _score_?.prelim ?? 0;
+  let prelim = _score_?.numbers?.prelim ?? 0;
   let roman = pn - prelim <= 0;
   div.style.fontFamily = roman ? "Times" : "Bravura";
   div.style.fontStyle = roman ? "italic" : "normal";
@@ -2014,8 +2011,8 @@ function pnToString(pn, useSMuFL = false) {
   // glyphs unavailable in other fonts.  Roman numeral algo adapted,
   // with thanks, from:
   // August@https:/\/stackoverflow.com/questions/9083037/convert-a-number-into-a-roman-numeral-in-javascript
-  let prelim = _score_?.prelim ?? 0;
-  let first = _score_?.first ?? 1;
+  let prelim = _score_?.numbers?.prelim ?? 0;
+  let first = _score_?.numbers.first ?? 1;
 
   pn = parseInt(pn);
   prelim = parseInt(prelim);
@@ -2169,15 +2166,15 @@ function strToHash(str) {
 
 function toast(innerHtml) {
   // display a "toast", i.e. a brief message that automatically dismisses
-  // after _gs_ seconds.
+  // after _gs_ msecs.
   // @param innerHtml the html content of the toast.
   let elm = helm(
     `<div style="position:absolute;display:flex;justify-content:center;align-items: center;height: 100vh;width:100vw;">
-       <div class="floatingMsg" style="z-index:1000;position:absolute;width:fit-content;height:fit-content;opacity:0;transition:opacity ${_gs_}s ease-in">${innerHtml}</div>
+       <div class="floatingMsg" style="z-index:1000;position:absolute;width:fit-content;height:fit-content;opacity:0;transition:opacity ${_gs_}ms ease-in">${innerHtml}</div>
      </div>`
   );
   _body_.append(elm);
   delay(1, () => elm.firstElementChild.style.opacity = "1") ;
-  delayMs(_gs_ * 2500, () => elm.firstElementChild.style.opacity = "0") ;
-  delayMs(_gs_ * 3500, () => elm.remove()) ;
+  delayMs(_gs_ * 2.5, () => elm.firstElementChild.style.opacity = "0") ;
+  delayMs(_gs_ * 3.5, () => elm.remove()) ;
 }

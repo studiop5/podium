@@ -149,13 +149,14 @@ class Menu {
   scale = 1;
 
   // The autoOff scheduler  (_menu_.autoOff.run()) will deactivate the
-  // current cell in 5000 msecs (or n mseonds, if you call run(n) ;
+  // current cell in the ink or page rings 3750 msecs (or n msecs, if you call run(n).
   // If its already scheduled, then calling it again will delay the
-  // activation further.
-
-  busy = false ;  autoOff = new Schedule(3500, () => {
+  // activation further. 3750 is not magic: it just seems like a good.
+  // value after emperical testing.
+  busy = false ;
+  autoOff = new Schedule(3750, () => {
     if(this.busy) this.autoOff.run() ;
-    else this.activateCell(null) ;
+    else if (["ink","page"].includes(this.activeRing.key)) this.activateCell(null) ;
   }) ;
 
 
@@ -340,7 +341,6 @@ class Menu {
         info: { name: "Info", svgPath: iconPaths["Info"], stash: { quality: 2, pgFit: "Center"} },
       },
       svgPath: iconPaths["Score"],
-      unredo: [], // undo/redo stack
     };
 
     this.listen("score/up", () => this.activateRing(rings.score));
@@ -1159,7 +1159,7 @@ class Menu {
     animate(this.elm, null, { 
       left: innerWidth / 2 + "px",
       top: innerHeight / 2 + "px",
-    }, ` ${_gs_}s`) ;
+    }, ` ${_gs_}ms`) ;
     if (this.collapsed) this.collapse();
     if (reset) {
       this.op.turnOffset = 0;
@@ -1168,14 +1168,14 @@ class Menu {
       this.disk.turnOffset = 0;
       let diskEntries = Object.entries(this.rings);
       let ringKnt = diskEntries.length;
-      animate(this.disk, null, { transform: "rotate(0turn)" }, `${_gs_}s`);
+      animate(this.disk, null, { transform: "rotate(0turn)" }, `${_gs_}ms`);
       diskEntries.forEach(([diskKey, ring], index) => {
         let rotation = index / ringKnt;
         ring.cellElm.style.transform = `rotate(${rotation}turn`;
         ring.cellElm.firstElementChild.style.transform = `rotate(${1 - rotation}turn`;
         let cellEntries = Object.entries(ring.cells);
         let cellKnt = cellEntries.length;
-        animate(ring.elm, null, { transform: "rotate(0turn)" }, `${_gs_}s`);
+        animate(ring.elm, null, { transform: "rotate(0turn)" }, `${_gs_}ms`);
         cellEntries.forEach(([cellKey, cell], index) => {
           let rotation = index / cellKnt;
           cell.elm.style.transform = `rotate(${rotation}turn)`;

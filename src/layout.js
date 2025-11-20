@@ -210,21 +210,25 @@ class Layout {
     _shade_.hide();
   }
 
-  get pnStash() {
-    return this.score.numbers;
-  }
-
   margin = 12; // in px: initial margin between layout and viewport
 
   constructor(score, cell) {
     Layout.activeLayout = this;
     this.score = score;
     this.cell = cell;
-    this.pnListener = listen(_body_, ["PnChanged"], (e) => {
-      if (e.detail instanceof Layout) return;
-      this.pgGoTo(this.pnStash.pn);
+    this.pnListener = listen(_body_, "NUMBERS", (e) => {
+      if (e.detail.sender instanceof Layout) return;
+      if(e.detail.tag == "pn") this.pgGoTo(_score_.numbers.pn);
+      else this.renumber() ;
     });
     delay(1, () => (this.elm.dataset.tag = this.constructor.name)); // run after subclass constructor
+  }
+
+  renumber() {
+    // score.numbers.<<first || prelim>> changed.
+    // Note: overriden by TableLayout as it doesn't use pagers
+    this.pagerLeft.build() ;
+    this.pagerRight.build() ;
   }
 
   destructor() {
@@ -245,40 +249,55 @@ class Layout {
     // change, re-orientation, or request to jump to specific page.
   }
 
-
-
-  async animateToCell(pg, cell, layoutKey) {
-    // animate the given deleted/copied page by simulating moving the pasteCell.pg
-    // to the given menu cell
-    let elm ;
-    if(layoutKey == "table") elm = pg ;
-    else {
-       // need to resize fabric's components to match 
-       pg.canvas.lowerCanvasEl.style.width = pg.canvas.lowerCanvasEl.style.width ;
-       pg.canvas.upperCanvasEl.style.width = pg.canvas.upperCanvasEl.style.width ;
-       pg.canvas.lowerCanvasEl.style.height = pg.canvas.lowerCanvasEl.style.height ;
-       pg.canvas.upperCanvasEl.style.height = pg.canvas.upperCanvasEl.style.height ;
-       if(pg.mozCanvas) {
-         pg.mozCanvas.style.height = elm.style.height ;
-         pg.mozCanvas.style.width = elm.style.width ;
+  async animateToCell(pg, clone, cell, layoutKey, after=null) {
+    // Simulate the given pg "Moving" to a menu cell will shrinking to viusally represent
+    // copying or deleting. The pg (or the cloned pg) is removed from the dom when the
+    // animation completes.
+    // @pg the pg to animate
+    // @clone when true, animate a clone of pg...the pg itself is untouched.
+    // @cell the menu cell to animate the pg to
+    // @layoutKey when == "table", then were actually animating a thumbnail: its
+    //    has slightly different logic.
+    // @after option function to run after animation completes and pg (or cloned pg)
+    //    has been removed from the dom
+    let elm = pg.elm ;
+    if(layoutKey == "table") {
+       elm = pg.thumbElm ;
+       if(clone) {
+         let tmp = elm.cloneNode(false) ;
+         elm.parentElement.append(tmp) ; // add clone to dom, fixing its location for upcoming getBox
+         elm = tmp ;
+      }
+    }
+    else if(clone) {
+       let clone = await pg.clone(true) ;
+       if(pg.canvas) {
+         // need to resize fabric's components to match 
+         clone.canvas.lowerCanvasEl.style.width = pg.canvas.lowerCanvasEl.style.width ;
+         clone.canvas.upperCanvasEl.style.width = pg.canvas.upperCanvasEl.style.width ;
+         clone.canvas.lowerCanvasEl.style.height = pg.canvas.lowerCanvasEl.style.height ;
+         clone.canvas.upperCanvasEl.style.height = pg.canvas.upperCanvasEl.style.height ;
+         if(clone.mozCanvas) {
+           clone.mozCanvas.style.height = elm.mozCanvas.style.height ;
+           clone.mozCanvas.style.width = elm.mozCanvas.style.width ;
+         }
+         pg.elm.parentElement.append(clone.elm) ;
+         elm = clone.elm ;
        }
-       pg.elm.parentElement.append(elm) ;
     }    
     let srcBox = getBox(elm);
     let dstBox = getBox(dataIndex("tag", cell.elm).cellIcon);
-    let cssText = elm.style.cssText ;
     _body_.append(elm) ;
+    let css = elm.style.cssText ; 
     animate(elm, 
      { left: srcBox.x + "px", top: srcBox.y + "px", zIndex:100 },
-     { left: dstBox.x + dstBox.width / 2 + "px", top: dstBox.y +dstBox.height / 2 +  "px", fontSize: 0 },
-      `all ${_gs_}s`,
-       () => {
+     { left: dstBox.x + dstBox.width/2 + "px", top: dstBox.y + dstBox.height/2 +  "px", fontSize: 0},
+      `all ${_gsgs_}ms`, () => { 
          elm.remove() ;
-         elm.style.cssText = cssText ;
-    });
+         elm.style.cssText = css ; //restore styles so if/when a deletion is undone
+         if(after) after() ;
+      }) ;       
   };
-
-
 
   async onDown(e) {
     // Subclasses should call this at the beginning of their own onDown function:
@@ -290,7 +309,7 @@ class Layout {
     //   should not process it further.
     if (e.ctrlKey || !e.isPrimary) return true;
     // When there is an active cell in the ink ring, then we're editing a page,
-    // so don't allow the layout code to run:
+    // So don't allow the layout code to run:
     if (_menu_.activeRing?.key == "ink" && _menu_.activeRing?.activeCell) return true;
 
     if (_menu_.activeRing?.key == "page") { // Execute page ring's active cell action
@@ -302,80 +321,20 @@ class Layout {
       let pasteCell = _menu_.rings.page.cells.paste;
       let pg, pn;
       let score = this.score;
-      if (score.pgs.length == 0) pn = 1;
-      else {
-        // The add/paste  ops insert before page when event is in left (or top) half of e.target,
-        // and after page when clicked in right (or bottom) half. We use left/right for
-        // for most layouts, but VerticalLayout uses top/bottom. 
-        pg = e.target.pg || e.target.closest(".canvas-container")?.pg;
-        if (!pg) return true;
-        pn = score.pnOf(pg);
-        if (pageKey == "add" || pageKey == "paste") {
-          let box = getBox(e.target);
-          if (layoutKey == "vertical" && e.clientY - box.top > box.height / 2) pn++;
-          else if (e.clientX - box.x > box.width / 2) pn++;
-        }
+      // The add/paste  ops insert before page when event is in left (or top) half of e.target,
+      // and after page when clicked in right (or bottom) half. We use left/right for
+      // for most layouts, but VerticalLayout uses top/bottom. 
+      pg = e.target.pg || e.target.closest(".canvas-container")?.pg;
+      if (!pg) return true;
+      pn = score.pnOf(pg);
+      if (pageKey == "add" || pageKey == "paste") {
+        let box = getBox(e.target);
+        if (layoutKey == "vertical" && e.clientY - box.top > box.height / 2) pn++;
+        else if (e.clientX - box.x > box.width / 2) pn++;
       }
-
-      let animateToCell = async (pg0, cell) => {
-        // animate the given deleted/copied page by simulating moving the pasteCell.pg
-        // to the given menu cell
-        let elm ;
-        if(layoutKey == "table") {
-           elm = pg0.thumbElm ;
-           elm.style.cssText = pg.thumbElm.style.cssText ;
-           pg.thumbElm.parentElement.append(elm) ;
-        }
-        else {
-          elm = pg0.elm ;
-          elm.style.cssText = pg.elm.style.cssText ;
-           // need to resize fabric's components to match 
-           pg0.canvas.lowerCanvasEl.style.width = pg0.canvas.lowerCanvasEl.style.width ;
-           pg0.canvas.upperCanvasEl.style.width = pg0.canvas.upperCanvasEl.style.width ;
-           pg0.canvas.lowerCanvasEl.style.height = pg0.canvas.lowerCanvasEl.style.height ;
-           pg0.canvas.upperCanvasEl.style.height = pg0.canvas.upperCanvasEl.style.height ;
-           if(pg0.mozCanvas) {
-             pg0.mozCanvas.style.height = elm.style.height ;
-             pg0.mozCanvas.style.width = elm.style.width ;
-           }
-           pg.elm.parentElement.append(elm) ;
-        }    
-        let srcBox = getBox(elm);
-        let dstBox = getBox(dataIndex("tag", cell.elm).cellIcon);
-        let cssText = elm.style.cssText ;
-        _body_.append(elm) ;
-        animate(elm, 
-         { left: srcBox.x + "px", top: srcBox.y + "px", zIndex:100 },
-         { left: dstBox.x + dstBox.width / 2 + "px", top: dstBox.y +dstBox.height / 2 +  "px", fontSize: 0 },
-          `all ${_gs_}s`,
-           () => {
-             elm.remove() ;
-             elm.style.cssText = cssText ;
-        });
-      };
-
       _menu_.autoOff.run() ;
 
       switch (pageKey) {
-
-        // copy and paste to/from _podPb_:
-
-        case "copy": { 
-          _menu_.activateCell(null) ; // copy can be slow, deactivate until done
-          animateToCell(await pg.clone(true), _menu_.rings.page.cells.paste) ; // clone only used for animation
-          await _podPb_.pgCopy(pn) ;
-          _menu_.activateCell(_menu_.rings.page.cells.copy) ;
-          break ;
-        }
-
-        case "paste": { 
-          _shade_.show("Pasting...") ;
-          _menu_.activateCell(null) ; // paste can be slow, deactivate until done
-          await _podPb_.pgPaste(pn) ;
-          _menu_.activateCell(_menu_.rings.page.cells.paste) ;
-          _shade_.hide() ;
-          break;
-        }
 
         // add, delete to/from current score
         case "add": {
@@ -384,22 +343,46 @@ class Layout {
           let alpha = parseInt(stash.alpha * 255).toString(16);
           while (alpha.length < 2) alpha = "0" + alpha;
           let pg = new Pg(score, stash.Width, stash.Height, null, null, stash.rgb + alpha);
-          pg.inflate();
           await score.pgAdd(pg, pn);
-          this.pnStash.pn = 0; // No active pg for build:
+          _score_.numbers.pn = pn; 
+          _body_.dispatchEvent(new CustomEvent("NUMBERS", { detail: {sender:this} }));
           await this.build(false);
-          await this.pgGoTo(pn);
           break;
         }
 
         case "delete": {
-          animateToCell(pg, _menu_.rings.page.cells.delete) ;
+          if(this.score.pgs.length == 1) break ; // no deleting last pg
           score.pgCut(pn) ;
-          this.pnStash.pn = 0; // No active pg for build:
-          await this.build(false);
-          await this.pgGoTo(Math.max(1, pn-1));
+          if(pn == _score_.numbers.pn) // deleting active pg?
+            _score_.numbers.pn = Math.max(1, _score_.numbers.pn - 1) // choose different one
+          else if(pn < _score_.numbers.pn) // active pg must decrement
+            --_score_.numbers.pn ;
+          await this.animateToCell(pg, false, _menu_.rings.page.cells.delete, layoutKey, 
+            () => this.build(false)) ;
           break ;
         }
+
+        // case "undo" note: handled entirely in menu.js
+
+        case "copy": { 
+          // copy to _podPb_
+          _shade_.show("Copying...", 250) ;
+          await _podPb_.pgCopy(pn) ;
+          _shade_.hide();
+          await this.animateToCell(pg, true, _menu_.rings.page.cells.paste,layoutKey) ; 
+          break ;
+        }
+
+        case "paste": { 
+          // paste from  _podPb_
+          _shade_.show("Pasting...", 50) ;
+          _menu_.activateCell(null) ; 
+          await _podPb_.pgPaste(pn) ;
+          _shade_.hide() ;
+          _menu_.activateCell(_menu_.rings.page.cells.paste) ;
+          break;
+        }
+
 
         case "merge": {
           dialog(`Confirm: Merge all annotations on this page?<br>(cannot be undone)`, 
@@ -425,9 +408,7 @@ class Layout {
 
   async pgOpen(how, unused) {
     // Subclasses override with logic to open page, where @how is one
-    // of "next","prev","first","last".  If pnStashbookMarks is true, then
-    // subclass should just call super, because bookMarks processing
-    // is identical for all layouts.
+    // of "next","prev","first","last".
     let bookmarks = [];
     this.score.pgs.forEach((pg, i) => {
       if (pg.bookmark) bookmarks.push(i + 1); // pn is 1-based
@@ -435,7 +416,7 @@ class Layout {
     if (bookmarks.length == 0) return;
     let pn = bookmarks[0];
     if (bookmarks.length > 1) {
-      let current = this.pnStash.pn;
+      let current = _score_.numbers.pn;
       switch (how) {
         case "next":
           bookmarks.sort((a, b) => a - b);
@@ -480,12 +461,12 @@ class Layout {
 
   pnPost(pn, force = false) {
     // Subclasses call this whenever the layout changes the page number.
-    // It will stash the pn and fire a PnChanged event.
+    // It will stash the pn and fire a NUMBERS event.
     // @param pn 1-based
     // @param force post pn even if it hasn't changed
-    if (this.pnStash.pn != pn || force) {
-      this.pnStash.pn = pn;
-      _body_.dispatchEvent(new CustomEvent("PnChanged", { detail: this }));
+    if (_score_.numbers.pn != pn || force) {
+      _score_.numbers.pn = pn;
+      _body_.dispatchEvent(new CustomEvent("NUMBERS", { detail: {sender:this} }));
     }
   }
 
@@ -519,7 +500,7 @@ class Layout {
        top: layoutBox.height > innerWidth + Layout.margin * 2 ? Layout.margin + "px" : innerHeight / 2 + "px",
        fontSize:elm.style.fontSize,
      },
-     `left, stop, font-size ${_gs_}s`) ;
+     `left, stop, font-size ${_gs_}ms`) ;
   }
 }
 
@@ -770,7 +751,7 @@ class BookLayout extends Layout {
       this.pagerRight.elm.remove();
     }
     if(!animated) return ;
-    this.pgGoTo(this.pnStash.pn);
+    this.pgGoTo(_score_.numbers.pn);
 
     // 
     // set layout's screen position 
@@ -779,11 +760,11 @@ class BookLayout extends Layout {
     let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon) ;
 
     if(this.cell.pz)  // custom user-set size/position
-      animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0}, this.cell.pz, `left, top, font-size ${_gs_}s`) ;
+      animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0}, this.cell.pz, `left, top, font-size ${_gs_}ms`) ;
     else animate(this.elm, 
        {left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
        this.centerLT({ fontSize: "1em"}),
-      `left, top, font-size ${_gs_}s`) ;
+      `left, top, font-size ${_gs_}ms`) ;
   }
 
   async onDown(e) {
@@ -1018,7 +999,7 @@ class BookLayout extends Layout {
   async pgOpen(how, bookMarks) {
     if (bookMarks) return super.pgOpen(how);
     // flip the page forward to next *pair* of pages
-    let pn = parseInt(this.pnStash.pn);
+    let pn = parseInt(_score_.numbers.pn);
     let inc = pn & 0x01 ? 1 : 2;
     switch (how) {
       case "next":
@@ -1401,7 +1382,7 @@ class ScrollLayout extends Layout {
       this.pagerLeft.elm.remove();
       this.pagerRight.elm.remove();
     }
-    if(!animated) return await this.pgGoTo(this.pnStash.pn);
+    if(!animated) return await this.pgGoTo(_score_.numbers.pn);
     // 
     // animate centering of layout's screen position
     //
@@ -1411,8 +1392,8 @@ class ScrollLayout extends Layout {
     animate(this.elm,
       { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
       this.cell.pz ? this.cell.pz : this.centerLT({ fontSize: "1em"}),
-      `left, top, font-size ${_gs_}s`) ;
-    await this.pgGoTo(this.pnStash.pn);
+      `left, top, font-size ${_gs_}ms`) ;
+    await this.pgGoTo(_score_.numbers.pn);
   }
 
   async onDown(e) {
@@ -1482,8 +1463,8 @@ class ScrollLayout extends Layout {
     this.sashStart = -(pg[WIDTH] + gap) * (pn - 1);
     this.sashStart = clamp(this.sashStart, sashLimit, 0);
     await this.pgMount(pn);
-    animate(this.sash, { [LEFT]: toEm(sashOrigin) }, { [LEFT]: toEm(this.sashStart) }, `${LEFT} cubic-bezier( 0, 1.01, 0.04, 1 ) ${_gs_}s`);
-    this.spinRollers(_gs_ * 1000);
+    animate(this.sash, { [LEFT]: toEm(sashOrigin) }, { [LEFT]: toEm(this.sashStart) }, `${LEFT} cubic-bezier( 0, 1.01, 0.04, 1 ) ${_gs_}ms`);
+    this.spinRollers(_gs_);
     this.pnPost(pn, true);
     return pn;
   }
@@ -1526,7 +1507,7 @@ class ScrollLayout extends Layout {
   async pgOpen(how, bookMarks) {
     if (bookMarks) return super.pgOpen(how);
     // flip the page forward to next pair of pages
-    let pn = parseInt(this.pnStash.pn);
+    let pn = parseInt(_score_.numbers.pn);
     let inc = Math.max(this.pgSnap, 1); // at least 1 page
     switch (how) {
       case "next":
@@ -1675,6 +1656,7 @@ class TableLayout extends Layout {
   );
 
   bMarkTimer = new Schedule();
+  active = null ; // active pg
 
   elm = helm(`
     <div class="pz">
@@ -1698,14 +1680,17 @@ class TableLayout extends Layout {
   }
 
   async build(animated=true) {
-    // set animated to false to skip some of the animation effects during building...
+    // @animated set to false to skip some of the animation effects during building...
     // When true, we build 1 page per animation frame, and move the layout as more
     // rows are added. This works fine for initial builds, but is too much if
     // we're rebuilding after a cut or paste.
     this.animated = animated ;
+    if(this.active) {
+      this.active.classList.remove("TableLayout__pg-active") ;
+      let canvas = this.active.querySelector(".canvas-container")?.remove() ;
+      this.active = null ;
+    }
     Object.assign(this, this.cell.stash) ;
-    Object.assign(this, this.pnStash) ;
-
     // pages is from cell.stash: it determines the number of pages per row
     let { grid, pages, score, table } = this ;
 
@@ -1764,44 +1749,41 @@ class TableLayout extends Layout {
           dialogElm.buttonsElm.self.fire("Cancel");
           if(this.cell.pz) return (this.elm.style.cssText = this.cell.pz) ;// custom user-set pan/zoom
           if(this.fit == "Height") this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / table.offsetHeight  + "em" ;
-          animate(this.elm, null, this.centerLT(), `left, top ${_gs_}s`) ;
+          animate(this.elm, null, this.centerLT(), `left, top ${_gs_}ms`) ;
         }
       }
       await gen(0) ;
     }
-
     else {
       // ...then all thumbnails already built
-      delay(1, async () => {
-        for(let {pn, top, left} of this.gridCoords) {
-          let gridHeight = top + pgHeight + gridMargin * 2 ;
-          grid.style.height = toEm(gridHeight) ;
-          let nextTop = innerHeight - gridHeight - Layout.margin ;
-          if (nextTop < Layout.margin) this.toXY(Layout.margin, nextTop) ;
-          grid.append(await this.buildPg(pn, left, top));
-        }
-       let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon) ;
-       if(this.cell.pz)
-         animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
-           this.cell.pz, `left, top, font-size ${_gs_}s`) ;
-       else { 
-         if(this.fit == "Height") // reduce fontSize so layout fits window's height
-           this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / table.offsetHeight  + "em" ;
-         if(this.animated)
-           animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
-             this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}s`) ;
-         else 
-             this.centerLT({ fontSize: this.elm.style.fontSize}) ; 
-        }
-      }) ;
+      for(let {pn, top, left} of this.gridCoords) {
+        let gridHeight = top + pgHeight  ;
+        grid.style.height = toEm(gridHeight) ;
+        let nextTop = innerHeight - gridHeight - Layout.margin ;
+        if (nextTop < Layout.margin) this.toXY(Layout.margin, nextTop) ;
+        grid.append(await this.buildPg(pn));
+      }
+      let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon) ;
+      if(this.cell.pz)
+        animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
+          this.cell.pz, `left, top, font-size ${_gs_}ms`) ;
+      else { 
+        if(this.fit == "Height") // reduce fontSize so layout fits window's height
+          this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / table.offsetHeight  + "em" ;
+        if(this.animated)
+          animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
+            this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}ms`) ;
+        else 
+          this.centerLT({ fontSize: this.elm.style.fontSize}) ; 
+      }
     }
-}
+  }
 
-  async buildPg(pn, rebuild=false)
+  async buildPg(pn)
   {  // build elm to hold thumbnail
     let {left, top} = this.gridCoords[pn-1] ;
     let pg = this.score.pgs[pn - 1];
-    let elm = await pg.getThumbElm(rebuild) ;
+    let elm = await pg.getThumbElm() ;
     elm.pn = pn ;
     elm.pg = pg ;
     Object.assign(elm.style,{
@@ -1829,7 +1811,7 @@ class TableLayout extends Layout {
     else
       clearChildren(elm) ;
 
-    if (pn == this.pnStash.pn) 
+    if (pn == _score_.numbers.pn) 
        await this.buildPgActive(pn, elm) 
     else this.score.pgUnuse(pg) ;
     return elm ;
@@ -1838,8 +1820,8 @@ class TableLayout extends Layout {
   async buildPgActive(pn, elm) {
     if (this.active) {
       // Turn current active elm into a normal, "inactive" elm. 
-      // get inactive, a new, up-to-date thumbnail
-      let inactive = await this.active.pg.getThumbElm(true) ;
+      // ...rebuild thumbnail, as elm could have been ink'ed.
+      let inactive = await this.active.pg.getThumbElm(true) ; 
       // copy pg, pn, and, if existing, move pagenumber to inactive
       inactive.pg = this.active.pg ;
       inactive.pn = this.active.pn ;
@@ -1943,10 +1925,8 @@ class TableLayout extends Layout {
         let active = this.active;
         score.pgUnuse(active.pg) ;
         score.pgCut(active.pn) ;
-        this.layout.animateToCell(active, _menu_.rings.page.cells.delete, "table") ;
-        delayMs(2000, () => active.remove()) ;
-        this.layout.active = null ; // !!Critica...do this, else build() will change active!
-        await this.layout.build(false);
+        this.layout.animateToCell(active.pg, false, _menu_.rings.page.cells.delete, "table",
+              () => this.layout.build(false)) ;
         return ;
       }        
       if(this.active.pn > this.toPn) this.toPn++ ;
@@ -1972,13 +1952,13 @@ class TableLayout extends Layout {
     }
   }
 
+
   async onDown(e) {
     if (await super.onDown(e)) return;
-    this.grid.setPointerCapture(e.pointerId) ;
+    this.table.setPointerCapture(e.pointerId) ;
     let elm = e.target.closest(".TableLayout__pg") ;
     if(!elm) return ;
     let {pg, pn} = elm ;
-
     let pnElm = elm.querySelector(".TableLayout__pn") ;
     if(pnElm) {
       this.bMarkTimer.run(_longPressMs_, () => {
@@ -1988,37 +1968,60 @@ class TableLayout extends Layout {
           pnElm.style.background = "unset";
         } else pnElm.style.background = pg.bookmark = randomColor() ;
       }) ;
-      _body_.dispatchEvent(new CustomEvent("BookmarkChanged"));
+      _body_.dispatchEvent(new CustomEvent("BOOKMARK"));
     };
-    await this.pgGoTo(pn) ;
 
+    // Note: code works around a race condition...if await this.pgGoTo(pn) takes
+    // too long, it might not complete before pointerup is dispatched. But we
+    // want it to run before pointermove or pointerup so that, if needed, the touched
+    // pg "becomes" the active pg before the move. For this reason, we register
+    // pointerup immediately, but it's actually work is delay'ed until
+    // built is true, after this.pgGoTo has returned.
     let cursor = null ;
+    let mv = null ;
+    let built = false ;
 
-    let mv = listen(this.grid, "pointermove", (emv) => {
-     mvmt(e, emv) ;
-     if(e.moved) {
-       this.bMarkTimer.cancel() ;
-       if(!cursor) cursor = new this.Cursor(e, this) ;
-       cursor.mv(emv) ;
-     }
+    listen(this.table, "pointerup", async (eup) => {
+      this.bMarkTimer.cancel();
+      let finale = () => {
+        if(!built) delay(1, () => finale()) ;
+        else {
+          unlisten(mv) ;
+          if(cursor) cursor.up(eup) ;
+        }
+      }
+      finale() ;
+     },
+     { once: true }
+    );
+
+    await this.pgGoTo(pn) ;
+    built = true ;
+
+    mv = listen(this.table, "pointermove", (emv) => {
+      if(this.score.pgs.length == 1) return ; // disallow action on last pg
+       mvmt(e, emv) ;
+       if(e.moved) {
+         this.bMarkTimer.cancel() ;
+         if(!cursor) cursor = new this.Cursor(e, this) ;
+         cursor.mv(emv) ;
+       }
     }) ;
-
-    listen(window, "pointerup", (eup) => {
-        if(e.moved) cursor.up(eup) ;
-        unlisten(mv) ;
-        this.bMarkTimer.cancel();
-      },
-     { once: true });
   }
 
   async pgGoTo(pn) {
-    if (this.pnOffset != this.pnStash.pnOffset) {
+    /* rem grd... need to use a listener for this!!!
+   ...but we already have one....it calls pgGoTo. we should
+    be checking
+    if (this.pnOffset != _score_.numbers.first) {
       // Front Matter count has changed: re-number pages
-      this.pnOffset = this.pnStash.pnOffset;
+      this.pnOffset = _score_.numbers.pnOffset;
       for (let pnElm of [...document.getElementsByClassName("TableLayout__pn")])
          pnToDiv(pnElm.pn, pnElm, false);
     }
-    if (pn == this.pnStash.pn) return pn; // active page was reselected, noop
+*/
+
+    if (this.active?.pn == pn) return pn; // active page was reselected, noop
     this.pnPost(pn);
     // turn elm at pn into an active (full) pg
     await this.buildPgActive(pn, this.grid.children.item(pn - 1)) ;
@@ -2027,7 +2030,7 @@ class TableLayout extends Layout {
 
   async pgOpen(how, bookMarks) {
     if (bookMarks) return super.pgOpen(how);
-    let pn = this.pnStash.pn;
+    let pn = _score_.numbers.pn;
     switch (how) {
       case "next":
         ++pn;
@@ -2047,6 +2050,13 @@ class TableLayout extends Layout {
     else if (pn == 0) pn = pgCount;
     this.pnPost(await this.pgGoTo(pn));
   }
+
+  renumber() {
+    // called when score.numbers.[first/prelim] has changed...update all our pnElms
+    for (let pnElm of [...document.getElementsByClassName("TableLayout__pn")])
+       pnToDiv(pnElm.pn, pnElm, false);
+  }
+
 
   // Set Layout's position s.t. this.elm's first child's left and/or top is at x and/or y.
   // Used when animating a build.
@@ -2119,12 +2129,12 @@ class Pager {
     this.bMarkTimer = new Schedule();
     this.cursorBackground = cssIndex("Pager", ".Pager__cursor", "background-color");
     this.ptrMsgBackground = cssIndex("ptrMsg", ".ptrMsg", "background-color");
-    this.pnListener = listen(_body_, "PnChanged", (e) => {
-      if (e.detail === this) return;
+    this.pnListener = listen(_body_, "NUMBERS", (e) => {
+      if (e.detail.sender === this) return;
       this.buildCursor();
     });
 
-    this.bookmarkListener = listen(_body_, ["BookmarkChanged"], (e) => this.buildBookmarks());
+    this.bookmarkListener = listen(_body_, ["BOOKMARK"], (e) => this.buildBookmarks());
     this.pointerListener = listen(this.elm, "pointerdown", (e) => this.onDown(e));
 
     this.buildBookmarks();
@@ -2133,10 +2143,6 @@ class Pager {
   destructor() {
     // Called when containing layout is about to be removed from dom.
     unlisten(this.pnListener, this.bookmarkListener, this.pointerListener);
-  }
-
-  get pnStash() {
-    return _score_.numbers ;
   }
 
   build() {
@@ -2152,9 +2158,9 @@ class Pager {
     // The cursor is positioned s.t. pg 1 is always at the top of the pager, and the max page is always at the bottom
     // of the pager.  Its Position is expressed as a percentage so that when a layout is scaled by adjusting
     // the font size of its pz element, the pager position will automatically adjust.
-    let topPx = (this.pnStash.pn -1) * (pagerBox[HEIGHT] - cursorBox[HEIGHT]) / (_score_.pgs.length - 1) ;
+    let topPx = (_score_.numbers.pn -1) * (pagerBox[HEIGHT] - cursorBox[HEIGHT]) / (_score_.pgs.length - 1) ;
     this.cursor.style[TOP] = 100 * topPx / pagerBox[HEIGHT] + "%" ;
-    this.formatFunc(this.pnStash, false, this.cursor);
+    this.formatFunc(_score_.numbers, false, this.cursor);
   }
 
   buildBookmarks() {
@@ -2180,14 +2186,14 @@ class Pager {
   onDown(e) {
     e.stopImmediatePropagation(); // don't let event propagate to the layout
     let { TOP, WIDTH, HEIGHT, CLIENTX, CLIENTY, X, Y } = this.props;
-    let { cursor, pager, pnStash } = this;
+    let { cursor, pager } = this;
     let pgCount = _score_.pgs.length ;
     let cursorBox = getBox(cursor);
     let pagerBox = getBox(pager);
     pager.setPointerCapture(e.pointerId);
     cursor.classList.add("Pager__cursor-active");
 
-    let ptrDiv = ptrMsg(e,(e,div) => this.formatFunc(pnStash, true, div) && false, `width: ${cursor.style.width};`) ;
+    let ptrDiv = ptrMsg(e,(e,div) => this.formatFunc(_score_.numbers, true, div) && false, `width: ${cursor.style.width};`) ;
     let origin = e[CLIENTY] ;
     let cursorOffset = pagerBox[Y] + cursorBox.height ;
 
@@ -2201,21 +2207,21 @@ class Pager {
       let newPos = origin + dY - cursorOffset  ;
       cursor.style[TOP] = clamp(newPos, 0, pagerBox[HEIGHT] - cursorBox[HEIGHT]) + "px"; 
       newPos += cursorBox[HEIGHT] / 2 ; // compensate for cursor height
-      pnStash.pn = clamp(Math.floor((newPos / pagerBox[HEIGHT]) * pgCount) + 1, 1, pgCount) ;
+      _score_.numbers.pn = clamp(Math.floor((newPos / pagerBox[HEIGHT]) * pgCount) + 1, 1, pgCount) ;
       // are we at a bookmark? 
-      let bkCl = _score_.pgs[pnStash.pn -1].bookmark;
+      let bkCl = _score_.pgs[_score_.numbers.pn -1].bookmark;
       if(bkCl) cursor.style.color = ptrDiv.style.color = bkCl ;
       else cursor.style.color = ptrDiv.style.color = "black" ;
       clearChildren(cursor);
       clearChildren(this.cursor);
 
-      this.formatFunc(pnStash, true, this.cursor) ;
+      this.formatFunc(_score_.numbers, true, this.cursor) ;
     };
 
     setCursor(e[CLIENTY], Math.abs(e[CLIENTX] - cursorBox[X] - cursorBox[WIDTH]/2));
 
     this.bMarkTimer.run(_longPressMs_, () => {
-      let pn = pnStash.pn;
+      let pn = _score_.numbers.pn;
       let pg = _score_.pgs[pn - 1];
       if (pg.bookmark) {
         pg.bookmark = null;
@@ -2226,7 +2232,7 @@ class Pager {
         let bkCl = pg.bookmark = randomColor();
         cursor.style.color = ptrDiv.style.color = bkCl;
       }
-      _body_.dispatchEvent(new CustomEvent("BookmarkChanged"));
+      _body_.dispatchEvent(new CustomEvent("BOOKMARK"));
     });
 
     let mv = listen(pager, "pointermove", (emv) => {
@@ -2240,7 +2246,7 @@ class Pager {
         this.cursor.classList.remove("Pager__cursor-active");
         this.bMarkTimer.cancel();
         this.buildCursor();
-        _body_.dispatchEvent(new CustomEvent("PnChanged", { detail: this }));
+        _body_.dispatchEvent(new CustomEvent("NUMBERS", { detail: {sender:this }}));
       },
       { once: true }
     );

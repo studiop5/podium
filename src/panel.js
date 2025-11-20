@@ -1247,46 +1247,29 @@ class NumbersPanel extends Panel {
     let score = _score_;
 
     let formatPn = () => {
-      return `Page: ${pnToString(cell.stash.pn, -cell.stash.pnOffset)} 
-      (${cell.stash.pn} / ${score.pgs.length})`;
+      return `Page: ${pnToString(_score_.numbers.pn + score.numbers.first - 1)} 
+      (${_score_.numbers.pn} / ${score.pgs.length})`;
     };
 
     let defs = {
-      pn: {
-        min: 1,
-        max: score.pgs.length,
-        value: cell.stash.pn,
-        step: 1,
-        msg: formatPn,
-        throttle: 500,
-      },
-      first: {
-        min: 1,
-        max: 1000,
-        value: cell.stash.pnOffset,
-        step: 1,
-        msg: () => `First #: ${cell.stash.first}`,
-        throttle: 500,
-      },
-      prelim: {
-        min: 0,
-        max: 100,
-        value: cell.stash.pnOffset,
-        step: 1,
-        msg: () => `Roman: ${cell.stash.prelim}`,
-        throttle: 500,
-      },
+      pn: { min: 1, max: score.pgs.length, value: score.numbers.pn, step: 1,
+        msg: formatPn, throttle: 500},
+      first: { min: 1, max: 1000, value: _score_.numbers.first, step: 1,
+        msg: () => `First #: ${_score_.numbers.first}`,throttle: 500},
+      prelim: {min: 0, max: 100,value: _score_.numbers.prelim,step: 1,
+        msg: () => `Roman: ${_score_.numbers.prelim}`,throttle: 500 },
     };
     this.pnSliderGroup = new SliderGroup(
-      this.cell.stash,
+       _score_.numbers,
       defs,
       (e, tag, value) =>
-        _body_.dispatchEvent(new CustomEvent("PnChanged", { detail: this }))
+        _body_.dispatchEvent(new CustomEvent("NUMBERS", { detail: { sender:this, tag: tag, value: value} }))
     );
 
     this.sliders.replaceWith(this.pnSliderGroup.elm);
 
-    // Make the "First #" and "Roman" sliders smaller and narrower
+    // Make the "First #" and "Roman" sliders smaller and narrower...looks much
+    // nicer that way, emphasizes that they are "subordinate" so to speak
     let sliderBlocks = this.pnSliderGroup.elm.querySelectorAll('.SliderGroup__SliderBlock');
     [sliderBlocks[1], sliderBlocks[2]].forEach(block => {
       if (block) {
@@ -1300,8 +1283,7 @@ class NumbersPanel extends Panel {
 
     this.forwardGroup = new ButtonGroup(
       this.cell.stash,
-      {
-        Pages: { svg: "Page", radio: "forward" },
+      { Pages: { svg: "Page", radio: "forward" },
         Marks: { svg: "Mark", radio: "forward" },
       },
       (e, tag, value) => {
@@ -1312,30 +1294,22 @@ class NumbersPanel extends Panel {
 
     this.reverseGroup = new ButtonGroup(
       this.cell.stash,
-      {
-        Pages: { svg: "Page", radio: "reverse" },
+      { Pages: { svg: "Page", radio: "reverse" },
         Marks: { svg: "Mark", radio: "reverse" },
       },
-      (e, tag, value) => {
-        this.cell.stash.tag = value;
-      }
+      (e, tag, value) => this.cell.stash.tag = value,
     );
     this.reverse.replaceWith(this.reverseGroup.elm);
-
-    listen(_body_, ["PnChanged"], (e) => {
-      if (e.detail === this) return;
-      let score = _score_;
-      defs.pn.suffix = ` of ${score.pgs.length}`;
-      defs.pn.value = cell.stash.pn;
-      this.pnSliderGroup.refresh();
+    listen(_body_, "NUMBERS", (e) => {
+      if (e.detail.sender === this) return;
+      this.refresh() ; 
     });
   }
 
   refresh() {
     // call this to update the panel when the score changes, has pages added, etc.
     let defs = this.pnSliderGroup.defs;
-    defs.pn.max = score.pgs.length;
-    defs.pn.value = cell.stash.pn;
+    defs.pn.max = _score_.pgs.length;
     this.pnSliderGroup.refresh();
   }
 }
@@ -1362,12 +1336,7 @@ class PencilPanel extends Panel {
   );
 
   slidersDef = {
-    width: {
-      min: 0.2,
-      max: 60,
-      step: 0.1,
-      value: 1,
-      throttle: 250,
+    width: { min: 0.2, max: 60, step: 0.1, value: 1, throttle: 250,
       msg: "Line Width: {value} px",
     },
   };
@@ -1497,13 +1466,7 @@ class PenPanel extends PencilPanel {}
 class TextPanel extends PencilPanel {
   slidersDef = {
     size: { min: 1, max: 100, step: 1, value: 1, msg: "Font Size: {value} px" },
-    height: {
-      min: 1,
-      max: 100,
-      step: 1,
-      value: 1,
-      msg: "Line Height: {value} px",
-    },
+    height: { min: 1, max: 100, step: 1, value: 1, msg: "Line Height: {value} px" },
   };
 
   buttonsDef = null;
@@ -1570,37 +1533,12 @@ class TextPanel extends PencilPanel {
 class RastrumPanel extends PencilPanel {
   slidersDef = {
     gap: {
-      throttle: 250,
-      min: 5,
-      max: 40,
-      step: 1,
-      value: 8,
-      msg: "Staff Space: {value} px",
-    },
+      throttle: 250, min: 5, max: 40, step: 1, value: 8, msg: "Staff Space: {value} px" },
     lines: {
-      throttle: 250,
-      min: 1,
-      max: 30,
-      step: 1,
-      value: 5,
-      msg: "Lines: {value}",
-    },
+      throttle: 250, min: 1, max: 30, step: 1, value: 5, msg: "Lines: {value}" },
     width: {
-      throttle: 250,
-      min: 0.1,
-      max: 10,
-      step: 0.1,
-      value: 1,
-      msg: "Line Width: {value} px",
-    },
-    bars: {
-      throttle: 250,
-      min: 0,
-      max: 20,
-      step: 1,
-      value: 4,
-      msg: "Bars: {value}",
-    },
+      throttle: 250, min: 0.1, max: 10, step: 0.1, value: 1, msg: "Line Width: {value} px" },
+    bars: { throttle: 250, min: 0, max: 20, step: 1, value: 4, msg: "Bars: {value}" },
   };
 
   buttonsDef = {
@@ -1958,7 +1896,7 @@ class PrintPanel extends Panel {
     }) ;
     this.last.replaceWith(this.lastSlider.elm) ;
 
-    listen(_body_, ["PnChanged"], (e) => {
+    listen(_body_, "NUMBERS", (e) => {
       this.firstSlider.defs.first.max = this.lastSlider.defs.last.max = _score_.pgs.length ;
       props.last  = Math.min(_score_.pgs.length, props.last) ;
       props.first  = Math.min(_score_.pgs.length, props.first) ;
@@ -2027,10 +1965,9 @@ class PastePanel extends Panel {
       }, { once: true });
     });
 
-
     let buttons = new ButtonGroup({}, {
-      Undo: { svg: "Undo", onOff:true },
-      Clear: { svg: "Cancel", onOff:true },
+        Clear: { svg: "Cancel", onOff:true },
+        Undo: { svg: "Undo", onOff:true },
       },
       async (e, tag, value) => {
         if(value == "Clear") await _podPb_.pgClear() ;
@@ -2038,17 +1975,17 @@ class PastePanel extends Panel {
         // We're making the buttons look like on-off buttons, but this is not actually implemented.
         // However we can simulated turning it off button off by deleting its corresponding buttons.props
         delay(5, () => { delete buttons.props[value] ; buttons.refresh() ;}) ;
-        _body_.dispatchEvent(new CustomEvent("PnStashChanged")) ;
       }
     ) ;
     buttons.elm.style.borderTop = ".02em solid var(--color-border)" ;   
     this.buttons.replaceWith(buttons.elm) ;
 
-    listen(_body_, "PasteBufferChanged", async (e) => {
+    listen(_body_, "PASTEBUFFER", async (e) => {
+      _shade_.show("Building...") ;
       let score = await _podPb_.getScore() ;
       let thumbs = [] ;
       for(let pg of score.pgs) thumbs.push(await pg.getThumbElm(true));
-
+      _shade_.hide() ;
       clearChildren(this.sash) ;
       if(thumbs.length > 0) { 
         this.sash.style.fontSize = "1em" ; // reset to known "baseline"
@@ -2059,9 +1996,9 @@ class PastePanel extends Panel {
         let sashWidth = pxToEm(this.sash.offsetWidth, this.sash) ;
         this.sash.style.left = frameWidth ;
         reflow();
-        this.sash.style.transition = `left ${_gs_}s` ;
+        this.sash.style.transition = `left ${_gs_}ms` ;
         this.sash.style.left = parseFloat(frameWidth) - parseFloat(sashWidth) - .8 + "em";
-        delayMs(_gs_ * 1000, () => this.sash.style.transition = "unset") ;
+        delayMs(_gs_, () => this.sash.style.transition = "unset") ;
       }
     })
   }

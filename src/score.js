@@ -276,6 +276,8 @@ class Pg {
 
     if (this.inflated) {
       if (full) {
+        if(this.fabUrl) URL.revokeObjectURL(this.fabUrl) ;
+        if(this.pdfUrl) URL.revokeObjectURL(this.pdfUrl) ;
         this.thumbElm?.remove();
         this.thumbElm = null;
         this.json = null;
@@ -323,22 +325,18 @@ class Pg {
 
       // create object URL for fabric canvas
       let fabCanvas = this.canvas.toCanvasElement(scale * this.stretch) ;
-      let fabUrl = URL.createObjectURL(await new Promise((res) => fabCanvas.toBlob((b) => res(b))));
+      this.fabUrl = URL.createObjectURL(await new Promise((res) => fabCanvas.toBlob((b) => res(b))));
 
       if(this.mozCanvas) {
         // create obj URL for mozCanvas (from mozilla pdf src) ;
         let pdfCanvas = helm(`<canvas width="${maxW}" height="${maxH}"></canvas>`);
         pdfCanvas.getContext("2d").drawImage(this.mozCanvas, 0, 0, maxW, maxH);
-        let pdfUrl = URL.createObjectURL(await new Promise((res) => pdfCanvas.toBlob((b) => res(b))));
+        this.pdfUrl = URL.createObjectURL(await new Promise((res) => pdfCanvas.toBlob((b) => res(b))));
         // set both fabricCanvas (annotations) and pdfCanvas (pdf image) as background to thumbElm
-        this.thumbElm.style.backgroundImage = "url('" + fabUrl + "'), url('" + pdfUrl + "')";
-        delay(300, () => { URL.revokeObjectURL(pdfUrl); URL.revokeObjectURL(fabUrl);  }); // *long* delay is needed!
+        this.thumbElm.style.backgroundImage = "url('" + this.fabUrl + "'), url('" + this.pdfUrl + "')";
       }
-      else { // no pdf src:
-        // set fabricCanvas (annotations) as background to thumbElm
-        this.thumbElm.style.backgroundImage = "url('" + fabUrl + "')";
-        delay(300, () => URL.revokeObjectURL(fabUrl)) ;
-      }
+      else // no pdf src:  set fabricCanvas (annotations) as background to thumbElm
+        this.thumbElm.style.backgroundImage = "url('" + this.fabUrl + "')";
       if (deflated) this.deflate();
     }
     return this.thumbElm;
@@ -348,7 +346,9 @@ class Pg {
     // @return a clone of this page.
     // @inflate when true, the clone is inflated, otherwise not.
     let theClone = new Pg(this.score, this.width, this.height, this.toJson() || this.json, this.mozPn, null);
-    if (this.thumbElm) theClone.thumbElm = this.thumbElm.cloneNode();
+    if (this.thumbElm) { 
+      theClone.thumbElm = this.thumbElm.cloneNode();
+    }
     if (inflate) await theClone.inflate(true, false);
     return theClone;
   }
@@ -718,8 +718,11 @@ class Score
 
 class Score {
   static activeScore = null;
- // maximum number of unused inflated pgs: see Score.pgUnuse()
+  // maximum number of unused inflated pgs: see Score.pgUnuse()
   static MAX_INFLATED = (navigator.deviceMemory >= 8) ? 12 : 6;
+
+  // maximum depth of undo stack
+  static MAX_UNDO = (navigator.deviceMemory >= 8) ? 12 : 6;
 
   // Define constants to identify the various sources that Scores
   // can be created from.  These will be strings that are shown to
@@ -845,7 +848,6 @@ class Score {
   maxWidth = -1; // maxWidth among all pg's in score
   pgs = []; // array of Pg instances for all pages in a score
   undoStack = []; // will contain pgs, tagged with undoPn whenever pgAdd(),or -undoPn whenever pgCut()
-  maxUndo = 10 ; // max size of undo stack. Don't want it too big, because it can prevent cut pg's from being gc'ed.
   mozDoc = null; // reference to mozilla pdflib document, if available
   quality = 2; // pdf rendering quality: see Pg.renderPdf()
   dirty = false ; // true iff score has been modified (i.e. requires saving) 
@@ -1090,7 +1092,6 @@ class Score {
       pg.undoPn = pn + i + 1;
       mergedScore.undoStack.push(pg) ;
     }
-    _menu_.enableCells("page/undo", copyKnt > 0) ;
     mergedScore.pgRefresh() ;
     mergedScore.setDirty() ;
     return mergedScore ;
@@ -1107,14 +1108,13 @@ class Score {
   pgAdd(pg, pn, push=true) {
     // Add a new page as page pn (1-based), possibly numbered
     this.pgs.splice(pn - 1, 0, pg);
-    this.pgRefresh();
     this.setDirty() ;
     pg.undoPn = pn ;
     if(push) {
       this.undoStack.push(pg) ;
-      while(this.undoStack.length > this.maxUndo) this.undoStack.shift() ;
-      _menu_.enableCells("page/undo") ;
+      while(this.undoStack.length > Score.MAX_UNDO) this.undoStack.shift() ;
     }
+    this.pgRefresh();
     return pg ;
   }
 
@@ -1145,7 +1145,6 @@ class Score {
     }
   }
 
-
   pnOf(pg) {
     // @return the 1-based page number of the give pg instance, or 0 if not found
     return this.pgs.indexOf(pg) + 1;
@@ -1153,7 +1152,7 @@ class Score {
 
   pgRefresh(resetMax = true) {
     // Used to (re)calculate the maxWidth and maxHeight of all pgs
-    // in the score.
+    // in the score, and to enable/disable cells according to current state.
     // @resetMax, (re) calculate maximum width and height of pgs.
     // If there are no pgs, the current maxWidth,maxHeight
     // are unchanged.
@@ -1164,7 +1163,11 @@ class Score {
         this.maxHeight = Math.max(pg.height, this.maxHeight);
       });
     }
-    _menu_.enableCells(["page/delete", "page/copy", "page/merge"], this.pgs.length > 0);
+    /// looks like were calling this for score in pgbuffer....
+    if(Score.activeScore === this) {
+      _menu_.enableCells("page/undo", this.undoStack.length > 0) ;
+      _menu_.enableCells("page/delete", this.pgs.length > 1); // forbid deleting last pg, otherwise allow
+    }
   }
 
   pgUndo() {
