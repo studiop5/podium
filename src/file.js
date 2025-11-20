@@ -1620,6 +1620,7 @@ class FileListView {
       position: absolute;
       height:100%;
       width:100%;
+      color: var(--color-text);
     }
     .Flv-list {
       position:relative;
@@ -1639,7 +1640,7 @@ class FileListView {
       height: calc(100% - 16em) ; /* frame in save mode: allows room for FlvSave */
     }
     .Flv-list__item-selected {
-      background: #eee !important ;
+      background: var(--panel-header-selected-bg) !important ;
     }
     .Flv-list__file {
       width: calc(100% - 2em) ;
@@ -1652,17 +1653,21 @@ class FileListView {
       display:flex;
       align-items:center;
       column-gap:.5em;
-      color: #fff;
+      color: var(--color-text);
+      text-shadow: var(--file-text-shadow);
     }
     .Flv-list__file-details {
       display:flex;
       justify-content: space-between;
       align-items:center;
+      color: var(--color-text);
+      text-shadow: var(--file-text-shadow);
     }
      .Flv-list__file-properties {
        font-size:.75em;
        color: var(--file-properties-color);
        margin:.5em;
+       text-shadow: var(--file-text-shadow);
     }
     .Flv-path__sash {
       display: flex ;
@@ -1693,7 +1698,8 @@ class FileListView {
       padding:.5em;
       margin: 0 0.25em;
       border-radius: var(--borderRadius);
-      color: #fff;
+      color: var(--color-text);
+      text-shadow: var(--file-text-shadow);
     }
     /* file name input element */
     .Flv-save__file
@@ -1844,10 +1850,10 @@ class FileListView {
     let g = parseInt(hex.substring(2, 4), 16);
     let b = parseInt(hex.substring(4, 6), 16);
 
-    // Mix 50% with white (255, 255, 255) to create pastel
-    r = Math.round((r + 255) / 4);
-    g = Math.round((g + 255) / 4);
-    b = Math.round((b + 255) / 4);
+    // Mix 33% color with 67% white to create very light pastel
+    r = Math.round(r / 3 + 170);
+    g = Math.round(g / 3 + 170);
+    b = Math.round(b / 3 + 170);
     return "#" + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
   }
 

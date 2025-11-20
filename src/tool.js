@@ -46,7 +46,7 @@ class Actx {
     let volume = new GainNode(this.actx) ;
     volume.gain.setValueAtTime(_menu_.rings.more.cells.volume.stash.volume, this.actx.currentTime);
     volume.connect(this.actx.destination) ;    
-    listen(_body_, "volumechanged", (e) => volume.gain.setValueAtTime(e.detail, this.actx.currentTime)) ;
+    listen(_body_, "VOLUME", (e) => volume.gain.setValueAtTime(e.detail, this.actx.currentTime)) ;
     this.bus = new DynamicsCompressorNode(this.actx, {
       threshold: -50, knee: 40, ratio: 12, attack: 0, release: 0.25,
     }) ;
@@ -825,12 +825,12 @@ class Volume extends Surface {
     super(panel);
     this.surface.style.height = "4em";
     this.surface.style.width = "12em";
-let stash = _menu_.rings.more.cells.volume.stash ;
+    let stash = _menu_.rings.more.cells.volume.stash ;
     this.volumeSlider = new SliderGroup(stash,
     { volume: { min: 0, max: 1, step: 0.1, value: 1, msg: "Volume: {value}" } },
     (e, tag, value) => {
       this.panel.cell.stash.tag = value;
-      _body_.dispatchEvent(new CustomEvent("volumechanged", { detail: value }));
+      _body_.dispatchEvent(new CustomEvent("VOLUME", { detail: value }));
     });
     this.surface.prepend(this.volumeSlider.elm);
     this.surfaceDragElm = this.volumeSlider.elm;
@@ -2047,7 +2047,7 @@ class Review {
     if(!color && this.blinking) return ;
     if (this.state == "Live") {
       elm.style.color = color;
-      delayMs(_gs_ * 1000, () => this.blink(elm, color == "red" ? "black" : "red")) ;
+      delayMs(_gs_, () => this.blink(elm, color == "red" ? "black" : "red")) ;
      this.blinking = true ;
     }
     else {

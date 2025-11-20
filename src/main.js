@@ -28,7 +28,7 @@
 // python3 build.py --podium.  All text  between +/- skip fill be stripped out,
 // and all the following // #include files will be  textually included.
 
-import { animate, delay, dialog, helm, listen, schedule, Schedule, toast, unlisten } from "./common.js";
+import { animate, delay, dialog, helm, listen, reflow, schedule, Schedule, toast, unlisten } from "./common.js";
 import "./font.js";
 import { escapeHtml } from "./file.js";
 import { Menu } from "./menu.js";
@@ -58,10 +58,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
 // #include src/panel.js minified
 // #include src/file.js minified
 // #include src/tool.js minified
-// #include src/pasteBuffer.js minified
-
-
-
+// #include src/pasteBuffer.js minifiedqy
 async function main() {
 
   // Initialize theme from localStorage
@@ -77,15 +74,15 @@ async function main() {
 
   schedule(500, async () => {
     window._menu_ = new Menu();
+    // on mobile, the menu opens bigger to fill more of the screen
     let dim = (Math.min(innerWidth, innerHeight) / _menu_.menuHolder.offsetWidth) *
-         (_mobile_ ? _gs_ : _gsgs_);
-    animate(_menu_.disk, { transform: "rotate(1turn)" }, { transform: "rotate(0)" }, `transform ${1 / _gs_}s`);
-    animate(_menu_.menuHolder, { transform: "rotate(-.5turn)" },
-      { transform: "rotate(0turn)" }, `transform ${1 / _gs_}s`);
-    animate(_menu_.elm, { fontSize: 0 }, { fontSize: dim + "em" }, `font-size ${1 / _gs_}s`);
-    _menu_.center();
+         (_mobile_ ? _gs_/1000 : _gsgs_/1000) ;
+    animate(_menu_.elm, { left: innerWidth/2+"px", top: innerHeight/2+"px", fontSize: 0 },
+       { fontSize: dim + "em" }, `font-size ${1000000 / _gs_}ms`);
+    animate(_menu_.menuHolder, { transform: "rotate(-1turn)" },
+      { transform: "rotate(0)" }, `transform ${1000000 / _gs_}ms`);
+    animate(_menu_.disk, { transform: "rotate(2turn)" }, { transform: "rotate(0)" }, `transform ${1000000 / _gs_}ms`);
     await new PasteBuffer().init() ;
-
     // Extension-specific code: load PDF from URL parameter if present
     // In bundled build, ext.js is a no-op stub
     // In browser extension, ext.js has the real implementation
@@ -149,9 +146,9 @@ async function main() {
             //      move menu to pointer location and expand
             _body_.setPointerCapture(e.pointerId);
 
-            timer.run(_gsgs_*1000, () => {
+            timer.run(_gsgs_, () => {
               e.timedOut = true ;
-              animate(_menu_.elm, null, { left: e.clientX + "px", top: e.clientY + "px" },`${_gsgs_}s`) ;
+              animate(_menu_.elm, null, { left: e.clientX + "px", top: e.clientY + "px" },`${_gsgs_}ms`) ;
               if (_menu_.collapsed) _menu_.collapse(); // i.e. toggle open
               _menu_.opDown(e) ;
               _menu_.op.schedule.cancel() ;  // defeat menu's long-press park
@@ -162,7 +159,7 @@ async function main() {
             let cancelDelta = 16 ;
 
             // pointer movement in px required to invoke gestures:
-            let gestureDelta = Math.min(innerWidth * _gsgs_, innerHeight * _gsgs_) ;
+            let gestureDelta = Math.min(innerWidth * _gsgs_/1000, innerHeight * _gsgs_/1000) ;
 
             let mv = listen(_body_, "pointermove", (emv) => Math.hypot(emv.movementX, emv.movementY) > cancelDelta ? timer.cancel() : null) ; 
 

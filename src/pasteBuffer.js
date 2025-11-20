@@ -116,8 +116,8 @@ class PasteBuffer {
   }
 
   announce() {
-   // Create and send a PasteBufferChanged event
-   _body_.dispatchEvent(new CustomEvent("PasteBufferChanged")) ;
+   // Create and send a PASTEBUFFER event
+   _body_.dispatchEvent(new CustomEvent("PASTEBUFFER")) ;
   }
 
   signal(msg, data={}) {
@@ -146,7 +146,6 @@ class PasteBuffer {
     try {
       let pgPdf = await _score_.toPdf("stamp", false, [pn]) ;
       let pbScore = await this.getScore() ;
-      _shade_.show("Adding page to paste buffer...") ;
       this.score = await pbScore.bindScore(pgPdf, pbScore.pgs.length + 1) ;
       await this.put(this.dbKey, await this.score.toPdf()) ;
       this.signal("pod-pgs-changed") ;
@@ -157,16 +156,13 @@ class PasteBuffer {
         dialog("Unable to copy page:<br>" + err.message);
       } else throw err; 
     }
-    finally {
-      _shade_.hide();
-    }
   }
 
   async pgPop() {
     this.score = await this.getScore() ;
     let len = this.score.pgs.length ;
     if(len == 0) return ;
-    this.score.pgCut(len) ;
+    this.score.pgCut(len, false) ;
     await this.put(this.dbKey, await this.score.toPdf()) ;
     this.signal("pod-pgs-changed") ;
     this.announce();
