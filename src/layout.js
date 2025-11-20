@@ -219,7 +219,7 @@ class Layout {
     this.pnListener = listen(_body_, "NUMBERS", (e) => {
       if (e.detail.sender instanceof Layout) return;
       if(e.detail.tag == "pn") this.pgGoTo(_score_.numbers.pn);
-      else this.renumber() ;
+      else this.renumber();
     });
     delay(1, () => (this.elm.dataset.tag = this.constructor.name)); // run after subclass constructor
   }
@@ -227,8 +227,8 @@ class Layout {
   renumber() {
     // score.numbers.<<first || prelim>> changed.
     // Note: overriden by TableLayout as it doesn't use pagers
-    this.pagerLeft.build() ;
-    this.pagerRight.build() ;
+    this.pagerLeft.build();
+    this.pagerRight.build();
   }
 
   destructor() {
@@ -238,7 +238,7 @@ class Layout {
       let styles = getComputedStyle(this.elm);
       this.cell.pz = { left: styles.left, top: styles.top, fontSize: (parseFloat(styles.fontSize) / _pxPerEm_) + "em" };
     }
-    for(let pg of this.score.pgs) pg.deflate() ; 
+    for(let pg of this.score.pgs) pg.deflate(); 
     unlisten(this.pnListener);
     this.elm.remove();
   }
@@ -260,43 +260,43 @@ class Layout {
     //    has slightly different logic.
     // @after option function to run after animation completes and pg (or cloned pg)
     //    has been removed from the dom
-    let elm = pg.elm ;
+    let elm = pg.elm;
     if(layoutKey == "table") {
-       elm = pg.thumbElm ;
+       elm = pg.thumbElm;
        if(clone) {
-         let tmp = elm.cloneNode(false) ;
-         elm.parentElement.append(tmp) ; // add clone to dom, fixing its location for upcoming getBox
-         elm = tmp ;
+         let tmp = elm.cloneNode(false);
+         elm.parentElement.append(tmp); // add clone to dom, fixing its location for upcoming getBox
+         elm = tmp;
       }
     }
     else if(clone) {
-       let clone = await pg.clone(true) ;
+       let clone = await pg.clone(true);
        if(pg.canvas) {
          // need to resize fabric's components to match 
-         clone.canvas.lowerCanvasEl.style.width = pg.canvas.lowerCanvasEl.style.width ;
-         clone.canvas.upperCanvasEl.style.width = pg.canvas.upperCanvasEl.style.width ;
-         clone.canvas.lowerCanvasEl.style.height = pg.canvas.lowerCanvasEl.style.height ;
-         clone.canvas.upperCanvasEl.style.height = pg.canvas.upperCanvasEl.style.height ;
+         clone.canvas.lowerCanvasEl.style.width = pg.canvas.lowerCanvasEl.style.width;
+         clone.canvas.upperCanvasEl.style.width = pg.canvas.upperCanvasEl.style.width;
+         clone.canvas.lowerCanvasEl.style.height = pg.canvas.lowerCanvasEl.style.height;
+         clone.canvas.upperCanvasEl.style.height = pg.canvas.upperCanvasEl.style.height;
          if(clone.mozCanvas) {
-           clone.mozCanvas.style.height = elm.mozCanvas.style.height ;
-           clone.mozCanvas.style.width = elm.mozCanvas.style.width ;
+           clone.mozCanvas.style.height = elm.mozCanvas.style.height;
+           clone.mozCanvas.style.width = elm.mozCanvas.style.width;
          }
-         pg.elm.parentElement.append(clone.elm) ;
-         elm = clone.elm ;
+         pg.elm.parentElement.append(clone.elm);
+         elm = clone.elm;
        }
     }    
     let srcBox = getBox(elm);
     let dstBox = getBox(dataIndex("tag", cell.elm).cellIcon);
-    _body_.append(elm) ;
-    let css = elm.style.cssText ; 
+    _body_.append(elm);
+    let css = elm.style.cssText; 
     animate(elm, 
      { left: srcBox.x + "px", top: srcBox.y + "px", zIndex:100 },
      { left: dstBox.x + dstBox.width/2 + "px", top: dstBox.y + dstBox.height/2 +  "px", fontSize: 0},
       `all ${_gsgs_}ms`, () => { 
-         elm.remove() ;
-         elm.style.cssText = css ; //restore styles so if/when a deletion is undone
-         if(after) after() ;
-      }) ;       
+         elm.remove();
+         elm.style.cssText = css; //restore styles so if/when a deletion is undone
+         if(after) after();
+      });       
   };
 
   async onDown(e) {
@@ -332,7 +332,7 @@ class Layout {
         if (layoutKey == "vertical" && e.clientY - box.top > box.height / 2) pn++;
         else if (e.clientX - box.x > box.width / 2) pn++;
       }
-      _menu_.autoOff.run() ;
+      _menu_.autoOff.run();
 
       switch (pageKey) {
 
@@ -351,35 +351,35 @@ class Layout {
         }
 
         case "delete": {
-          if(this.score.pgs.length == 1) break ; // no deleting last pg
-          score.pgCut(pn) ;
+          if(this.score.pgs.length == 1) break; // no deleting last pg
+          score.pgCut(pn);
           if(pn == _score_.numbers.pn) // deleting active pg?
             _score_.numbers.pn = Math.max(1, _score_.numbers.pn - 1) // choose different one
           else if(pn < _score_.numbers.pn) // active pg must decrement
-            --_score_.numbers.pn ;
+            --_score_.numbers.pn;
           await this.animateToCell(pg, false, _menu_.rings.page.cells.delete, layoutKey, 
-            () => this.build(false)) ;
-          break ;
+            () => this.build(false));
+          break;
         }
 
         // case "undo" note: handled entirely in menu.js
 
         case "copy": { 
           // copy to _podPb_
-          _shade_.show("Copying...", 250) ;
-          await _podPb_.pgCopy(pn) ;
+          _shade_.show("Copying...", 250);
+          await _podPb_.pgCopy(pn);
           _shade_.hide();
-          await this.animateToCell(pg, true, _menu_.rings.page.cells.paste,layoutKey) ; 
-          break ;
+          await this.animateToCell(pg, true, _menu_.rings.page.cells.paste,layoutKey); 
+          break;
         }
 
         case "paste": { 
           // paste from  _podPb_
-          _shade_.show("Pasting...", 50) ;
-          _menu_.activateCell(null) ; 
-          await _podPb_.pgPaste(pn) ;
-          _shade_.hide() ;
-          _menu_.activateCell(_menu_.rings.page.cells.paste) ;
+          _shade_.show("Pasting...", 50);
+          _menu_.activateCell(null); 
+          await _podPb_.pgPaste(pn);
+          _shade_.hide();
+          _menu_.activateCell(_menu_.rings.page.cells.paste);
           break;
         }
 
@@ -389,7 +389,7 @@ class Layout {
             { Merge: { svg: "Merge" }, Cancel: { svg: "Cancel" } },
             (e, prop, tag, args) => {
               if(tag == "Merge") pg.mergeObjects();
-              args.close() ;
+              args.close();
             });
           break;
         }
@@ -443,7 +443,7 @@ class Layout {
     // layouts require all pages to be the same size. When a page as shorter and/or narrower
     // than the score's max height/width, add a border to pad it out.
     if(pg.deferred) // reschedule the padding...
-      return delay(5, () => this.pgPad(pg)) ;
+      return delay(5, () => this.pgPad(pg));
     if (!pg.inflated || (pg.width == this.score.maxWidth && pg.height == this.score.maxHeight)) return;
     let horz = ((this.score.maxHeight - pg.height * pg.stretch) * pg.zoom) / 2;
     let vert = ((this.score.maxWidth - pg.width * pg.stretch) * pg.zoom) / 2;
@@ -500,7 +500,7 @@ class Layout {
        top: layoutBox.height > innerWidth + Layout.margin * 2 ? Layout.margin + "px" : innerHeight / 2 + "px",
        fontSize:elm.style.fontSize,
      },
-     `left, stop, font-size ${_gs_}ms`) ;
+     `left, stop, font-size ${_gs_}ms`);
   }
 }
 
@@ -517,16 +517,16 @@ class BookLayout extends Layout {
           .BookLayout__spine {
             position:absolute;
             left:50%;
-            width: 0 ;
+            width: 0;
             height:0;
-            z-index: 1 ;
+            z-index: 1;
            }
           .BookLayout__binding {
              height:100%; 
              width:2em;
              left:calc(50% - 1em);
              position:absolute;
-             pointer-events: none ;
+             pointer-events: none;
              background: linear-gradient(to right,
                #fff  0%,  
                #6004  4%,
@@ -540,18 +540,18 @@ class BookLayout extends Layout {
              ),linear-gradient(160deg,
                #fff0 0%,
                #6444 100%
-             ) ;
+             );
              mix-blend-mode: multiply;
              opacity: 0.4;
           }
          .BookLayout__slot {
             position:absolute;
-            overflow: hidden ;
+            overflow: hidden;
           }
           .BookLayout__shadow {
-            position:absolute ;
-            height: 125% ; /* extra is clipped off */
-            pointer-events: none ;
+            position:absolute;
+            height: 125%; /* extra is clipped off */
+            pointer-events: none;
           }
        `
   );
@@ -643,7 +643,7 @@ class BookLayout extends Layout {
       if (!adjusting && pn > pgCount) return (cursor.textContent = "\u2219"); // no pg on right side, so no pn either
       return pnToDiv(pn, cursor);
     });
-    this.pagerLeft.elm.style.left = this.pagerRight.elm.style.right = 0 ;
+    this.pagerLeft.elm.style.left = this.pagerRight.elm.style.right = 0;
   }
 
   destructor() {
@@ -657,18 +657,18 @@ class BookLayout extends Layout {
     Object.assign(this, this.cell.stash);
     this.pn0 = -2;
     let { fit, score } = this;
-    fit = fit.toLowerCase() ;
+    fit = fit.toLowerCase();
 
     // Layout scroll g((eo)metry) in units of css pixels
     let g = this.cell.geo = (this.cell.geo || {});
     // top/bottom gap and left/right gap, for a border-radius of .8em
-    g.tbGap = g.lrGap = .8 * _pxPerEm_ ;
-    g.pagerWidth = 0 ;
+    g.tbGap = g.lrGap = .8 * _pxPerEm_;
+    g.pagerWidth = 0;
 
     if(this.pnShow == "On") {
        // Compensate for width of pager, and remove  gap on left and right
-      g.pagerWidth = Pager.width ;
-      g.lrGap = 0 ;
+      g.pagerWidth = Pager.width;
+      g.lrGap = 0;
     }
     g.pgCount = this.score.pgs.length;
 
@@ -686,15 +686,15 @@ class BookLayout extends Layout {
       g.bookHeight = g.tbGap + g.pgHeight + g.tbGap;
 
       if(fit == "auto") {
-        // Check if layout will fit entirely within window. If not, recalculate with fit = HEIGHT ;
-        fit = "width" ; // assume width
-        // if either dimension doesn't fit window, change fit to HEIGHT ;
-        let layoutWidth = Math.round(Layout.margin * 2 + (g.pgWidth + g.lrGap) * 2 + g.pagerWidth * 2) ;
+        // Check if layout will fit entirely within window. If not, recalculate with fit = HEIGHT;
+        fit = "width"; // assume width
+        // if either dimension doesn't fit window, change fit to HEIGHT;
+        let layoutWidth = Math.round(Layout.margin * 2 + (g.pgWidth + g.lrGap) * 2 + g.pagerWidth * 2);
         if(layoutWidth > innerWidth)
-          fit = "height" ;
+          fit = "height";
         else {
-          let layoutHeight = Math.round(Layout.margin * 2 + g.pgHeight + g.tbGap * 2) ;
-          if(layoutHeight > innerHeight) fit = "height" ;
+          let layoutHeight = Math.round(Layout.margin * 2 + g.pgHeight + g.tbGap * 2);
+          if(layoutHeight > innerHeight) fit = "height";
         } 
       }
     }
@@ -703,13 +703,13 @@ class BookLayout extends Layout {
       g.bookHeight = innerHeight - Layout.margin - Layout.margin;
       g.pgHeight = g.bookHeight - g.tbGap - g.tbGap;
       g.pgWidth = Math.floor(g.pgHeight * (score.maxWidth / score.maxHeight));
-      g.bookWidth = g.lrGap + g.pagerWidth + g.pgWidth + g.pgWidth + g.pagerWidth + g.lrGap ;
+      g.bookWidth = g.lrGap + g.pagerWidth + g.pgWidth + g.pgWidth + g.pagerWidth + g.lrGap;
     }
     g.zoom = g.pgWidth / score.maxWidth;
 
     // this.elm must have its fontsize *style* set in em's, initially 1, but 
     // can be changed by user pan/zoom
-    this.elm.style.fontSize = "1em" ;
+    this.elm.style.fontSize = "1em";
        
     //
     // Use g(eo(metry)) to set size of all elements in em's
@@ -744,27 +744,27 @@ class BookLayout extends Layout {
     if(this.pnShow == "On") {
       this.book.append(this.pagerLeft.elm);
       this.book.append(this.pagerRight.elm);
-      this.pagerLeft.build() ;
-      this.pagerRight.build() ;
+      this.pagerLeft.build();
+      this.pagerRight.build();
     } else {
       this.pagerLeft.elm.remove();
       this.pagerRight.elm.remove();
     }
-    if(!animated) return ;
+    if(!animated) return;
     this.pgGoTo(_score_.numbers.pn);
 
     // 
     // set layout's screen position 
     //
 
-    let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon) ;
+    let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
 
     if(this.cell.pz)  // custom user-set size/position
-      animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0}, this.cell.pz, `left, top, font-size ${_gs_}ms`) ;
+      animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0}, this.cell.pz, `left, top, font-size ${_gs_}ms`);
     else animate(this.elm, 
        {left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
        this.centerLT({ fontSize: "1em"}),
-      `left, top, font-size ${_gs_}ms`) ;
+      `left, top, font-size ${_gs_}ms`);
   }
 
   async onDown(e) {
@@ -881,11 +881,11 @@ class BookLayout extends Layout {
       this.slots[slot].append(pg.elm);
       // add a shadow (actually, a border) to right page where it joins the left, so fold between white pages is visible:
       let addShadow = () => {
-        if(pg.deferred) return delay(1, () => addShadow()) ;
-        if(pn & 1) pg.elm.firstChild.style.borderLeft = `.05em solid ${BookLayout.bindingColor}` ; 
-        else pg.elm.firstChild.style.borderLeft = "unset" ;
-      } ;
-      addShadow() ;
+        if(pg.deferred) return delay(1, () => addShadow());
+        if(pn & 1) pg.elm.firstChild.style.borderLeft = `.05em solid ${BookLayout.bindingColor}`; 
+        else pg.elm.firstChild.style.borderLeft = "unset";
+      };
+      addShadow();
     }
   }
 
@@ -911,7 +911,7 @@ class BookLayout extends Layout {
       follower.style.zIndex = 2;
       shadow.style.background = "radial-gradient(ellipse at right, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 50%, transparent 70%)";
       let xFactor = (x + pgWidth) / (pgWidth + pgWidth); // x contrib to rotation, decreases right to left
-      let yFactor = (y / pgHeight - 0.5) * 2; // [-1,1] ;  // y contrib to rotation, 0 at middle, max at top/bottom
+      let yFactor = (y / pgHeight - 0.5) * 2; // [-1,1];  // y contrib to rotation, 0 at middle, max at top/bottom
       let pullingAngle = (Math.PI / 2) * xFactor * yFactor; // angle of pull relative to spine: positive means clockwise
       let pullingEdgeWidth = (pgWidth - x) / 2; // width of pulling edge at page top (when pullingAngle <= 0) or bottom (pullingAngle > 0).
       let pulledAngle; // angle of pulled (i.e. the "fold" in the page) relative to spine
@@ -955,7 +955,7 @@ class BookLayout extends Layout {
       follower.style.zIndex = 1;
       shadow.style.background = "radial-gradient(ellipse at left, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 50%, transparent 70%)";
       let xFactor = 1 - (x + pgWidth) / (pgWidth + pgWidth); // x contrib to rotation, decreases left to right
-      let yFactor = (y / pgHeight - 0.5) * 2; // [-1,1] ;
+      let yFactor = (y / pgHeight - 0.5) * 2; // [-1,1];
       let pullingAngle = -(Math.PI / 2) * xFactor * yFactor;
       let pullingEdgeWidth = (pgWidth + x) / 2;
       let pulledEdgeWidth;
@@ -1054,28 +1054,28 @@ class BookLayout extends Layout {
     let pn0 = pn - (pn & 0x01 ? 3 : 2);
     this.pgFlipAnimator.cancel();
     let advancing = pn > this.pn0;
-    if(pn == 1) advancing = false ; // can't advance into 1st page
+    if(pn == 1) advancing = false; // can't advance into 1st page
 
     if(advancing) { 
-      await this.pgMount(pn0+2, 4, false) ;
-      await this.pgMount(pn0+3, 5, false) ;
-      await this.pgMount(pn0  , 2, true) ;
-      await this.pgMount(pn0+1, 3, true) ;
+      await this.pgMount(pn0+2, 4, false);
+      await this.pgMount(pn0+3, 5, false);
+      await this.pgMount(pn0  , 2, true);
+      await this.pgMount(pn0+1, 3, true);
       this.pn0 = pn0 - 2;
     }
     else {
-      await this.pgMount(pn0+2, 0, false) ;
-      await this.pgMount(pn0+3, 1, false) ;
-      await this.pgMount(pn0+4, 2, true) ;
-      await this.pgMount(pn0+5, 3, true) ;
-      this.pn0 = pn0 + 2 ;
+      await this.pgMount(pn0+2, 0, false);
+      await this.pgMount(pn0+3, 1, false);
+      await this.pgMount(pn0+4, 2, true);
+      await this.pgMount(pn0+5, 3, true);
+      this.pn0 = pn0 + 2;
     }
-    let {pgWidth, pgHeight} = this.cell.geo ;
+    let {pgWidth, pgHeight} = this.cell.geo;
     if (advancing) this.pgFlip(pgWidth, 0, -pgWidth, pgHeight / 2, true,
       async () => await this.pgShift(true, false));
     else this.pgFlip(-pgWidth, pgHeight, pgWidth, pgHeight /2, false,
-      async() => await this.pgShift(false, false)) ;
-    this.pnPost(pn, true) ;
+      async() => await this.pgShift(false, false));
+    this.pnPost(pn, true);
     return pn;
   }
 
@@ -1088,7 +1088,7 @@ class BookLayout extends Layout {
     //        1 4
     //        0 5
     for (let i of [0, 1, 2]) this.slots[i].style.left = "unset";
-    for (let i of [0, 1, 2]) this.slots[i].style.right = "0" ;
+    for (let i of [0, 1, 2]) this.slots[i].style.right = "0";
     for (let i of [5, 4, 3]) this.slots[i].style.right = "unset";
     for (let i of [5, 4, 3]) this.slots[i].style.left = ".0";
     for (let i of [0, 1, 2, 5, 4, 3]) {
@@ -1154,8 +1154,8 @@ class ScrollLayout extends Layout {
   static css = css(
     "ScrollLayout",
     `   .ScrollLayout__frame {
-          position:absolute ;
-          overflow: hidden ;
+          position:absolute;
+          overflow: hidden;
         }
         .ScrollLayout__sash {
           position: relative;
@@ -1227,11 +1227,11 @@ class ScrollLayout extends Layout {
   constructor(score, cell) {
     super(score, cell);
     Object.assign(this, dataIndex("tag", this.elm));
-    this.elm.cell = cell ;
+    this.elm.cell = cell;
     _body_.append(this.elm);
     this.pointerListener = listen(this.elm, ["pointerdown"], this.onDown.bind(this));
 
-    this.props = cell.key == "horizontal" ? NORMAL_PROPS : ORTHO_PROPS ;
+    this.props = cell.key == "horizontal" ? NORMAL_PROPS : ORTHO_PROPS;
 
     // Create left/right (top/bottom) pager instances:
     this.pagerLeft = new Pager(this.props.LEFT, (stash, adjusting, cursor) => 
@@ -1258,11 +1258,11 @@ class ScrollLayout extends Layout {
   }
 
   async build(animated=true) {
-    this.animated = animated ; 
+    this.animated = animated; 
     Object.assign(this, this.cell.stash);
     let { fit, gap, pgSnap, sash, score, pgShow } = this;
     let { LEFT, RIGHT, TOP, WIDTH, HEIGHT, MAXWIDTH, MAXHEIGHT, INNERWIDTH, INNERHEIGHT } = this.props;
-    fit = fit.toLowerCase() ;
+    fit = fit.toLowerCase();
     clearChildren(sash);
 
     // Layout scroll g((eo)metry) in units of css pixels, and "as if"
@@ -1270,50 +1270,50 @@ class ScrollLayout extends Layout {
     // this.props can effectively make this vertical by swapping
     // property names.
     let g = (this.cell.geo = this.cell.geo || {scroll: {},sash: {},pg: {}});
-    gap /= 100 ; // gap % as fraction
+    gap /= 100; // gap % as fraction
 
 
-    g.rollGirth = this.pnShow == "On" ? Pager.width : Layout.margin ;
-    g.pgCount = this.score.pgs.length ;
-    g.pgShow = Math.min(pgShow, g.pgCount) ; // g.pgShow must be <= total page count
-    g.pgSnap = Math.min(pgSnap, g.pgCount) ; // g.pgSnap must be <= total page count
+    g.rollGirth = this.pnShow == "On" ? Pager.width : Layout.margin;
+    g.pgCount = this.score.pgs.length;
+    g.pgShow = Math.min(pgShow, g.pgCount); // g.pgShow must be <= total page count
+    g.pgSnap = Math.min(pgSnap, g.pgCount); // g.pgSnap must be <= total page count
 
     if (fit == "none") {
-      g.pg[WIDTH] = score[MAXWIDTH] ;
+      g.pg[WIDTH] = score[MAXWIDTH];
       g.gap = gap * g.pg[WIDTH];
-      g.pg[HEIGHT] = score[MAXHEIGHT] ;
+      g.pg[HEIGHT] = score[MAXHEIGHT];
       g.scroll[WIDTH] = g.rollGirth + g.gap + (g.pg[WIDTH] + g.gap) * g.pgShow + g.rollGirth;
       g.scroll[HEIGHT] = g.gap + g.pg[HEIGHT] + g.gap;
     } 
 
     if (fit == "auto" || fit == WIDTH) {
-      g.scroll[WIDTH] = window[INNERWIDTH] - Layout.margin - Layout.margin ;
-      g.pg[WIDTH] = ((g.scroll[WIDTH] - g.rollGirth - g.rollGirth) / g.pgShow) / (1 + gap + gap/g.pgShow) ;
-      g.gap = gap * g.pg[WIDTH] ;
+      g.scroll[WIDTH] = window[INNERWIDTH] - Layout.margin - Layout.margin;
+      g.pg[WIDTH] = ((g.scroll[WIDTH] - g.rollGirth - g.rollGirth) / g.pgShow) / (1 + gap + gap/g.pgShow);
+      g.gap = gap * g.pg[WIDTH];
       g.pg[HEIGHT] = Math.floor(g.pg[WIDTH] * (score[MAXHEIGHT] / score[MAXWIDTH]));
-      g.scroll[HEIGHT] = g.gap + g.pg[HEIGHT] + g.gap ;
+      g.scroll[HEIGHT] = g.gap + g.pg[HEIGHT] + g.gap;
 
       if(fit == "auto") {
-        // Check if layout will fit entirely within window. If not, recalculate with fit = HEIGHT ;
-        fit = WIDTH ; // assume width
-        // if either dimension doesn't fit window, change fit to HEIGHT ;
-        let layoutWidth = Math.round(Layout.margin * 2 + (g.pg[WIDTH] + g.gap) * g.pgShow + g.gap + g.rollGirth * 2) ;
+        // Check if layout will fit entirely within window. If not, recalculate with fit = HEIGHT;
+        fit = WIDTH; // assume width
+        // if either dimension doesn't fit window, change fit to HEIGHT;
+        let layoutWidth = Math.round(Layout.margin * 2 + (g.pg[WIDTH] + g.gap) * g.pgShow + g.gap + g.rollGirth * 2);
         if(layoutWidth > window[INNERWIDTH])
-          fit = HEIGHT ;
+          fit = HEIGHT;
         else {
-          let layoutHeight = Math.round(Layout.margin * 2 + g.pg[HEIGHT] + g.gap * 2) ;
-          if(layoutHeight > window[INNERHEIGHT]) fit = HEIGHT ;          
+          let layoutHeight = Math.round(Layout.margin * 2 + g.pg[HEIGHT] + g.gap * 2);
+          if(layoutHeight > window[INNERHEIGHT]) fit = HEIGHT;          
         } 
       }
     }
 
     if (fit == HEIGHT) {
-      g.scroll[HEIGHT] = window[INNERHEIGHT] - Layout.margin - Layout.margin ;
-      g.pg[HEIGHT] = g.scroll[HEIGHT] / (1 + gap + gap) ;
-      g.gap = gap * g.pg[HEIGHT] ;
+      g.scroll[HEIGHT] = window[INNERHEIGHT] - Layout.margin - Layout.margin;
+      g.pg[HEIGHT] = g.scroll[HEIGHT] / (1 + gap + gap);
+      g.gap = gap * g.pg[HEIGHT];
 
-      g.pg[WIDTH] = g.pg[HEIGHT] * score[MAXWIDTH] / score[MAXHEIGHT] ;
-      g.scroll[WIDTH] = g.rollGirth + g.gap + (g.gap + g.pg[WIDTH]) * g.pgShow + g.rollGirth ;
+      g.pg[WIDTH] = g.pg[HEIGHT] * score[MAXWIDTH] / score[MAXHEIGHT];
+      g.scroll[WIDTH] = g.rollGirth + g.gap + (g.gap + g.pg[WIDTH]) * g.pgShow + g.rollGirth;
     } 
 
     g.sash[WIDTH] = (g.pg[WIDTH] + g.gap) * g.pgCount + g.gap;
@@ -1322,7 +1322,7 @@ class ScrollLayout extends Layout {
     g.zoom = g.pg[WIDTH] / score[MAXWIDTH];
 
     // this.elm must have its fontsize *style* set in em's: initially 1, but changeable by user pan/zoom
-    this.elm.style.fontSize = "1em" ;
+    this.elm.style.fontSize = "1em";
        
     //
     // Use g(eo(metry)) to set size of all elements in em's
@@ -1376,8 +1376,8 @@ class ScrollLayout extends Layout {
     if(this.pnShow == "On") {
       this.leftRoll.append(this.pagerLeft.elm);
       this.rightRoll.append(this.pagerRight.elm);
-      this.pagerLeft.build() ;
-      this.pagerRight.build() ;
+      this.pagerLeft.build();
+      this.pagerRight.build();
     } else {
       this.pagerLeft.elm.remove();
       this.pagerRight.elm.remove();
@@ -1387,12 +1387,12 @@ class ScrollLayout extends Layout {
     // animate centering of layout's screen position
     //
 
-    let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon) ;
+    let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
 
     animate(this.elm,
       { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
       this.cell.pz ? this.cell.pz : this.centerLT({ fontSize: "1em"}),
-      `left, top, font-size ${_gs_}ms`) ;
+      `left, top, font-size ${_gs_}ms`);
     await this.pgGoTo(_score_.numbers.pn);
   }
 
@@ -1445,7 +1445,7 @@ class ScrollLayout extends Layout {
         // When delay between pointerup and previous event < 200ms, compute "velocity" of last movement.
         let delay = eup.timeStamp - e.mv0.timeStamp;
         let vel = delay < 200 ? (e.mv0[CLIENTX] - e.mv1[CLIENTX]) / (e.mv0.timeStamp - e.mv1.timeStamp) : 0;
-        vel = vel || 0 ; // When e.mv0 ==- e.mv1, vel will be NaN, so substitute 0.
+        vel = vel || 0; // When e.mv0 ==- e.mv1, vel will be NaN, so substitute 0.
         vel /= 5; // dampen the velocity
         this.pgSnapTo(eup.timeStamp - e.timeStamp > 200 ? "none" :
             e.mv0[CLIENTX] > e.mv1[CLIENTX] ? "right" :
@@ -1542,12 +1542,12 @@ class ScrollLayout extends Layout {
   async pgSnapTo(dir, vel) {
     // "snap" displayed pages so that they align with a page boundary.  @dir is "right" or "left" or none (i.e. nearest)
     // @vel is "velocity". If pgSnap == 0, and dir != none, then vel is used to fling the sash left or right.  
-    let { LEFT, WIDTH } = this.props ;
-    let { gap, pgCount, pgSnap, pgShow, sashLimit} = this.cell.geo ;
-    let pgWidth = this.cell.geo.pg[WIDTH] ;
-    let snapDur = Math.min(vel ? Math.abs(250 / vel) : 250, 750)  ; // how long the snap takes, in ms
+    let { LEFT, WIDTH } = this.props;
+    let { gap, pgCount, pgSnap, pgShow, sashLimit} = this.cell.geo;
+    let pgWidth = this.cell.geo.pg[WIDTH];
+    let snapDur = Math.min(vel ? Math.abs(250 / vel) : 250, 750) ; // how long the snap takes, in ms
     if (pgSnap > 0) {
-      let snapWidth = (pgWidth + gap) * pgSnap ;
+      let snapWidth = (pgWidth + gap) * pgSnap;
       let travel = this.sashStart / snapWidth;
       if (dir == "right") this.sashStart = Math.ceil(travel) * snapWidth;
       else if (dir == "left") this.sashStart = Math.floor(travel) * snapWidth;
@@ -1557,7 +1557,7 @@ class ScrollLayout extends Layout {
         this.sashStart = (dX < 0.5 ? Math.ceil(travel) : Math.floor(travel)) * snapWidth;
       }
     }
-    else if(dir) this.sashStart += vel * pgShow * (pgWidth + gap) ;
+    else if(dir) this.sashStart += vel * pgShow * (pgWidth + gap);
     this.sashStart = clamp(this.sashStart, sashLimit, 0);
     // what will be the new page number?
     let pn = Math.round((-this.sashStart) / (pgWidth + gap) + 1);
@@ -1569,8 +1569,8 @@ class ScrollLayout extends Layout {
     this.pgMount(pn, dir);
 
     // animate the snap, updating on every animation frame
-    animate(this.sash, null, { [LEFT]:this.sashStart / _pxPerEm_ + "em"}, `${LEFT} ${snapDur / 1000}s ease-out`) ;
-    this.spinRollers(snapDur) ;
+    animate(this.sash, null, { [LEFT]:this.sashStart / _pxPerEm_ + "em"}, `${LEFT} ${snapDur / 1000}s ease-out`);
+    this.spinRollers(snapDur);
   }
 
   spinRollers(dur = 0) {
@@ -1641,7 +1641,7 @@ class TableLayout extends Layout {
         }
         .TableLayout__pg-active {
          /* active page is larger than others, and on top in z-order */
-          transform: scale(1.15) ;
+          transform: scale(1.15);
           z-index: 3;
         }
         .TableLayout__pn {
@@ -1656,7 +1656,7 @@ class TableLayout extends Layout {
   );
 
   bMarkTimer = new Schedule();
-  active = null ; // active pg
+  active = null; // active pg
 
   elm = helm(`
     <div class="pz">
@@ -1684,115 +1684,115 @@ class TableLayout extends Layout {
     // When true, we build 1 page per animation frame, and move the layout as more
     // rows are added. This works fine for initial builds, but is too much if
     // we're rebuilding after a cut or paste.
-    this.animated = animated ;
+    this.animated = animated;
     if(this.active) {
-      this.active.classList.remove("TableLayout__pg-active") ;
-      let canvas = this.active.querySelector(".canvas-container")?.remove() ;
-      this.active = null ;
+      this.active.classList.remove("TableLayout__pg-active");
+      let canvas = this.active.querySelector(".canvas-container")?.remove();
+      this.active = null;
     }
-    Object.assign(this, this.cell.stash) ;
+    Object.assign(this, this.cell.stash);
     // pages is from cell.stash: it determines the number of pages per row
-    let { grid, pages, score, table } = this ;
+    let { grid, pages, score, table } = this;
 
     // Compute layout at a 1em fontSize
     clearChildren(grid);
-    this.elm.style.fontSize = "1em" ;
-    let gridMargin = parseFloat(TableLayout.gridMargin) * _pxPerEm_ ;
-    let tableWidth = innerWidth - Layout.margin * 2  ;
-    let gridWidth = tableWidth - gridMargin * 2 ;
+    this.elm.style.fontSize = "1em";
+    let gridMargin = parseFloat(TableLayout.gridMargin) * _pxPerEm_;
+    let tableWidth = innerWidth - Layout.margin * 2 ;
+    let gridWidth = tableWidth - gridMargin * 2;
     let hStep = this.horizontalGap * 0.01 + 1; // as fraction of pgWidth
     let vStep = this.verticalGap * 0.01 + 1; // as fraction of pgHeight
     let pgWidth = gridWidth / ((pages - 1) * hStep + 1);
     let pgHeight = (score.maxHeight / score.maxWidth) * pgWidth;
 
-    table.style.width = toEm(tableWidth) ;
-    grid.style.width = `calc(${toEm(tableWidth)} - ${gridMargin * 2}px)` ;
-    this.pgWidth = pgWidth ;
-    this.pgHeight = pgHeight ;
-    this.gridMargin = gridMargin ;
+    table.style.width = toEm(tableWidth);
+    grid.style.width = `calc(${toEm(tableWidth)} - ${gridMargin * 2}px)`;
+    this.pgWidth = pgWidth;
+    this.pgHeight = pgHeight;
+    this.gridMargin = gridMargin;
     // pre-compute position of pgs in the grid
-    this.gridCoords = [] ;
+    this.gridCoords = [];
     let xStep = pgWidth * hStep;
     let yStep = pgHeight * vStep;
     let pgCount = score.pgs.length;
-    for (let pn = 1, top = 0 ; pn <= pgCount; top += yStep) {
+    for (let pn = 1, top = 0; pn <= pgCount; top += yStep) {
       for (let col = 0, left = 0; col < pages && pn <= pgCount; pn++, col++, left += xStep) 
-          this.gridCoords.push({pn, top,  left}) ;
+          this.gridCoords.push({pn, top,  left});
     }
 
     // position layout for start of pg generation animation (a noop if this.animated == false)
-    this.toXY(Layout.margin, Layout.margin + gridMargin + pgHeight / 2) ;
+    this.toXY(Layout.margin, Layout.margin + gridMargin + pgHeight / 2);
 
     // Now add all pages
     if(this.score.pgs.find((pg) => pg.thumbElm == null)) { 
       // ...then one or more thumbnails are not built: animate the (possibly lengthy) building process
-      let cancelled = false ;
+      let cancelled = false;
 
       let dialogElm = dialog("",{ Cancel: { svg: "Cancel" } }, (e,_x,_y,args) => {
-        cancelled = true ;
-        args.close() ;
-      }) ;
+        cancelled = true;
+        args.close();
+      });
 
       let gen = async(i) => {
-        dialogElm.firstChild.innerHTML = `Building: ${Math.round((i/pgCount)* 100)}%<hr>` ;
-        let {pn, top} = this.gridCoords[i] ;
+        dialogElm.firstChild.innerHTML = `Building: ${Math.round((i/pgCount)* 100)}%<hr>`;
+        let {pn, top} = this.gridCoords[i];
         // Potentially expand the gridHeight to accomodate the next row:
-        let gridHeight = top + pgHeight ;
-        grid.style.height = toEm(gridHeight) ;
-        let nextTop = innerHeight - gridHeight - Layout.margin ;
-        if (nextTop < Layout.margin) this.toXY(Layout.margin, nextTop) ;
-        grid.append(await this.buildPg(pn)) ;
+        let gridHeight = top + pgHeight;
+        grid.style.height = toEm(gridHeight);
+        let nextTop = innerHeight - gridHeight - Layout.margin;
+        if (nextTop < Layout.margin) this.toXY(Layout.margin, nextTop);
+        grid.append(await this.buildPg(pn));
         if(++i < this.gridCoords.length && !cancelled)  {
-            this.animated ? delay(1, async () => await gen(i)): await(gen(i)) ;
+            this.animated ? delay(1, async () => await gen(i)): await(gen(i));
         }
         else {
           dialogElm.buttonsElm.self.fire("Cancel");
-          if(this.cell.pz) return (this.elm.style.cssText = this.cell.pz) ;// custom user-set pan/zoom
-          if(this.fit == "Height") this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / table.offsetHeight  + "em" ;
-          animate(this.elm, null, this.centerLT(), `left, top ${_gs_}ms`) ;
+          if(this.cell.pz) return (this.elm.style.cssText = this.cell.pz);// custom user-set pan/zoom
+          if(this.fit == "Height") this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / table.offsetHeight  + "em";
+          animate(this.elm, null, this.centerLT(), `left, top ${_gs_}ms`);
         }
       }
-      await gen(0) ;
+      await gen(0);
     }
     else {
       // ...then all thumbnails already built
       for(let {pn, top, left} of this.gridCoords) {
-        let gridHeight = top + pgHeight  ;
-        grid.style.height = toEm(gridHeight) ;
-        let nextTop = innerHeight - gridHeight - Layout.margin ;
-        if (nextTop < Layout.margin) this.toXY(Layout.margin, nextTop) ;
+        let gridHeight = top + pgHeight ;
+        grid.style.height = toEm(gridHeight);
+        let nextTop = innerHeight - gridHeight - Layout.margin;
+        if (nextTop < Layout.margin) this.toXY(Layout.margin, nextTop);
         grid.append(await this.buildPg(pn));
       }
-      let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon) ;
+      let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
       if(this.cell.pz)
         animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
-          this.cell.pz, `left, top, font-size ${_gs_}ms`) ;
+          this.cell.pz, `left, top, font-size ${_gs_}ms`);
       else { 
         if(this.fit == "Height") // reduce fontSize so layout fits window's height
-          this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / table.offsetHeight  + "em" ;
+          this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / table.offsetHeight  + "em";
         if(this.animated)
           animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
-            this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}ms`) ;
+            this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}ms`);
         else 
-          this.centerLT({ fontSize: this.elm.style.fontSize}) ; 
+          this.centerLT({ fontSize: this.elm.style.fontSize}); 
       }
     }
   }
 
   async buildPg(pn)
   {  // build elm to hold thumbnail
-    let {left, top} = this.gridCoords[pn-1] ;
+    let {left, top} = this.gridCoords[pn-1];
     let pg = this.score.pgs[pn - 1];
-    let elm = await pg.getThumbElm() ;
-    elm.pn = pn ;
-    elm.pg = pg ;
+    let elm = await pg.getThumbElm();
+    elm.pn = pn;
+    elm.pg = pg;
     Object.assign(elm.style,{
        position:"absolute",
        height:toEm(this.pgHeight),
        width:toEm(this.pgWidth),
        left:toEm(left),
        top:toEm(top),
-    }) ;  
+    });  
 
 
     if(this.pnShow == "On") {
@@ -1804,51 +1804,51 @@ class TableLayout extends Layout {
          background: this.score.pgs[pn -1].bookmark  || "unset",
          top: 0, 
          left: 0,
-      }) ;
-      elm.append(pnElm) ;
+      });
+      elm.append(pnElm);
       pnToDiv(pn, pnElm, false);
     }
     else
-      clearChildren(elm) ;
+      clearChildren(elm);
 
     if (pn == _score_.numbers.pn) 
        await this.buildPgActive(pn, elm) 
-    else this.score.pgUnuse(pg) ;
-    return elm ;
+    else this.score.pgUnuse(pg);
+    return elm;
   }
 
   async buildPgActive(pn, elm) {
     if (this.active) {
       // Turn current active elm into a normal, "inactive" elm. 
       // ...rebuild thumbnail, as elm could have been ink'ed.
-      let inactive = await this.active.pg.getThumbElm(true) ; 
+      let inactive = await this.active.pg.getThumbElm(true); 
       // copy pg, pn, and, if existing, move pagenumber to inactive
-      inactive.pg = this.active.pg ;
-      inactive.pn = this.active.pn ;
-      let pnElm = this.active.querySelector(".TableLayout__pn") ;
-      if(pnElm) inactive.append(pnElm) ;
+      inactive.pg = this.active.pg;
+      inactive.pn = this.active.pn;
+      let pnElm = this.active.querySelector(".TableLayout__pn");
+      if(pnElm) inactive.append(pnElm);
       this.score.pgUnuse(inactive.pg);
       // give inactive correct coords, then en-dom it:
-      let {left, top} = this.gridCoords[inactive.pn-1] ;
+      let {left, top} = this.gridCoords[inactive.pn-1];
       Object.assign(inactive.style,{
          position:"absolute",
          height:toEm(this.pgHeight),
          width:toEm(this.pgWidth),
          left:toEm(left),
          top:toEm(top),
-      }) ;  
-      this.active.replaceWith(inactive) ;
+      });  
+      this.active.replaceWith(inactive);
     }
     // Now build the new active pg:
     let pg = elm.pg = await this.score.pgUse(pn, false);
-    elm.pn = pn ;
+    elm.pn = pn;
     pg.elm.style.display = "block";
     // increase zoom to help distinguish active pg
     pg.setZoom(this.pgHeight / pg.score.maxHeight);
-    this.pgPad(pg) ;
-    elm.append(pg.elm) ;
+    this.pgPad(pg);
+    elm.append(pg.elm);
     elm.classList.add("TableLayout__pg-active");
-    this.active = elm ;
+    this.active = elm;
   }
 
 
@@ -1875,10 +1875,10 @@ class TableLayout extends Layout {
       this.layout = layout;
       this.gridMargin = parseInt(this.layout.gridMargin);
       this.active = this.layout.active;
-      let actBox = getBox(this.active) ;
-      Object.assign(this.active.style, { pointerEvents:"none", position: "absolute", opacity: ".75", zIndex: 99}) ;
-      this.offset = { x: actBox.width / 2, y:actBox.height / 2} ;
-      _body_.append(this.active) ;
+      let actBox = getBox(this.active);
+      Object.assign(this.active.style, { pointerEvents:"none", position: "absolute", opacity: ".75", zIndex: 99});
+      this.offset = { x: actBox.width / 2, y:actBox.height / 2};
+      _body_.append(this.active);
       // create list of transitions for our "splits"
       let box = getBox(e.target);
       this.splitsTransform = [-4, -2, 2, 4].map(d => `translateX(${box.width/d}px)`);
@@ -1907,67 +1907,67 @@ class TableLayout extends Layout {
           });
           this.splits = newSplits;
         }
-        this.toPn = this.splits[1]?.pn || 0 ;
+        this.toPn = this.splits[1]?.pn || 0;
       }
       else if(!target?.closest(".TableLayout__table")) {
         // move outside table: reset split
         this.splits.forEach((elm, i) => elm && (elm.style.cssText = this.splitsStyle[i]));
-        this.toPn = null ;  
+        this.toPn = null;  
       }
       else if(this.toPn == null) // released over table...no split...move active back home
-         this.toPn = this.active.pn ;
+         this.toPn = this.active.pn;
     }
 
     async up(eup) {
       this.splits.forEach((elm, i) => elm && (elm.style.cssText = this.splitsStyle[i]));
-      let score = this.layout.score ;
+      let score = this.layout.score;
       if(this.toPn == null) {
         let active = this.active;
-        score.pgUnuse(active.pg) ;
-        score.pgCut(active.pn) ;
+        score.pgUnuse(active.pg);
+        score.pgCut(active.pn);
         this.layout.animateToCell(active.pg, false, _menu_.rings.page.cells.delete, "table",
-              () => this.layout.build(false)) ;
-        return ;
+              () => this.layout.build(false));
+        return;
       }        
-      if(this.active.pn > this.toPn) this.toPn++ ;
+      if(this.active.pn > this.toPn) this.toPn++;
       score.pgMv(this.active.pn, this.toPn);
       // re-insert this.active at its new position: when pn == 1: prepend, else -1 it to make it 0-based, plus
       // additional -1 to identify element we'll insert after:
       if(this.toPn == 1) this.layout.grid.prepend(this.active);
       else {
-         let sibling = this.layout.grid.children.item(this.toPn-2) ;
-         sibling.after(this.active) ;
+         let sibling = this.layout.grid.children.item(this.toPn-2);
+         sibling.after(this.active);
       }
-      Object.assign(this.active.style, { pointerEvents: "auto", opacity: "1", zIndex: 2}) ;
+      Object.assign(this.active.style, { pointerEvents: "auto", opacity: "1", zIndex: 2});
       // put each thumbElm into its correct grid location
       for(let {left, pn, top} of this.layout.gridCoords) {
-        let elm = score.pgs[pn-1].thumbElm ;
-        let pnElm = elm.querySelector(".TableLayout__pn") ;
-        if(pnElm) pnToDiv(pn, pnElm, false) ;
-        elm.pn = pn ;
+        let elm = score.pgs[pn-1].thumbElm;
+        let pnElm = elm.querySelector(".TableLayout__pn");
+        if(pnElm) pnToDiv(pn, pnElm, false);
+        elm.pn = pn;
         elm.pg = score.pgs[pn-1];
-        Object.assign(elm.style, { left:toEm(left), top:toEm(top) }) ;
+        Object.assign(elm.style, { left:toEm(left), top:toEm(top) });
       }
-      this.layout.pnPost(this.toPn) ; 
+      this.layout.pnPost(this.toPn); 
     }
   }
 
 
   async onDown(e) {
     if (await super.onDown(e)) return;
-    this.table.setPointerCapture(e.pointerId) ;
-    let elm = e.target.closest(".TableLayout__pg") ;
-    if(!elm) return ;
-    let {pg, pn} = elm ;
-    let pnElm = elm.querySelector(".TableLayout__pn") ;
+    this.table.setPointerCapture(e.pointerId);
+    let elm = e.target.closest(".TableLayout__pg");
+    if(!elm) return;
+    let {pg, pn} = elm;
+    let pnElm = elm.querySelector(".TableLayout__pn");
     if(pnElm) {
       this.bMarkTimer.run(_longPressMs_, () => {
         // toggle bookmark for this pg
         if(pg.bookmark) {
-          pg.bookmark = null ;
+          pg.bookmark = null;
           pnElm.style.background = "unset";
-        } else pnElm.style.background = pg.bookmark = randomColor() ;
-      }) ;
+        } else pnElm.style.background = pg.bookmark = randomColor();
+      });
       _body_.dispatchEvent(new CustomEvent("BOOKMARK"));
     };
 
@@ -1977,36 +1977,36 @@ class TableLayout extends Layout {
     // pg "becomes" the active pg before the move. For this reason, we register
     // pointerup immediately, but it's actually work is delay'ed until
     // built is true, after this.pgGoTo has returned.
-    let cursor = null ;
-    let mv = null ;
-    let built = false ;
+    let cursor = null;
+    let mv = null;
+    let built = false;
 
     listen(this.table, "pointerup", async (eup) => {
       this.bMarkTimer.cancel();
       let finale = () => {
-        if(!built) delay(1, () => finale()) ;
+        if(!built) delay(1, () => finale());
         else {
-          unlisten(mv) ;
-          if(cursor) cursor.up(eup) ;
+          unlisten(mv);
+          if(cursor) cursor.up(eup);
         }
       }
-      finale() ;
+      finale();
      },
      { once: true }
     );
 
-    await this.pgGoTo(pn) ;
-    built = true ;
+    await this.pgGoTo(pn);
+    built = true;
 
     mv = listen(this.table, "pointermove", (emv) => {
-      if(this.score.pgs.length == 1) return ; // disallow action on last pg
-       mvmt(e, emv) ;
+      if(this.score.pgs.length == 1) return; // disallow action on last pg
+       mvmt(e, emv);
        if(e.moved) {
-         this.bMarkTimer.cancel() ;
-         if(!cursor) cursor = new this.Cursor(e, this) ;
-         cursor.mv(emv) ;
+         this.bMarkTimer.cancel();
+         if(!cursor) cursor = new this.Cursor(e, this);
+         cursor.mv(emv);
        }
-    }) ;
+    });
   }
 
   async pgGoTo(pn) {
@@ -2024,7 +2024,7 @@ class TableLayout extends Layout {
     if (this.active?.pn == pn) return pn; // active page was reselected, noop
     this.pnPost(pn);
     // turn elm at pn into an active (full) pg
-    await this.buildPgActive(pn, this.grid.children.item(pn - 1)) ;
+    await this.buildPgActive(pn, this.grid.children.item(pn - 1));
     return pn;
   }
 
@@ -2079,24 +2079,24 @@ class Pager {
   static css = css(
     "Pager", `
     .Pager {
-      position:absolute ;
+      position:absolute;
       top:0;
       font-size: ${50 / _dvPxRt_}px;
       line-height: ${50 / _dvPxRt_}px;
-      text-align:center ;
-      transition: opacity .35s ease-in-out ;
+      text-align:center;
+      transition: opacity .35s ease-in-out;
      }
      .Pager__cursor {
        position:absolute;
        color: #1f2328;
        text-shadow: .5px .5px #fff6,-1px -1px #fff6,.5px -1px #fff6,-1px .5px #fff6;
-       z-Index:1 ;
-       border-radius: .4em ;
-       background-color: #0000 ;
-       width:100% ;
+       z-Index:1;
+       border-radius: .4em;
+       background-color: #0000;
+       width:100%;
      }
      .Pager__cursor-active {
-       background: #8884 ;
+       background: #8884;
      }
      .Pager__bookmark {
        position:absolute;
@@ -2152,14 +2152,14 @@ class Pager {
 
   buildCursor() {
     let { HEIGHT, WIDTH, TOP } = this.props;
-    let cursorBox = getBox(this.cursor) ;
+    let cursorBox = getBox(this.cursor);
     let pagerBox = getBox(this.pager);
     this.cursor.style[HEIGHT] = this.cursor.style.lineHeight = pagerBox[WIDTH] + "px";
     // The cursor is positioned s.t. pg 1 is always at the top of the pager, and the max page is always at the bottom
     // of the pager.  Its Position is expressed as a percentage so that when a layout is scaled by adjusting
     // the font size of its pz element, the pager position will automatically adjust.
-    let topPx = (_score_.numbers.pn -1) * (pagerBox[HEIGHT] - cursorBox[HEIGHT]) / (_score_.pgs.length - 1) ;
-    this.cursor.style[TOP] = 100 * topPx / pagerBox[HEIGHT] + "%" ;
+    let topPx = (_score_.numbers.pn -1) * (pagerBox[HEIGHT] - cursorBox[HEIGHT]) / (_score_.pgs.length - 1);
+    this.cursor.style[TOP] = 100 * topPx / pagerBox[HEIGHT] + "%";
     this.formatFunc(_score_.numbers, false, this.cursor);
   }
 
@@ -2172,7 +2172,7 @@ class Pager {
     let leftPercent = ["left", "top"].includes(this.position) ? 70 : -10;
 
     _score_.pgs.forEach((pg, i) => {
-      if(!pg.bookmark) return ;
+      if(!pg.bookmark) return;
       this.elm.append(
         helm(
           `<div data-tag="bookmark" class="Pager__bookmark"
@@ -2187,35 +2187,35 @@ class Pager {
     e.stopImmediatePropagation(); // don't let event propagate to the layout
     let { TOP, WIDTH, HEIGHT, CLIENTX, CLIENTY, X, Y } = this.props;
     let { cursor, pager } = this;
-    let pgCount = _score_.pgs.length ;
+    let pgCount = _score_.pgs.length;
     let cursorBox = getBox(cursor);
     let pagerBox = getBox(pager);
     pager.setPointerCapture(e.pointerId);
     cursor.classList.add("Pager__cursor-active");
 
-    let ptrDiv = ptrMsg(e,(e,div) => this.formatFunc(_score_.numbers, true, div) && false, `width: ${cursor.style.width};`) ;
-    let origin = e[CLIENTY] ;
-    let cursorOffset = pagerBox[Y] + cursorBox.height ;
+    let ptrDiv = ptrMsg(e,(e,div) => this.formatFunc(_score_.numbers, true, div) && false, `width: ${cursor.style.width};`);
+    let origin = e[CLIENTY];
+    let cursorOffset = pagerBox[Y] + cursorBox.height;
 
     let setCursor = (clientPos, delta) => {
       // clientPos is vertical (horizontal) position of cursor
       // delta is horizontal (vertical) distance of pointer from middle of cursor...
-      delta = Math.max(1, delta / pagerBox.width) ;
-      if(delta == 1) origin = clientPos ; // reset origin when delta is 1
-      let dY = (clientPos - origin) / delta  ;
-      dY += cursorBox[HEIGHT] / 2 ; // middle of cursor
-      let newPos = origin + dY - cursorOffset  ;
+      delta = Math.max(1, delta / pagerBox.width);
+      if(delta == 1) origin = clientPos; // reset origin when delta is 1
+      let dY = (clientPos - origin) / delta ;
+      dY += cursorBox[HEIGHT] / 2; // middle of cursor
+      let newPos = origin + dY - cursorOffset ;
       cursor.style[TOP] = clamp(newPos, 0, pagerBox[HEIGHT] - cursorBox[HEIGHT]) + "px"; 
-      newPos += cursorBox[HEIGHT] / 2 ; // compensate for cursor height
-      _score_.numbers.pn = clamp(Math.floor((newPos / pagerBox[HEIGHT]) * pgCount) + 1, 1, pgCount) ;
+      newPos += cursorBox[HEIGHT] / 2; // compensate for cursor height
+      _score_.numbers.pn = clamp(Math.floor((newPos / pagerBox[HEIGHT]) * pgCount) + 1, 1, pgCount);
       // are we at a bookmark? 
       let bkCl = _score_.pgs[_score_.numbers.pn -1].bookmark;
-      if(bkCl) cursor.style.color = ptrDiv.style.color = bkCl ;
-      else cursor.style.color = ptrDiv.style.color = "black" ;
+      if(bkCl) cursor.style.color = ptrDiv.style.color = bkCl;
+      else cursor.style.color = ptrDiv.style.color = "black";
       clearChildren(cursor);
       clearChildren(this.cursor);
 
-      this.formatFunc(_score_.numbers, true, this.cursor) ;
+      this.formatFunc(_score_.numbers, true, this.cursor);
     };
 
     setCursor(e[CLIENTY], Math.abs(e[CLIENTX] - cursorBox[X] - cursorBox[WIDTH]/2));
@@ -2236,7 +2236,7 @@ class Pager {
     });
 
     let mv = listen(pager, "pointermove", (emv) => {
-      let moved = mvmt(e, emv, 6, 6) ;
+      let moved = mvmt(e, emv, 6, 6);
       if(moved) this.bMarkTimer.cancel();
       setCursor(emv[CLIENTY], Math.abs(emv[CLIENTX] - cursorBox[X] - cursorBox[WIDTH] / 2));
     });

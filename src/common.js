@@ -65,9 +65,9 @@ import { iconPaths } from "./icon.js";
 // Replacement for replaceWith that propogates dataset.tag and
 // returns the new element.
 Element.prototype["replace"] = function(newElm) {
-  this.replaceWith(newElm) ;
-  if(this.dataset.tag) newElm.dataset.tag = this.dataset.tag ;
-  return newElm ;
+  this.replaceWith(newElm);
+  if(this.dataset.tag) newElm.dataset.tag = this.dataset.tag;
+  return newElm;
 }
 
 // properties defined on the window "global" namespace
@@ -84,12 +84,12 @@ window._mobile_ =
   /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
     navigator.userAgent
   );
-window._maxMoveEvents_ = 5 ; // see flung() below
-window._moveEvents_ = [] ; // see flung() below
-window._msPerObj_ = 1 ; // for pdf printing, see score.toPdf()
+window._maxMoveEvents_ = 5; // see flung() below
+window._moveEvents_ = []; // see flung() below
+window._msPerObj_ = 1; // for pdf printing, see score.toPdf()
 window._pxPerEm_ = 25; // initial document.body's font size value: defines pixels in 1 em
 window._score_ = null; // current active score instance
-window._voidFunc_ = () => {} ; 
+window._voidFunc_ = () => {}; 
 
 // svg texture used for all draggable elements
 let panSvg =
@@ -374,12 +374,12 @@ css( // common css declarations. note: if you change bodyColor, be sure to
     background-color: var(--bodyColor);
     height: 100svh; /* small (min) viewport height */
     width: 100lvw;  /* large (max) viewport width */
-    position:fixed ;
-    font-size: ${_pxPerEm_}px ;
+    position:fixed;
+    font-size: ${_pxPerEm_}px;
     left:0;
-    top:0 ;
-    user-select: none ;
-    touch-action: none ;
+    top:0;
+    user-select: none;
+    touch-action: none;
   }
   *:not(input):not(textarea) {
     -webkit-user-select: none;  /* disable selection/Copy of UIWebView */
@@ -391,7 +391,7 @@ css( // common css declarations. note: if you change bodyColor, be sure to
   }
   select {
     border-radius: var(--borderRadius);
-    background-color: #0000 ;
+    background-color: #0000;
     color: var(--color-text);
     height:2.5em;
     font-size: var(--font-size-sm);
@@ -423,11 +423,11 @@ css( // common css declarations. note: if you change bodyColor, be sure to
     /* class for root-div of elements that can be pan-zoomed by user interaction */
     position:absolute;
     width:0;
-    height:0 ;
-    display:flex ;
-    justify-content: space-around ;
-    align-items:center ;
-    font-size:1em ;
+    height:0;
+    display:flex;
+    justify-content: space-around;
+    align-items:center;
+    font-size:1em;
   }
   .pz-set
     /* marker for root-div of elements that *have been* pan-zoomed by user interaction */
@@ -454,7 +454,7 @@ css( // common css declarations. note: if you change bodyColor, be sure to
     border-radius:var(--borderRadius);
     text-align: center;
     margin-top: 1em;
-    outline: none ;
+    outline: none;
   }
   .fadeLeft {
     z-index: 10;
@@ -474,9 +474,9 @@ css( // common css declarations. note: if you change bodyColor, be sure to
   }
   /* Create illusion of a raised edge */
   .raisedEdge {
-    border-radius: var(--borderRadius) ;
-    filter: var(--bodyShadow) ;
-    box-shadow: 0.1em 0.1em 0.6em #888 inset, 0 0 19px #0000 ;
+    border-radius: var(--borderRadius);
+    filter: var(--bodyShadow);
+    box-shadow: 0.1em 0.1em 0.6em #888 inset, 0 0 19px #0000;
     background: var(--bodyColor);
   }
   /* Shared styling for floating messages (toast, ptrMsg) */
@@ -496,9 +496,9 @@ css( // common css declarations. note: if you change bodyColor, be sure to
   }
   /* Center child(ren) both vert/horz */
   .centerChild {
-    display:flex ;
-    align-items: center ;
-    justify-content: center ;
+    display:flex;
+    align-items: center;
+    justify-content: center;
   }
 }`
 );
@@ -1148,7 +1148,6 @@ class Shade {
     `.Shade {
       backdrop-filter: blur(.3em);
       opacity: 0;
-//      transition: opacity var(--transition-slow);
       background: radial-gradient(circle at center, var(--color-surface) 0, var(--color-surface) 10em, transparent 20em);
       width: 100%;
       height: 100%;
@@ -1184,16 +1183,16 @@ class Shade {
 
   scheduler = new Schedule();
   msgStack = [];
-  onCancel = null ;
+  onCancel = null;
 
   constructor() {
     Object.assign(this, dataIndex("tag", this.elm));
     listen(this.cancel, "click", () => {
-      this.hide() ;
+      this.hide();
       if(this.onCancel) {
-        let onCancel = this.onCancel ;
-        this.onCancel = null ;
-        onCancel() ;
+        let onCancel = this.onCancel;
+        this.onCancel = null;
+        onCancel();
       }
     })
   }
@@ -1236,7 +1235,7 @@ async function sleep(ms) {
   // sleep for (at least) ms
   let until = performance.now() + ms;
   return new Promise((resolve) => {
-    let run = () => performance.now() >= until ? resolve() : requestAnimationFrame(run) ;
+    let run = () => performance.now() >= until ? resolve() : requestAnimationFrame(run);
     requestAnimationFrame(run);
   })
 }
@@ -1610,7 +1609,7 @@ function animate(elm, from, to, transition, finalize) {
   // @finalize (optional)...function to run after transition has completed
   if(from) 
     for (let [k, v] of Object.entries(from)) elm.style[k] = v;
-  reflow() ;
+  reflow();
   elm.style.transition = transition;
   for (let [k, v] of Object.entries(to)) elm.style[k] = v;
   listen(elm, "transitionend", () => {
@@ -1671,10 +1670,10 @@ function dialog(
   // Create a dialog displaying a message plus a ButtonGroup.
   // example:
   //  let dialog = dialog("close me", { Close: { svg:"Split"}}, (e,prop,tag,args) => {
-  //    dialog.close() ;
-  //    dialog.remove() ; // if won't be opened again...allows garbage collection
+  //    dialog.close();
+  //    dialog.remove(); // if won't be opened again...allows garbage collection
   //  }
-  // dialog.showModal() ;
+  // dialog.showModal();
   //
   // The most common usage is for a simple error message with a cancel button that
   // automatically dismisses the dialog...this is the default, if def and handler are
@@ -1715,24 +1714,24 @@ function flung(emv, eup=null) {
   //     was a user fling.
 
   if(emv) {
-    _moveEvents_.push(emv) ;
-    if(_moveEvents_.length > _maxMoveEvents_) _moveEvents_.shift() ;
-    return ;
+    _moveEvents_.push(emv);
+    if(_moveEvents_.length > _maxMoveEvents_) _moveEvents_.shift();
+    return;
   }
 
   // Calculate velocity over the last 200ms window
   let recent = _moveEvents_.filter(e => eup.timeStamp - e.timeStamp <= 200);
-  _moveEvents_.length = 0 ; // done with _moveEvents, so clear
+  _moveEvents_.length = 0; // done with _moveEvents, so clear
   if (recent.length > 1) {
     let last = recent[recent.length - 1];
     let first = recent[0];
-    let dT = last.timeStamp - first.timeStamp ;
+    let dT = last.timeStamp - first.timeStamp;
     if (dT) {
-      let dXY = Math.hypot(last.clientX - first.clientX, last.clientY - first.clientY) ;
+      let dXY = Math.hypot(last.clientX - first.clientX, last.clientY - first.clientY);
       let velocity = dXY / dT; // pixels per ms
       return velocity > 0.5; // threshold for "flung" - adjust as needed
     }
-    return false ;
+    return false;
   }
 }
 
@@ -1928,7 +1927,7 @@ function unlisten(...listenerArgs) {
   // and each listenerArg is an array: target, type, listenerfunc, options, thus:
   // unlisten([[target, type, func, options], [target, type, func, options],...],
   //          [[target, type, func, options], [target, type, func, options],...],
-  //          ...) ;
+  //          ...);
   for (let listeners of listenerArgs) {
     if (listeners)
       listeners.forEach((listener) => {
@@ -2082,9 +2081,9 @@ function ptrMsg(e, msgFunc, styles) {
   // so, for example, user's finger doesn't obscure ability to read div msg
   let expander = e.pointertype == "mouse" ? 1 : 2;
   let put = (ev) => {
-    let b = getBox(div) ;
-    let wd = b.width ;
-    let hg = b.height ;
+    let b = getBox(div);
+    let wd = b.width;
+    let hg = b.height;
     let [left, top] = [ev.clientX - wd / 2, ev.clientY - hg * expander];
     left = clamp(left, 0, innerWidth - wd);
     top = clamp(top, 0, innerHeight - hg);
@@ -2174,7 +2173,7 @@ function toast(innerHtml) {
      </div>`
   );
   _body_.append(elm);
-  delay(1, () => elm.firstElementChild.style.opacity = "1") ;
-  delayMs(_gs_ * 2.5, () => elm.firstElementChild.style.opacity = "0") ;
-  delayMs(_gs_ * 3.5, () => elm.remove()) ;
+  delay(1, () => elm.firstElementChild.style.opacity = "1");
+  delayMs(_gs_ * 2.5, () => elm.firstElementChild.style.opacity = "0");
+  delayMs(_gs_ * 3.5, () => elm.remove());
 }
