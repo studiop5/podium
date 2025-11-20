@@ -115,11 +115,10 @@ class Layout {
   static activeLayout = null;
 
   static recto =
-    // Define the texture/color used as the background in all layouts
-    // Note: you must escape second / in a url, otherwise builder.py will parse
-    // them as comments.
+    // Define the texture/color used as the background 
+    // in all layouts.
     "url('data:image/svg+xml;base64," + btoa(`
-      <svg width='3em' height='3em' viewBox='0 0 100 100' xmlns='http:/\/www.w3.org/2000/svg'>
+      <svg width='3em' height='3em' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'>
         <filter id='paperFilter'>
           <feTurbulence type="fractalNoise" baseFrequency='0.5' 
            result='noise' numOctaves="4" stitchTiles='stitch' seed='42'/>
@@ -281,7 +280,7 @@ class Layout {
            clone.mozCanvas.style.height = elm.mozCanvas.style.height;
            clone.mozCanvas.style.width = elm.mozCanvas.style.width;
          }
-         pg.elm.parentElement.append(clone.elm);
+         pg.elm.append(clone.elm);
          elm = clone.elm;
        }
     }    

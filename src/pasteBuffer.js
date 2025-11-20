@@ -85,7 +85,7 @@ class PasteBuffer {
                 document.title = `Podium (${_podId_})`;
               }
               break;
-    
+
             case "pod-pgs-changed": // Another tab has modified the pastebuffer
               this.score = null;
               this.announce();
