@@ -153,11 +153,11 @@ class Menu {
   // If its already scheduled, then calling it again will delay the
   // activation further. 3750 is not magic: it just seems like a good.
   // value after emperical testing.
-  busy = false ;
+  busy = false;
   autoOff = new Schedule(3750, () => {
-    if(this.busy) this.autoOff.run() ;
-    else if (["ink","page"].includes(this.activeRing.key)) this.activateCell(null) ;
-  }) ;
+    if(this.busy) this.autoOff.run();
+    else if (["ink","page"].includes(this.activeRing.key)) this.activateCell(null);
+  });
 
 
   /*
@@ -278,12 +278,12 @@ class Menu {
     }
     finally {
       // activate last used layout or, if none, Book Layout
-      this.activeRing = this.rings.layout ;  // tmp to initialize 
-      let active = this.rings.layout.stash.active ;
-      if(active) this.activateCell(this.rings.layout.cells[active]) ;
-      else this.activateCell(this.rings.layout.cells.book) ;
+      this.activeRing = this.rings.layout;  // tmp to initialize 
+      let active = this.rings.layout.stash.active;
+      if(active) this.activateCell(this.rings.layout.cells[active]);
+      else this.activateCell(this.rings.layout.cells.book);
       // now activate Score ring    
-      this.activateRing(this.rings.score) ;
+      this.activateRing(this.rings.score);
     }
 
     // initialize user interaction operation object
@@ -301,17 +301,17 @@ class Menu {
     // ensure grip remains at least partially on-screen after any window resize
     listen(window, "resize", () => {
       delay(100, () => { // must delay until after any screen.orientation change, see main.js
-        this.elm.style.left = clamp(parseFloat(this.elm.style.left), 0, innerWidth) + "px" ;
-        this.elm.style.top = clamp(parseFloat(this.elm.style.top), 0, innerHeight) + "px" ;
-      }) ;
-    }) ;
+        this.elm.style.left = clamp(parseFloat(this.elm.style.left), 0, innerWidth) + "px";
+        this.elm.style.top = clamp(parseFloat(this.elm.style.top), 0, innerHeight) + "px";
+      });
+    });
   }
 
   async buildRings() {
     // Build the data structures (but not the dom elements)
     // that compose the menu's rings.
 
-    let rings = this.rings ;
+    let rings = this.rings;
 
     // Score ring
     rings.score = {
@@ -346,25 +346,25 @@ class Menu {
     this.listen("score/up", () => this.activateRing(rings.score));
 
     this.listen("score/save/up", async (cell) => {
-       this.activateCell(cell) ;
-       await FileSrc.saveActiveScore(cell) ;
-       this.activateCell(null) ;
-    }) ;
+       this.activateCell(cell);
+       await FileSrc.saveActiveScore(cell);
+       this.activateCell(null);
+    });
 
     this.listen("score/open/up", async (cell) => {
-       this.activateCell(cell) ;
-       await FileSrc.openActiveScore(cell) ;
-       this.activateCell(null) ;
-    }) ;
+       this.activateCell(cell);
+       await FileSrc.openActiveScore(cell);
+       this.activateCell(null);
+    });
 
-    this.listen(["score/info/out", "score/open/out","score/save/out","score/new/out","score/print/out"], (cell) => this.openPanel(cell)) ;
+    this.listen(["score/info/out", "score/open/out","score/save/out","score/new/out","score/print/out"], (cell) => this.openPanel(cell));
     // The print, info, bind cells have no /up functionality, so we let the up action  open their panels:
-    this.listen("score/print/up", (cell) => panels.PrintPanel.get(cell).show().setPosition(this.grip)) ;
-    this.listen("score/info/up", (cell) => panels.InfoPanel.get(cell).show().setPosition(this.grip)) ;
+    this.listen("score/print/up", (cell) => panels.PrintPanel.get(cell).show().setPosition(this.grip));
+    this.listen("score/info/up", (cell) => panels.InfoPanel.get(cell).show().setPosition(this.grip));
 
     this.listen("score/new/up", async (cell) => {
-      if(!await checkUnsaved()) return ;
-      let alpha = parseInt(cell.stash.alpha * 255).toString(16) ;
+      if(!await checkUnsaved()) return;
+      let alpha = parseInt(cell.stash.alpha * 255).toString(16);
       while (alpha.length < 2) alpha = "0" + alpha;
       await Score.newScore(
         cell.stash.pages,
@@ -375,15 +375,15 @@ class Menu {
     });
 
     this.listen("score/close/up", async () => {
-      if(!await(checkUnsaved("Warning: current score has unsaved changes. Close anyway?", true))) return ;
-      Layout.activeLayout.destructor() ;
+      if(!await(checkUnsaved("Warning: current score has unsaved changes. Close anyway?", true))) return;
+      Layout.activeLayout.destructor();
       Layout.activeLayout.elm.remove();
-      Layout.activeLayout = null ;
+      Layout.activeLayout = null;
       _score_ = null;
       _score_ = null;
       for(let panel of Object.values(panels)) {
          // Several panels need to close when the Score closes, otherwise they will have stale state.
-         if(panel.cell && ["Info", "Save", "Paste", "Print"].includes(panel.cell.name)) panel.close() ;
+         if(panel.cell && ["Info", "Save", "Paste", "Print"].includes(panel.cell.name)) panel.close();
       }
       _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/info", "score/print"], false);
     });
@@ -447,12 +447,12 @@ class Menu {
       name: "Layout",
       stash: { active: "book"},
       svgPath: iconPaths["Layout"],
-    } ;
+    };
 
     // actions:
 
     this.listen("layout/up", () => this.activateRing(rings.layout));
-    let paths = Object.keys(rings.layout.cells).map((path) => `layout/${path}/`) ;
+    let paths = Object.keys(rings.layout.cells).map((path) => `layout/${path}/`);
    
     this.listen(paths.map((path) => path + "up"), 
       async (cell) => {
@@ -464,7 +464,7 @@ class Menu {
     this.listen(paths.map((path) => path + "out"), (cell) => this.openPanel(cell));
 
     this.listen("layout/screen/up", (cell) => {
-      let cellIcon = dataIndex("tag", rings.layout.cells.screen.elm).cellIcon ;
+      let cellIcon = dataIndex("tag", rings.layout.cells.screen.elm).cellIcon;
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen();
         cellIcon.innerHTML = iconPaths["Normal Screen"];
@@ -541,13 +541,13 @@ class Menu {
 
     this.listen("ink/up", () => this.activateRing(rings.ink));
 
-    paths = Object.keys(rings.ink.cells).map((key) => `ink/${key}/`) ;
+    paths = Object.keys(rings.ink.cells).map((key) => `ink/${key}/`);
     this.listen(paths.map((path) => path + "up"),(cell) => this.activateCell(rings.ink.activeCell === cell ? null :cell));
     this.listen(paths.map((path) => path + "long"),(cell) => this.activateCell(cell));
     // All but 4 cells in the ink ring have panels...remove those from paths...
-    paths = paths.filter((key) => !["ink/undo/","ink/cut/","ink/paste/","ink/transform/"].includes(key)) ;
+    paths = paths.filter((key) => !["ink/undo/","ink/cut/","ink/paste/","ink/transform/"].includes(key));
     // ..then listen for "out" on all remaining paths:
-    this.listen(paths.map((path) => path + "out"),(cell) => this.openPanel(cell)) ; 
+    this.listen(paths.map((path) => path + "out"),(cell) => this.openPanel(cell)); 
 
     // Page ring
     rings.page = {
@@ -575,16 +575,16 @@ class Menu {
     // actions:
 
     this.listen("page/up", () => this.activateRing(rings.page));
-    paths = Object.keys(rings.page.cells).map((path) => `page/${path}/`) ;
-    this.listen(paths.map((path) => path + "up"), (cell) => this.activateCell(rings.page.activeCell === cell ? null :cell)) ;
-    this.listen(["page/numbers/","page/paste/","page/add/"].map((path) => path + "out"), (cell) =>  this.openPanel(cell)) ;
+    paths = Object.keys(rings.page.cells).map((path) => `page/${path}/`);
+    this.listen(paths.map((path) => path + "up"), (cell) => this.activateCell(rings.page.activeCell === cell ? null :cell));
+    this.listen(["page/numbers/","page/paste/","page/add/"].map((path) => path + "out"), (cell) =>  this.openPanel(cell));
 
     this.listen("page/undo/up", async () => {
-       _score_.pgUndo() ;
+       _score_.pgUndo();
        await Layout.activeLayout.build(false);
    })
     // numbers panel has no functionality except its panel, so allow up to open the panel
-    this.listen("page/numbers/up", (cell) => panels.NumbersPanel.get(cell).show().setPosition(this.grip)) ;
+    this.listen("page/numbers/up", (cell) => panels.NumbersPanel.get(cell).show().setPosition(this.grip));
 
 
     // More ring
@@ -637,36 +637,36 @@ class Menu {
 
     this.listen("more/up", () => this.activateRing(rings.more));
 
-    paths = Object.keys(rings.more.cells).map((path) => `more/${path}/`) ;
+    paths = Object.keys(rings.more.cells).map((path) => `more/${path}/`);
     // All but 1 cell in the more ring have panels...remove it from paths...
-    paths = paths.filter((key) => !["more/theme/"].includes(key)) ;
+    paths = paths.filter((key) => !["more/theme/"].includes(key));
 
-    this.listen(paths.map((path) => path + "out"),  (cell) => this.openPanel(cell)) ;
+    this.listen(paths.map((path) => path + "out"),  (cell) => this.openPanel(cell));
 
     this.listen("more/theme/up", (cell) => {
-      let theme = localStorage.getItem("theme") || "Light" ;
-      theme = theme == "Dark" ? "Light" : "Dark" ;
-      document.documentElement.setAttribute("data-theme", theme) ;
-      dataIndex("tag", rings.more.cells.theme.elm).cellIcon.innerHTML = iconPaths[theme] ;
+      let theme = localStorage.getItem("theme") || "Light";
+      theme = theme == "Dark" ? "Light" : "Dark";
+      document.documentElement.setAttribute("data-theme", theme);
+      dataIndex("tag", rings.more.cells.theme.elm).cellIcon.innerHTML = iconPaths[theme];
       localStorage.setItem("theme", theme);
     });
 
     // Set initial icon for theme cell
-    let theme = localStorage.getItem("theme") || "Light" ;
-    document.documentElement.setAttribute("data-theme", theme) ;
+    let theme = localStorage.getItem("theme") || "Light";
+    document.documentElement.setAttribute("data-theme", theme);
     // Need to delay for menu to be built:
-    delay(10, () => dataIndex("tag", rings.more.cells.theme.elm).cellIcon.innerHTML = iconPaths[theme]) ;
+    delay(10, () => dataIndex("tag", rings.more.cells.theme.elm).cellIcon.innerHTML = iconPaths[theme]);
 
 
 
     // more ring's cells have no functionality except their panels, so allow .../up to open the panel
-   this.listen("more/metronome/up", (cell) => panels.MetronomePanel.get(cell).show().setPosition(this.grip)) ;
-   this.listen("more/stopwatch/up", (cell) => panels.StopwatchPanel.get(cell).show().setPosition(this.grip)) ;
-   this.listen("more/clock/up", (cell) => panels.ClockPanel.get(cell).show().setPosition(this.grip)) ;
-   this.listen("more/piano/up", (cell) => panels.PianoPanel.get(cell).show().setPosition(this.grip)) ;
-   this.listen("more/review/up", (cell) => panels.ReviewPanel.get(cell).show().setPosition(this.grip)) ;
-   this.listen("more/volume/up", (cell) => panels.VolumePanel.get(cell).show().setPosition(this.grip)) ;
-   this.listen("more/help/up", (cell) => panels.HelpPanel.get(cell).show().setPosition(this.grip)) ;
+   this.listen("more/metronome/up", (cell) => panels.MetronomePanel.get(cell).show().setPosition(this.grip));
+   this.listen("more/stopwatch/up", (cell) => panels.StopwatchPanel.get(cell).show().setPosition(this.grip));
+   this.listen("more/clock/up", (cell) => panels.ClockPanel.get(cell).show().setPosition(this.grip));
+   this.listen("more/piano/up", (cell) => panels.PianoPanel.get(cell).show().setPosition(this.grip));
+   this.listen("more/review/up", (cell) => panels.ReviewPanel.get(cell).show().setPosition(this.grip));
+   this.listen("more/volume/up", (cell) => panels.VolumePanel.get(cell).show().setPosition(this.grip));
+   this.listen("more/help/up", (cell) => panels.HelpPanel.get(cell).show().setPosition(this.grip));
 
    // grip: no cells here, just handlers
    this.listen("up", () => this.collapse());
@@ -751,7 +751,7 @@ class Menu {
           // iff the cell is associated with a panel, it will have an "out" listener: add the Menu__cell-panel 
           // class to visually distinguish it.
           if(this.listeners[`${diskKey}/${cellKey}/out`])
-            cell.elm.classList.add("Menu__cell-panel") ;
+            cell.elm.classList.add("Menu__cell-panel");
         }); // forEach((cell)
       }
     }); // forEach(([key, ring
@@ -800,10 +800,10 @@ class Menu {
         op.turnOffset = op.turn - op.ring.turn;
         op.cell = this.rings[ringKey].cells[cellKey];
 
-        let ringTransform = op.ring.elm.style.transform || "rotate(0turn)" ; 
-        let ringAngle = parseFloat(ringTransform.substring(7,ringTransform.length - 5))  ;
-        let cellTransform = op.cell.elm.style.transform ;
-        op.cellAngle = parseFloat(cellTransform.split('(')[1]) + ringAngle   ;
+        let ringTransform = op.ring.elm.style.transform || "rotate(0turn)"; 
+        let ringAngle = parseFloat(ringTransform.substring(7,ringTransform.length - 5)) ;
+        let cellTransform = op.cell.elm.style.transform;
+        op.cellAngle = parseFloat(cellTransform.split('(')[1]) + ringAngle  ;
 
         if (op.cell.enabled == false) break;
         op.cell.elm.classList.add("Menu__cell-selected");
@@ -843,20 +843,20 @@ class Menu {
     op.turn = Math.atan2(dxdy[1] - op.ringRadiusPx, dxdy[0] - op.ringRadiusPx) / (Math.PI * 2) + 1.25;
 
     // Was there significant pointer motion in either ring?
-    op.moved = mvmt(op.e, emv, 15, 15) ; 
+    op.moved = mvmt(op.e, emv, 15, 15); 
     if(op.moved && !op.spun) { 
       if(op.state == "disk")
-        op.spun = true ; // Significant mvmt in a disk cell is always interpreted as a spin
+        op.spun = true; // Significant mvmt in a disk cell is always interpreted as a spin
       else if(op.state == "ring") {
         // Significant mvmt in a ring cell is a "spin" iff the movement is approximately tangental to the circumference.
         // We test this by comparing the rotational angle of  ring cell to the angle of the pointer gesture
-        let ptrAngle = (Math.atan2(emv.clientY - op.e.clientY, emv.clientX - op.e.clientX) + Math.PI )/ (Math.PI * 2) + .75 ;
-        let diff = ptrAngle - op.cellAngle ;
-        if(diff < 0) diff += 1 ;
-        else if(diff > 1) diff -= 1 ;
+        let ptrAngle = (Math.atan2(emv.clientY - op.e.clientY, emv.clientX - op.e.clientX) + Math.PI )/ (Math.PI * 2) + .75;
+        let diff = ptrAngle - op.cellAngle;
+        if(diff < 0) diff += 1;
+        else if(diff > 1) diff -= 1;
         // Sensitivity" regions for asserting op.spun.
-        if(diff > 0.2 && diff <= 0.3) op.spun = true ;
-        else if(diff > 0.7 && diff <= 0.8) op.spun = true ;
+        if(diff > 0.2 && diff <= 0.3) op.spun = true;
+        else if(diff > 0.7 && diff <= 0.8) op.spun = true;
         else { // Significant mvmt where pointer moves out of ring triggers "out" state and event
           let hyp = Math.hypot(emv.clientX - this.elm.offsetLeft, emv.clientY - this.elm.offsetTop);
           if (op.out || hyp > this.menuHolder.offsetWidth / 2 || hyp < this.diskHolder.offsetWidth / 2) {
@@ -897,7 +897,7 @@ class Menu {
       }
       case "grip": {
         if (!op.moved) return; // insufficient movement
-        flung(emv) ; // store event for fling detection
+        flung(emv); // store event for fling detection
         // Move the menu while ensuring that the grip cannot be dragged out of the viewport
         this.elm.style.left = clamp(emv.clientX, 0, innerWidth) + "px";
         this.elm.style.top = clamp(emv.clientY, 0, innerHeight) + "px";
@@ -922,7 +922,7 @@ class Menu {
         let panel = panels[op.cell.name + "Panel"]?.get(op.cell);
         if (panel) hide(panel.elm, dataIndex("tag", op.cell.elm).cellIcon);
       }
-      return ;
+      return;
     }
 
     switch (op.state) {
@@ -943,10 +943,10 @@ class Menu {
             let angle = Math.atan2(dy, dx);
             let direction = Math.round(((angle + Math.PI) / (Math.PI /  4))) % 8;
             // Don't use vw....we need the styles to be in px
-            let wwb2 = innerWidth / 2 + "px" ;
-            let ww = innerWidth + "px" ;
-            let whb2 = innerHeight / 2 + "px" ;
-            let wh = innerHeight + "px" ;
+            let wwb2 = innerWidth / 2 + "px";
+            let ww = innerWidth + "px";
+            let whb2 = innerHeight / 2 + "px";
+            let wh = innerHeight + "px";
             let positions = [
               [0, whb2],    // left edge
               [0,0],     // top-left corner
@@ -975,7 +975,7 @@ class Menu {
     if (ring.cellElm.classList.contains("Menu__cell-disabled")) return; // ring cell disabled -> ignore
     if (this.activeRing == ring) return; // no change
     // special case: if currently editing a fabric text object, exit text editing
-    this.checkEditing() ;
+    this.checkEditing();
     if (this.activeRing) {
       // Deactivate current active ring
       this.activeRing.elm.style.visibility = "hidden";
@@ -985,7 +985,7 @@ class Menu {
     ring.cellElm.classList.add("Menu__diskCell-active");
     this.activeRing = ring;
     // Score is editable iff ink is activeRing, and it has an activeCell
-    if(_score_) _score_.setEditable(ring.key == "ink" && ring.activeCell) ;
+    if(_score_) _score_.setEditable(ring.key == "ink" && ring.activeCell);
   }
 
   activateCell(cell) {
@@ -996,13 +996,13 @@ class Menu {
     // Special cases:
     //  -  if currently editing a fabric text object, exit text editing
     //  -  when the ink/transform cell activates/deactivates, must call Score's setTransformable method
-    this.checkEditing() ;
+    this.checkEditing();
     let ring = this.activeRing;
 
     // Will this operation toggle the transform cell?
-    let transformCell = this.rings.ink.cells.transform ;
+    let transformCell = this.rings.ink.cells.transform;
     let transformToggle = (ring.activeCell !== transformCell && cell === transformCell) ||
-        (ring.activeCell === transformCell && cell !== transformCell) ;
+        (ring.activeCell === transformCell && cell !== transformCell);
 
     // now update state and appearance for activate/deactivate
     if (ring?.activeCell) ring.activeCell.elm.classList.remove("Menu__cell-active");
@@ -1012,15 +1012,15 @@ class Menu {
       ring.stash.active = cell.key;
 
       if((ring.key == "page" && cell.key != "numbers") || ring.key == "ink")
-         this.autoOff.run() ;
+         this.autoOff.run();
 
     } else ring.activeCell = null;
 
     if(_score_ && ring.key == "ink") {
       // Score is editable iff ink is activeRing, and it has an activeCell
-      _score_.setEditable(ring.activeCell) ;
+      _score_.setEditable(ring.activeCell);
       // Score is transformable iff ink is activeRing, and transform cell is active
-      if(transformToggle) _score_.setTransformable(cell === transformCell) ;
+      if(transformToggle) _score_.setTransformable(cell === transformCell);
     }
   }
 
@@ -1071,7 +1071,7 @@ class Menu {
     let panel = panels[cell.name + "Panel"]?.get(cell);
     if (!panel) return;
     if (panel.elm.style.visibility != "visible") {
-       this.op.launched = performance.now() ;
+       this.op.launched = performance.now();
        panel.show();
      }
 
@@ -1080,14 +1080,14 @@ class Menu {
      // close immediately, so no fling processing until 1/2 second after launching
      // panel.
      if(performance.now() - this.op.launched > 500)
-       flung(this.op.emv) ;
+       flung(this.op.emv);
 
     Object.assign(panel.elm.style, {
       left: this.op.emv.clientX - panel.elm.offsetWidth / 2 + "px",
       top: this.op.emv.clientY + panel.panel.offsetHeight / 2 - panel.header.offsetHeight / 2 + "px",
     });
     cell.elm.classList.remove("Menu__panel");
-    panel.constrain() ;
+    panel.constrain();
   }
 
   // stash serialization functions:
@@ -1159,7 +1159,7 @@ class Menu {
     animate(this.elm, null, { 
       left: innerWidth / 2 + "px",
       top: innerHeight / 2 + "px",
-    }, ` ${_gs_}ms`) ;
+    }, ` ${_gs_}ms`);
     if (this.collapsed) this.collapse();
     if (reset) {
       this.op.turnOffset = 0;
@@ -1219,15 +1219,15 @@ class Menu {
 
   async pgDownEvent(opts, pg) {
 
-    let canvas = pg.canvas ;
+    let canvas = pg.canvas;
 
     let addObj = (obj) => {
       this.newlyCreated = obj;
       canvas.add(obj);
-      obj.hasControls = false ; 
+      obj.hasControls = false; 
       // makes obj draggable until subsequent pgUpEvent:
       canvas._target = obj; 
-      return obj ;
+      return obj;
     };
 
     if (this.activeRing.key != "ink") return;
@@ -1235,19 +1235,19 @@ class Menu {
 
     if (!activeCell) return;
 
-    if(this.checkEditing()) return ;
+    if(this.checkEditing()) return;
 
-    this.newlyCreated = null ;
-    let target = opts.target ;
+    this.newlyCreated = null;
+    let target = opts.target;
 
     switch (activeCell.key) {
 
       case "transform":
         if(target && !target.hasControls) {
-          target.hasControls = true ;
-          canvas.requestRenderAll() ;
+          target.hasControls = true;
+          canvas.requestRenderAll();
         }
-        return ;
+        return;
 
       case "undo":
         return await pg.undo();
@@ -1310,7 +1310,7 @@ class Menu {
           this.enterEditing();
           this.selectAll();
         });
-        return textbox ;
+        return textbox;
       }
 
       case "symbols": {
@@ -1335,22 +1335,22 @@ class Menu {
       case "cut": 
       case "copy": {
         if (target) {
-          target.clone((clone) => this.pasteObj = this.newlyCreated = clone) ;
+          target.clone((clone) => this.pasteObj = this.newlyCreated = clone);
           this.enableCells("ink/paste", true);
           // animate operation's target object back to the paste cell
-          let emWidth = target.getScaledWidth() / _pxPerEm_ ;
-          let {x,y} = target.getLocalPointer() ;
+          let emWidth = target.getScaledWidth() / _pxPerEm_;
+          let {x,y} = target.getLocalPointer();
           let elm  = helm(`<img src=${target.toDataURL()} style=
-             "width:${emWidth}em;height:auto;z-index:1000;left:${opts.e.clientX -x}px;top:${opts.e.clientY-y}px;position:absolute;"></img>`) ;
-          _body_.append(elm) ;
+             "width:${emWidth}em;height:auto;z-index:1000;left:${opts.e.clientX -x}px;top:${opts.e.clientY-y}px;position:absolute;"></img>`);
+          _body_.append(elm);
           hide(elm, dataIndex("tag", _menu_.rings.ink.cells.paste.elm).cellIcon);
-          delayMs(500, () => elm.remove()) ;
+          delayMs(500, () => elm.remove());
           if(activeCell.key == "cut") {
             delay(1, () => {
               if( target.type == "activeSelection")
-                target.getObjects().forEach(obj => canvas.remove(obj)) ;
-              else canvas.remove(target) ;
-              canvas.discardActiveObject() ;
+                target.getObjects().forEach(obj => canvas.remove(obj));
+              else canvas.remove(target);
+              canvas.discardActiveObject();
             });
           }
         }
@@ -1360,43 +1360,43 @@ class Menu {
       case "paste": {
         if (this.pasteObj) {
           this.pasteObj.clone((clone) => {
-            let {x,y} = opts.absolutePointer ;
+            let {x,y} = opts.absolutePointer;
             if(clone.type == "activeSelection") {
               clone._objects.forEach(obj => {
-              obj.set({ left: obj.left+x, top:obj.top+y}) ;
-              canvas.add(obj) ;
-            }) ;
-            let actSel = new fabric.ActiveSelection(clone._objects, { canvas: canvas, hasControls: false}) ;
-            canvas.setActiveObject(actSel) ;
-            canvas._target = this.newlyCreated = actSel ;
+              obj.set({ left: obj.left+x, top:obj.top+y});
+              canvas.add(obj);
+            });
+            let actSel = new fabric.ActiveSelection(clone._objects, { canvas: canvas, hasControls: false});
+            canvas.setActiveObject(actSel);
+            canvas._target = this.newlyCreated = actSel;
             }
             else {
-              clone.set({ left:x, top: y}) ;
-              addObj(clone) ;
+              clone.set({ left:x, top: y});
+              addObj(clone);
               canvas.requestRenderAll();
 
               if(clone.type == "image") {
                 // images need special race condition workaround:
-                canvas.selection = false ;
+                canvas.selection = false;
                 let onMove = (opt) => {
                   clone.set({ left: opt.pointer.x, top: opt.pointer.y });
                   canvas.requestRenderAll();
                 };
                 let onUp = () => {
-                  canvas.selection = true ;
+                  canvas.selection = true;
                   canvas.off('mouse:move', onMove);
                   canvas.off('mouse:up', onUp);
                   canvas.remove(clone);
                   delay(1, () => { 
-                    canvas.add(clone) ;
-                    clone.set({ hasControls: true}) ;
-                  }) ; 
+                    canvas.add(clone);
+                    clone.set({ hasControls: true});
+                  }); 
                 };
                 canvas.on('mouse:move', onMove);
                 canvas.on('mouse:up', onUp);
               }
             }
-        }) ;
+        });
       }
       return;
      }
@@ -1404,14 +1404,14 @@ class Menu {
   }
 
   pgUpEvent(opts, pg) {
-    this.autoOff.run() ; // extend activation of active cell
+    this.autoOff.run(); // extend activation of active cell
 
-    _score_.setDirty(true) ;
+    _score_.setDirty(true);
     if (pg) {
       if (this.newlyCreated && this.newlyCreated.podiumType == "text") {
         // For text objects, immediately enter editing:
-        this.newlyCreated.enterEditing() ;
-        this.newlyCreated.selectAll() ; 
+        this.newlyCreated.enterEditing();
+        this.newlyCreated.selectAll(); 
       }
     }
     for (let pg of _score_.pgs) if (pg.inflated) pg.canvas.isDrawingMode = false;
@@ -1422,11 +1422,11 @@ class Menu {
     // deactivates editing.
     // @return true iff editing was deactivated
     if(this.newlyCreated && this.newlyCreated.podiumType == "text" && this.newlyCreated.isEditing) {
-      this.newlyCreated.exitEditing() ;
-      this.newlyCreated = null ;
-      return true ;
+      this.newlyCreated.exitEditing();
+      this.newlyCreated = null;
+      return true;
     }
-    return false ;
+    return false;
   }
 
   setPasteObj(dataUrl, type) {

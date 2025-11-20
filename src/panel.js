@@ -196,10 +196,10 @@ class Panel {
         let middleY = this.panel.offsetHeight / 2;
         let mv = listen(header, "pointermove", (emv) => {
           if (e.pointerId != emv.pointerId) return;
-          flung(emv) ; // store event for fling detection
+          flung(emv); // store event for fling detection
           elm.style.left = emv.clientX - e.offsetX + middleX + "px";
           elm.style.top = emv.clientY - e.offsetY + middleY + "px";
-          this.constrain() ;
+          this.constrain();
           e.emv = emv;
         });
 
@@ -221,7 +221,7 @@ class Panel {
         if (this.elm.style.visibility == "visible") {
           this.constrain();
       }
-    })) ;
+    }));
   }
 
   close() {
@@ -270,8 +270,9 @@ class Panel {
   }
 
   show(onShown = null) {
-    // onShown, if supplied, is a function that is called
-    // when the standard show animation is completed.
+    // Bring the panel on screen (if it is not) .
+    // @onShown, if supplied, is a function that is called
+    //   when the standard show animation is completed.
     let elm = this.elm;
     this.setIcon(this.cell.svgPath);
     this.setTitle(this.cell.name);
@@ -281,12 +282,12 @@ class Panel {
     elm.style.transition = "font-size 0.35s";
     _body_.append(elm);
     listen(elm,"transitionend", () => {
-        elm.style.transition = "unset" ;
+        elm.style.transition = "unset";
         if(onShown) onShown();
       },
-      { once:true}) ;
-    reflow() ;
-    elm.style.fontSize = fontSize ;
+      { once:true});
+    reflow();
+    elm.style.fontSize = fontSize;
     _pzTarget_ = elm;
     return this;
   }
@@ -319,7 +320,10 @@ class Panel {
     if (box.left < 0 || box.right > innerWidth)
       elm.style.left =
         Math.max(innerWidth / 2 - box.width / 2, 0) + "px";
+    this.constrain();
+
   }
+
 }
 
 
@@ -440,10 +444,10 @@ class InfoPanel extends Panel {
       },
       async (e,tag,value) => {
          let score = _score_;
-         score.pgFit = value ;
-         await Layout.open(_menu_.rings.layout.activeCell) ;
+         score.pgFit = value;
+         await Layout.open(_menu_.rings.layout.activeCell);
       }
-    ) ;
+    );
     
     this.qualityGroup = new SliderGroup(
       this.cell.stash,
@@ -544,7 +548,7 @@ class InfoPanel extends Panel {
           </div>`)
       );
 
-      this.content.append(helm(`<div style="text-align:center;"><br>Page Fit</div>`)) ;
+      this.content.append(helm(`<div style="text-align:center;"><br>Page Fit</div>`));
       this.content.append(this.fitGroup.elm);
       this.content.append(this.qualityGroup.elm);
 
@@ -575,7 +579,7 @@ class InfoPanel extends Panel {
   show() {
     super.show();
     this.refresh();
-    return this ;
+    return this;
   }
 }
 
@@ -881,7 +885,7 @@ for more details.</p>
           } else if (tag == "Recent") {
             localStorage.setItem("recent", []);
             for(let src of Object.values(Score.sources)) // set all "last opened directory" paths to the root path
-              localStorage.setItem(src, "") ;
+              localStorage.setItem(src, "");
             toast("Recent list cleared");
           } else if (tag == "Buffer") {
             _podPb_.clear();
@@ -964,7 +968,7 @@ class LayoutPanel extends Panel {
     let msgCallback = (tag, value) => {
       if(tag == "pgShow") {
          // don't allow pgSnap to be > pgShow
-         if(cell.stash.pgSnap > value) cell.stash.pgSnap = value ;
+         if(cell.stash.pgSnap > value) cell.stash.pgSnap = value;
          return "Show: " + value + (value == 1 ? " page." : " pages");
       } else if(tag == "pgSnap") {
         if (value == 0) return "Snap disabled";
@@ -1214,7 +1218,7 @@ class NewPanel extends AddPanel {
     this.pagesGroup = new SliderGroup( cell.stash,
       {  pages: { min: 1, max: 100, 
           msg: (tag, val) => `${val.toFixed(0)} page${val > 1 ? "s":""}`, step: 1 }, }, null );
-     this.body.prepend(this.pagesGroup.elm) ;    
+     this.body.prepend(this.pagesGroup.elm);    
     this.pagesGroup.refresh();
   }
 }
@@ -1302,7 +1306,7 @@ class NumbersPanel extends Panel {
     this.reverse.replaceWith(this.reverseGroup.elm);
     listen(_body_, "NUMBERS", (e) => {
       if (e.detail.sender === this) return;
-      this.refresh() ; 
+      this.refresh(); 
     });
   }
 
@@ -1561,7 +1565,7 @@ class RastrumPanel extends PencilPanel {
           block.style.position = 'relative';
         }
       });
-    }) ;
+    });
   }
 
   update() {
@@ -1663,7 +1667,7 @@ class SymbolsPanel extends Panel {
       .SymbolsPanel__sash {
         font-family:Bravura;
         position: relative;
-        height:100% ;
+        height:100%;
         width: max-content;
         min-width: 100%;
         padding: 0 0.8em;
@@ -1686,7 +1690,7 @@ class SymbolsPanel extends Panel {
      opacity: 1;
    }
 
-   `) ;
+   `);
 
   content = helm(`
      <div data-tag="body" class="Panel__body" style="width: 13em">
@@ -1703,9 +1707,9 @@ class SymbolsPanel extends Panel {
 
   constructor(cell) {
     super(cell);
-    this.body.replaceWith(this.content) ;
+    this.body.replaceWith(this.content);
     Object.assign(this, dataIndex("tag", this.content));
-    let stash = cell.stash ;
+    let stash = cell.stash;
     for (let group of Object.keys(smuflTable)) {
       this.groups.append(
         helm(
@@ -1724,37 +1728,37 @@ class SymbolsPanel extends Panel {
         );
         this.sash.append(symbol);
         this.sash.style.left = "0";
-        stash.group = this.groups.value ;
+        stash.group = this.groups.value;
       }
-    }) ;
+    });
 
-    this.groups.dispatchEvent(new Event("change")) ;
+    this.groups.dispatchEvent(new Event("change"));
 
 
     listen(this.sash, "pointerdown", (e) => { 
       this.sash.setPointerCapture(e.pointerId);
-      let fs = parseFloat(getComputedStyle(this.sash).fontSize) ;
+      let fs = parseFloat(getComputedStyle(this.sash).fontSize);
       let offsetX = e.clientX - this.sash.offsetLeft;
       let limit = this.sash.offsetWidth - this.frame.offsetWidth;
 
       let mv = listen(this.sash, "pointermove", (emv) => {
-        let leftPx = clamp(emv.clientX - offsetX, -limit, 0) ;
-        this.sash.style.left = leftPx / fs + "em" ;
-         mvmt(e, emv) ;
+        let leftPx = clamp(emv.clientX - offsetX, -limit, 0);
+        this.sash.style.left = leftPx / fs + "em";
+         mvmt(e, emv);
       });
 
       listen(this.sash, "pointerup", (eup) => {
         unlisten(mv);
         if(!e.moved) {
-          let target = document.elementFromPoint(e.clientX, e.clientY) ;
+          let target = document.elementFromPoint(e.clientX, e.clientY);
           if(target?.classList.contains("SymbolsPanel__symbol")) {
           Array.from(this.sash.children).forEach((child) => child.classList.remove("SymbolsPanel__symbol-active"));
             target.classList.add("SymbolsPanel__symbol-active");
             stash.codePoint = target.textContent;
-           _menu_.activateCell(cell) ;
+           _menu_.activateCell(cell);
           }
        }
-      }, {once:true}) ;
+      }, {once:true});
     });
 
 
@@ -1763,8 +1767,8 @@ class SymbolsPanel extends Panel {
         stash.rgb,
         stash.alpha,
         (rgb, alpha) => {
-          stash.rgb = rgb ;
-          stash.alpha = alpha ;
+          stash.rgb = rgb;
+          stash.alpha = alpha;
           this.update();
         }
     );
@@ -1774,21 +1778,21 @@ class SymbolsPanel extends Panel {
       stash,  { size: { min: 5, max: 40, step: 1, value: 8, msg: "Staff Space: {value} px" }},
       (e, tag, value) => {
         stash.tag = value;
-        this.update() ;
+        this.update();
     });
 
     this.staffSpace.replaceWith(staffSpace.elm);
-    this.staffSpace = staffSpace ;
+    this.staffSpace = staffSpace;
     this.update();
   }
 
 
   update() {
     let { alpha, group, rgb, size, height } = this.cell.stash;
-     this.groups.value = group ;
-     this.sash.style.color = rgb ;
-     this.sash.style.transparency = alpha ;
-     this.frame.style.fontSize = (size - 5) / 95 + 1 + "em" ;
+     this.groups.value = group;
+     this.sash.style.color = rgb;
+     this.sash.style.transparency = alpha;
+     this.frame.style.fontSize = (size - 5) / 95 + 1 + "em";
      let active = _score_.getActiveObject();
      if (active && active.podiumType == "symbols") {
        let color = fabric.Color.fromHex(rgb);
@@ -1835,16 +1839,16 @@ class PrintPanel extends Panel {
 
   constructor(cell) {
     super(cell);
-    this.body.replaceWith(this.content) ;
-    Object.assign(this, dataIndex("tag", this.content)) ;
+    this.body.replaceWith(this.content);
+    Object.assign(this, dataIndex("tag", this.content));
     // PrintPanel settings are not permanent, and are reset everytime the
     // PrintPanel is constructed, which should be the first time
     // its opened on a new score.  BUG, todo: should also reset when
     // pg's are added or removed
-    let scoreLength = _score_.pgs.length ;
-    let props = { first:1, last: scoreLength } ;
+    let scoreLength = _score_.pgs.length;
+    let props = { first:1, last: scoreLength };
 
-    cell = _menu_.rings.page.cells.numbers ; // for pnToString
+    cell = _menu_.rings.page.cells.numbers; // for pnToString
     let buttons = new ButtonGroup(
       props,
       {
@@ -1853,19 +1857,19 @@ class PrintPanel extends Panel {
       },
       async (e, tag, value) => {
         try {
-          _shade_.show("Preparing to print") ;
-          let pns = [] ;
-          for(let i = props.first ; i <= props.last ; i++)
-            pns.push(i) ;
-          let data = await _score_.toPdf(value == "Ink" ? "pdf" : "none", false, pns) ;
+          _shade_.show("Preparing to print");
+          let pns = [];
+          for(let i = props.first; i <= props.last; i++)
+            pns.push(i);
+          let data = await _score_.toPdf(value == "Ink" ? "pdf" : "none", false, pns);
           let dataUrl = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
           window.open(dataUrl).print();
         }
-        catch(error) { toast("Print cancelled") ;}
+        catch(error) { toast("Print cancelled");}
         finally { 
-          _shade_.onCancel = null ;
-          _shade_.hide() ;
-          this.close() ;
+          _shade_.onCancel = null;
+          _shade_.hide();
+          this.close();
         }
       }
     );
@@ -1875,34 +1879,34 @@ class PrintPanel extends Panel {
     let msgCallback = (tag, value) => {
       // don't allow first to be > last, or last to be < first
       if(tag == "first") {
-        if(value > props.last) value = props.last ;
-        props.first = value ;
-        return "First page: " + pnToString(value, -cell.stash.pnOffset) ;
+        if(value > props.last) value = props.last;
+        props.first = value;
+        return "First page: " + pnToString(value, -cell.stash.pnOffset);
       } else if(tag == "last") {
-        if(value < props.first) value = props.first ;
-        props.last = value ;
-        return "Last page: " +  pnToString(value, -cell.stash.pnOffset) ;
+        if(value < props.first) value = props.first;
+        props.last = value;
+        return "Last page: " +  pnToString(value, -cell.stash.pnOffset);
       }
     }
 
     // Can't combine these two sliders because of the way msgCallback works, sigh.
     this.firstSlider = new SliderGroup(props, {
       first: {min:1, max:props.last, step:1, value:1, msg: msgCallback},
-    }) ;
-    this.first.replaceWith(this.firstSlider.elm) ;
+    });
+    this.first.replaceWith(this.firstSlider.elm);
 
     this.lastSlider = new SliderGroup(props, {
       last: {min:1, max:props.last, step:1, value:props.last,  msg: msgCallback},
-    }) ;
-    this.last.replaceWith(this.lastSlider.elm) ;
+    });
+    this.last.replaceWith(this.lastSlider.elm);
 
     listen(_body_, "NUMBERS", (e) => {
-      this.firstSlider.defs.first.max = this.lastSlider.defs.last.max = _score_.pgs.length ;
-      props.last  = Math.min(_score_.pgs.length, props.last) ;
-      props.first  = Math.min(_score_.pgs.length, props.first) ;
-      this.firstSlider.refresh() ;
-      this.lastSlider.refresh() ;
-    }) ;
+      this.firstSlider.defs.first.max = this.lastSlider.defs.last.max = _score_.pgs.length;
+      props.last  = Math.min(_score_.pgs.length, props.last);
+      props.first  = Math.min(_score_.pgs.length, props.first);
+      this.firstSlider.refresh();
+      this.lastSlider.refresh();
+    });
   }
 
 }
@@ -1925,7 +1929,7 @@ class PastePanel extends Panel {
       
       .PastePanel__sash {
         position: relative;
-        height:100% ;
+        height:100%;
         width: max-content;
         min-width: 100%;
         padding: 0 0.8em;
@@ -1934,7 +1938,7 @@ class PastePanel extends Panel {
         gap: 0.8em;
         align-items: flex-start;
       }
-   `) ;
+   `);
 
   content = helm(`
      <div data-tag="body" class="Panel__body">
@@ -1953,12 +1957,12 @@ class PastePanel extends Panel {
 
     listen(this.sash, "pointerdown", (e) => { 
       this.sash.setPointerCapture(e.pointerId);
-      let fs = parseFloat(getComputedStyle(this.sash).fontSize) ;
+      let fs = parseFloat(getComputedStyle(this.sash).fontSize);
       let offsetX = e.clientX - this.sash.offsetLeft;
       let limit = this.sash.offsetWidth - this.frame.offsetWidth;
       let mv = listen(this.sash, "pointermove", (emv) => {
-        let leftPx = clamp(emv.clientX - offsetX, -limit, 0) ;
-        this.sash.style.left = leftPx / fs + "em" ;
+        let leftPx = clamp(emv.clientX - offsetX, -limit, 0);
+        this.sash.style.left = leftPx / fs + "em";
       });
       listen(this.sash, "pointerup", (eup) => {
         unlisten(mv);
@@ -1970,35 +1974,35 @@ class PastePanel extends Panel {
         Undo: { svg: "Undo", onOff:true },
       },
       async (e, tag, value) => {
-        if(value == "Clear") await _podPb_.pgClear() ;
-        else if(value == "Undo") await _podPb_.pgPop() ;
+        if(value == "Clear") await _podPb_.pgClear();
+        else if(value == "Undo") await _podPb_.pgPop();
         // We're making the buttons look like on-off buttons, but this is not actually implemented.
         // However we can simulated turning it off button off by deleting its corresponding buttons.props
-        delay(5, () => { delete buttons.props[value] ; buttons.refresh() ;}) ;
+        delay(5, () => { delete buttons.props[value]; buttons.refresh();});
       }
-    ) ;
-    buttons.elm.style.borderTop = ".02em solid var(--color-border)" ;   
-    this.buttons.replaceWith(buttons.elm) ;
+    );
+    buttons.elm.style.borderTop = ".02em solid var(--color-border)";   
+    this.buttons.replaceWith(buttons.elm);
 
     listen(_body_, "PASTEBUFFER", async (e) => {
-      _shade_.show("Building...") ;
-      let score = await _podPb_.getScore() ;
-      let thumbs = [] ;
+      _shade_.show("Building...");
+      let score = await _podPb_.getScore();
+      let thumbs = [];
       for(let pg of score.pgs) thumbs.push(await pg.getThumbElm(true));
-      _shade_.hide() ;
-      clearChildren(this.sash) ;
+      _shade_.hide();
+      clearChildren(this.sash);
       if(thumbs.length > 0) { 
-        this.sash.style.fontSize = "1em" ; // reset to known "baseline"
+        this.sash.style.fontSize = "1em"; // reset to known "baseline"
         reflow();
-        thumbs.forEach((thumb) => this.sash.append(thumb)) ;
-        this.sash.style.fontSize = this.sash.offsetHeight / thumbs[0].offsetHeight   + "em" ;
-        let frameWidth = pxToEm(this.frame.offsetWidth, this.sash) ;
-        let sashWidth = pxToEm(this.sash.offsetWidth, this.sash) ;
-        this.sash.style.left = frameWidth ;
+        thumbs.forEach((thumb) => this.sash.append(thumb));
+        this.sash.style.fontSize = this.sash.offsetHeight / thumbs[0].offsetHeight   + "em";
+        let frameWidth = pxToEm(this.frame.offsetWidth, this.sash);
+        let sashWidth = pxToEm(this.sash.offsetWidth, this.sash);
+        this.sash.style.left = frameWidth;
         reflow();
-        this.sash.style.transition = `left ${_gs_}ms` ;
+        this.sash.style.transition = `left ${_gs_}ms`;
         this.sash.style.left = parseFloat(frameWidth) - parseFloat(sashWidth) - .8 + "em";
-        delayMs(_gs_, () => this.sash.style.transition = "unset") ;
+        delayMs(_gs_, () => this.sash.style.transition = "unset");
       }
     })
   }

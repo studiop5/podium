@@ -47,7 +47,7 @@ let err = (call, msg) => {
 let errDialog = (error, stack, msg) => {
   // Craft an error dialog, given an exception variable and a msg.
   if (error.name == "AbortError") return; // thrown when browser's open/save panels are cancelled
-  else if (error.cause == "cancelled") return toast("Cancelled") ;
+  else if (error.cause == "cancelled") return toast("Cancelled");
   else if (error.cause == "timeout") dialog("Timed out waiting for authentication");
   else if (error.cause == "security") dialog(`<em>Security Error</em><br><br><strong>${error.message}</strong>`);
   else if (error.cause == "fileSrc") dialog(`<em>${msg}</em><br><br><strong>${error.message}</strong>`);
@@ -69,10 +69,10 @@ let checkUnsaved = async (msg = "Warning: current score has unsaved changes. Ope
                  { Open: { svg: "Open" }, Cancel: { svg: "Cancel" } },
         (e, prop, tag, args) => {
           args.close();
-          accept(tag == "Open" || tag == "Close") ;
+          accept(tag == "Open" || tag == "Close");
         }
       )}
-    else accept(true) ;
+    else accept(true);
   })
 }
 
@@ -80,7 +80,7 @@ let checkUnsaved = async (msg = "Warning: current score has unsaved changes. Ope
 
 let checkFileSize = async (name, size) => {
   let MAX_FILE_SIZE = 80 * 1024 * 1024; // 80MB
-  checkPath(name) ;
+  checkPath(name);
   if (size == 0)
     throw new Error('File is empty', { cause: "security" });
   if (size > MAX_FILE_SIZE) {
@@ -110,7 +110,7 @@ let checkFileSize = async (name, size) => {
 let checkPath = (...args) => {
   for(let arg of args)
     if(arg && (arg.includes('../') || arg.includes('..\\') || arg.includes('\0')))
-      throw new Error('Invalid path', { cause: 'security' }) ;
+      throw new Error('Invalid path', { cause: 'security' });
 }
 
 
@@ -121,7 +121,7 @@ let escapeHtml = (str) => {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;') //" <- keep double quotes balanced for build.py
-    .replace(/'/g, '&#x27;') ; 
+    .replace(/'/g, '&#x27;'); 
 }
 
 let getPlainChallenge = (bytes = 32) => {
@@ -197,10 +197,10 @@ class FileSrc {
       let refs = FileSrc.refs;
       if (refs.has(ref)) return refs.get(ref);
       let src;
-      if (ref == Score.sources.local) src = new LocalSrc() ;
-      else if (ref == Score.sources.gdrive) src = new GDriveSrc() ;
-      else if (ref == Score.sources.dbx) src = new DbxSrc() ;
-      else if (ref == Score.sources.odrive) src = new ODriveSrc() ;
+      if (ref == Score.sources.local) src = new LocalSrc();
+      else if (ref == Score.sources.gdrive) src = new GDriveSrc();
+      else if (ref == Score.sources.dbx) src = new DbxSrc();
+      else if (ref == Score.sources.odrive) src = new ODriveSrc();
       FileSrc.refs.set(ref, src); // ref -> src
       FileSrc.refs.set(src, ref); // src -> ref
       return src;
@@ -231,7 +231,7 @@ class FileSrc {
           if (tag == "Cancel") return;
           _shade_.show("Downloading file");
           let { data, size, created, modified } = await src.getFile(score.path, score.name);
-          score = await new Score().init(score.source, score.path, score.name, data) ;
+          score = await new Score().init(score.source, score.path, score.name, data);
           Score.visit(score, { size, created, modified });
           toast("File reverted.");
         } catch (error) {
@@ -263,7 +263,7 @@ class FileSrc {
         let data = await score.toPdf();
         await src.putFile(score.path, score.name, data);
         Score.visit(score, { size: data.length, modified: Date.now() });
-        score.setDirty(false) ;
+        score.setDirty(false);
         toast("File uploaded.");
       } catch (error) {
         errDialog(error, error.stack, "Error: failed to upload file to cloud server.<br>Details in Console.");
@@ -290,7 +290,7 @@ class LocalSrc extends FileSrc {
           if (e.type == "cancel") return reject(new Error("", { cause: "cancelled" }));
           let file = e.target.files[0];
           try {
-            await checkFileSize(file.name, file.size) ;
+            await checkFileSize(file.name, file.size);
           }
           catch (error) {
             return reject(error);
@@ -327,9 +327,9 @@ class LocalSrc extends FileSrc {
     } else {
       data = new Blob(data);
       let url = URL.createObjectURL(data);
-      let link = document.createElement('a') ;
+      let link = document.createElement('a');
       link.download = name;
-      link.href = url ;
+      link.href = url;
       return { name: name, modified: Date.now() };
       // revoke url
     }
@@ -393,7 +393,7 @@ class CachedSrc extends FileSrc {
     };
 
     maxCacheAge = 2 * 60 * 1000; // two minutes
-    extraAuthParams = "" ; // sublcasses redefine
+    extraAuthParams = ""; // sublcasses redefine
 
     getQuery(url, key) {
         // Returns a query key's value from a url, or null if not found.
@@ -417,7 +417,7 @@ class CachedSrc extends FileSrc {
 
     redirectUri = `${location.origin}/podauth.html`;
     tokens = null;
-    refreshExpiry = 90 * 24 * 60 * 60 ; // default refresh token expiry in seconds
+    refreshExpiry = 90 * 24 * 60 * 60; // default refresh token expiry in seconds
     authTimeout = 180; // max time in seconds for user to complete authorization
 
     authPopupOpen(url) {
@@ -432,7 +432,7 @@ class CachedSrc extends FileSrc {
             if (popup && !popup.closed) popup.focus();
             else clearInterval(focusInterval);
         }, 500); 
-        return popup ;
+        return popup;
     }
 
     // This is called after oauth authentication has run
@@ -478,10 +478,10 @@ class CachedSrc extends FileSrc {
             if(this.tokens.expiry > now) return Promise.resolve();
             if(this.tokens.refresh_token && this.tokens.refresh_expiry > now) {
                 try {
-                    await refreshAccessToken() ;
+                    await refreshAccessToken();
                     return Promise.resolve();
                 } catch(error) {
-                    console.warn("Token refresh failed, using full auth.") ;
+                    console.warn("Token refresh failed, using full auth.");
                 }
             }
         }
@@ -492,7 +492,7 @@ class CachedSrc extends FileSrc {
             .replace(/\+/g, "-")
             .replaceAll("/", "_")
             .replace(/=+$/, "");
-        let plainChallenge = getPlainChallenge() ;
+        let plainChallenge = getPlainChallenge();
         let challenge = base64UrlEncode(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(plainChallenge)));
         let state = getPlainChallenge();
         let timeout = (performance.now() / 1000) + this.authTimeout; 
@@ -537,12 +537,12 @@ class CachedSrc extends FileSrc {
                     let code = this.getQuery(href, "code=");
                     if (code) {
                         if(this.getQuery(href, "state=") != state)
-                            throw new Error("Possible <i>Cross Site Request Forgery</i> attempt blocked.", {cause:"security"}) ;
+                            throw new Error("Possible <i>Cross Site Request Forgery</i> attempt blocked.", {cause:"security"});
                         this.tokens = await exchange(code);
-                        let now = performance.now() / 1000 ;
-                        this.tokens.expiry = now + this.tokens.expires_in ;
+                        let now = performance.now() / 1000;
+                        this.tokens.expiry = now + this.tokens.expires_in;
                         if(this.tokens.refresh_token) 
-                            this.tokens.refresh_expiry = now  + (this.tokens.refresh_token_expires_in || this.refreshExpiry) ;
+                            this.tokens.refresh_expiry = now  + (this.tokens.refresh_token_expires_in || this.refreshExpiry);
                         this.authPopupClose(popup);
                         return resolve();
                     }
@@ -594,7 +594,7 @@ class CachedSrc extends FileSrc {
 
 
     async getDir(path, force = false) {
-        checkPath(path) ;
+        checkPath(path);
         await this.auth();
         let dir;
         if (this.cache.hasOwnProperty(path)) {
@@ -614,7 +614,7 @@ class CachedSrc extends FileSrc {
     }
 
     async putDir(path, name) {
-        checkPath(path, name) ;
+        checkPath(path, name);
         await this.auth();
         let srcDir = await this.getDir(path);
         if (!srcDir) {
@@ -628,7 +628,7 @@ class CachedSrc extends FileSrc {
     }
 
     async renameDir(path, name, newName) {
-        checkPath(path, name, newName) ;
+        checkPath(path, name, newName);
         await this.auth();
         let srcDir = await this.getDir(path);
         if (!srcDir) {
@@ -651,7 +651,7 @@ class CachedSrc extends FileSrc {
     }
 
     async trashDir(path, name) {
-        checkPath(path, name) ;
+        checkPath(path, name);
         await this.auth();
         let parentDir = await this.getDir(path);
         let dir = parentDir.dirs[name];
@@ -663,7 +663,7 @@ class CachedSrc extends FileSrc {
     }
 
     async getFile(path, name) {
-        checkPath(path,name) ;
+        checkPath(path,name);
         await this.auth();
         let dir = await this.getDir(path);
         let file = dir.files[name];
@@ -671,21 +671,21 @@ class CachedSrc extends FileSrc {
             Score.visit({ source: this.source, path, name });
             err(`getFile(${path},${name})`, "Path/Name not found.");
         }
-        await checkFileSize(name, file.size) ;
+        await checkFileSize(name, file.size);
 
         // the "name" and "path" vars are are here passed back intact. For a LocalSrc, however, the name may have changed, and the path is unknown.
         return { path: path, name: name, data: await this.getFileSrc(path, name, dir, file), size: file.size, created: file.created, modified: file.modified };
     }
 
     async putFile(path, name, data) {
-        checkPath(path, name) ;
+        checkPath(path, name);
         let dir = await this.getDir(path);
         if (dir.dirs[name]) return err(`putFile(${path},${name},...)`, "Path not found.");
         await this.putFileSrc(path, name, await data, dir, null);
     }
 
     async renameFile(path, name, newName) {
-        checkPath(path, name, newName) ;
+        checkPath(path, name, newName);
         await this.auth();
         let srcDir = await this.getDir(path);
         if (!srcDir) {
@@ -703,7 +703,7 @@ class CachedSrc extends FileSrc {
     }
 
     async trashFile(path, name) {
-        checkPath(path, name) ;
+        checkPath(path, name);
         await this.auth();
         let dir = await this.getDir(path);
         let file = dir.files[name];
@@ -716,7 +716,7 @@ class CachedSrc extends FileSrc {
 }
 
 /**
-class GDriveSrc (i.e. Google Drive) ;
+class GDriveSrc (i.e. Google Drive);
 **/
 
 
@@ -730,8 +730,8 @@ class GDriveSrc extends CachedSrc {
 
   constructor() {
     super();
-    this.tokens = null ;
-    this.gisClient = null ;
+    this.tokens = null;
+    this.gisClient = null;
   }
 
 
@@ -993,7 +993,7 @@ class DbxSrc (i.e. Dropbox)
 class DbxSrc extends CachedSrc {
   source = Score.sources.dbx;
   authUrl = "https:/\/www.dropbox.com/oauth2/authorize";
-  extraAuthParams = "&token_access_type=offline" ;
+  extraAuthParams = "&token_access_type=offline";
   clientId = "erqcrdytyixn6h7";
   scopes = encodeURIComponent("files.content.write files.content.read");
   tokenUrl = "https:/\/api.dropbox.com/oauth2/token/";
@@ -1464,7 +1464,7 @@ class LocalFileView {
       align-items:center;
     }
     .Local__line {
-      margin-top:2em ;
+      margin-top:2em;
     }
   `
   );
@@ -1536,14 +1536,14 @@ class LocalFileView {
         // because browser api doesn't give us a creation date on the file object
         let visitUpdate = { size: file.size, created: 0, modified: file.lastModified };
         if (this.mode == "copy") {
-          await _menu_.setPasteObj(await bytesToBase64DataUrl(await file.arrayBuffer(), file.type), file.type) ;
-          Score.visit({ source:Score.sources.local, name:file.name, path:"n/a"}, visitUpdate) ;
+          await _menu_.setPasteObj(await bytesToBase64DataUrl(await file.arrayBuffer(), file.type), file.type);
+          Score.visit({ source:Score.sources.local, name:file.name, path:"n/a"}, visitUpdate);
           toast("File opened");
         }
         else {
           if(await checkUnsaved()) {
-            let score = await new Score().init(Score.sources.local, null, file.name, await file.arrayBuffer()) ;
-            Score.visit(score, visitUpdate) ;
+            let score = await new Score().init(Score.sources.local, null, file.name, await file.arrayBuffer());
+            Score.visit(score, visitUpdate);
             toast("File opened");
           }
         }
@@ -1566,21 +1566,21 @@ class LocalFileView {
   async putFile() {
     let score = _score_;
     _shade_.show("Saving file");
-    _shade_.onCancel = () => { throw new Error() } ;
+    _shade_.onCancel = () => { throw new Error() };
     try {
       score.source = Score.sources.local;
       let data = await score.toPdf();
       let { name, modified } = await this.src.putFile(score.path, score.name, data);
       score.update({ source: this.source, name: name, path: null });
       Score.visit(score, { size: data.length, modified: modified });
-      score.setDirty(false) ;
+      score.setDirty(false);
       toast("File saved");
     } catch (error) {
       errDialog(error, error.stack, "Failed to save file to local storage");
     } finally {
       _shade_.hide();
       this.panel.hide();
-      _shade_.onCancel = null ;
+      _shade_.onCancel = null;
     }
   }
 }
@@ -1631,19 +1631,19 @@ class FileListView {
     .Flv-list__frame {
       position:relative;
       overflow:hidden;
-      height: calc(100% - 6.5em) ;
+      height: calc(100% - 6.5em);
     }
     .Fsv-list__frame {
-      height: calc(100% - 10em) ;
+      height: calc(100% - 10em);
     }
     .Flv-list__frame--save-mode {
-      height: calc(100% - 16em) ; /* frame in save mode: allows room for FlvSave */
+      height: calc(100% - 16em); /* frame in save mode: allows room for FlvSave */
     }
     .Flv-list__item-selected {
-      background: var(--panel-header-selected-bg) !important ;
+      background: var(--panel-header-selected-bg) !important;
     }
     .Flv-list__file {
-      width: calc(100% - 2em) ;
+      width: calc(100% - 2em);
       font-size:1em;
       margin:.5em;
       padding:.5em;
@@ -1670,8 +1670,8 @@ class FileListView {
        text-shadow: var(--file-text-shadow);
     }
     .Flv-path__sash {
-      display: flex ;
-      position:relative ;
+      display: flex;
+      position:relative;
       width: max-content;
       min-width: 100%;
       height: 3em;
@@ -1679,13 +1679,13 @@ class FileListView {
       margin-top: .5em;
     }
     .Flv-path__sash-edge {
-      top: .5em ;
-      height: 10em ;
+      top: .5em;
+      height: 10em;
     }
     .Flv-path {
-      position:relative ;
+      position:relative;
       width: max-content;
-      left:0px ;
+      left:0px;
       display:flex;
       align-items:center;
       column-gap:.5em;
@@ -1712,7 +1712,7 @@ class FileListView {
       text-align: center;
       padding: 0em 4em 0em 1em;
       margin:1em 2em 1em 2em;
-      outline:none ;
+      outline:none;
     }
    }
   `
@@ -1775,7 +1775,7 @@ class FileListView {
 
   async checkExt(name, ext = ".pdf") {
     // ext should include the leading dot "."
-    checkPath(name) ;
+    checkPath(name);
     if (name.toLowerCase().endsWith(ext)) return name;
     return new Promise((accept, reject) => {
       dialog(`Add extension <i>.pdf</i> to <i>${escapeHtml(name)}<i> ?`, { Yes: { svg: "Pdf" }, No: { svg: "Not Pdf" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
@@ -1809,7 +1809,7 @@ class FileListView {
   async makeFileElm(properties) {
     let name = properties.name;
     let path = properties.path;
-    checkPath(name, path) ;
+    checkPath(name, path);
     let isDir = properties.isDir ?? false;
     let source = properties.source || FileSrc.get(this.src) || "?";
     let size = properties.size || null;
@@ -1900,7 +1900,7 @@ class FileListView {
 
   async getFile(source, requestedPath, requestedName) {
     if(this.mode != "copy" && !await checkUnsaved())
-      return ;
+      return;
     _shade_.show("Downloading file");
     return new Promise(async (accept, reject) => {
       try {
@@ -1929,7 +1929,7 @@ class FileListView {
   }
 
   async renameFile(source, path, name) {
-    checkPath(path, name) ;
+    checkPath(path, name);
     _shade_.show("Renaming file");
     return new Promise((accept, reject) => {
       let dialogElm = dialog(
@@ -2073,7 +2073,7 @@ class FileSystemView extends FileListView {
       this.fsvSave.classList.add("void");
       this.flvList__frame.classList.remove("Flv-list__frame--save-mode");
     }
-    let storedPath = localStorage.getItem(this.source) || "" ;
+    let storedPath = localStorage.getItem(this.source) || "";
     this.setPath(this.path ||
        _score_?.source == this.source ?
          _score_?.path :  storedPath, true);
@@ -2116,17 +2116,17 @@ class FileSystemView extends FileListView {
   }
 
   onPathDown(e) {
-    let elm = this.fsvPath ;
-    let origin = elm.offsetLeft ;
-    let minLeft = this.fsv.offsetWidth - elm.offsetWidth ;
+    let elm = this.fsvPath;
+    let origin = elm.offsetLeft;
+    let minLeft = this.fsv.offsetWidth - elm.offsetWidth;
     elm.setPointerCapture(e.pointerId);
 
     let mv = listen(elm, "pointermove", (emv) => {
-      if(mvmt(e,emv)) elm.style.left = clamp(origin + emv.clientX - e.clientX, minLeft, 0) + "px" ;
+      if(mvmt(e,emv)) elm.style.left = clamp(origin + emv.clientX - e.clientX, minLeft, 0) + "px";
     });
 
     listen(elm, "pointerup", async (eup) => {
-      unlisten(mv) ;
+      unlisten(mv);
       if (!mvmt(e,eup)) {
         if(e.target.dataset.tag == "newDir") return await this.putDir(this.path);
         let target = e.target.closest(".Flv-path__dir");
@@ -2176,7 +2176,7 @@ class FileSystemView extends FileListView {
   }
 
   async renameDir(path, name) {
-    checkPath(path, name) ;
+    checkPath(path, name);
     _shade_.show("Renaming folder");
     return new Promise((accept, reject) => {
       let dialogElm = dialog(
@@ -2258,7 +2258,7 @@ class FileSystemView extends FileListView {
       await this.src.putFile(this.path, name, data);
       score.update({ source: this.source, name: name, path: this.path });
       Score.visit(score, { size: data.length, modified: Date.now() });
-      score.setDirty(false) ;
+      score.setDirty(false);
       await this.setPath(this.path, true);
 
       toast("File uploaded");
@@ -2277,13 +2277,13 @@ class FileSystemView extends FileListView {
     return new Promise(async (accept, reject) => {
       try {
         this.path = path;
-        let listing ;
+        let listing;
         try {
           listing = await this.src.getDir(path, force);
-          localStorage.setItem(this.source, path) ; // remember last path opened
+          localStorage.setItem(this.source, path); // remember last path opened
         }
         catch(error) {
-          localStorage.setItem(this.source, "") ; // reset if path doesn't exist
+          localStorage.setItem(this.source, ""); // reset if path doesn't exist
           listing = await this.src.getDir("", force);
         }        
         this.populateFsvPath();

@@ -34,14 +34,14 @@ export { Grid, Pg, Score };
   // setTimeout to throw an exception when window.pdf == "cancel".
   // This allows us to interrupt the save, allowing users
   // to "cancel" a long-running save operation.
-  let sto = window.setTimeout ;
-  window.cancelPdf = false ;
+  let sto = window.setTimeout;
+  window.cancelPdf = false;
   window.setTimeout = function(callback, delay, ...args) { 
     if(window.cancelPdf) {
-      window.cancelPdf = false ;
-      throw new Error("PDF save cancelled by user") ;
+      window.cancelPdf = false;
+      throw new Error("PDF save cancelled by user");
     }
-    return sto(callback, delay, ...args) ;
+    return sto(callback, delay, ...args);
   }
 }
 
@@ -73,14 +73,14 @@ class Pg {
 
     this.background = background;
     this.canvas = null; // fabricjs canvas
-    this.isCut = false ; // marker for pgs that are "cut" in the gui
+    this.isCut = false; // marker for pgs that are "cut" in the gui
     this.bookmark = null; // Color string if this pg is bookmarked, else null
     this.deferred = false; // true while pdf rendering deferred for non-blocking
     this.editable = false;
     this.elm = null; // shortcut for this.canvas.wrapperEl: the base element of the fabric canvas dom
     this.grid = null; // Grid instance, if any
     this.inflated = false; // true iff a fabricjs canvas is currently available
-    this.inflateCtrl = null ;
+    this.inflateCtrl = null;
     this.inUse = false; // marker for class Score's caching algorithm
     this.score = score;
     this.height = height;
@@ -104,9 +104,9 @@ class Pg {
     // the fabricjs as a fabric "background image", but that route
     // was found to have poorer resolution that using a decicated
     // dom canvas, sigh.
-    if(!this.score.mozDoc) return ;
+    if(!this.score.mozDoc) return;
     let mozPg = await this.score.mozDoc.getPage(this.mozPn);
-    if(this.inflateCtrl?.signal?.aborted) return ;
+    if(this.inflateCtrl?.signal?.aborted) return;
     let viewport = mozPg.getViewport({ scale: this.score.quality});
     let w = viewport.width / this.score.quality;
     let h = viewport.height / this.score.quality;
@@ -140,38 +140,38 @@ class Pg {
     //   the inflation finishes, the div is replaced by the fabric
     //   canvas's container div.
     if (this.inflated) return this;
-    this.inflateCtrl = new AbortController() ;
+    this.inflateCtrl = new AbortController();
     if(this.mozPn && nonblocking) {
       // Pages backed by mozilla pdf pages can take a long time to render, blocking the ui.
       // To improve the ui experience, if nonblocking is true (the default), pdf rendering
       // if done s.t. it doesn't block the ui. In this case, we immediately create a "fake" canvas (really,
       // a simple div-within-a-div  (so we can set the font-size without effecting the size of the outer div)) to show,
       // leaving the rendering of pdf to a true canvas until after inflatePromise resolves.
-      this.deferred = true ;
-      this.canvas = helm(`<div style="text-align:center;color:#eee;background:white;font-family:Bravura"><div style="font-size:5em;">\uE4C4<div></div>`) ;
-      this.elm = this.canvas ;
+      this.deferred = true;
+      this.canvas = helm(`<div style="text-align:center;color:#eee;background:white;font-family:Bravura"><div style="font-size:5em;">\uE4C4<div></div>`);
+      this.elm = this.canvas;
       this.elm.pg = this; // convenience for accesing pg from dom
       this.style = this.elm.style; // convenient shorthand
       this.inflatePromise = this.inflateAux(render).catch(err => {
-        if(err.name == 'AbortError') return ; // no error: expected
-        console.warn(`Failed to background load/render page ${this.mozPn}:`, err)}) ;
-    } else await this.inflateAux(render) ;
+        if(err.name == 'AbortError') return; // no error: expected
+        console.warn(`Failed to background load/render page ${this.mozPn}:`, err)});
+    } else await this.inflateAux(render);
   }
 
   async inflateAux(render) {
     let signal = this.inflateCtrl?.signal;
-    let checkAbort = () => { if(signal?.aborted) throw new DOMException("Inflation aborted","AbortError") ;}
-    checkAbort() ;
+    let checkAbort = () => { if(signal?.aborted) throw new DOMException("Inflation aborted","AbortError");}
+    checkAbort();
 
     if(!this.inUse) { // yield to inUse pages
        await new Promise(resolve => delay(1, resolve));
-       checkAbort() ;
+       checkAbort();
     }
 
     // If indicated, determine scaling factor that will "stretch" score s.t. it
     // will expand pg to fit within score's maxWidth & maxHeight
     this.stretch = this.score.pgFit == "Expand" ? Math.min(
-       this.score.maxWidth / this.width,this.score.maxHeight / this.height) : 1 ;
+       this.score.maxWidth / this.width,this.score.maxHeight / this.height) : 1;
 
     let domCanvas = document.createElement("canvas");
     // allowTouchScrolling needs to be false, else certain browers (chrome mobile, at
@@ -182,7 +182,7 @@ class Pg {
         allowTouchScrolling: false, // Required!
         imageSmoothingEnabled: false,
     });
-    checkAbort() ;
+    checkAbort();
 
     // Setting both *without* cssOnly (in implicit px's), then *with* cssOnly
     // (in explicit em's) creates a canvas that can be resized by simply changing
@@ -199,14 +199,14 @@ class Pg {
 
     if (this.json) await new Promise((resolve, reject) => 
       canvas.loadFromJSON(this.json, () => resolve()));
-    checkAbort() ;
+    checkAbort();
 
     if (render && this.mozPn) { 
        await this.renderPdf(canvas);
        if(signal?.aborted) {
-         canvas.dispose() ;
-         this.mozCanvas?.remove() ;
-         throw new DOMException("Inflation aborted","AbortError") ;   
+         canvas.dispose();
+         this.mozCanvas?.remove();
+         throw new DOMException("Inflation aborted","AbortError");   
        }
     }
     else if (this.background) canvas.setBackgroundColor(this.background);
@@ -222,13 +222,13 @@ class Pg {
       // temporary elm. Copy relevant styles from that elm to the fabric
       // canvas elm, then replace the temporary elm.
       ["left","right", "top","bottom","position","clipPath"].forEach((style) => 
-        this.elm.style[style] = this.canvas.style[style]) ;
-      this.canvas.replaceWith(this.elm) ;
-      this.deferred = false ;
+        this.elm.style[style] = this.canvas.style[style]);
+      this.canvas.replaceWith(this.elm);
+      this.deferred = false;
     }
-    this.canvas = canvas ;
+    this.canvas = canvas;
 
-    let stateChanged = false ; // flag to indicate canvas state has changed s.t. it needs to be pushed to the undoStack
+    let stateChanged = false; // flag to indicate canvas state has changed s.t. it needs to be pushed to the undoStack
 
     canvas.on("mouse:down:before", async (opts) => {
       if(_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) 
@@ -236,8 +236,8 @@ class Pg {
     });
 
     canvas.on("mouse:up", opts => {
-      if(stateChanged) pushState() ;
-      stateChanged = false ;
+      if(stateChanged) pushState();
+      stateChanged = false;
       if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) _menu_.pgUpEvent(opts, this); 
     });
 
@@ -257,12 +257,12 @@ class Pg {
     };
 
     canvas.on("object:added", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
-    canvas.on("object:removed", ((obj) => { if(!this.suppressStateChange) stateChanged = true;})) ;
-    canvas.on("object:modified", ((obj) => { if(!this.suppressStateChange) stateChanged = true;})) ;
+    canvas.on("object:removed", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
+    canvas.on("object:modified", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
 
     this.inflated = true;
     this.setEditable(this.editable); // indicate pg is editable. note: called AFTER setting this.inflated
-    this.setZoom(this.zoom) ;
+    this.setZoom(this.zoom);
   }
 
   deflate(full = false) {
@@ -270,19 +270,19 @@ class Pg {
     // @full boolean: iff true, any thumbElm is not deleted during
     //   deflation.
     if(this.inflateCtrl) {
-      this.inflateCtrl.abort() ;
-      this.inflateCtrl = null ;
+      this.inflateCtrl.abort();
+      this.inflateCtrl = null;
     }
 
     if (this.inflated) {
       if (full) {
-        if(this.fabUrl) URL.revokeObjectURL(this.fabUrl) ;
-        if(this.pdfUrl) URL.revokeObjectURL(this.pdfUrl) ;
+        if(this.fabUrl) URL.revokeObjectURL(this.fabUrl);
+        if(this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
         this.thumbElm?.remove();
         this.thumbElm = null;
         this.json = null;
       } else this.json = this.toJson();
-      this.canvas.clear() ;
+      this.canvas.clear();
       this.canvas.dispose();
       this.canvas = null;
       this.mozCanvas?.remove();
@@ -310,7 +310,7 @@ class Pg {
     // -  the two object URLs are revoked after a delay of 10 animation frames
     if (!this.thumbElm || force) {
       let deflated = !this.inflated;
-      let score = this.score ;
+      let score = this.score;
       if (deflated) await this.inflate(true, false);
 
       // create div that will display the thumbnail
@@ -319,16 +319,16 @@ class Pg {
 
       this.thumbElm = helm(
         `<div class="TableLayout__pg" style="width:${maxW / _pxPerEm_}em;height:${maxH / _pxPerEm_}em;"></div>`);
-      this.thumbElm.style.backgroundColor = Pg.paddingColor ;
+      this.thumbElm.style.backgroundColor = Pg.paddingColor;
       if(score.pgFit == "Center")
-        this.thumbElm.style.backgroundSize = this.width * 100 / score.maxWidth + "%" ;
+        this.thumbElm.style.backgroundSize = this.width * 100 / score.maxWidth + "%";
 
       // create object URL for fabric canvas
-      let fabCanvas = this.canvas.toCanvasElement(scale * this.stretch) ;
+      let fabCanvas = this.canvas.toCanvasElement(scale * this.stretch);
       this.fabUrl = URL.createObjectURL(await new Promise((res) => fabCanvas.toBlob((b) => res(b))));
 
       if(this.mozCanvas) {
-        // create obj URL for mozCanvas (from mozilla pdf src) ;
+        // create obj URL for mozCanvas (from mozilla pdf src);
         let pdfCanvas = helm(`<canvas width="${maxW}" height="${maxH}"></canvas>`);
         pdfCanvas.getContext("2d").drawImage(this.mozCanvas, 0, 0, maxW, maxH);
         this.pdfUrl = URL.createObjectURL(await new Promise((res) => pdfCanvas.toBlob((b) => res(b))));
@@ -371,18 +371,18 @@ class Pg {
     this.zoom = zoom;
     if(this.deferred) { 
       // When deferred, where actually resizing a temporary "fake" canvas which is actually a div
-      this.canvas.style.width = this.width * zoom * this.stretch / _pxPerEm_ + "em" ;
-      this.canvas.style.height = this.height * zoom * this.stretch / _pxPerEm_ + "em" ;
-      this.canvas.style.lineHeight = this.canvas.style.height ;
+      this.canvas.style.width = this.width * zoom * this.stretch / _pxPerEm_ + "em";
+      this.canvas.style.height = this.height * zoom * this.stretch / _pxPerEm_ + "em";
+      this.canvas.style.lineHeight = this.canvas.style.height;
     }
     else if(this.inflated) {
-      let emWidth = this.width * zoom  * this.stretch / _pxPerEm_ + "em" ;
-      let emHeight = this.height * zoom * this.stretch / _pxPerEm_ + "em" ;
+      let emWidth = this.width * zoom  * this.stretch / _pxPerEm_ + "em";
+      let emHeight = this.height * zoom * this.stretch / _pxPerEm_ + "em";
       this.canvas.setDimensions({ width: emWidth, height: emHeight}, { cssOnly: true });
       if (this.grid) this.grid.setZoom(zoom);
       if (this.mozCanvas) {
-        this.mozCanvas.style.width = emWidth ;
-        this.mozCanvas.style.height = emHeight ;
+        this.mozCanvas.style.width = emWidth;
+        this.mozCanvas.style.height = emHeight;
       }
       return this.canvas.requestRenderAll();
     }
@@ -396,7 +396,7 @@ class Pg {
 
   async undo( ) {
     // pop an entry from the undo stack, resetting pg's state
-    this.score.setDirty(true) ;
+    this.score.setDirty(true);
     let stack = this.undoStack;
     if (stack.length > 1) {
       this.suppressStateChange = true;
@@ -408,7 +408,7 @@ class Pg {
     // If there's nothing left to undo in any pg, disable ink/undo
     for(let pg of this.score.pgs) {
       if(pg.undoStack?.length > 1)
-        return ;
+        return;
     }
     _menu_.enableCells("ink/undo", false);
     _menu_.activateCell(null);
@@ -462,13 +462,13 @@ class Pg {
     let processObj = async(obj, absoluteTransform = null) => {
 
       if(absoluteTransform) {
-        obj = fabric.util.object.clone(obj) ;
+        obj = fabric.util.object.clone(obj);
         obj.set({
           left: absoluteTransform.left,
           top: absoluteTransform.top,
           scaleX : absoluteTransform.scaleX,
           scaleY: absoluteTransform.scaleY,
-          angle: absoluteTransform.angle }) ;
+          angle: absoluteTransform.angle });
       }     
 
       switch (obj.type) {
@@ -565,11 +565,11 @@ class Pg {
         case "image": {
           // the fabricjs image is assumed to have a src property that
           // must be a dataURL starting with "data:image/jpeg; or "data:image/png;"
-          let res = await fetch(obj.src) ;
-          let bytes = new Uint8Array(await res.arrayBuffer()) ;
+          let res = await fetch(obj.src);
+          let bytes = new Uint8Array(await res.arrayBuffer());
           let image = obj.src.startsWith("data:image/jpeg;") ? await pLibPg.doc.embedJpg(bytes) : 
-              obj.src.startsWith("data:image/png;") ? await pLibPg.doc.embedPng(bytes): null ;
-          if(!image) throw new Error("Unknown image type in data url:" + obj.src.substring(20) + "...") ;
+              obj.src.startsWith("data:image/png;") ? await pLibPg.doc.embedPng(bytes): null;
+          if(!image) throw new Error("Unknown image type in data url:" + obj.src.substring(20) + "...");
           let scale = obj.scaleX;
           let angle = (obj.angle / 360) * (Math.PI * 2);
           // "un"rotate bl.x and bl.y
@@ -583,7 +583,7 @@ class Pg {
               width: obj.width * scale,
             },
           ]);
-          break ;
+          break;
         }
  
         case "group": {
@@ -592,7 +592,7 @@ class Pg {
           for (let groupObj of obj._objects) {
             if (groupObj.type === 'group') {
               // Nested group: apply parent transformation, then recurse
-                let clonedGroup = fabric.util.object.clone(groupObj) ;
+                let clonedGroup = fabric.util.object.clone(groupObj);
                 fabric.util.addTransformToObject(clonedGroup, groupMatrix);
                 await processObj(clonedGroup, null);
             } else {
@@ -616,13 +616,13 @@ class Pg {
         }
 
       } // switch
-    } ; // processObj
+    }; // processObj
 
     // Discard active object, if any: they don't print correctly if rotated.
     // Note: groups do work, but there are unresolved bugs with rotated
     // nested groups.
-    this.canvas.discardActiveObject() ;
-    this.canvas.requestRenderAll() ;
+    this.canvas.discardActiveObject();
+    this.canvas.requestRenderAll();
 
      // Process all top-level objects
     for (let obj of this.canvas.getObjects()) {
@@ -634,7 +634,7 @@ class Pg {
     // The returned json will not contain any fabricjs objects with the "merge" property:
     // these will have been encorporated directly into the pdf.
     json.objects = json.objects.filter((obj) => !obj.merge);
-    json.bookmark = this.bookmark ;
+    json.bookmark = this.bookmark;
     return json;
   }
 
@@ -659,7 +659,7 @@ class Pg {
       func.apply(pLibPg, funcArgs);
       return;
     }
-    else if(ink == "none") return ; 
+    else if(ink == "none") return; 
     // Add object as a Stamp annotation:
     // - first, create a tmpPage and apply func to it.
     // - "re-forge" tmpPage's content into a stamp annotation
@@ -760,14 +760,14 @@ class Score {
 
         else if (i == 7) pg = new Pg(score, width * 4, height * 1, null, null, "#00f"); 
         else if (i == 9) pg = new Pg(score, width * 5, height * 1, null, null, "#888"); 
-        else pg = new Pg(score, width, height, null, null, "#fff") ;
-        // else pg = new Pg(score, width, height, null, null, "#000") ;
+        else pg = new Pg(score, width, height, null, null, "#fff");
+        // else pg = new Pg(score, width, height, null, null, "#000");
 */
       await score.pgAdd(pg, i, false);
     }
     // don't init score until after pgs are added, or layouts will fail
-    await score.init(null, null, `anon${Math.round(Math.random() * 100)}.pdf`) ;
-    score.setDirty(false) ;
+    await score.init(null, null, `anon${Math.round(Math.random() * 100)}.pdf`);
+    score.setDirty(false);
     return score;
   }
 
@@ -850,7 +850,7 @@ class Score {
   undoStack = []; // will contain pgs, tagged with undoPn whenever pgAdd(),or -undoPn whenever pgCut()
   mozDoc = null; // reference to mozilla pdflib document, if available
   quality = 2; // pdf rendering quality: see Pg.renderPdf()
-  dirty = false ; // true iff score has been modified (i.e. requires saving) 
+  dirty = false; // true iff score has been modified (i.e. requires saving) 
 
   numbers = {
     pn: 1, // current pn
@@ -860,12 +860,12 @@ class Score {
     reverse: "Pages"  // Reverse...
    }
 
-  pgFit = "Center" ;
+  pgFit = "Center";
 
   constructor() {
     // Since constructing a score calls async functions, and since a constructor
     // can't be marked async, the constructor must be invoked as:
-    //      await new Score().init(....)<<<.activate()>>> ;
+    //      await new Score().init(....)<<<.activate()>>>;
     // @clear if true (default), pasteBuffer is cleared.
   }
 
@@ -880,11 +880,11 @@ class Score {
 
     Object.assign(this, { source, path, name });
     this.quality = _menu_.rings.score.cells.info.stash.quality ?? this.quality;
-    this.pgFit = _menu_.rings.score.cells.info.stash.pgFit ?? this.pgFit ;
+    this.pgFit = _menu_.rings.score.cells.info.stash.pgFit ?? this.pgFit;
 
 
     if (pdfData) {
-      this.size = pdfData.byteLength ;
+      this.size = pdfData.byteLength;
       if (!window.pdfjsLib) {
         // mozilla pdfjsLib is loaded from mozSrc and mozWorkerSrc (strings
         // (base64-encoded-gzipped strings defined globally) on demand
@@ -908,19 +908,19 @@ class Score {
 
       this.mozDoc = await loadingTask.promise;
       // Grab pdf metadata's info, if available
-      let meta = await this.mozDoc.getMetadata() ;
-      this.pdfInfo = meta ? meta.info : null ;
+      let meta = await this.mozDoc.getMetadata();
+      this.pdfInfo = meta ? meta.info : null;
 
       // Grab podium attachment, if available
-      let scoreJson = null ;
+      let scoreJson = null;
       let podiumAttachment = (await this.mozDoc.getAttachments())?.podium;
       if (podiumAttachment) {
         // scoreJson, if it exists
         scoreJson = JSON.parse(new TextDecoder().decode(podiumAttachment.content));
-        this.created = scoreJson.created || this.created ;
-        this.modified = scoreJson.modified || this.modified ;
+        this.created = scoreJson.created || this.created;
+        this.modified = scoreJson.modified || this.modified;
         this.quality = scoreJson.quality ?? this.quality;
-        this.numbers = scoreJson.numbers ?? this.numbers ;
+        this.numbers = scoreJson.numbers ?? this.numbers;
         this.pn = scoreJson.pn ?? 1;
         this.first = scoreJson.first ?? 1;
         this.prelim = scoreJson.prelin ??0;
@@ -932,15 +932,15 @@ class Score {
       // max {width/height} over all pgs. 
       for (let i = 1; i <= this.mozDoc.numPages; i++) {
         let mozPage = await this.mozDoc.getPage(i);
-        let [left, top, width, height] = mozPage.view ;
-        let pgJson = scoreJson?.pages ? scoreJson.pages[i]:null ;
+        let [left, top, width, height] = mozPage.view;
+        let pgJson = scoreJson?.pages ? scoreJson.pages[i]:null;
         this.pgs.push(new Pg(this, width, height, pgJson, i));
-        if(pgJson?.bookmark) this.pgs[this.pgs.length -1].bookmark = pgJson.bookmark ;
+        if(pgJson?.bookmark) this.pgs[this.pgs.length -1].bookmark = pgJson.bookmark;
         this.maxWidth = Math.max(width, this.maxWidth);
         this.maxHeight = Math.max(height, this.maxHeight);
       } 
     }
-    if(activate) await this.activate() ;
+    if(activate) await this.activate();
     return this;
   }
 
@@ -957,11 +957,11 @@ class Score {
     this.pgRefresh();
     panels.InfoPanel.get(_menu_.rings.score.cells.info).refresh();
     // layout the score using current active layout, defaulting to book layout
-    _menu_.reset() ;
-    let layoutKey = _menu_.rings.layout.stash.active || "book"  ;
-    let cell = _menu_.rings.layout.cells[layoutKey] ;
-    await Layout.open(cell) ;
-    return this ;
+    _menu_.reset();
+    let layoutKey = _menu_.rings.layout.stash.active || "book" ;
+    let cell = _menu_.rings.layout.cells[layoutKey];
+    await Layout.open(cell);
+    return this;
   }
 
   async toPdf(ink = "stamp", doc = false, pns = null) {
@@ -975,7 +975,7 @@ class Score {
     try {
       // When shade is cancelled, set cancelPdf. This will interrupt lib-pdf when
       // it next calls waitForTick by calling our monkey-patched setTimeout
-      _shade_.onCancel = () => { window.cancelPdf = true ; } ;
+      _shade_.onCancel = () => { window.cancelPdf = true; };
       let srcPLibDoc = this.mozDoc ? await PDFLib.PDFDocument.load(await this.mozDoc.getData()) : null;
 
       // Verify the catalog was parsed correctly
@@ -1000,19 +1000,19 @@ class Score {
       };
       let pLibPg;
       pns = pns || Array.from({length: this.pgs.length}, (_, i) => i + 1);
-      for(let j = 0 ; j < pns.length; j++) {
-        let pn = pns[j] ; // 1-based
-        let percent = Math.trunc((j / pns.length) * 100) ;
-        _shade_.update(`Building page ${j + 1} of ${pns.length} (${percent}%)`) ;
+      for(let j = 0; j < pns.length; j++) {
+        let pn = pns[j]; // 1-based
+        let percent = Math.trunc((j / pns.length) * 100);
+        _shade_.update(`Building page ${j + 1} of ${pns.length} (${percent}%)`);
         let pg = this.pgs[pn-1];
         // if pg is "backed" by a page in mozDoc (1-based), copy page to dstDoc, otherwise add a new "empty" page
         if (pg.mozPn) pLibPg = dstPLibDoc.addPage((await dstPLibDoc.copyPages(srcPLibDoc, [pg.mozPn-1]))[0]);
         else pLibPg = dstPLibDoc.addPage([pg.width, pg.height]);
-        setTimeout(_voidFunc_, 0) ;
+        setTimeout(_voidFunc_, 0);
         // add fabric objects to the page
         let pgJson = await pg.toPdf(ink, pLibPg);
         attachment.pages[j+1] = pgJson;
-        if(window.gc) window.gc() ; 
+        if(window.gc) window.gc(); 
       }
       // Add the pdf attachment
       let jsonString = JSON.stringify(attachment);
@@ -1027,13 +1027,13 @@ class Score {
       dstPLibDoc.setCreationDate(now);
       dstPLibDoc.setCreator("Podium vers." + _podiumVersion_);
       if (doc) return dstPLibDoc;
-      _shade_.update("Generating Pdf document") ;
-      let bytes = await dstPLibDoc.save({objectsPerTick: 1000}) ;
+      _shade_.update("Generating Pdf document");
+      let bytes = await dstPLibDoc.save({objectsPerTick: 1000});
       _shade_.update("PDF Generated!");
-      return bytes ;   
+      return bytes;   
     } 
     finally {
-      _shade_.onCancel = null ;
+      _shade_.onCancel = null;
     }
   }
 
@@ -1042,7 +1042,7 @@ class Score {
     // @pdfData, append all of its pages to this score.
     // @pn one-based index of where to insert the pages from pdfData.
     //     ..when null or < 1, converted to 1 (i.e. first page).
-    pn = clamp(pn, 1, this.pgs.length + 1) -1 ; // convert pn to 0-based in [0, this.pgs.length-1]
+    pn = clamp(pn, 1, this.pgs.length + 1) -1; // convert pn to 0-based in [0, this.pgs.length-1]
     let { PDFArray, PDFDict, PDFDocument, PDFName, PDFStream } = PDFLib;
     let pgCount = this.pgs.length;
     let docA = await this.toPdf("stamp", true); // this is the current document
@@ -1056,11 +1056,11 @@ class Score {
     let json = null;
 
     do { // doesn't loop: just a break context
-      if (!docB.catalog.has(PDFName.of("Names"))) break ;
+      if (!docB.catalog.has(PDFName.of("Names"))) break;
       let Names = docB.catalog.lookup(PDFName.of("Names"), PDFDict);
-      if (!Names.has(PDFName.of("EmbeddedFiles"))) break ;
+      if (!Names.has(PDFName.of("EmbeddedFiles"))) break;
       let EmbeddedFiles = Names.lookup(PDFName.of("EmbeddedFiles"), PDFDict);
-      if (!EmbeddedFiles.has(PDFName.of("Names"))) break ;
+      if (!EmbeddedFiles.has(PDFName.of("Names"))) break;
       let EFNames = EmbeddedFiles.lookup(PDFName.of("Names"), PDFArray);
       for (let idx = 0, len = EFNames.size(); idx < len; idx += 2) {
         let fileName = EFNames.lookup(idx);
@@ -1071,10 +1071,10 @@ class Score {
           break;
         }
       }
-    } while(false) ;
+    } while(false);
 
     // add docB's json to mergedScore
-    let copyKnt = copiedPages.length ;
+    let copyKnt = copiedPages.length;
     // existing json at pn needs to be shifted forward to its pg
     for (let i = pgCount - 1; i >= pn; i--) // need highest->lowest
       mergedScore.pgs[i + copyKnt].json = mergedScore.pgs[i].json;
@@ -1087,14 +1087,14 @@ class Score {
       }
     }
     // Added merged pgs to mergedScore's undo stack
-    for(let i = 0; i < copyKnt ; i++) {
-      let pg = mergedScore.pgs[pn + i] ;
+    for(let i = 0; i < copyKnt; i++) {
+      let pg = mergedScore.pgs[pn + i];
       pg.undoPn = pn + i + 1;
-      mergedScore.undoStack.push(pg) ;
+      mergedScore.undoStack.push(pg);
     }
-    mergedScore.pgRefresh() ;
-    mergedScore.setDirty() ;
-    return mergedScore ;
+    mergedScore.pgRefresh();
+    mergedScore.setDirty();
+    return mergedScore;
   }
 
   getActiveObject() {
@@ -1108,14 +1108,14 @@ class Score {
   pgAdd(pg, pn, push=true) {
     // Add a new page as page pn (1-based), possibly numbered
     this.pgs.splice(pn - 1, 0, pg);
-    this.setDirty() ;
-    pg.undoPn = pn ;
+    this.setDirty();
+    pg.undoPn = pn;
     if(push) {
-      this.undoStack.push(pg) ;
-      while(this.undoStack.length > Score.MAX_UNDO) this.undoStack.shift() ;
+      this.undoStack.push(pg);
+      while(this.undoStack.length > Score.MAX_UNDO) this.undoStack.shift();
     }
     this.pgRefresh();
-    return pg ;
+    return pg;
   }
 
   pgCut(pn, push=true) {
@@ -1124,22 +1124,22 @@ class Score {
     // @return the cut page for possible pasting as part of cut/paste operation
     let cutPg = this.pgs.splice(pn - 1, 1)[0];
     this.pgRefresh(false);
-    this.setDirty() ;
-    cutPg.undoPn = -pn ;
+    this.setDirty();
+    cutPg.undoPn = -pn;
     if(push) {
-      this.undoStack.push(cutPg) ;
-      while(this.undoStack.length > this.maxUndo) this.undoStack.shift() ;
-      _menu_.enableCells("page/undo") ;
+      this.undoStack.push(cutPg);
+      while(this.undoStack.length > this.maxUndo) this.undoStack.shift();
+      _menu_.enableCells("page/undo");
     }
-    return cutPg ;
+    return cutPg;
   }
 
   pgMv(fromPn, toPn) {
     // move pg at fromPn to toPn (1-based)
-    fromPn = clamp(fromPn, 1, this.pgs.length) ;
-    toPn = clamp(toPn, 1, this.pgs.length) ;
+    fromPn = clamp(fromPn, 1, this.pgs.length);
+    toPn = clamp(toPn, 1, this.pgs.length);
     if(fromPn != toPn) {
-      this.setDirty() ;
+      this.setDirty();
       let pg = this.pgs.splice(fromPn - 1, 1)[0];
       this.pgs.splice(toPn - 1, 0, pg);    
     }
@@ -1165,18 +1165,18 @@ class Score {
     }
     /// looks like were calling this for score in pgbuffer....
     if(Score.activeScore === this) {
-      _menu_.enableCells("page/undo", this.undoStack.length > 0) ;
+      _menu_.enableCells("page/undo", this.undoStack.length > 0);
       _menu_.enableCells("page/delete", this.pgs.length > 1); // forbid deleting last pg, otherwise allow
     }
   }
 
   pgUndo() {
     if(this.undoStack.length) {
-      let pg = this.undoStack.pop() ;
-      if(pg.undoPn > 0) this.pgCut(pg.undoPn, false) ;
-      else this.pgAdd(pg, -pg.undoPn, false) ;
+      let pg = this.undoStack.pop();
+      if(pg.undoPn > 0) this.pgCut(pg.undoPn, false);
+      else this.pgAdd(pg, -pg.undoPn, false);
     }
-    _menu_.enableCells("page/undo", this.undoStack.length) ;
+    _menu_.enableCells("page/undo", this.undoStack.length);
   }
 
 
@@ -1214,7 +1214,7 @@ class Score {
   }
 
   setDirty(dirty=true) {
-    this.dirty = dirty ;
+    this.dirty = dirty;
   }
 
   setEditable(bool) {
@@ -1225,11 +1225,11 @@ class Score {
     // when a score is transformable, all objects on all pages
     // can be rotated, scaled, and translated...otherwise not
     for(let pg of this.pgs) {
-      if(!pg.inflated) continue ;
-      if(!bool) pg.canvas.discardActiveObject() ;
+      if(!pg.inflated) continue;
+      if(!bool) pg.canvas.discardActiveObject();
         for (let obj of pg.canvas.getObjects()) {
-          obj.hasControls = bool ;
-        pg.canvas.requestRenderAll() ;
+          obj.hasControls = bool;
+        pg.canvas.requestRenderAll();
     } } }
 
   update(props) {

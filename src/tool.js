@@ -22,7 +22,7 @@
 
 import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, flung, getBox, helm, hide, iconSvg, listen, mvmt, schedule, Schedule, SliderGroup, TabView, toast, unlisten, pxToEm } from "./common.js";
 import { pianoSamples } from "./sample.js";
-import { panels } from "./panel.js" ; 
+import { panels } from "./panel.js"; 
 export { Review, Metronome, Clock, Stopwatch, Piano, Volume };
 
 // -skip
@@ -34,23 +34,23 @@ class Actx
 
 class Actx {
 
-  static instance = null ;
+  static instance = null;
 
   static get() {
-    if(Actx.instance == null) Actx.instance = new Actx() ;
-    return [Actx.instance.actx, Actx.instance.bus] ;
+    if(Actx.instance == null) Actx.instance = new Actx();
+    return [Actx.instance.actx, Actx.instance.bus];
   }
 
   constructor() {
-    this.actx = new AudioContext() ;
-    let volume = new GainNode(this.actx) ;
+    this.actx = new AudioContext();
+    let volume = new GainNode(this.actx);
     volume.gain.setValueAtTime(_menu_.rings.more.cells.volume.stash.volume, this.actx.currentTime);
-    volume.connect(this.actx.destination) ;    
-    listen(_body_, "VOLUME", (e) => volume.gain.setValueAtTime(e.detail, this.actx.currentTime)) ;
+    volume.connect(this.actx.destination);    
+    listen(_body_, "VOLUME", (e) => volume.gain.setValueAtTime(e.detail, this.actx.currentTime));
     this.bus = new DynamicsCompressorNode(this.actx, {
       threshold: -50, knee: 40, ratio: 12, attack: 0, release: 0.25,
-    }) ;
-    this.bus.connect(volume) ;
+    });
+    this.bus.connect(volume);
     listen(document, 'visibilitychange', () => {
 
       if(!document.hidden) {
@@ -63,23 +63,23 @@ class Actx {
              { Retry: { svg: "Undo" }, Cancel: { svg: "Cancel" } },
              (e, prop, tag, args) => {
                args.close();
-               if (tag == "Retry") document.dispatchEvent(new Event("visibilitychange")) ;
+               if (tag == "Retry") document.dispatchEvent(new Event("visibilitychange"));
                else { // close any open Piano, Metronome, or Review panels.
-                 let msg = "" ;
-                 if(panels.metronome) { panels.metronome.close() ; msg += "Closed Metronome. " ;}
-                 if(panels.piano) { panels.piano.close() ; msg += "Closed Piano. " ; }
-                 if(panels.review) { panels.review.close() ; msg += "Closed Review. " ;}
-                 if(msg.length > 0) toast("Note: " + msg) ;
+                 let msg = "";
+                 if(panels.metronome) { panels.metronome.close(); msg += "Closed Metronome. ";}
+                 if(panels.piano) { panels.piano.close(); msg += "Closed Piano. "; }
+                 if(panels.review) { panels.review.close(); msg += "Closed Review. ";}
+                 if(msg.length > 0) toast("Note: " + msg);
                }
              }
            );
-         }) ;
+         });
       }
-      else if(this.actx.state == "running") this.actx.suspend() ;
-    }) ;
+      else if(this.actx.state == "running") this.actx.suspend();
+    });
     listen(window, 'beforeunload', () => {
-      if(this.actx && this.actx.state != 'closed') this.actx.close() ;
-    }) ;
+      if(this.actx && this.actx.state != 'closed') this.actx.close();
+    });
   }
 
 }
@@ -116,7 +116,7 @@ class Piano {
       border-bottom:.06em solid #bbb;
       border-radius:0 0 .3em .3em;
       box-shadow:-.06em 0 0 rgba(255,255,255,0.8) inset,0 0 .3em #ccc inset,0 0 .18em rgba(0,0,0,0.2);
-      background:linear-gradient(to bottom,#eee 0%,#fff 100%) ;
+      background:linear-gradient(to bottom,#eee 0%,#fff 100%);
       touch-action: manipulation; 
       user-select: none;
       -webkit-tap-highlight-color: transparent;
@@ -126,7 +126,7 @@ class Piano {
       border-left:.06em solid #999;
       border-bottom:.06em solid #999;
       box-shadow:.18em 0 .18em rgba(0,0,0,0.1) inset,-.3em .3em 1.2em rgba(0,0,0,0.2) inset,0 0 .18em rgba(0,0,0,0.2);
-      background:linear-gradient(to bottom,#fff 0%,#e9e9e9 100%) ; 
+      background:linear-gradient(to bottom,#fff 0%,#e9e9e9 100%); 
       touch-action: manipulation; /* removes 300ms delay  browsers add for touch interactions (waiting to see if it's a double-tap) */
     }
     .Piano__key-black {
@@ -166,9 +166,9 @@ class Piano {
       font-family: Bravura;
       height: 2em;
       width: 2em;
-      top: calc(50% - 1em) ;
-      left:calc(50% - 1em) ;
-      border-radius: 100% ;
+      top: calc(50% - 1em);
+      left:calc(50% - 1em);
+      border-radius: 100%;
       background: #eee6;
     }
     .Piano__button-active {
@@ -185,8 +185,8 @@ class Piano {
       overflow:hidden;
       left: calc(50% - 13.5em);
       filter: var(--bodyShadow);
-      visibility:hidden ;
-      text-align:center ;
+      visibility:hidden;
+      text-align:center;
       box-shadow: var(--panel-inset-shadow);
       color: var(--body-color);
     }
@@ -194,7 +194,7 @@ class Piano {
       margin: .5em 6.5em .5em 6.5em;
       padding: 1em;
       font-size: .93em;
-      line-height: 1.45em ;
+      line-height: 1.45em;
       text-align:left;
       background: var(--color-surface-selected);
       border-radius:var(--borderRadius);
@@ -258,10 +258,10 @@ class Piano {
     // pedal button...swaps Pedal and PedalUp icons
     let pedalDownButton = helm(
       `<div class="Piano__button-holder" style="right: calc(50% + 8em)">
-        ${iconSvg("Pedal", { tag: "pedal", class: "Piano__button" })}</div>`) ;
+        ${iconSvg("Pedal", { tag: "pedal", class: "Piano__button" })}</div>`);
     let pedalUpButton = helm(
       `<div class="Piano__button-holder" style="right: calc(50% + 8em)">
-        ${iconSvg("Pedal Up", {tag: "pedalup", class: "Piano__button" })}</div>`) ;
+        ${iconSvg("Pedal Up", {tag: "pedalup", class: "Piano__button" })}</div>`);
 
     this.panel.header.append(pedalDownButton);
 
@@ -333,7 +333,7 @@ class Piano {
           let delta = emv.clientX - e.clientX;
           let minWidth = this.c4Elm.offsetWidth * 9.75; // minimum display E3-A4
           let newWidth = clamp(e.offWidth + delta + delta, minWidth, this.keyboard.offsetWidth);
-          this.panel.panel.style.width = pxToEm(newWidth, this.panel.elm) ;
+          this.panel.panel.style.width = pxToEm(newWidth, this.panel.elm);
         });
 
         listen(
@@ -378,12 +378,12 @@ class Piano {
     if(this.activeNotes) {
       this.activeNotes.forEach((note, tag) => {
         if(note.source) {
-          note.source.stop() ;
-          note.source.disconnect() ;
+          note.source.stop();
+          note.source.disconnect();
         }
-        if(note.envelope) note.envelope.disconnect() ;
-      }) ;
-      this.activeNotes.clear() ;
+        if(note.envelope) note.envelope.disconnect();
+      });
+      this.activeNotes.clear();
     }
     this.repeater.cancel();
     this.damper.cancel();
@@ -392,8 +392,8 @@ class Piano {
 
   // Build the web audio pipeline for the keyboard
   async buildAudio() {
-    this.activeNotes = new Map() ;
-    let [actx, bus] = Actx.get() ;
+    this.activeNotes = new Map();
+    let [actx, bus] = Actx.get();
 
     // decode audio samples, if not already decoded: we check only middle C
     if(!(pianoSamples[60] instanceof AudioBuffer)) Object.keys(pianoSamples).forEach(async (key) => {
@@ -405,34 +405,34 @@ class Piano {
     });
 
     let noteOff = (tag, force=false) => {
-      let note = this.activeNotes.get(tag) ;
+      let note = this.activeNotes.get(tag);
       if(note && (force || !(this.sustaining || this.tuning)))  {
         note.envelope.gain.setTargetAtTime(0, actx.currentTime, 0.015);
-        this.activeNotes.delete(tag) ;
+        this.activeNotes.delete(tag);
         schedule(15, () => note.source.stop());
       }
     }
 
     listen([this.pedalUpButton, this.tunerButton], ["pointerdown","spacebar"], (e)=> {
-       this.activeNotes.forEach((note, tag) => noteOff(tag, true)) ;
-       this.repeater.cancel() ;
-       this.damper.cancel() ;
-       this.looper.cancel() ;
-    }) ;
+       this.activeNotes.forEach((note, tag) => noteOff(tag, true));
+       this.repeater.cancel();
+       this.damper.cancel();
+       this.looper.cancel();
+    });
 
 
     let noteOn = (midiOffset) => {
       let [midiNum, centsOffset] = midiOffset.split("/");
-      let piano = this.cell.stash.timbre == "piano"  ;
-      let now = actx.currentTime ;
+      let piano = this.cell.stash.timbre == "piano";
+      let now = actx.currentTime;
       let source;
 
       // Create an envelope using a GainNode to ramp up/down notes gracefully.
-      let envelope = new GainNode(actx) ;
+      let envelope = new GainNode(actx);
 
       // define the source node: oscillator or audio buffer:
       if (piano) {
-       source = new AudioBufferSourceNode(actx) ;
+       source = new AudioBufferSourceNode(actx);
        source.buffer = pianoSamples[midiNum]; 
       }   
       else
@@ -454,7 +454,7 @@ class Piano {
 
       if (this.tuning) {
         // when tuning, we "auto repeat" the note by recusive calls to noteOn
-        let repeatMs = piano ? 2500:4000 ;
+        let repeatMs = piano ? 2500:4000;
         this.repeater.run(repeatMs, () => noteOn(midiOffset));
         this.tunerButton.firstElementChild.animate([{ color: "black" }, { color: "white" }], repeatMs);
         // dampen the note just before it repeats
@@ -464,23 +464,23 @@ class Piano {
 
       // Don't allow same note to sound more than once
       if(this.activeNotes.has(midiOffset)) 
-        noteOff(midiOffset, true) ;
+        noteOff(midiOffset, true);
       // Trim activeNotes to current "voices" setting
-      while(this.activeNotes.size > this.cell.stash["voices"] - 1) noteOff(this.activeNotes.keys().next().value, true) ;
+      while(this.activeNotes.size > this.cell.stash["voices"] - 1) noteOff(this.activeNotes.keys().next().value, true);
       // ...and now sound the new Note
       source.start(0);
-      this.activeNotes.set(midiOffset, { midiOffset, envelope, source}) ;
+      this.activeNotes.set(midiOffset, { midiOffset, envelope, source});
     };
 
     // piano key press handler
     this.panel.listeners.push(listen(this.keyboard, "pointerdown", (e) => {
       e.target.setPointerCapture(e.pointerId); 
       let midiOffset = e.target.dataset.midi;
-      noteOn(midiOffset) ;
+      noteOn(midiOffset);
       listen(e.target, "pointerup", (e) => {
-        noteOff(midiOffset) ;
+        noteOff(midiOffset);
       }, {once:true});
-    })) ;
+    }));
   }
 
   buildKeyboard() {
@@ -525,9 +525,9 @@ class Piano {
   buildOptions() {
     // build the options tabview
     let optionsView = new TabView(this.panel, "Pitch", "Temperament", "Timbre");
-    let elm = optionsView.elm ;
+    let elm = optionsView.elm;
     elm.classList.add("Piano__options");
-    this.options.replace(elm) ;
+    this.options.replace(elm);
 
     // options panel is draggable by its frame left/right, with fling to close.
     optionsView.frame.style.marginTop = 0;
@@ -535,29 +535,29 @@ class Piano {
     this.panel.listeners.push(
       listen(optionsView.sash, "pointerdown", (e) => {
         optionsView.sash.classList.add("Panel__header-selected");
-        let offsetX = e.clientX - optionsView.frame.offsetLeft ;
-        let limit = this.body.offsetWidth - optionsView.frame.offsetWidth ;
+        let offsetX = e.clientX - optionsView.frame.offsetLeft;
+        let limit = this.body.offsetWidth - optionsView.frame.offsetWidth;
         let mv = listen(optionsView.frame, "pointermove", (emv) => {
-           _moveEvents_.push(emv) ;
+           _moveEvents_.push(emv);
            if(emv.movementX) optionsView.sash.setPointerCapture(e.pointerId);
             optionsView.frame.style.left = clamp(emv.clientX - offsetX, 0, limit) + "px";
-            e.emv = emv ;
-        }) ;
+            e.emv = emv;
+        });
         listen(optionsView.sash, "pointerup", (eup) => {
           if(flung(null, eup)) {
-            hide(elm, this.optionsButton) ;
+            hide(elm, this.optionsButton);
             delay(10, () => this.optionsButton.firstElementChild.classList.remove("Piano__button-active"));
           }
           optionsView.sash.classList.remove("Panel__header-selected");
           unlisten(mv)},
-        {once:true}) ;
-    })) ;
+        {once:true});
+    }));
 
     let option = (tag, optText, prefix=" ", url=null, urlText="") => {
       // Used to format a tab's options: a function avoids tedious repetition
-      let txt1 =`<div ${tag} class="Piano__options__option">&nbsp;${optText}<span style="position:absolute;left:18em;">${prefix}` ;
+      let txt1 =`<div ${tag} class="Piano__options__option">&nbsp;${optText}<span style="position:absolute;left:18em;">${prefix}`;
       let txt2 = url ? `<a href="https:/\/${url}" target="_blank" rel="noopener noreferrer">${urlText}</a></span></div>`
-      : "</div>" ;
+      : "</div>";
       return txt1 + txt2
     };
 
@@ -586,14 +586,14 @@ class Piano {
       optionsView.tabs.Pitch.face.append(tags.pitch);
 
       let a4msg = (tag, cents) => {
-        let hz = centsToHz(cents).toFixed(2) ;
-        cents = Math.round(cents) ;
-        hz = parseInt(hz * 100) / 100 ;
-        let inHz = `A4 = ${hz} Hz ` ;
+        let hz = centsToHz(cents).toFixed(2);
+        cents = Math.round(cents);
+        hz = parseInt(hz * 100) / 100;
+        let inHz = `A4 = ${hz} Hz `;
         let inCents = cents == 0 ? "" :
            cents > 0 ? `(440 Hz + ${cents} cents)`:
                        `(440 Hz - ${-cents} cents)`;
-        return inHz + inCents ;
+        return inHz + inCents;
       };
 
       let optionElms = Object.values(dataIndex("hz", tags.options));
@@ -609,7 +609,7 @@ class Piano {
           },
         },
         (e, tag, value) => {
-           optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active")) ;
+           optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active"));
         }
       );
 
@@ -617,17 +617,17 @@ class Piano {
 
       this.panel.listeners.push(listen(tags.options, "pointerup", (e) => {
         optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active"));
-        let active = e.target.closest(".Piano__options__option") ;
+        let active = e.target.closest(".Piano__options__option");
         active.classList.add("Piano__options__option-active");
-        this.cell.stash.a4 = hzToCents(active.dataset.hz) ;
-        a4Group.refresh() ;
+        this.cell.stash.a4 = hzToCents(active.dataset.hz);
+        a4Group.refresh();
       }));
 
       // establish current pitch
       for(let elm of optionElms) 
         if (elm.dataset.hz == centsToHz(this.cell.stash.a4)) {
            elm.classList.add("Piano__options__option-active");
-           break ;
+           break;
       };
 
     }
@@ -657,7 +657,7 @@ class Piano {
 
       this.panel.listeners.push(listen(tags.options, "pointerup", (e) => {
         optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active"));
-        let active = e.target.closest(".Piano__options__option") ;
+        let active = e.target.closest(".Piano__options__option");
         active.classList.add("Piano__options__option-active");
         this.cell.stash.temperament = active.dataset.temper;
       }));
@@ -666,7 +666,7 @@ class Piano {
       for(let elm of optionElms) 
         if (elm.dataset.temper == this.cell.stash.temperament) {
            elm.classList.add("Piano__options__option-active");
-           break ;
+           break;
       };
     }
 
@@ -696,14 +696,14 @@ class Piano {
       );
 
       voicesGroup.elm = tags.voices.replace(voicesGroup.elm);
-      voicesGroup.elm.style.paddingBottom = "1em" ;
+      voicesGroup.elm.style.paddingBottom = "1em";
 
       optionsView.tabs.Timbre.face.append(tags.timbre);
       let optionElms = Object.values(dataIndex("timbre", tags.options));
 
       this.panel.listeners.push(listen(tags.options, "pointerup", (e) => {
         optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active"));
-        let active = e.target.closest(".Piano__options__option") ;
+        let active = e.target.closest(".Piano__options__option");
         if(active) {
           active.classList.add("Piano__options__option-active");
           this.cell.stash.timbre = active.dataset.timbre;
@@ -714,7 +714,7 @@ class Piano {
       for(let elm of optionElms) 
         if (elm.dataset.timbre == this.cell.stash.timbre) {
            elm.classList.add("Piano__options__option-active");
-           break ;
+           break;
       };
     }
 
@@ -762,21 +762,21 @@ class Surface {
 
     panel.listeners.push(listen(surface, "pointerdown", (e) => {
       // Ignore pointerdown outside of circular area enclosed by this.surfaceDragElm
-      let box = getBox(this.surfaceDragElm) ;
-      if(Math.hypot(e.clientX - box.x - box.width / 2, e.clientY - box.y - box.height /2) > box.width / 2) return ;
+      let box = getBox(this.surfaceDragElm);
+      if(Math.hypot(e.clientX - box.x - box.width / 2, e.clientY - box.y - box.height /2) > box.width / 2) return;
       _body_.setPointerCapture(e.pointerId);
-      longPresser.run(_longPressMs_,() => this.onSurfaceEvent("press")) ;
-      let dX = e.offsetX, dY = e.offsetY ; // warning: e can be gc'ed before mv references it.
+      longPresser.run(_longPressMs_,() => this.onSurfaceEvent("press"));
+      let dX = e.offsetX, dY = e.offsetY; // warning: e can be gc'ed before mv references it.
       let mv = listen(_body_, "pointermove", (emv) => {
-        flung(emv) ; // store event for fling detection
+        flung(emv); // store event for fling detection
         if(surface.parentElement == _body_) {
           surface.style.left = emv.clientX - dX + "px";
           surface.style.top = emv.clientY - dY + "px";
-          mvmt(e,emv) ;
+          mvmt(e,emv);
         }
         else if(mvmt(e,emv)) {
           // attach surface to document body
-          longPresser.cancel() ;
+          longPresser.cancel();
           surface.style.fontSize = panel.elm.style.fontSize;
           surface.style.position = "absolute";
           surface.classList.add("pz"); // this makes it pan-zoomable 
@@ -790,13 +790,13 @@ class Surface {
       });
 
       listen(_body_, "pointerup",(eup) => { 
-          longPresser.cancel() ;
-          unlisten(mv) ;
-          let downTime = eup.timeStamp - e.timeStamp ;
+          longPresser.cancel();
+          unlisten(mv);
+          let downTime = eup.timeStamp - e.timeStamp;
           if (flung(null, eup))  // fling detected
              hide(surface, dataIndex("tag", this.panel.cell.elm).cellIcon);
-          else if(downTime < _longPressMs_) this.onSurfaceEvent("click") ;
-        },  { once: true }) ;
+          else if(downTime < _longPressMs_) this.onSurfaceEvent("click");
+        },  { once: true });
     }));
     delay(2, () => this.build());
   }
@@ -825,7 +825,7 @@ class Volume extends Surface {
     super(panel);
     this.surface.style.height = "4em";
     this.surface.style.width = "12em";
-    let stash = _menu_.rings.more.cells.volume.stash ;
+    let stash = _menu_.rings.more.cells.volume.stash;
     this.volumeSlider = new SliderGroup(stash,
     { volume: { min: 0, max: 1, step: 0.1, value: 1, msg: "Volume: {value}" } },
     (e, tag, value) => {
@@ -1195,18 +1195,18 @@ class Metronome extends Surface {
     super(panel);
     this.beatPattern = this.beatPatterns[0];
     this.volumeStash = _menu_.rings.more.cells.volume.stash;
-    [this.actx, this.bus] = Actx.get() ;
-    this.oscillator = null ;
-    this.gainNode = new GainNode(this.actx) ;
-    this.gainNode.connect(this.bus) ;
+    [this.actx, this.bus] = Actx.get();
+    this.oscillator = null;
+    this.gainNode = new GainNode(this.actx);
+    this.gainNode.connect(this.bus);
   }
 
   destructor() {
     if(this.oscillator) {
-      this.oscillator.stop() ;
-      this.oscillator.disconnect() ;
+      this.oscillator.stop();
+      this.oscillator.disconnect();
     }
-    this.gainNode.disconnect() ;
+    this.gainNode.disconnect();
     this.ticker.cancel();
   }
 
@@ -1288,7 +1288,7 @@ class Metronome extends Surface {
     let tickPattern = this.beatPattern.ticks;
     let time = this.tickTime;
     time += 0.3; // adjust for skim
-    if(this.oscillator) this.oscillator.stop() ;
+    if(this.oscillator) this.oscillator.stop();
     this.oscillator = new OscillatorNode(this.actx, { frequency: tickPattern[tickCount % tickPattern.length] });
     // Note: gain value must not be 0
     this.gainNode.gain.exponentialRampToValueAtTime(Math.max(this.volumeStash.volume, 0.0000001), time + 0.001);
@@ -1383,30 +1383,30 @@ class Clip and class Recorder
 **/
 
   class Clip {
-    resolve = null ;    
+    resolve = null;    
 
     constructor() {}
 
     destructor() {
-      unlisten(this.listener) ;
-      if(this.recorder && this.recorder.state == "recording") this.recorder.stop() ;
-      this.resolve = null ;
+      unlisten(this.listener);
+      if(this.recorder && this.recorder.state == "recording") this.recorder.stop();
+      this.resolve = null;
     }
  
     record(mediaStream) {
-      unlisten(this.listener) ;
-      if(this.recorder) this.recorder.stop() ;
-      this.recorder = new MediaRecorder(mediaStream) ; // let browser choose mimeType (i.e. webm vs mp4)
-      this.recorder.start() ;
+      unlisten(this.listener);
+      if(this.recorder) this.recorder.stop();
+      this.recorder = new MediaRecorder(mediaStream); // let browser choose mimeType (i.e. webm vs mp4)
+      this.recorder.start();
       this.listener = listen(this.recorder, "dataavailable", (e) => {
          if(this.resolve) 
-           this.resolve(new Blob([e.data], { type: this.recorder.mimeType})), {once:true} ;
-      }) ;
+           this.resolve(new Blob([e.data], { type: this.recorder.mimeType})), {once:true};
+      });
     }
 
     async stop() {
-      delay(1, () => this.recorder.stop()) ;
-      return new Promise((resolve) => this.resolve = resolve) ;
+      delay(1, () => this.recorder.stop());
+      return new Promise((resolve) => this.resolve = resolve);
     }
   }
 
@@ -1418,65 +1418,65 @@ class Recorder
 
 class Recorder {
 
-  cycle = 0 ;
-  clip1 = new Clip() ;
-  clip2 = new Clip() ;
+  cycle = 0;
+  clip1 = new Clip();
+  clip2 = new Clip();
 
   constructor() {}
 
   record(mediaStream, period, scrubber) {
-    this.cycle = 0 ;
-    this.period = period ;
-    this.start = performance.now() ;
+    this.cycle = 0;
+    this.period = period;
+    this.start = performance.now();
     this.cycler = new Schedule(period, () => {
-      if(++this.cycle & 1) this.clip2.record(mediaStream) ;
-      else this.clip1.record(mediaStream) ;
-      this.cycler.run() ;
-    }) ;
+      if(++this.cycle & 1) this.clip2.record(mediaStream);
+      else this.clip1.record(mediaStream);
+      this.cycler.run();
+    });
 
     this.progress = new Schedule(1000, () => {
-      let p = this.cycler.elapsed() + ((this.cycle == 0? 0: this.period)) ;
-      scrubber.progress("time", p, 0, p) ;
-      this.progress.run() ;
-    }) ;
+      let p = this.cycler.elapsed() + ((this.cycle == 0? 0: this.period));
+      scrubber.progress("time", p, 0, p);
+      this.progress.run();
+    });
 
-    this.clip1.record(mediaStream) ;
-    this.cycler.run() ;
-    this.progress.run() ;
+    this.clip1.record(mediaStream);
+    this.cycler.run();
+    this.progress.run();
   }
 
   destructor() {
-    if(this.cycler) this.cycler.cancel() ;
-    if(this.progress) this.progress.cancel() ;
-    if(this.clip1) this.clip1.destructor() ;
-    if(this.clip2) this.clip2.destructor() ;
-  }  ;
+    if(this.cycler) this.cycler.cancel();
+    if(this.progress) this.progress.cancel();
+    if(this.clip1) this.clip1.destructor();
+    if(this.clip2) this.clip2.destructor();
+  };
 
   pause() { 
-    this.clip1.recorder.pause() ;
-    if(this.clip2.recorder && this.clip2.recorder.state != "inactive") this.clip2.recorder.pause() ;
-    this.cycler.pause() ;
-    this.progress.pause() ;
+    this.clip1.recorder.pause();
+    if(this.clip2.recorder && this.clip2.recorder.state != "inactive") this.clip2.recorder.pause();
+    this.cycler.pause();
+    this.progress.pause();
   }
 
   resume() {
-    this.clip1.recorder.resume() ;
-    if(this.clip2.recorder) this.clip2.recorder.resume() ;
-    this.cycler.resume() ;
-    this.progress.resume() ;
+    this.clip1.recorder.resume();
+    if(this.clip2.recorder) this.clip2.recorder.resume();
+    this.cycler.resume();
+    this.progress.resume();
   }
 
   async stop() {
-    this.cycler.cancel() ;   
-    this.progress.cancel() ;   
+    this.cycler.cancel();   
+    this.progress.cancel();   
     if(this.cycle == 0)
-      return await this.clip1.stop() ;
+      return await this.clip1.stop();
     else if(this.cycle & 1) {
-      await this.clip2.stop() ;
-      return await this.clip1.stop() ;
+      await this.clip2.stop();
+      return await this.clip1.stop();
     } else {
-      await this.clip1.stop() ;
-      return await this.clip2.stop() ;
+      await this.clip1.stop();
+      return await this.clip2.stop();
     }
   }
 }
@@ -1510,24 +1510,24 @@ class Review {
        padding: .5em;
      }
     .Review__viewer {
-      width: calc(100% - 1em) ;
-      position:absolute ;
+      width: calc(100% - 1em);
+      position:absolute;
     }
     .Review__video {
-      top: 0 ;
-      width: 100% ;
+      top: 0;
+      width: 100%;
       border-radius: var(--borderRadius);
     }
     .Review__waveview {
-       top: 0 ;
-       width: 100% ;
-       position:absolute ;
+       top: 0;
+       width: 100%;
+       position:absolute;
        background-color:#ccc;
        border-radius: var(--borderRadius);
     }
     .Review__spectrogram {
       position:absolute;
-      width:100% ;
+      width:100%;
       height:100%;
     }
     .Review__waveform {
@@ -1535,7 +1535,7 @@ class Review {
       width:100%;
       height:100%;
       top: 0;
-      left:0 ;
+      left:0;
     }
     .Review__video__reflect {
       transform: rotateY(180deg);
@@ -1545,18 +1545,18 @@ class Review {
     .Review__mediaControls
     { width:30%;
       padding: 1em 0em 0em 1em;
-      position:absolute ;
-      left: 0 ;
-      bottom: 0 ;      
+      position:absolute;
+      left: 0;
+      bottom: 0;      
     }
     .Review__scrubber
-    { width:65% ;
-      position: absolute ;
-      bottom:0 ;
-      right:0 ;
+    { width:65%;
+      position: absolute;
+      bottom:0;
+      right:0;
     }
     .Review__options {
-      width: calc(100% - 1em) ;
+      width: calc(100% - 1em);
        position:absolute; 
     }
     .Review__options__details { 
@@ -1572,20 +1572,20 @@ class Review {
       width:calc(100% - 1em);
       bottom:0em;
       height:3em;
-      padding: 1em 0em 1em 0em ;
-      border-top: 1px solid #aaa ;
+      padding: 1em 0em 1em 0em;
+      border-top: 1px solid #aaa;
      }
     `
   );
 
   mediaDevicesSpec = {};
   mediaStream = null;
-  recorder = new Recorder() ;
+  recorder = new Recorder();
 
   // At any time, the Reviewer will be either in state "Live"
   // (live video is recorded and displayed), or in state "Replay"
   // (recorded video is displayed) 
-  state = "Live" ; // one of "Live" or "Replay"
+  state = "Live"; // one of "Live" or "Replay"
   listeners = [];
   audioBuf = new Uint8Array(2048); // power of 2
   actx = null;
@@ -1652,19 +1652,19 @@ class Review {
   }
 
   destructor() {
-    if(this.mediaStream) this.mediaStream.getTracks().forEach(track => track.stop()) ;
-    if(this.liveSrc) this.liveSrc.disconnect() ;
-    if(this.analyzer) this.analyser.disconnect() ;
+    if(this.mediaStream) this.mediaStream.getTracks().forEach(track => track.stop());
+    if(this.liveSrc) this.liveSrc.disconnect();
+    if(this.analyzer) this.analyser.disconnect();
     if(this.video) {
-      this.video.pause() ;
-      this.video.src = "" ;
-      this.video.load() ;
+      this.video.pause();
+      this.video.src = "";
+      this.video.load();
     }
-    this.recorder.destructor() ;
+    this.recorder.destructor();
   }
 
   async build() {
-    if(!await this.buildOptions()) return this.panel.close() ; // no media device(s)
+    if(!await this.buildOptions()) return this.panel.close(); // no media device(s)
 
     // build unchanging parts of the media graph (some of it is built dynamically)
     this.mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -1672,9 +1672,9 @@ class Review {
        audio: { deviceId: {exact: this.mediaDevicesSpec[this.stash.audioSrc].deviceId}},
     });
 
-    [this.actx, this.bus] = Actx.get() ;
+    [this.actx, this.bus] = Actx.get();
     this.analyser = this.actx.createAnalyser();
-    this.analyser.fftSize = this.audioBuf.length ;
+    this.analyser.fftSize = this.audioBuf.length;
     this.analyser.minDecibels = -90;
     this.analyser.minDecibels = -120;
     this.analyser.maxDecibels = -10;
@@ -1687,20 +1687,20 @@ class Review {
     // switched in transitions between Live<->Replay states. The switching
     // is implemented in this.live() and this.replay(...).
     this.recordedSrc = this.actx.createMediaElementSource(this.video);
-    this.liveSrc = this.actx.createMediaStreamSource(this.mediaStream) ;
+    this.liveSrc = this.actx.createMediaStreamSource(this.mediaStream);
 
     // build gui components
-    this.buildControls() ;
+    this.buildControls();
     this.buildViewer();
 
     // go live!
     try {
-       this.live() ;
+       this.live();
     } catch(error) {
       dialog(`Can't record video because:<br>"${error}"<br>
-            <br>Disabling this tool.`) ;
-      _menu_.enableCells(["more/review"], false) ;
-      return this.panel.close() ;
+            <br>Disabling this tool.`);
+      _menu_.enableCells(["more/review"], false);
+      return this.panel.close();
     }
   }
 
@@ -1727,7 +1727,7 @@ class Review {
         this.options.classList.remove("hidden");
         this.viewer.classList.add("hidden");
       }
-    }) ;
+    });
 
     this.controlsElm.replaceWith(this.controls.elm);
     this.controls.elm.classList.add("Review__controls");
@@ -1744,7 +1744,7 @@ class Review {
         <li>Device(s) in use by another app ?</li>
         <li>Wrong permissions ?</li></ul></div>Hint: To check browser permissions:<br>
         <a target="_blank" href="http://www.google.com/search?q=How+to+set+browser+permissions">How to set browser permissions</a>`);
-      return false ;
+      return false;
     }
     this.devices = await navigator.mediaDevices.enumerateDevices();
 
@@ -1770,7 +1770,7 @@ class Review {
     this.videoReplayGroup = new SliderGroup(this.stash, {
       replay: { min: 5, max: 120, value: 15, msg: (tag, value) => `${value}s to ${value * 2}s` }
     }, async () => {
-      await this.restart() ;
+      await this.restart();
     });
 
     this.videoReplayGroupElm.replace(this.videoReplayGroup.elm);
@@ -1806,14 +1806,14 @@ class Review {
       this.videoSrc.textContent = this.mediaDevicesSpec[this.stash.videoSrc]?.label ?? "";
       this.mediaDevicesGroup.refresh();
 
-      this.mediaStream.getTracks().forEach(track => track.stop()) ;
-      await this.restart() ;
+      this.mediaStream.getTracks().forEach(track => track.stop());
+      await this.restart();
     });
     this.mediaDevicesGroupElm.replace(this.mediaDevicesGroup.elm);
     this.mediaDevicesGroup.elm.style.marginTop = "1em";
     this.audioSrc.textContent = this.mediaDevicesSpec[this.stash.audioSrc]?.label ?? "";
     this.videoSrc.textContent = this.mediaDevicesSpec[this.stash.videoSrc]?.label ?? "";
-    return true ;
+    return true;
   }
 
   buildViewer() {
@@ -1825,23 +1825,23 @@ class Review {
       }, (e, prop, tag) => {
       if(this.state == "Replay") {
         if(tag == "Replay") {
-          if(this.scrubber.dataIndex["time_slider"].pos == 1) this.live() ;
-          else this.video.play() ;
+          if(this.scrubber.dataIndex["time_slider"].pos == 1) this.live();
+          else this.video.play();
         }
-        else this.video.pause() ;
+        else this.video.pause();
       }
       else { // input == "live"
         if(tag == "Replay") {
-          this.recorder.resume() ;
-          this.video.play() ;
+          this.recorder.resume();
+          this.video.play();
         }
         else { // tag == "Pause"
-          this.recorder.pause() ;
-          this.video.pause() ;
+          this.recorder.pause();
+          this.video.pause();
         }
       }
     });
-    this.mediaControlsElm.replace(this.mediaControls.elm) ;
+    this.mediaControlsElm.replace(this.mediaControls.elm);
     this.mediaControls.elm.classList.add("Review__mediaControls");
 
     // add video scrub bar
@@ -1851,23 +1851,23 @@ class Review {
            String(Math.floor((value % 60000) / 1000)).padStart(2,0) }},
       (e, tag, value, scrubber) => { 
         if (e.type == "change") {
-          if(this.state == "Live") this.replay(value) ;
+          if(this.state == "Live") this.replay(value);
           else { // this.state == "Replay" 
            if(scrubber.dataIndex["time_slider"].pos == 1)
            {  // Invoked when state is  Replay, and scrubber dragged all the way to the right.
               // Set logic s.t. a subsequent play button press will transition to live.
-             this.setPlayButton("Live") ;
-             this.mediaControls.props.state = "Pause" ;
-             this.mediaControls.refresh() ;
+             this.setPlayButton("Live");
+             this.mediaControls.props.state = "Pause";
+             this.mediaControls.refresh();
            }
            else {
-             this.setPlayButton("Replay") ;
+             this.setPlayButton("Replay");
              this.video.currentTime = value / 1000;
            }
           }       
         }
-     }) ;
-    this.scrubberElm.replace(this.scrubber.elm) ;
+     });
+    this.scrubberElm.replace(this.scrubber.elm);
     this.scrubber.elm.classList.add("Review__scrubber");
 
     // define video event handlers
@@ -1889,22 +1889,22 @@ class Review {
       listen(this.video, "timeupdate", () => {
         // update scrubber when playback's currentTime value changes
         if(this.state == "Replay")
-           this.scrubber.progress("time", this.video.currentTime * 1000)  ;
+           this.scrubber.progress("time", this.video.currentTime * 1000);
         })
-    ) ;
+    );
 
     this.panel.listeners.push(
       listen(this.video, "ended", () => {
         // Called when playback reaches the end of recorded media. Sets up 
         // logic s.t. a subsequent play button press will transition to live.
-        this.setPlayButton("Live") ;
-        this.mediaControls.props.state = "Pause" ;
-        this.mediaControls.refresh() ;
+        this.setPlayButton("Live");
+        this.mediaControls.props.state = "Pause";
+        this.mediaControls.refresh();
         // We use scrubber's pos == 1 as a marker to know when to transition back to recording. It is
         // likely "not quite" 1 on "ended", so force it there:
         this.scrubber.dataIndex["time_slider"].setPos(1);
       })
-    ) ;
+    );
 
   }
 
@@ -1926,53 +1926,53 @@ class Review {
   }
 
   async live() {
-    this.setPlayButton("Live") ;
-    this.state = "Live" ;
-    this.video.muted = true ;
+    this.setPlayButton("Live");
+    this.state = "Live";
+    this.video.muted = true;
     this.video.srcObject = this.mediaStream;
-    this.recorder.record(this.mediaStream, this.stash.replay * 1000, this.scrubber) ;
-    this.recordedSrc.disconnect() ;
-    this.liveSrc.connect(this.analyser) ;
-    this.analyser.disconnect() ;
-    this.blink(this.mediaControls.elms.Replay) ;
-    this.scrubber.progress("time", 0, 0, this.stash.replay * 1000) ;
+    this.recorder.record(this.mediaStream, this.stash.replay * 1000, this.scrubber);
+    this.recordedSrc.disconnect();
+    this.liveSrc.connect(this.analyser);
+    this.analyser.disconnect();
+    this.blink(this.mediaControls.elms.Replay);
+    this.scrubber.progress("time", 0, 0, this.stash.replay * 1000);
   }
 
   async replay(progress = 0) {
-    this.video.muted = false ;
-    this.setPlayButton("Replay") ;
-    this.state = "Replay" ;
-    let recordedData = await this.recorder.stop() ;
-    this.video.srcObject = null ;
-    this.video.src = this.createVideoUrl(recordedData) ;
-    this.liveSrc.disconnect() ;
-    this.recordedSrc.connect(this.analyser) ;
-    this.analyser.connect(this.bus) ;
+    this.video.muted = false;
+    this.setPlayButton("Replay");
+    this.state = "Replay";
+    let recordedData = await this.recorder.stop();
+    this.video.srcObject = null;
+    this.video.src = this.createVideoUrl(recordedData);
+    this.liveSrc.disconnect();
+    this.recordedSrc.connect(this.analyser);
+    this.analyser.connect(this.bus);
     this.video.currentTime = progress / 1000;
   }
 
   async restart() {
     // Called when options have changed: restarts the Review with new parameters,
     // but video/recording will be paused
-    this.mediaStream.getTracks().forEach(track => track.stop()) ;
+    this.mediaStream.getTracks().forEach(track => track.stop());
 
     this.mediaStream = await navigator.mediaDevices.getUserMedia({
       video: { deviceId: {exact: this.mediaDevicesSpec[this.stash.videoSrc].deviceId}},
       audio: { deviceId: {exact: this.mediaDevicesSpec[this.stash.audioSrc].deviceId}},
     });
     // now (re) start the recorder
-    this.recorder.destructor() ;
-    this.recorder = new Recorder() ;
-    this.liveSrc = this.actx.createMediaStreamSource(this.mediaStream) ;
-    this.state = "live" ;
-    this.live() ;
+    this.recorder.destructor();
+    this.recorder = new Recorder();
+    this.liveSrc = this.actx.createMediaStreamSource(this.mediaStream);
+    this.state = "live";
+    this.live();
   }
 
   wave() {
     // update spectrogram display and (re)generate wave display
     if(this.stash.mode == "Wave" && !this.video.paused) {
       let buf = this.audioBuf;
-      let bufLen = buf.length ;
+      let bufLen = buf.length;
       let width = this.analyser.frequencyBinCount / 4;
       // Update waterfall spectrogram. The spectrogram consists of
       // a bunch of narrow divs arranged top-to-bottom. Every time runWave
@@ -1998,7 +1998,7 @@ class Review {
       ctx.closePath();
       ctx.fill();
     }
-    delay(2, () => this.wave()) ;
+    delay(2, () => this.wave());
   }
 
   // Utility methods:
@@ -2011,7 +2011,7 @@ class Review {
 
   setPlayButton(text) {
     // set the @text of the mediaControls play button: this will be either "Live" or "Replay"
-    this.mediaControls.elms.Replay.firstChild.replaceWith(document.createTextNode(text)) ;
+    this.mediaControls.elms.Replay.firstChild.replaceWith(document.createTextNode(text));
   }
 
   h2rgba(h) {
@@ -2044,15 +2044,15 @@ class Review {
 
   blink(elm, color= null) {
     // Blink the given element by periodically changing its color red<->black 
-    if(!color && this.blinking) return ;
+    if(!color && this.blinking) return;
     if (this.state == "Live") {
       elm.style.color = color;
-      delayMs(_gs_, () => this.blink(elm, color == "red" ? "black" : "red")) ;
-     this.blinking = true ;
+      delayMs(_gs_, () => this.blink(elm, color == "red" ? "black" : "red"));
+     this.blinking = true;
     }
     else {
-      elm.style.color = "black" ;
-      this.blinking = false ;
+      elm.style.color = "black";
+      this.blinking = false;
     }
   }
 }
