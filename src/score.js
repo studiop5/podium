@@ -745,12 +745,11 @@ class Score {
     let score = new Score();
     for (let i = 1; i <= pgKnt; i++) {
       let pg = new Pg(score, width, height, null, null, color);
-
+      /*
         // for testing only, add a page number to each page:
         await pg.inflate();
         pg.canvas.add(new fabric.Textbox("pg " + i, { left:80, top:80, fontSize:80}));
         pg.deflate();
-/*
         // For testing only, add a small and large pages to test the
         // Pg padding mechanism provided by layouts:
         if (i == 1) pg = new Pg(score, width / 10, height / 2, null, null, "#f00");
@@ -762,7 +761,7 @@ class Score {
         else if (i == 9) pg = new Pg(score, width * 5, height * 1, null, null, "#888"); 
         else pg = new Pg(score, width, height, null, null, "#fff");
         // else pg = new Pg(score, width, height, null, null, "#000");
-*/
+      */
       await score.pgAdd(pg, i, false);
     }
     // don't init score until after pgs are added, or layouts will fail
