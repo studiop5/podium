@@ -20,26 +20,39 @@
 
 // Background service worker for Podium extension
 
-// Create context menu item when extension is installed
+// Create context menu items when extension is installed
+const targetUrlPatterns = [
+  "*://*/*.pdf",
+  "*://*/*.PDF",
+  "*://imslp.org/wiki/Special:ImagefromIndex/*",
+  "*://*.imslp.org/wiki/Special:ImagefromIndex/*"
+];
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "openWithPodium",
     title: "Open with Podium",
     contexts: ["link"],
-    targetUrlPatterns: [
-      "*://*/*.pdf",
-      "*://*/*.PDF",
-      "*://imslp.org/wiki/Special:ImagefromIndex/*",
-      "*://*.imslp.org/wiki/Special:ImagefromIndex/*"
-    ]
+    targetUrlPatterns
+  });
+  chrome.contextMenus.create({
+    id: "openWithPodiumNewTab",
+    title: "Open with Podium (New Tab)",
+    contexts: ["link"],
+    targetUrlPatterns
   });
 });
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId === "openWithPodium" && info.linkUrl) {
-    const podiumUrl = chrome.runtime.getURL("podium.html") + "?url=" + encodeURIComponent(info.linkUrl);
+  if (!info.linkUrl) return;
 
+  const podiumUrl = chrome.runtime.getURL("podium.html") + "?url=" + encodeURIComponent(info.linkUrl);
+
+  if (info.menuItemId === "openWithPodiumNewTab") {
+    // Always create a new tab
+    await chrome.tabs.create({ url: podiumUrl });
+  } else if (info.menuItemId === "openWithPodium") {
     // Try to find an existing Podium tab and reuse it
     const podiumBaseUrl = chrome.runtime.getURL("podium.html");
     const tabs = await chrome.tabs.query({});
@@ -54,11 +67,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
     if (podiumTab) {
       // Reuse existing Podium tab
-      console.log("Reusing existing Podium tab:", podiumTab.id);
       await chrome.tabs.update(podiumTab.id, { url: podiumUrl, active: true });
     } else {
       // Create new Podium tab
-      console.log("Creating new Podium tab");
       await chrome.tabs.create({ url: podiumUrl });
     }
   }

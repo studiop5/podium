@@ -719,10 +719,10 @@ class Score
 class Score {
   static activeScore = null;
   // maximum number of unused inflated pgs: see Score.pgUnuse()
-  static MAX_INFLATED = (navigator.deviceMemory >= 8) ? 12 : 6;
+  static MAX_INFLATED = (navigator.deviceMemory >= 8) ? 8 : 6;
 
   // maximum depth of undo stack
-  static MAX_UNDO = (navigator.deviceMemory >= 8) ? 12 : 6;
+  static MAX_UNDO = (navigator.deviceMemory >= 8) ? 8 : 6;
 
   // Define constants to identify the various sources that Scores
   // can be created from.  These will be strings that are shown to
