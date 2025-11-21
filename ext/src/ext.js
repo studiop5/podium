@@ -1,30 +1,13 @@
 /**
-  Copyright 2025 Glendon Diener
-
-  This file is part of Podium.
-
-  Podium is free software: you can redistribute it and/or modify it
-  under the terms of the GNU Affero General Public License as
-  published by the Free Software Foundation, either version 3 of the
-  License, or (at your option) any later version.
-
-  Podium is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-  Affero General Public License for more details.
-
-  You should have received a copy of the GNU Affero General Public
-  License along with Podium. If not, see
-  <https://www.gnu.org/licenses/>.
-**/
-
-/**
  * Extension-specific code for loading PDFs from URL parameters
  * This file is only loaded by the browser extension, not the bundled build
  */
 
-import { dialog, toast, escapeHtml } from "./common.js";
+import { dialog, toast } from "./common.js";
+import { escapeHtml } from "./file.js";
 import { Score } from "./score.js";
+
+// _shade_ is a global singleton defined in common.js
 
 export async function loadPdfFromUrl() {
   /*
@@ -42,15 +25,22 @@ export async function loadPdfFromUrl() {
 
   console.log("Attempting to fetch PDF from:", path);
 
+  // Set up abort controller for cancellation
+  const abortController = new AbortController();
+  const signal = abortController.signal;
+
+  window._shade_.show("Downloading");
+  window._shade_.onCancel = () => abortController.abort();
+
   // Handle IMSLP Special:ImagefromIndex URLs
   if (path.includes('imslp.org/wiki/Special:ImagefromIndex/')) {
     console.log("Detected IMSLP URL, fetching intermediate page...");
     try {
       let response = await fetch(path, {
         method: "GET",
-        redirect: "follow"
+        redirect: "follow",
+        signal
       });
-
       console.log("IMSLP fetch response status:", response.status);
       console.log("IMSLP response URL:", response.url);
       console.log("IMSLP content-type:", response.headers.get("content-type"));
@@ -140,6 +130,7 @@ export async function loadPdfFromUrl() {
                 method: "POST",
                 body: formData,
                 redirect: "follow",
+                signal,
                 headers: {
                   "Content-Type": "application/x-www-form-urlencoded"
                 }
@@ -193,11 +184,27 @@ export async function loadPdfFromUrl() {
           console.log("Looking for form:", html.includes('<form'));
           console.log("Looking for .pdf:", html.includes('.pdf'));
           console.log("Full HTML:", html);
-          dialog("Could not find PDF download link on IMSLP page. The page may require accepting a disclaimer first.");
+          window._shade_.hide();
+          window._shade_.onCancel = null;
+
+          // Check if this is a disclaimer page
+          if (html.includes('Disclaimer') || html.includes('disclaimer')) {
+            dialog("IMSLP requires you to accept their disclaimer first.<br><br>Please <a href='" + path + "' target='_blank'>accept the disclaimer on IMSLP</a>.<br><br>After accepting, use 'Open with Podium' on the score link again.");
+          // Check if this is a non-member countdown page
+          } else if (html.includes('seconds') && (html.includes('wait') || html.includes('countdown') || html.includes('timer')) ||
+              html.includes('become a member') || html.includes('membership') ||
+              html.match(/\d+\s*seconds?/i)) {
+            dialog("Podium is only available for IMSLP members.<br><br><a href='https://imslp.org/wiki/IMSLP:Subscriptions' target='_blank'>Become an IMSLP member</a>");
+          } else {
+            dialog("Could not find PDF download link on IMSLP page.");
+          }
           return;
         }
       }
     } catch (error) {
+      window._shade_.hide();
+      window._shade_.onCancel = null;
+      if (error.name === "AbortError") return; // User cancelled
       console.error("Error processing IMSLP URL:", error);
       dialog(`Error processing IMSLP URL: ${error}`);
       return;
@@ -205,18 +212,50 @@ export async function loadPdfFromUrl() {
   }
 
   try {
-    let fetchPromise = await fetch(path, {
+    let response = await fetch(path, {
       method: "GET",
       credentials: "include",
       mode: "cors",
+      signal
     });
-    let response = await fetchPromise;
     if (response.ok) {
       // Check if we got a PDF or HTML
       let contentType = response.headers.get("content-type");
       console.log("Content-Type:", contentType);
 
-      let data = await response.arrayBuffer();
+      // Stream the response to show download progress
+      const contentLength = response.headers.get("Content-Length");
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
+      let received = 0;
+
+      const reader = response.body.getReader();
+      const chunks = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        chunks.push(value);
+        received += value.length;
+
+        if (total > 0) {
+          const percent = Math.round((received / total) * 100);
+          window._shade_.update(`Downloading (${percent}%)`);
+        } else {
+          // No Content-Length header, show bytes received
+          const mb = (received / (1024 * 1024)).toFixed(1);
+          window._shade_.update(`Downloading (${mb} MB)`);
+        }
+      }
+
+      // Combine chunks into a single ArrayBuffer
+      const data = new Uint8Array(received);
+      let position = 0;
+      for (const chunk of chunks) {
+        data.set(chunk, position);
+        position += chunk.length;
+      }
+
       console.log("Fetched PDF data, size:", data.byteLength);
 
       // Check if it starts with PDF magic bytes (%PDF)
@@ -236,7 +275,11 @@ export async function loadPdfFromUrl() {
       dialog(`Error opening url <i>${escapeHtml(path)}</i><br>HTTP ${response.status}: ${response.statusText}<br>`);
     }
   } catch (error) {
+    if (error.name === "AbortError") return; // User cancelled
     console.error("Error loading PDF:", error);
     dialog(`Error opening url <i>${escapeHtml(path)}</i><br>${error}<br>${error.stack || ""}`);
+  } finally {
+    window._shade_.hide();
+    window._shade_.onCancel = null;
   }
 }

@@ -6,8 +6,10 @@ notes
 .aider*
 CLAUDE.md
 
-# Extension build artifacts (keep static files: podium.html, manifest.json, background.js, ext.js, README.md)
+# Extension build artifacts (keep static files: podium.html, manifest.json, background.js, README.md)
+# ext/src/ext.js is the real extension code, checked in; other ext/src/ files are copied from src/
 ext/build/
-ext/src/
+ext/src/*
+!ext/src/ext.js
 ext/lib/
 ext/icons/

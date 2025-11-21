@@ -748,7 +748,6 @@ class GDriveSrc extends CachedSrc {
     });
   }
 
-
   async auth() {
     // If we already have a valid token, reuse it
     if (this.tokens && this.tokens.expiry > Date.now() / 1000) return;
@@ -760,6 +759,7 @@ class GDriveSrc extends CachedSrc {
         scope: "https://www.googleapis.com/auth/drive",
         prompt: '', // leave empty to avoid forcing re-consent every time
         callback: (response) => {
+          _shade_.pop();
           if (response.error) {
             this._pendingReject?.(new Error(response.error, { cause: "auth" }));
           } else {
@@ -770,6 +770,15 @@ class GDriveSrc extends CachedSrc {
             };
             this._pendingResolve?.();
           }
+          this._pendingResolve = null;
+          this._pendingReject = null;
+        },
+        error_callback: (error) => {
+          // Called when popup is closed or fails to open (error.type: popup_closed, popup_failed_to_open)
+          _shade_.pop();
+          this._pendingReject?.(new Error("Authentication cancelled by user.", { cause: "cancelled" }));
+          this._pendingResolve = null;
+          this._pendingReject = null;
         },
       });
     }
@@ -778,9 +787,11 @@ class GDriveSrc extends CachedSrc {
     return new Promise((resolve, reject) => {
       this._pendingResolve = resolve;
       this._pendingReject = reject;
+      _shade_.show("Authorizing");
       this.gisClient.requestAccessToken();
     });
   }
+
 
   putCache(path, data) {
     super.putCache(path, data);
@@ -2283,6 +2294,7 @@ class FileSystemView extends FileListView {
           localStorage.setItem(this.source, path); // remember last path opened
         }
         catch(error) {
+          if(error.cause == "cancelled") throw error ;
           localStorage.setItem(this.source, ""); // reset if path doesn't exist
           listing = await this.src.getDir("", force);
         }        
