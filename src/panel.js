@@ -1256,10 +1256,10 @@ class NumbersPanel extends Panel {
     let defs = {
       pn: { min: 1, max: score.pgs.length, value: score.numbers.pn, step: 1,
         msg: formatPn, throttle: 500},
-      first: { min: 1, max: 1000, value: _score_.numbers.first, step: 1,
-        msg: () => `First #: ${_score_.numbers.first}`,throttle: 500},
       prelim: {min: 0, max: 100,value: _score_.numbers.prelim,step: 1,
         msg: () => `Roman: ${_score_.numbers.prelim}`,throttle: 500 },
+      first: { min: 1, max: 1000, value: _score_.numbers.first, step: 1,
+        msg: () => `First #: ${_score_.numbers.first}`,throttle: 500},
     };
     this.pnSliderGroup = new SliderGroup(
        _score_.numbers,
@@ -1844,7 +1844,7 @@ class PrintPanel extends Panel {
     // its opened on a new score.  BUG, todo: should also reset when
     // pg's are added or removed
     let scoreLength = _score_.pgs.length;
-    let props = { first:1, last: scoreLength };
+    let props = { first:pnToString(1), last: pnToString(_score_.pgs.length)};
 
     cell = _menu_.rings.page.cells.numbers; // for pnToString
     let buttons = new ButtonGroup(
@@ -1879,11 +1879,11 @@ class PrintPanel extends Panel {
       if(tag == "first") {
         if(value > props.last) value = props.last;
         props.first = value;
-        return "First page: " + pnToString(value, -cell.stash.pnOffset);
+        return "First page: " + pnToString(value);
       } else if(tag == "last") {
         if(value < props.first) value = props.first;
         props.last = value;
-        return "Last page: " +  pnToString(value, -cell.stash.pnOffset);
+        return "Last page: " +  pnToString(value);
       }
     }
 
@@ -1892,12 +1892,10 @@ class PrintPanel extends Panel {
       first: {min:1, max:props.last, step:1, value:1, msg: msgCallback},
     });
     this.first.replaceWith(this.firstSlider.elm);
-
     this.lastSlider = new SliderGroup(props, {
       last: {min:1, max:props.last, step:1, value:props.last,  msg: msgCallback},
     });
     this.last.replaceWith(this.lastSlider.elm);
-
     listen(_body_, "NUMBERS", (e) => {
       this.firstSlider.defs.first.max = this.lastSlider.defs.last.max = _score_.pgs.length;
       props.last  = Math.min(_score_.pgs.length, props.last);
