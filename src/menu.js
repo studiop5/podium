@@ -333,7 +333,7 @@ class Menu {
           // Note capitalization of Width, Height, as these tags
           // are shown in the NewScore panel. Values are always in
           // pdf pts
-          stash: { pages: 5, size: "A4", Width:595, Height:842, rgb: "#fff", alpha:1.0 },
+          stash: { pages: 5, size: "A4", Width:595, Height:842, rgb: "#ffffff", alpha:1.0 },
           svgPath: iconPaths["New Score"],
         },
         close: { name: "Close", svgPath: iconPaths["Close"] },
