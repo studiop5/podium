@@ -832,16 +832,32 @@ for more details.</p>
   );
 
   releaseNotesFace = helm(
-    `<div style="padding:2em;">
-        Release 1.1, December 2024
-        <ul>
-          <li>Copy/Paste pages between scores in different tabs
-          <li>Table Layout: drag to reorder pages
-          <li>New dark theme and theme switcher cell in more ring
-          <li>Fixed a bug 'r two
-        </ul>
-     </div>`
-  );
+    `<div style="padding:2em;text-align:left;">
+      <h2>V1.1, December 2025</h2>
+  <ul>
+  <li> <b>Shared Copy/Paste Buffer (Page ring)</b><br>
+  Copy and paste pages between different Podium instances. Useful for combining pages from multiple scores,
+  extracting individual movements, or assembling custom practice sets.
+  </li><br>
+  <li><b>Dark Mode (More ring)</b><br>
+  Reduces eye strain during long practice sessions or low-light environments.
+  </li><br>
+  <li><b>Page Expansion (Score ring → Info)</b><br>
+  Pages smaller than the maximum size in a score can now be expanded to fill the available space, providing a more
+  consistent viewing experience.
+  </li><br>
+  <li><b>Page Management (Layout ring → Table)</b><br>
+  Reorder pages by dragging them to a new position. Delete pages by dragging them off the layout.
+  </li><br>
+  <li><b>New Fonts (Ink ring → Text)</b>
+  Two new font options: Vercetti and Patrick Hand (a handwritten-style font).
+  </li><br>
+  </ul>
+   <h2>V1.0, March 2025</h2>
+   Initial release.
+     </div>
+
+   `);
 
   helpFace = helm(
     `<object type="application/pdf" data="https://www.studiop5.org/Guidebook.pdf"
