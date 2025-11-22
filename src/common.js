@@ -1833,7 +1833,7 @@ function hide(elm, onElm) {
   let fontSize = elm.style.fontSize; // this MUST come from style, NOT from getComputedStyle
   elm.style.left = left;
   elm.style.top = top;
-  elm.style.transition = "top 0.5s, left 0.5s,font-size 0.5s";
+  elm.style.transition = "top 0.5s, left 0.5s,font-size 0.5s, opacity 2.5s";
   reflow();
   let elmBox = getBox(elm);
   let onElmBox = getBox(onElm);

@@ -209,8 +209,10 @@ class Panel {
           (eup) => {
             header.classList.remove("Panel__header-selected");
             unlisten(mv);
-            if (flung(null, eup))  // fling detected
+            if (flung(null, eup)) { // fling detected
               hide(this.elm, dataIndex("tag", this.cell.elm).cellIcon);
+              this.hidden() ;
+            }
           },
           { once: true }
         );
@@ -222,6 +224,11 @@ class Panel {
           this.constrain();
       }
     }));
+  }
+
+  hidden() { 
+    // subclasses override to take action when they are about to
+    // be hidden
   }
 
   close() {
@@ -1521,6 +1528,7 @@ class TextPanel extends PencilPanel {
     this.preview.append(this.text);
     this.listeners.push(listen(this.fonts, "change", () => this.update()));
     this.preview.append(this.text);
+    this.fonts.value = cell.stash.font ;
     this.update();
   }
 
@@ -1530,7 +1538,7 @@ class TextPanel extends PencilPanel {
     this.text.style.fontSize = size / _pxPerEm_ + "em";
     this.text.style.lineHeight = height / _pxPerEm_ + "em";
     this.text.style.color = rgb + Math.round(alpha * 255).toString(16);
-    Object.assign(this.preview.style, fontMap[this.fonts.value]);
+    Object.assign(this.preview.style, fontMap[font]);
     let active = _score_.getActiveObject();
     if (active && active.type == "textbox") {
       let color = fabric.Color.fromHex(rgb);
@@ -1558,7 +1566,7 @@ class RastrumPanel extends PencilPanel {
     lines: {
       throttle: 250, min: 1, max: 30, step: 1, value: 5, msg: "Lines: {value}" },
     width: {
-      throttle: 250, min: 0.1, max: 10, step: 0.1, value: 1, msg: "Line Width: {value} px" },
+      throttle: 250, min: 0.1, max: 10, step: 0.1, value: 1, msg: "Width: {value} px" },
     bars: { throttle: 250, min: 0, max: 20, step: 1, value: 4, msg: "Bars: {value}" },
   };
 
@@ -1570,30 +1578,56 @@ class RastrumPanel extends PencilPanel {
   constructor(cell) {
     super(cell);
 
-    delay(3, () => { // Must be delayed to allow superclass constructor to finish
-      // Make the "Lines" and "Line Width" sliders smaller and narrower
-      let sliderBlocks = this.sliders.elm.querySelectorAll('.SliderGroup__SliderBlock');
-      [sliderBlocks[1], sliderBlocks[2]].forEach(block => {
-        if (block) {
-          block.style.fontSize = '.8em';
-          block.style.width = '80%';
-          block.style.marginLeft = 'auto';
-          block.style.marginRight = 'auto';
-          block.style.position = 'relative';
-        }
+
+    delay(3, () => { 
+      // After superclass constructor has done layout, arrange sliders 
+      // so that Lines and Width are on same line
+      this.body.style.width = "16em" ;
+      Object.assign(this.sliders.elm.style, {
+        "display": "grid",
+        "grid-template-columns": "repeat(6, 1fr)",
+        "width": "100%",
       });
-    });
-  }
+      let sliderBlocks = this.sliders.elm.querySelectorAll('.SliderGroup__SliderBlock');
+      Object.assign(sliderBlocks[0].style, {
+        "grid-column": "1/-1",
+        "grid-row": 1,
+      });
+      Object.assign(sliderBlocks[1].style, {
+        "font-size": "0.75em",
+        "grid-column": "1/4",
+        "grid-row": 2,
+      });
+      Object.assign(sliderBlocks[2].style, {
+        "font-size": "0.75em",
+        "grid-column": "4/7",
+        "grid-row": 2,
+      }),
+      Object.assign(sliderBlocks[3].style, {
+        "grid-column": "1/-1",
+        "grid-row": 3,
+      }),
+
+      this.sliders.elm.querySelectorAll('.Slider').forEach((slider, i) => {
+        if(i == 1 || i == 2) 
+          Object.assign(slider.style, {
+            width: "calc(50% - 3em)",
+            left: "unset",
+          })
+       });
+     }) ;
+    }
+
 
   update() {
-    let { alpha, rgb, style, lines, width, gap, bars, barsWidth } =
+    let { alpha, rgb, style, lines, width, gap, bars} =
       this.cell.stash;
     clearChildren(this.preview);
     let linePath = "";
     let barPath = "";
     let staffHeight = (lines - 1) * gap;
     if (style == "L-R") {
-      let staffY = (100 - staffHeight) / 2;
+      let staffY = (80 - staffHeight) / 2;
       for (let i = 0, y = staffY; i < lines; i++, y += gap)
         linePath += `M10 ${y}h180 `;
       if (bars > 0) {
@@ -1840,7 +1874,13 @@ class PianoPanel extends Panel {
   show() {
     super.show();
     this.piano.show();
+    this.piano.options.style.visibility = this.optionsVisibility ;
     return this;
+  }
+
+  hidden() {
+    this.optionsVisibility = this.piano.options.style.visibility ;
+    this.piano.options.style.visibility = "hidden" ;
   }
 }
 

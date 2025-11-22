@@ -174,7 +174,7 @@ function initFabric() {
   
     onMouseMove: function (ptr) {
       this.ptr = ptr;
-      let { canvas, color, gap, lines, origin, style, width, zoom } = this;
+      let { canvas, color, gap, lines, width, origin, style, zoom } = this;
       let ctx = canvas.contextTop;
       canvas.clearContext(ctx);
       if (style == "L-R") origin.y = ptr.y;
@@ -205,7 +205,7 @@ function initFabric() {
     draw: function () {
       // Normally, draw is invoked from onMouseUp, but can also be called from the RastrumPanel
       // to re-draw the rastrum.
-      let { canvas, color, gap, lines, origin, ptr, style, width, bars } = this;
+      let { canvas, color, gap, lines, width, bars, origin, ptr, style } = this;
       if(this.path) this.canvas.remove(this.path); // might be "re" drawing...remove any prev path
       let d = "";
       let dX = ptr.x - origin.x;
@@ -217,10 +217,12 @@ function initFabric() {
         let staffHeight = (lines - 1) * gap;
         if (style == "L-R") {
           let barWidth = dX / bars;
-          for (let i = 0, x = 0; i <= bars; i++, x += barWidth) d += `M${x} ${-width/2} v${staffHeight + width} `;
+          for (let i = 0, x = 0; i <= bars; i++, x += barWidth)
+            d += `M${x} ${-width/2} v${staffHeight + width} `;
         } else {
           let barWidth = dY / bars;
-          for (let i = 0, y = 0; i <= bars; i++, y += barWidth) d += `M0  ${y}h${staffHeight} `;
+          for (let i = 0, y = 0; i <= bars; i++, y += barWidth)
+            d += `M0  ${y}h${staffHeight} `;
         }
       }
       // Note: need to subtract width/2 from left and top because

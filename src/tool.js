@@ -531,6 +531,7 @@ class Piano {
     let elm = optionsView.elm;
     elm.classList.add("Piano__options");
     this.options.replace(elm);
+    this.options = elm;
 
     // options panel is draggable by its frame left/right, with fling to close.
     optionsView.frame.style.marginTop = 0;
@@ -1215,7 +1216,7 @@ class Metronome extends Surface {
 
   build() {
     this.motionPaths.forEach((motionPath) => motionPath.endElement());
-    this.pathTransforms.forEach((pathTransform) => pathTransform.endElement());
+    Object.values(this.pathTransforms).forEach((pathTransform) => pathTransform.endElement());
     clearChildren(this.surface);
     let beatPattern = this.beatPattern || this.beatPatterns[0];
     // Outermost svg tag. Transforms at this level effect entire surface. Note: the svg transform tag doesn't
@@ -1235,27 +1236,39 @@ class Metronome extends Surface {
     svg += `<svg><use href="#marker">`;
     // The metronome pattern has a specific center of rotation:
     let cxy = beatPattern.markerCenter ? beatPattern.markerCenter : "";
-    beatPattern.paths.forEach((path, index) => {
+    if (beatPattern.name == "metronome") {
+      // Metronome uses two separate transforms to avoid iOS rendering bugs
       svg += `
+          <animateMotion data-path="0" calcMode="paced" fill="freeze" path="" dur="0" />
+          <animateTransform data-transform="left" calcMode="paced" fill="freeze"
+            attributeName="transform" type="rotate" from="-45 ${cxy}" to="45 ${cxy}" dur=".1" />
+          <animateTransform data-transform="right" calcMode="paced" fill="freeze"
+            attributeName="transform" type="rotate" from="45 ${cxy}" to="-45 ${cxy}" dur=".1" />`;
+    } else {
+      beatPattern.paths.forEach((path, index) => {
+        svg += `
           <animateMotion
-            data-path="${index}" 
+            data-path="${index}"
             calcMode="paced"
-            fill="freeze" 
-            path="${path}" dur="0" /> 
+            fill="freeze"
+            path="${path}" dur="0" />
           <animateTransform
             data-transform="${index}"
             calcMode="paced"
             fill="freeze"
             attributeName="transform"
             type="rotate" from="15 ${cxy}" to="-15 ${cxy}" dur=".1" />`;
-    });
+      });
+    }
     svg += "</use></svg>";
     let svgElm = helm(svg);
     Object.assign(this, dataIndex("tag", svgElm));
     this.surfaceDragElm = svgElm;
     this.surface.prepend(svgElm);
     this.motionPaths = Object.values(dataIndex("path", svgElm));
-    this.pathTransforms = Object.values(dataIndex("transform", svgElm));
+    // Metronome uses string keys ("left"/"right"), conductor uses numeric indices
+    let transforms = dataIndex("transform", svgElm);
+    this.pathTransforms = beatPattern.name == "metronome" ? transforms : Object.values(transforms);
   }
 
   play(bool) {
@@ -1309,12 +1322,9 @@ class Metronome extends Surface {
       }
       if (this.beatPattern.name == "metronome") {
         let left = this.tickCount & 0x01;
-        let transform = this.pathTransforms[0];
+        // Use separate transform elements for left/right to avoid iOS rendering bugs
+        let transform = this.pathTransforms[left ? "left" : "right"];
         transform.setAttribute("dur", this.animDur);
-        // The Metronome marker, i.e. the pendulum, has specific center of rotation:
-        let cRot = this.beatPattern.markerCenter;
-        transform.setAttribute("from", left ? `-45 ${cRot}` : `45 ${cRot}`);
-        transform.setAttribute("to", left ? `45 ${cRot}` : `-45 ${cRot}`);
         transform.beginElement();
         return;
       }
