@@ -489,12 +489,14 @@ class Menu {
         pen: {
           name: "Pen",
           svgPath: iconPaths["Pen"],
-          stash: { alpha:"1",  rgb: "#000000", style:"L-R", width: 1.5},
+          stash: { alpha:".5",  rgb: "#FFFF00", style:"L-R", width: 10},
         },
         rastrum: {
           name: "Rastrum",
           svgPath: iconPaths["Rastrum"],
-            stash: {  alpha:"1", gap:85, bars:0, lines: 5, rgb: "#000000", style:"L-R", width: .75, barsWidth:.75}, // "L-R" or "T-B"
+            // gap is staff space
+            stash: { alpha:"1", gap:5,  lines: 5, width: 0.55,
+                     rgb: "#000000", style:"L-R", bars:0}, // style is "L-R" or "T-B"
         },
         text: {
           name: "Text",
@@ -504,7 +506,7 @@ class Menu {
         symbols: {
           name: "Symbols",
           svgPath: iconPaths["Symbols"],
-          stash: {alpha:"1", rgb:"000000", font: "Bravura", size: 8, group: "4.5. Clefs", codePoint: "\ue050"},
+          stash: {alpha:"1", rgb:"#000000", font: "Bravura", size: 5, group: "4.5. Clefs", codePoint: "\ue050"},
         },
         undo: {
           name: "Undo",
