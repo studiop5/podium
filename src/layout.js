@@ -2135,12 +2135,15 @@ class Pager {
 
     this.bookmarkListener = listen(_body_, ["BOOKMARK"], (e) => this.buildBookmarks());
     this.pointerListener = listen(this.elm, "pointerdown", (e) => this.onDown(e));
+    this.resizeObserver = new ResizeObserver(() => this.buildCursor());
+    this.resizeObserver.observe(this.pager);
 
     this.buildBookmarks();
   }
 
   destructor() {
     // Called when containing layout is about to be removed from dom.
+    this.resizeObserver.disconnect();
     unlisten(this.pnListener, this.bookmarkListener, this.pointerListener);
   }
 
@@ -2151,14 +2154,16 @@ class Pager {
 
   buildCursor() {
     let { HEIGHT, WIDTH, TOP } = this.props;
-    let cursorBox = getBox(this.cursor);
     let pagerBox = getBox(this.pager);
-    this.cursor.style[HEIGHT] = this.cursor.style.lineHeight = pagerBox[WIDTH] + "px";
+    let cursorHeight = pagerBox[WIDTH]; // cursor height matches pager width
+    this.cursor.style[HEIGHT] = this.cursor.style.lineHeight = cursorHeight + "px";
     // The cursor is positioned s.t. pg 1 is always at the top of the pager, and the max page is always at the bottom
     // of the pager.  Its Position is expressed as a percentage so that when a layout is scaled by adjusting
     // the font size of its pz element, the pager position will automatically adjust.
-    let topPx = (_score_.numbers.pn -1) * (pagerBox[HEIGHT] - cursorBox[HEIGHT]) / (_score_.pgs.length - 1);
+    let topPx = (_score_.numbers.pn -1) * (pagerBox[HEIGHT] - cursorHeight) / (_score_.pgs.length - 1);
     this.cursor.style[TOP] = 100 * topPx / pagerBox[HEIGHT] + "%";
+    let bkCl = _score_.pgs[_score_.numbers.pn - 1]?.bookmark;
+    this.cursor.style.color = bkCl || "";
     this.formatFunc(_score_.numbers, false, this.cursor);
   }
 
@@ -2245,7 +2250,7 @@ class Pager {
         this.cursor.classList.remove("Pager__cursor-active");
         this.bMarkTimer.cancel();
         this.buildCursor();
-        _body_.dispatchEvent(new CustomEvent("NUMBERS", { detail: {sender:this }}));
+        _body_.dispatchEvent(new CustomEvent("NUMBERS", { detail: {sender:this, tag:"pn" }}));
       },
       { once: true }
     );

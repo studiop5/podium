@@ -137,8 +137,9 @@ Dropbox:
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-35.3175 -50 306.085 300"><defs id="defs112"><style id="style110">.cls-1{fill:#0061ff}</style></defs><path id="polygon116" class="cls-1" d="M58.86 75l58.87-37.5L58.86 0 0 37.5z"/><path id="polygon118" class="cls-1" d="M176.59 75l58.86-37.5L176.59 0l-58.86 37.5z"/><path id="polygon120" class="cls-1" d="M117.73 112.5L58.86 75 0 112.5 58.86 150z"/><path id="polygon122" class="cls-1" d="M176.59 150l58.86-37.5L176.59 75l-58.86 37.5z"/><path id="polygon124" class="cls-1" d="M176.59 162.5L117.73 125l-58.87 37.5 58.87 37.5z"/></svg>`,
 
 Dark:
-  `<path fill="currentColor" stroke="currentColor" stroke-width="0.3" d="M 16,6 A 7,7 0 0 0 9,13 A 7,7 0 0 0 16,20 A 7,7 0 0 0 21,18.5 A 8,8 0 0 1 13,12 A 8,8 0 0 1 15.5,5 A 7,7 0 0 0 16,6 Z"/>
-   <circle fill="currentColor" cx="18.5" cy="8.5" r="0.6"/>`,
+  `<path fill="currentColor" d="M 16,6 A 7,7 0 0 0 9,13 A 7,7 0 0 0 16,20 A 7,7 0 0 0 21,18.5 A 8,8 0 0 1 13,12 A 8,8 0 0 1 16,6 Z"/>
+   <circle fill="currentColor" cx="5" cy="5" r="0.7"/>
+   <circle fill="currentColor" cx="7" cy="8" r="0.5"/>`,
 
 Expand:
   `<rect x="2" y="2" width="20" height="20" fill="#aaa" stroke="currentColor" stroke-width="0.6"/>
