@@ -174,6 +174,9 @@ class Piano {
     .Piano__button-active {
       background: #3336;
    }
+    .Piano__options-face {
+      font-size:.75em;
+    }
     .Piano__options {
       position:absolute;
       width:27em;
@@ -191,7 +194,7 @@ class Piano {
       color: var(--body-color);
     }
     .Piano__options__options {
-      margin: .5em 6.5em .5em 6.5em;
+      margin: .6em 2.5em .6em 2.5em;
       padding: 1em;
       font-size: .93em;
       line-height: 1.45em;
@@ -564,7 +567,7 @@ class Piano {
     // Pitch tab
     {
       let tags = dataIndex("tag", helm(`      
-        <div data-tag="pitch">
+        <div data-tag="pitch" class="Piano__options-face">
           <div data-tag="a4" style="width:50em;margin-top:.4em;"></div>
           <div data-tag="options" class="Piano__options__options">
             ${option("data-hz=\"415\"", "A = 412 Hz",  "",
@@ -573,7 +576,7 @@ class Piano {
               "en.wikipedia.org/wiki/Scientific_pitch","Scientific Pitch")}
             ${option("data-hz=\"432\"", "A = 432 Hz", "",
               "www.youtube.com/watch?v=LjR0WpWwLrE","Verdi's A")}
-            ${option("data-hz=\"440\"", "A = 440 Hz", "International Standard, ",
+            ${option("data-hz=\"440\"", "A = 440 Hz", "International Standard ",
                "www.iso.org/standard/3601.html", "ISO 16:1975")}
             ${option("data-hz=\"442\"", "A = 442 Hz", "New York Philharmonic")}
             ${option("data-hz=\"443\"", "A = 443 Hz", "Berliner Philharmoniker")}
@@ -635,7 +638,7 @@ class Piano {
     // Temperament tab
     {
       let tags = dataIndex("tag", helm(
-        `<div data-tag="temperament" style="padding-top:2.5em">
+        `<div data-tag="temperament" style="padding-top:2.5em" class="Piano__options-face">
            <div data-tag="options" class="Piano__options__options">
               ${option("data-temper=\"Equal\"", "Equal",  "<sup>12</sup>\u221A2, ",
                 "en.wikipedia.org/wiki/12_equal_temperament", "12-ET")}
@@ -673,7 +676,7 @@ class Piano {
     //  Timbre tab
     {
       let tags = dataIndex("tag", helm(
-        `<div data-tag="timbre">
+        `<div data-tag="timbre" class="Piano__options-face">
            <div data-tag="voices" style="width:50em;padding-bottom:1.5em;"></div>
            <div data-tag="options" class="Piano__options__options">
              ${option("data-timbre=piano","Piano","Yamaha C5, ", "archive.org/details/SalamanderGrandPianoV3","Salamander V3")}

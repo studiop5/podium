@@ -2086,8 +2086,8 @@ class FileSystemView extends FileListView {
     }
     let storedPath = localStorage.getItem(this.source) || "";
     this.setPath(this.path ||
-       _score_?.source == this.source ?
-         _score_?.path :  storedPath, true);
+       (_score_?.source == this.source ?
+         _score_?.path : null) || storedPath, true);
   }
 
   populateFsvPath() {

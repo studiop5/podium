@@ -832,8 +832,8 @@ for more details.</p>
   );
 
   releaseNotesFace = helm(
-    `<div style="padding:2em;text-align:left;">
-      <h2>V1.1, December 2025</h2>
+    `<div style="padding:2em;text-align:left;font-size:.8em;">
+      <h2>V1.1 December 2025</h2>
   <ul>
   <li> <b>Shared Copy/Paste Buffer (Page ring)</b><br>
   Copy and paste pages between different Podium instances. Useful for combining pages from multiple scores,
@@ -849,11 +849,14 @@ for more details.</p>
   <li><b>Page Management (Layout ring → Table)</b><br>
   Reorder pages by dragging them to a new position. Delete pages by dragging them off the layout.
   </li><br>
-  <li><b>New Fonts (Ink ring → Text)</b>
+  <li><b>New Fonts (Ink ring → Text)</b><br>
   Two new font options: Vercetti and Patrick Hand (a handwritten-style font).
   </li><br>
+  <li><b>Auto-off Safety Feature</b><br>
+  Page and ink ring cells automatically deactivate after a few seconds of inactivity, preventing accidental deletions or other unintended actions.
+  </li><br>
   </ul>
-   <h2>V1.0, March 2025</h2>
+   <h2>V1.0 March 2025</h2>
    Initial release.
      </div>
 
