@@ -201,6 +201,7 @@ class FileSrc {
       else if (ref == Score.sources.gdrive) src = new GDriveSrc();
       else if (ref == Score.sources.dbx) src = new DbxSrc();
       else if (ref == Score.sources.odrive) src = new ODriveSrc();
+      else if (ref == Score.sources.url) src = new UrlSrc();
       FileSrc.refs.set(ref, src); // ref -> src
       FileSrc.refs.set(src, ref); // src -> ref
       return src;
@@ -235,7 +236,7 @@ class FileSrc {
           Score.visit(score, { size, created, modified });
           toast("File reverted.");
         } catch (error) {
-          errDialog(error, error.stack, "Error: failed to download file from cloud server.<br>Details in Console.");
+          if (!error.handled) errDialog(error, error.stack, "Error: failed to download file from cloud server.<br>Details in Console.");
         } finally {
           _shade_.hide();
           accept();
@@ -1454,6 +1455,27 @@ class ODriveSrc extends CachedSrc {
   }
 }
 
+/**
+class UrlSrc (i.e. WWW/URL - extension only)
+  Handles opening PDFs from URLs. Only available when running as extension.
+  The actual fetch logic is in ext.js; this class just provides the FileSrc interface.
+**/
+class UrlSrc extends FileSrc {
+  source = Score.sources.url;
+
+  async getFile(path, name) {
+    // For URL source, path is the full URL
+    // Delegate to extension's fetchPdfFromUrl if available
+    if (window.fetchPdfFromUrl) {
+      await window.fetchPdfFromUrl(path);
+      // fetchPdfFromUrl creates the score directly, so throw to abort the caller's flow
+      throw { handled: true };
+    } else {
+      throw new Error("URL source is only available in the browser extension");
+    }
+  }
+}
+
 // The classes LocalFileView, FileListView, FileSystemView implement the gui elements displayed
 // in the File panel's tabs:
 
@@ -1930,7 +1952,7 @@ class FileListView {
         }
         toast("File downloaded");
       } catch (error) {
-        errDialog(error, error.stack, "Error: failed to download file from cloud server.");
+        if (!error.handled) errDialog(error, error.stack, "Error: failed to download file from cloud server.");
       } finally {
         _shade_.hide();
         this.panel.hide();

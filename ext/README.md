@@ -15,5 +15,9 @@
 
 ## Usage
 
-Right-click on any PDF link and select "Podium PDF Viewer" to view the PDF in Podium.
+Right-click on any PDF link and select "Open with Podium" to view the PDF in Podium.
 
+## Icons
+
+You need to add icon files (icon16.png, icon48.png, icon128.png) to the ext/icons/ directory.
+These should be PNG images at 16x16, 48x48, and 128x128 pixels respectively.

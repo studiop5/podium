@@ -734,6 +734,7 @@ class Score {
     gdrive: "Drive",
     dbx: "Dropbox",
     odrive: "OneDrive",
+    url: "WWW",
   });
 
   static async newScore(pgKnt, width, height, color) {

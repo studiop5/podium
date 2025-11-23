@@ -9,6 +9,9 @@ import { Score } from "./score.js";
 
 // _shade_ is a global singleton defined in common.js
 
+// Make fetchPdfFromUrl available globally for recent list
+window.fetchPdfFromUrl = fetchPdfFromUrl;
+
 export async function loadPdfFromUrl() {
   /*
     If url query parameter "url" or "file" is defined, open it.
@@ -23,6 +26,14 @@ export async function loadPdfFromUrl() {
 
   if (!path) return;
 
+  await fetchPdfFromUrl(path);
+}
+
+async function fetchPdfFromUrl(path) {
+  /*
+    Fetch a PDF from the given URL and open it as a score.
+    Called from loadPdfFromUrl() on initial load, and from the recent list.
+  */
   console.log("Attempting to fetch PDF from:", path);
 
   // Set up abort controller for cancellation
@@ -145,7 +156,7 @@ export async function loadPdfFromUrl() {
                 console.log("Form submission led to PDF:", pdfUrl);
               }
             } catch (formError) {
-              console.error("Error submitting form:", formError);
+              console.log("Error submitting form:", formError);
             }
           }
         }
@@ -219,7 +230,7 @@ export async function loadPdfFromUrl() {
       signal
     });
     if (response.ok) {
-      // Check if we got a PDF or HTML
+      // Check if PDF or HTML
       let contentType = response.headers.get("content-type");
       console.log("Content-Type:", contentType);
 
@@ -263,20 +274,26 @@ export async function loadPdfFromUrl() {
       let isPDF = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
 
       if (!isPDF) {
-        console.error("Response is not a PDF file. First bytes:", Array.from(bytes.slice(0, 20)));
+        console.log("Response is not a PDF file. First bytes:", Array.from(bytes.slice(0, 20)));
         dialog(`Error: The URL returned ${contentType || "non-PDF content"} instead of a PDF file.<br>The link may point to a webpage rather than a direct PDF download.`);
         return;
       }
 
-      let score = await new Score().init(null, "", "unknown", data);
+      // Extract filename from URL, fallback to "download.pdf"
+      let name = decodeURIComponent(path.split('/').pop().split('?')[0]) || "download.pdf";
+      if (!name.toLowerCase().endsWith('.pdf')) name += '.pdf';
+
+      let score = await new Score().init(Score.sources.url, path, name, data);
+      Score.visit(score, { size: received, created: null, modified: Date.now() });
+      _menu_.park();
       toast("File downloaded");
     } else {
-      console.error("Fetch failed:", response.status, response.statusText);
+      console.log("Fetch failed:", response.status, response.statusText);
       dialog(`Error opening url <i>${escapeHtml(path)}</i><br>HTTP ${response.status}: ${response.statusText}<br>`);
     }
   } catch (error) {
     if (error.name === "AbortError") return; // User cancelled
-    console.error("Error loading PDF:", error);
+    console.log("Error loading PDF:", error);
     dialog(`Error opening url <i>${escapeHtml(path)}</i><br>${error}<br>${error.stack || ""}`);
   } finally {
     window._shade_.hide();

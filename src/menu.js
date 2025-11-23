@@ -1190,17 +1190,22 @@ class Menu {
   collapse() {
     this.op.completed = true;
     let holder = this.menuHolder;
+    holder.style.transition = `all ${_gs_}ms ease-in`;
     if (this.collapsed) {
       this.collapsed = false;
-      holder.style.transition = "all .618s ease-in";
       holder.style.transform = "scale(1)";
-      schedule(618, () => (holder.style.transition = "unset"));
     } else {
-      holder.style.transition = "all .618s ease-in";
       holder.style.transform = "scale(0)";
-      schedule(618, () => (holder.style.transition = "unset"));
       this.collapsed = true;
     }
+    schedule(_gs_, () => holder.style.transition = "unset");
+  }
+
+  park() {
+    this.collapse() ;
+    this.elm.style.transition = `all ${_gs_}ms ease-in`;
+    this.elm.style.left = this.elm.style.top = 0 ;
+    schedule(_gs_, () => this.elm.style.transition = "unset");
   }
 
   reset() {
