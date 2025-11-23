@@ -1404,6 +1404,7 @@ class ScrollLayout extends Layout {
     let frameBox = getBox(this.frame);
     let dir = "none"; // drag direction, "none", "left", or "right"
     e.mv1 = e.mv0 = e;
+    e.mvBuffer = []; // circular buffer for fling velocity calculation
 
     let mv = listen(
       this.frame,
@@ -1411,6 +1412,9 @@ class ScrollLayout extends Layout {
       ((emv) => {
         e.mv1 = e.mv0;
         e.mv0 = emv;
+        // Track recent events for fling velocity
+        e.mvBuffer.push({ x: emv[CLIENTX], t: emv.timeStamp });
+        if (e.mvBuffer.length > 5) e.mvBuffer.shift();
         let clientX = emv[CLIENTX];
         let atStart = this.sashStart == 0; // at start of document
         let atEnd = sashLimit == Math.round(this.sashStart); // at end of document
@@ -1431,24 +1435,39 @@ class ScrollLayout extends Layout {
           if (Layout.startElm.isConnected) Layout.startElm.remove();
           if (Layout.endElm.isConnected) Layout.endElm.remove();
         }
-
-
       }).bind(this)
     );
 
     listen(
-      this.frame, 
+      this.frame,
       "pointerup",
       (async (eup) => {
         unlisten(mv);
-        // When delay between pointerup and previous event < 200ms, compute "velocity" of last movement.
-        let delay = eup.timeStamp - e.mv0.timeStamp;
-        let vel = delay < 200 ? (e.mv0[CLIENTX] - e.mv1[CLIENTX]) / (e.mv0.timeStamp - e.mv1.timeStamp) : 0;
-        vel = vel || 0; // When e.mv0 ==- e.mv1, vel will be NaN, so substitute 0.
-        vel /= 3; // dampen the velocity
-        this.pgSnapTo(eup.timeStamp - e.timeStamp > 200 ? "none" :
+        // Calculate fling velocity from the event buffer
+        let vel = 0;
+        let buf = e.mvBuffer;
+        if (buf.length >= 2) {
+          // Find the oldest event within the last ~100ms
+          let recent = buf[buf.length - 1];
+          let oldest = buf[0];
+          for (let i = buf.length - 2; i >= 0; i--) {
+            if (recent.t - buf[i].t > 100) break;
+            oldest = buf[i];
+          }
+          let dt = recent.t - oldest.t;
+          let dx = oldest.x - recent.x;
+          // Require reasonable time window AND meaningful movement for fling detection
+          if (dt > 10 && dt < 150 && Math.abs(dx) > 15) {
+            vel = dx / dt;
+            // Non-linear scaling: amplify fast flings more than slow ones
+            vel = Math.sign(vel) * Math.pow(Math.abs(vel), 1.3) / 2;
+          }
+        }
+        // Determine direction from last movement
+        let dir = eup.timeStamp - e.timeStamp > 200 ? "none" :
             e.mv0[CLIENTX] > e.mv1[CLIENTX] ? "right" :
-                 e.mv0[CLIENTX] < e.mv1[CLIENTX] ? "left" : "none", vel);
+            e.mv0[CLIENTX] < e.mv1[CLIENTX] ? "left" : "none";
+        this.pgSnapTo(dir, vel);
       }).bind(this),
       { once: true }
     );
@@ -1540,11 +1559,13 @@ class ScrollLayout extends Layout {
    */
   async pgSnapTo(dir, vel) {
     // "snap" displayed pages so that they align with a page boundary.  @dir is "right" or "left" or none (i.e. nearest)
-    // @vel is "velocity". If pgSnap == 0, and dir != none, then vel is used to fling the sash left or right.  
+    // @vel is "velocity". If pgSnap == 0, and dir != none, then vel is used to fling the sash left or right.
     let { LEFT, WIDTH } = this.props;
     let { gap, pgCount, pgSnap, pgShow, sashLimit} = this.cell.geo;
     let pgWidth = this.cell.geo.pg[WIDTH];
-    let snapDur = Math.min(vel ? Math.abs(250 / vel) : 250, 8500) ; // how long the snap takes, in ms
+    // For snap animation speed, ignore negligible velocities to get consistent snap-back timing
+    let animVel = Math.abs(vel) > 0.07 ? vel : 0;
+    let snapDur = Math.min(animVel ? Math.abs(250 / animVel) : 250, 8500); // how long the snap takes, in ms
     if (pgSnap > 0) {
       let snapWidth = (pgWidth + gap) * pgSnap;
       let travel = this.sashStart / snapWidth;
@@ -1556,7 +1577,7 @@ class ScrollLayout extends Layout {
         this.sashStart = (dX < 0.5 ? Math.ceil(travel) : Math.floor(travel)) * snapWidth;
       }
     }
-    else if(dir) this.sashStart += vel * pgShow * (pgWidth + gap);
+    else if(dir != "none") this.sashStart -= vel * pgShow * (pgWidth + gap);
     this.sashStart = clamp(this.sashStart, sashLimit, 0);
     // what will be the new page number?
     let pn = Math.round((-this.sashStart) / (pgWidth + gap) + 1);

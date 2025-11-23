@@ -248,7 +248,8 @@ class FileSrc {
   static async saveActiveScore(cell) {
     let score = _score_;
     let src = FileSrc.get(score.source);
-    if (!src) {
+    // If no source, or source doesn't support saving (like URL/WWW), show the save panel
+    if (!src || typeof src.putFile !== 'function') {
       let panel = panels[cell.name + "Panel"].get(cell);
       if (panel.elm.style.visibility != "visible") {
         panel.show();
@@ -256,18 +257,32 @@ class FileSrc {
       }
       return;
     }
-    _shade_.show("Uploading file");
+
+    // For local files, get file handle immediately while still in user gesture
+    let handle = null;
+    if (src instanceof LocalSrc && src.getFileHandle) {
+      try {
+        handle = await src.getFileHandle(score.name);
+      } catch (error) {
+        if (error.name === 'AbortError') return; // User cancelled
+        throw error;
+      }
+    }
+
+    _shade_.show("Saving file");
     // Unlike openActiveScore (i.e. revert), we do not prompt user
     // to save: this seems like a more natural ui experience.
     return new Promise(async (accept, reject) => {
       try {
         let data = await score.toPdf();
-        await src.putFile(score.path, score.name, data);
+        await src.putFile(score.path, score.name, data, handle);
         Score.visit(score, { size: data.length, modified: Date.now() });
         score.setDirty(false);
-        toast("File uploaded.");
+        toast("File saved.");
       } catch (error) {
-        errDialog(error, error.stack, "Error: failed to upload file to cloud server.<br>Details in Console.");
+        if (error.name !== 'AbortError') {
+          errDialog(error, error.stack, "Error: failed to save file.<br>Details in Console.");
+        }
       } finally {
         _shade_.hide();
         accept();
@@ -305,21 +320,23 @@ class LocalSrc extends FileSrc {
     });
   }
 
-  async putFile(path, name, data) {
+  async putFile(path, name, data, handle = null) {
     if (showSaveFilePicker) {
       // Use "experimental" file system access api, if supported:
-      const options = {
-        suggestedName: name,
-        types: [
-          {
-            description: "Podium Files",
-            accept: {
-              "application/pdf": [".pdf"],
+      if (!handle) {
+        const options = {
+          suggestedName: name,
+          types: [
+            {
+              description: "Podium Files",
+              accept: {
+                "application/pdf": [".pdf"],
+              },
             },
-          },
-        ],
-      };
-      const handle = await showSaveFilePicker(options);
+          ],
+        };
+        handle = await showSaveFilePicker(options);
+      }
       const writeable = await handle.createWritable();
       await writeable.write(data);
       await writeable.close();
@@ -334,6 +351,23 @@ class LocalSrc extends FileSrc {
       return { name: name, modified: Date.now() };
       // revoke url
     }
+  }
+
+  async getFileHandle(name) {
+    // Get a file handle immediately (during user gesture) for later writing
+    if (!showSaveFilePicker) return null;
+    const options = {
+      suggestedName: name,
+      types: [
+        {
+          description: "Podium Files",
+          accept: {
+            "application/pdf": [".pdf"],
+          },
+        },
+      ],
+    };
+    return await showSaveFilePicker(options);
   }
 }
 
@@ -1598,18 +1632,24 @@ class LocalFileView {
 
   async putFile() {
     let score = _score_;
-    _shade_.show("Saving file");
-    _shade_.onCancel = () => { throw new Error() };
     try {
+      // Get file handle immediately while still in user gesture
+      let handle = await this.src.getFileHandle(score.name);
+
+      _shade_.show("Saving file");
+      _shade_.onCancel = () => { throw new Error() };
+
       score.source = Score.sources.local;
       let data = await score.toPdf();
-      let { name, modified } = await this.src.putFile(score.path, score.name, data);
+      let { name, modified } = await this.src.putFile(score.path, score.name, data, handle);
       score.update({ source: this.source, name: name, path: null });
       Score.visit(score, { size: data.length, modified: modified });
       score.setDirty(false);
       toast("File saved");
     } catch (error) {
-      errDialog(error, error.stack, "Failed to save file to local storage");
+      if (error.name !== 'AbortError') {
+        errDialog(error, error.stack, "Failed to save file to local storage");
+      }
     } finally {
       _shade_.hide();
       this.panel.hide();
