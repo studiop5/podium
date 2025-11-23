@@ -5,6 +5,7 @@
 
 import { dialog, toast } from "./common.js";
 import { escapeHtml } from "./file.js";
+import { panels } from "./panel.js";
 import { Score } from "./score.js";
 
 // _shade_ is a global singleton defined in common.js
@@ -13,36 +14,37 @@ import { Score } from "./score.js";
 window.fetchPdfFromUrl = fetchPdfFromUrl;
 
 export async function loadPdfFromUrl() {
-  /*
-    If url query parameter "url" or "file" is defined, open it.
-    This is used when running podium as a browser extension.
-    Note: This must be called after _menu_ is initialized.
-  */
+  //  If url query parameter "url" or "file" is defined, open it.
+  //  If "open" parameter is defined, show the Open panel as a hint.
+  //  This is used when running podium as a browser extension.
+  //  Note: This must be called after _menu_ is initialized.
   if (!location.search) return;
-
   // Try both "url" and "file" parameters for compatibility
   let params = new URLSearchParams(location.search);
   let path = params.get("url") || params.get("file");
-
-  if (!path) return;
-
-  await fetchPdfFromUrl(path);
+  if (path) {
+    await fetchPdfFromUrl(path);
+    return;
+  }
+  // Check for "open" hint - show Open panel for local file memory jog
+  let openHint = params.get("open");
+  if (openHint) {
+    let cell = _menu_.rings.score.cells.open;
+    let panel = panels.OpenPanel.get(cell);
+    panel.show();
+    panel.setPosition(_menu_.grip);
+  }
 }
 
 async function fetchPdfFromUrl(path) {
-  /*
-    Fetch a PDF from the given URL and open it as a score.
-    Called from loadPdfFromUrl() on initial load, and from the recent list.
-  */
+  // Fetch a PDF from the given URL and open it as a score.
+  // Called from loadPdfFromUrl() on initial load, and from the recent list.
   console.log("Attempting to fetch PDF from:", path);
-
   // Set up abort controller for cancellation
-  const abortController = new AbortController();
-  const signal = abortController.signal;
-
+  let abortController = new AbortController();
+  let signal = abortController.signal;
   window._shade_.show("Downloading");
   window._shade_.onCancel = () => abortController.abort();
-
   // Handle IMSLP Special:ImagefromIndex URLs
   if (path.includes('imslp.org/wiki/Special:ImagefromIndex/')) {
     console.log("Detected IMSLP URL, fetching intermediate page...");
@@ -55,8 +57,7 @@ async function fetchPdfFromUrl(path) {
       console.log("IMSLP fetch response status:", response.status);
       console.log("IMSLP response URL:", response.url);
       console.log("IMSLP content-type:", response.headers.get("content-type"));
-
-      // Check if we got redirected to a PDF
+      // Check if redirected to a PDF
       if (response.url !== path && response.url.toLowerCase().endsWith('.pdf')) {
         console.log("IMSLP redirected to PDF:", response.url);
         path = response.url;
@@ -67,22 +68,18 @@ async function fetchPdfFromUrl(path) {
         // Got HTML - likely a disclaimer page. Parse to find PDF link or form.
         let html = await response.text();
         console.log("IMSLP HTML length:", html.length);
-
         // IMSLP shows a disclaimer page first. Look for various ways to get the actual PDF:
         // 1. Meta refresh tag
         // 2. JavaScript redirect
         // 3. Form action
         // 4. Direct link
-
         let pdfUrl = null;
-
         // Try meta refresh
         let metaMatch = html.match(/<meta[^>]+http-equiv=["']refresh["'][^>]+content=["'][^"']*url=([^"'\s]+)['"]/i);
         if (metaMatch) {
           pdfUrl = metaMatch[1];
           console.log("Found PDF URL in meta refresh:", pdfUrl);
         }
-
         // Try window.location or document.location in JavaScript
         if (!pdfUrl) {
           let jsMatch = html.match(/(?:window\.location|document\.location)\s*=\s*["']([^"']+\.pdf[^"']*)["']/i);
@@ -91,7 +88,6 @@ async function fetchPdfFromUrl(path) {
             console.log("Found PDF URL in JavaScript:", pdfUrl);
           }
         }
-
         // Try href links to PDF
         if (!pdfUrl) {
           let hrefMatch = html.match(/href=["']([^"']+\.pdf[^"']*)['"]/i);
@@ -100,7 +96,6 @@ async function fetchPdfFromUrl(path) {
             console.log("Found PDF URL in href:", pdfUrl);
           }
         }
-
         // Try imslpcdn.org or other common IMSLP CDN patterns
         if (!pdfUrl) {
           let cdnMatch = html.match(/https?:\/\/[^"'\s<>]*(?:imslp|conquest).*?\.pdf/i);
@@ -109,7 +104,6 @@ async function fetchPdfFromUrl(path) {
             console.log("Found PDF URL (CDN pattern):", pdfUrl);
           }
         }
-
         // Look for form that submits to accept disclaimer
         if (!pdfUrl) {
           let formMatch = html.match(/<form[^>]*action=["']([^"']+)["'][^>]*>([\s\S]*?)<\/form>/i);
@@ -117,7 +111,6 @@ async function fetchPdfFromUrl(path) {
             let formAction = formMatch[1];
             let formBody = formMatch[2];
             console.log("Found form action:", formAction);
-
             // Extract hidden input fields to submit with the form
             let formData = new URLSearchParams();
             let inputMatches = formBody.matchAll(/<input[^>]+name=["']([^"']+)["'][^>]+value=["']([^"']*)["'][^>]*>/gi);
@@ -125,14 +118,12 @@ async function fetchPdfFromUrl(path) {
               formData.append(inputMatch[1], inputMatch[2]);
               console.log("Form field:", inputMatch[1], "=", inputMatch[2]);
             }
-
             // Also check for inputs with value before name (HTML allows either order)
             let inputMatches2 = formBody.matchAll(/<input[^>]+value=["']([^"']*)["'][^>]+name=["']([^"']+)["'][^>]*>/gi);
             for (let inputMatch of inputMatches2) {
               formData.append(inputMatch[2], inputMatch[1]);
               console.log("Form field:", inputMatch[2], "=", inputMatch[1]);
             }
-
             // Submit the form
             try {
               let formUrl = formAction.startsWith('/') ? 'https://imslp.org' + formAction : formAction;
@@ -146,9 +137,7 @@ async function fetchPdfFromUrl(path) {
                   "Content-Type": "application/x-www-form-urlencoded"
                 }
               });
-
               console.log("Form submission response:", formResponse.status, formResponse.url);
-
               // Check if form submission redirected to PDF
               if (formResponse.url.toLowerCase().endsWith('.pdf') ||
                   formResponse.headers.get("content-type")?.includes("application/pdf")) {
@@ -160,7 +149,6 @@ async function fetchPdfFromUrl(path) {
             }
           }
         }
-
         // Look for any URL in onclick or data attributes
         if (!pdfUrl) {
           let onclickMatch = html.match(/(?:onclick|data-url)=["']([^"']*\.pdf[^"']*)["']/i);
@@ -169,7 +157,6 @@ async function fetchPdfFromUrl(path) {
             console.log("Found PDF URL in onclick/data:", pdfUrl);
           }
         }
-
         // Last resort: look for any mention of imslp CDN domains
         if (!pdfUrl) {
           let anyPdfMatch = html.match(/(https?:)?\/\/[^"'\s<>()]*\.pdf/i);
@@ -178,7 +165,6 @@ async function fetchPdfFromUrl(path) {
             console.log("Found any PDF URL:", pdfUrl);
           }
         }
-
         if (pdfUrl) {
           // Handle protocol-relative URLs
           if (pdfUrl.startsWith('//')) {
@@ -197,7 +183,6 @@ async function fetchPdfFromUrl(path) {
           console.log("Full HTML:", html);
           window._shade_.hide();
           window._shade_.onCancel = null;
-
           // Check if this is a disclaimer page
           if (html.includes('Disclaimer') || html.includes('disclaimer')) {
             dialog("IMSLP requires you to accept their disclaimer first.<br><br>Please <a href='" + path + "' target='_blank'>accept the disclaimer on IMSLP</a>.<br><br>After accepting, use 'Open with Podium' on the score link again.");
@@ -233,36 +218,35 @@ async function fetchPdfFromUrl(path) {
       // Check if PDF or HTML
       let contentType = response.headers.get("content-type");
       console.log("Content-Type:", contentType);
-
       // Stream the response to show download progress
-      const contentLength = response.headers.get("Content-Length");
-      const total = contentLength ? parseInt(contentLength, 10) : 0;
+      let contentLength = response.headers.get("Content-Length");
+      let total = contentLength ? parseInt(contentLength, 10) : 0;
       let received = 0;
 
-      const reader = response.body.getReader();
-      const chunks = [];
+      let reader = response.body.getReader();
+      let chunks = [];
 
       while (true) {
-        const { done, value } = await reader.read();
+        let { done, value } = await reader.read();
         if (done) break;
 
         chunks.push(value);
         received += value.length;
 
         if (total > 0) {
-          const percent = Math.round((received / total) * 100);
+          let percent = Math.round((received / total) * 100);
           window._shade_.update(`Downloading (${percent}%)`);
         } else {
           // No Content-Length header, show bytes received
-          const mb = (received / (1024 * 1024)).toFixed(1);
+          let mb = (received / (1024 * 1024)).toFixed(1);
           window._shade_.update(`Downloading (${mb} MB)`);
         }
       }
 
       // Combine chunks into a single ArrayBuffer
-      const data = new Uint8Array(received);
+      let data = new Uint8Array(received);
       let position = 0;
-      for (const chunk of chunks) {
+      for (let chunk of chunks) {
         data.set(chunk, position);
         position += chunk.length;
       }

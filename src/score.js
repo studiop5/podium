@@ -111,7 +111,7 @@ class Pg {
     let w = viewport.width / this.score.quality;
     let h = viewport.height / this.score.quality;
 
-    let mozCanvas = helm(`<canvas width="${viewport.width}" height="${viewport.height}" 
+    let mozCanvas = helm(`<canvas width="${viewport.width}" height="${viewport.height}"
       style="width:${w / _pxPerEm_}em;height:${h / _pxPerEm_}em;font-size:1em"></canvas>`);
     if (this.mozCanvas) this.mozCanvas.replaceWith(mozCanvas);
     else canvas.wrapperEl.append(mozCanvas);
@@ -879,7 +879,8 @@ class Score {
     // @activate make this score the "active" score
 
     Object.assign(this, { source, path, name });
-    this.quality = _menu_.rings.score.cells.info.stash.quality ?? this.quality;
+    // Reset quality to default; will be overridden by scoreJson if stored in the PDF
+    this.quality = 2;
     this.pgFit = _menu_.rings.score.cells.info.stash.pgFit ?? this.pgFit;
 
 
@@ -955,6 +956,8 @@ class Score {
     _menu_.enableCells("ink/undo", false); // nothing to undo yet
     _menu_.enableCells("page/undo", this.undoStack.length > 0);
     this.pgRefresh();
+    // Sync quality to stash so InfoPanel slider shows correct value
+    _menu_.rings.score.cells.info.stash.quality = this.quality;
     panels.InfoPanel.get(_menu_.rings.score.cells.info).refresh();
     // layout the score using current active layout, defaulting to book layout
     _menu_.reset();

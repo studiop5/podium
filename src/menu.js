@@ -672,6 +672,7 @@ class Menu {
 
    // grip: no cells here, just handlers
    this.listen("up", () => this.collapse());
+   this.listen("long", () => this.park());
 
     // Add a "key" key to every cell so that, given a cell,
     // we know immediately what its key is. Add a "ring" entry
@@ -764,6 +765,7 @@ class Menu {
   opDown(e) {
     if (e.ctrlKey || e.shiftKey) return;
     let op = this.op;
+    op.schedule.cancel();
     let keys = e.target.dataset.key || "grip";
     if (!keys) return;
     let box = getBox(this.menuHolder);
@@ -773,19 +775,20 @@ class Menu {
     // Allow user interaction to spin the disk or ring only when pointer is within 20% of edge of disk or ring
 
     Object.assign(op, {
+      cellKey: cellKey,
+      completed: false,
       e: e, // initial event
       emv: null, // lasttest mv event, or initial event if none
-      ringKey: ringKey,
-      cellKey: cellKey,
-      state: ringKey == "grip" ? "grip" : cellKey ? "ring" : "disk",
       moved: false,
       origin: { x: e.clientX, y: e.clientY },
+      out: false,
+      ringKey: ringKey,
       ring: this.activeRing,
       ringRadiusPx: this.activeRing.elm.offsetWidth / 2,
-      out: false,
       spun: false, // set to true when ring or disk is spun a minimal amount
-      turn0: null, // initial turn on pointerDown
+      state: ringKey == "grip" ? "grip" : cellKey ? "ring" : "disk",
       turn: null, // current turn, updates with rotation
+      turn0: null, // initial turn on pointerDown
     });
 
     this.elm.setPointerCapture(e.pointerId);
@@ -824,6 +827,15 @@ class Menu {
       case "grip": {
         this.notify("down");
         this.grip.classList.add("Menu__grip-selected");
+        op.schedule.run(
+          _longPressMs_,
+          () => {
+            op.completed = true;
+            this.notify("long");
+            this.grip.classList.remove("Menu__grip-selected");
+          },
+          this
+        );
       }
     }
     op.moveListener = listen(this.elm, "pointermove", this.opMove.bind(this));
@@ -832,11 +844,11 @@ class Menu {
 
   opMove(emv) {
     let op = this.op;
+    if (op.completed) return;
     op.emv = emv;
 
-    if (op.out) {
+    if (op.out)
       return this.notify(`${op.ringKey}/${op.cellKey}/out`); // if cell has panel, then this will pass move operation to it
-    }
 
     let elm = this.menuHolder;
     let box = getBox(elm);
@@ -845,26 +857,42 @@ class Menu {
     op.turn = Math.atan2(dxdy[1] - op.ringRadiusPx, dxdy[0] - op.ringRadiusPx) / (Math.PI * 2) + 1.25;
 
     // Was there significant pointer motion in either ring?
-    op.moved = mvmt(op.e, emv, 15, 15); 
-    if(op.moved && !op.spun) { 
-      if(op.state == "disk")
+    op.moved = mvmt(op.e, emv, 15, 15);
+    if(op.moved) op.schedule.cancel();
+    if (op.moved && !op.spun && !op.out) {
+      if (op.state == "disk") {
         op.spun = true; // Significant mvmt in a disk cell is always interpreted as a spin
-      else if(op.state == "ring") {
-        // Significant mvmt in a ring cell is a "spin" iff the movement is approximately tangental to the circumference.
-        // We test this by comparing the rotational angle of  ring cell to the angle of the pointer gesture
-        let ptrAngle = (Math.atan2(emv.clientY - op.e.clientY, emv.clientX - op.e.clientX) + Math.PI )/ (Math.PI * 2) + .75;
-        let diff = ptrAngle - op.cellAngle;
-        if(diff < 0) diff += 1;
-        else if(diff > 1) diff -= 1;
-        // Sensitivity" regions for asserting op.spun.
-        if(diff > 0.2 && diff <= 0.3) op.spun = true;
-        else if(diff > 0.7 && diff <= 0.8) op.spun = true;
-        else { // Significant mvmt where pointer moves out of ring triggers "out" state and event
-          let hyp = Math.hypot(emv.clientX - this.elm.offsetLeft, emv.clientY - this.elm.offsetTop);
-          if (op.out || hyp > this.menuHolder.offsetWidth / 2 || hyp < this.diskHolder.offsetWidth / 2) {
+      } else if (op.state == "ring") {
+        // Calculate tangent vs radial components of the gesture
+        let centerX = this.elm.offsetLeft;
+        let centerY = this.elm.offsetTop;
+        // Total displacement from pointer down
+        let dx = emv.clientX - op.e.clientX;
+        let dy = emv.clientY - op.e.clientY;
+        // Vector from menu center to current pointer position
+        let rx = emv.clientX - centerX;
+        let ry = emv.clientY - centerY;
+        let r = Math.hypot(rx, ry);
+        if (r > 0) {
+          // Radial unit vector (pointing outward from center)
+          let radialX = rx / r;
+          let radialY = ry / r;
+          // Tangential unit vector (perpendicular, for spin detection)
+          let tangentX = -radialY;
+          let tangentY = radialX;
+          // Project movement onto radial and tangential directions
+          let radialComponent = Math.abs(dx * radialX + dy * radialY);
+          let tangentComponent = Math.abs(dx * tangentX + dy * tangentY);
+          // Spin if tangential movement dominates
+          if (tangentComponent > radialComponent * 1.5) {
+            op.spun = true;
+          }
+          // Drag out/in if radial movement dominates
+          else if (radialComponent > tangentComponent * 1.5) {
             op.out = true;
             return this.notify(`${op.ringKey}/${op.cellKey}/out`);
           }
+          // Ambiguous - wait for more movement (do nothing yet)
         }
       }
     }

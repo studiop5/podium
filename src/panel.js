@@ -459,7 +459,7 @@ class InfoPanel extends Panel {
       {
         quality: {
           min: 0.5,
-          max: 4,
+          max: 6,
           step: 0.1,
           value: 2,
           throttle: 750,
@@ -472,6 +472,8 @@ class InfoPanel extends Panel {
                 ? "Medium"
                 : q < 3.1
                 ? "High"
+                : q < 4.1
+                ? "Very High"
                 : "Extreme";
             return "Display Quality: " + desc + ` (${parseInt(q * 100)}%)`;
           },
