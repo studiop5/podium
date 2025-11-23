@@ -1445,7 +1445,7 @@ class ScrollLayout extends Layout {
         let delay = eup.timeStamp - e.mv0.timeStamp;
         let vel = delay < 200 ? (e.mv0[CLIENTX] - e.mv1[CLIENTX]) / (e.mv0.timeStamp - e.mv1.timeStamp) : 0;
         vel = vel || 0; // When e.mv0 ==- e.mv1, vel will be NaN, so substitute 0.
-        vel /= 5; // dampen the velocity
+        vel /= 3; // dampen the velocity
         this.pgSnapTo(eup.timeStamp - e.timeStamp > 200 ? "none" :
             e.mv0[CLIENTX] > e.mv1[CLIENTX] ? "right" :
                  e.mv0[CLIENTX] < e.mv1[CLIENTX] ? "left" : "none", vel);
@@ -1544,7 +1544,7 @@ class ScrollLayout extends Layout {
     let { LEFT, WIDTH } = this.props;
     let { gap, pgCount, pgSnap, pgShow, sashLimit} = this.cell.geo;
     let pgWidth = this.cell.geo.pg[WIDTH];
-    let snapDur = Math.min(vel ? Math.abs(250 / vel) : 250, 750) ; // how long the snap takes, in ms
+    let snapDur = Math.min(vel ? Math.abs(250 / vel) : 250, 8500) ; // how long the snap takes, in ms
     if (pgSnap > 0) {
       let snapWidth = (pgWidth + gap) * pgSnap;
       let travel = this.sashStart / snapWidth;
@@ -1568,7 +1568,7 @@ class ScrollLayout extends Layout {
     this.pgMount(pn, dir);
 
     // animate the snap, updating on every animation frame
-    animate(this.sash, null, { [LEFT]:this.sashStart / _pxPerEm_ + "em"}, `${LEFT} ${snapDur / 1000}s ease-out`);
+    animate(this.sash, null, { [LEFT]:this.sashStart / _pxPerEm_ + "em"}, `${LEFT} ${snapDur}ms ease-out`);
     this.spinRollers(snapDur);
   }
 

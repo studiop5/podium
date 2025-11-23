@@ -544,12 +544,12 @@ class InfoPanel extends Panel {
           <div style="text-align:right;">Pages:&nbsp;</div><div>${
             score.pgs.length
           }</div>
-          <div style="text-align:right;">Created:&nbsp;</div><div>${new Date(
-            score.created
-          ).toLocaleString()}</div>
-          <div style="text-align:right;">Modified:&nbsp;</div><div>${new Date(
-            score.modified
-          ).toLocaleString()}</div>
+          <div style="text-align:right;">Created:&nbsp;</div><div>${
+            score.created ? new Date(score.created).toLocaleString() : "?"
+          }</div>
+          <div style="text-align:right;">Modified:&nbsp;</div><div>${
+            score.modified ? new Date(score.modified).toLocaleString() : "?"
+          }</div>
           </div>`)
       );
 
