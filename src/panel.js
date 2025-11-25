@@ -484,7 +484,9 @@ class InfoPanel extends Panel {
         let score = _score_;
         if (score) {
           score.quality = value;
-          for (let pg of score.pgs) if (pg.inflated) await pg.renderPdf();
+          for (let pg of score.pgs)
+            // rerender un-rendered pg's iff they are backed by pdf:
+            if (pg.inflated && pg.mozPn) await pg.renderPdf();
         }
       }
     );

@@ -362,7 +362,6 @@ css( // common css declarations. note: if you change bodyColor, be sure to
     --text-shadow-contrast: 0 0 0.3em rgba(0, 0, 0, 0.8);
   }
 
-
   body {
     font-family: var(--body-font-family);
     font-weight: var(--body-font-weight);

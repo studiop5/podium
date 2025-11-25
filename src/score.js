@@ -70,7 +70,6 @@ class Pg {
     //  created, and does not have a "backing" file in the pdf.
     //  @background: optional, rgb color to set as pg's background color.
     //   Visible only if this page is backed by a pdf file.
-
     this.background = background;
     this.canvas = null; // fabricjs canvas
     this.isCut = false; // marker for pgs that are "cut" in the gui
@@ -80,6 +79,7 @@ class Pg {
     this.elm = null; // shortcut for this.canvas.wrapperEl: the base element of the fabric canvas dom
     this.grid = null; // Grid instance, if any
     this.inflated = false; // true iff a fabricjs canvas is currently available
+    this.inflatePromise = null;
     this.inflateCtrl = null;
     this.inUse = false; // marker for class Score's caching algorithm
     this.score = score;
@@ -110,10 +110,9 @@ class Pg {
     let viewport = mozPg.getViewport({ scale: this.score.quality});
     let w = viewport.width / this.score.quality;
     let h = viewport.height / this.score.quality;
-
     let mozCanvas = helm(`<canvas width="${viewport.width}" height="${viewport.height}"
       style="width:${w / _pxPerEm_}em;height:${h / _pxPerEm_}em;font-size:1em"></canvas>`);
-    if (this.mozCanvas) this.mozCanvas.replaceWith(mozCanvas);
+   if (this.mozCanvas) this.mozCanvas.replaceWith(mozCanvas);
     else canvas.wrapperEl.append(mozCanvas);
     this.mozCanvas = mozCanvas;
     let ctx = mozCanvas.getContext("2d");
@@ -139,6 +138,7 @@ class Pg {
     //   and the inflation will be deferred. After
     //   the inflation finishes, the div is replaced by the fabric
     //   canvas's container div.
+    if(this.inflatePromise != null) return this;
     if (this.inflated) return this;
     this.inflateCtrl = new AbortController();
     if(this.mozPn && nonblocking) {
@@ -159,120 +159,129 @@ class Pg {
   }
 
   async inflateAux(render) {
-    let signal = this.inflateCtrl?.signal;
-    let checkAbort = () => { if(signal?.aborted) throw new DOMException("Inflation aborted","AbortError");}
-    checkAbort();
+    try {
 
-    if(!this.inUse) { // yield to inUse pages
-       await new Promise(resolve => delay(1, resolve));
-       checkAbort();
+      let signal = this.inflateCtrl?.signal;
+      let checkAbort = () => { if(signal?.aborted)
+        throw new DOMException("Inflation aborted","AbortError");}
+      checkAbort();
+  
+      if(!this.inUse) { // yield to inUse pages
+         await new Promise(resolve => delay(1, resolve));
+         checkAbort();
+      }
+  
+      // If indicated, determine scaling factor that will "stretch" score s.t. it
+      // will expand pg to fit within score's maxWidth & maxHeight
+      this.stretch = this.score.pgFit == "Expand" ? Math.min(
+         this.score.maxWidth / this.width,this.score.maxHeight / this.height) : 1;
+  
+      let domCanvas = document.createElement("canvas");
+      // allowTouchScrolling needs to be false, else certain browers (chrome mobile, at
+      // least) will create an "Intervention event", trying to scroll, when we've
+      // explicitly "preventDefault() touchmove on body in main.js.
+      let canvas = new fabric.Canvas(domCanvas, {
+          enablePointerEvents: true,
+          allowTouchScrolling: false, // Required!
+          imageSmoothingEnabled: false,
+      });
+      checkAbort();
+  
+      // Setting both *without* cssOnly (in implicit px's), then *with* cssOnly
+      // (in explicit em's) creates a canvas that can be resized by simply changing
+      // its font size. Not sure why, seems to be a fabricjs oddity.
+      canvas.setDimensions({
+          width: this.width,
+          height: this.height,
+      });
+  
+      canvas.setDimensions( {
+          width: this.width / _pxPerEm_ + "em",
+          height: this.height / _pxPerEm_ + "em",
+      }, { cssOnly: true } );
+  
+      if (this.json) await new Promise((resolve, reject) => 
+        canvas.loadFromJSON(this.json, () => resolve()));
+      checkAbort();
+  
+      if (render && this.mozPn) { 
+         await this.renderPdf(canvas);
+         if(signal?.aborted) {
+           canvas.dispose();
+           this.mozCanvas?.remove();
+           throw new DOMException("Inflation aborted","AbortError");   
+         }
+      }
+      else if (this.background) canvas.setBackgroundColor(this.background);
+  
+      canvas.requestRenderAll();
+      this.json = null; // allow quick garbage collection
+      this.elm = canvas.wrapperEl; // convenience shortcut
+      this.elm.pg = this; // convenience for accesing pg from dom
+      this.style = this.elm.style; // convenient shorthand
+  
+      if(this.deferred) {
+        // We've deferred inflation, so the ui is using a
+        // temporary elm. Copy relevant styles from that elm to the fabric
+        // canvas elm, then replace the temporary elm.
+        ["left","right", "top","bottom","position","clipPath"].forEach((style) => 
+          this.elm.style[style] = this.canvas.style[style]);
+        this.canvas.replaceWith(this.elm);
+        this.deferred = false;
+      }
+      this.canvas = canvas;
+  
+      let stateChanged = false; // flag to indicate canvas state has changed s.t. it needs to be pushed to the undoStack
+  
+      canvas.on("mouse:down:before", async (opts) => {
+        if(_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) 
+          _menu_.pgDownEvent(opts, this);
+      });
+  
+      canvas.on("mouse:up", opts => {
+        if(stateChanged) pushState();
+        stateChanged = false;
+        if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) _menu_.pgUpEvent(opts, this); 
+      });
+  
+  
+      // Each pg instance has its own undo stack. Initially, the
+      // stack has 1 entry: its state *before* anything has been
+      // pushed on it.  We need this so that we'll have a state
+      // to undo to.
+      if(this.undoStack.length == 0) // initialize undo stack on first inflate
+        this.undoStack.push(canvas.toDatalessObject());
+  
+      let pushState = () => {
+        let stack = this.undoStack;
+        stack.push(this.canvas.toDatalessObject());
+        while (stack.length > 10) stack.shift(); // prune
+        _menu_.enableCells("ink/undo");
+      };
+  
+      canvas.on("object:added", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
+      canvas.on("object:removed", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
+      canvas.on("object:modified", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
+  
+      this.inflated = true;
+      this.setEditable(this.editable); // indicate pg is editable. note: called AFTER setting this.inflated
+      this.setZoom(this.zoom);
     }
 
-    // If indicated, determine scaling factor that will "stretch" score s.t. it
-    // will expand pg to fit within score's maxWidth & maxHeight
-    this.stretch = this.score.pgFit == "Expand" ? Math.min(
-       this.score.maxWidth / this.width,this.score.maxHeight / this.height) : 1;
-
-    let domCanvas = document.createElement("canvas");
-    // allowTouchScrolling needs to be false, else certain browers (chrome mobile, at
-    // least) will create an "Intervention event", trying to scroll, when we've
-    // explicitly "preventDefault() touchmove on body in main.js.
-    let canvas = new fabric.Canvas(domCanvas, {
-        enablePointerEvents: true,
-        allowTouchScrolling: false, // Required!
-        imageSmoothingEnabled: false,
-    });
-    checkAbort();
-
-    // Setting both *without* cssOnly (in implicit px's), then *with* cssOnly
-    // (in explicit em's) creates a canvas that can be resized by simply changing
-    // its font size. Not sure why, seems to be a fabricjs oddity.
-    canvas.setDimensions({
-        width: this.width,
-        height: this.height,
-    });
-
-    canvas.setDimensions( {
-        width: this.width / _pxPerEm_ + "em",
-        height: this.height / _pxPerEm_ + "em",
-    }, { cssOnly: true } );
-
-    if (this.json) await new Promise((resolve, reject) => 
-      canvas.loadFromJSON(this.json, () => resolve()));
-    checkAbort();
-
-    if (render && this.mozPn) { 
-       await this.renderPdf(canvas);
-       if(signal?.aborted) {
-         canvas.dispose();
-         this.mozCanvas?.remove();
-         throw new DOMException("Inflation aborted","AbortError");   
-       }
+    finally {
+      this.inflatePromise = null ;
     }
-    else if (this.background) canvas.setBackgroundColor(this.background);
 
-    canvas.requestRenderAll();
-    this.json = null; // allow quick garbage collection
-    this.elm = canvas.wrapperEl; // convenience shortcut
-    this.elm.pg = this; // convenience for accesing pg from dom
-    this.style = this.elm.style; // convenient shorthand
-
-    if(this.deferred) {
-      // We've deferred inflation, so the ui is using a
-      // temporary elm. Copy relevant styles from that elm to the fabric
-      // canvas elm, then replace the temporary elm.
-      ["left","right", "top","bottom","position","clipPath"].forEach((style) => 
-        this.elm.style[style] = this.canvas.style[style]);
-      this.canvas.replaceWith(this.elm);
-      this.deferred = false;
-    }
-    this.canvas = canvas;
-
-    let stateChanged = false; // flag to indicate canvas state has changed s.t. it needs to be pushed to the undoStack
-
-    canvas.on("mouse:down:before", async (opts) => {
-      if(_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) 
-        _menu_.pgDownEvent(opts, this);
-    });
-
-    canvas.on("mouse:up", opts => {
-      if(stateChanged) pushState();
-      stateChanged = false;
-      if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) _menu_.pgUpEvent(opts, this); 
-    });
-
-
-    // Each pg instance has its own undo stack. Initially, the
-    // stack has 1 entry: its state *before* anything has been
-    // pushed on it.  We need this so that we'll have a state
-    // to undo to.
-    if(this.undoStack.length == 0) // initialize undo stack on first inflate
-      this.undoStack.push(canvas.toDatalessObject());
-
-    let pushState = () => {
-      let stack = this.undoStack;
-      stack.push(this.canvas.toDatalessObject());
-      while (stack.length > 10) stack.shift(); // prune
-      _menu_.enableCells("ink/undo");
-    };
-
-    canvas.on("object:added", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
-    canvas.on("object:removed", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
-    canvas.on("object:modified", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
-
-    this.inflated = true;
-    this.setEditable(this.editable); // indicate pg is editable. note: called AFTER setting this.inflated
-    this.setZoom(this.zoom);
   }
 
   deflate(full = false) {
     // Deflate's a Pg, releasing its resources for garbage collection.
-    // @full boolean: iff true, any thumbElm is not deleted during
-    //   deflation.
-    if(this.inflateCtrl) {
+    // @full boolean: iff true, any thumbElm is deleted during deflation.
+   if(this.inflateCtrl) {
       this.inflateCtrl.abort();
       this.inflateCtrl = null;
     }
+    this.inflatePromise = null ;
 
     if (this.inflated) {
       if (full) {
@@ -1197,8 +1206,8 @@ class Score {
     pn = parseInt(pn);
     if (pn > this.pgs.length || pn < 1) return null;
     let pg = this.pgs[pn - 1]; // this.pgs is 0-based
-    await pg.inflate(true, nonblocking);
     pg.inUse = true;
+    await pg.inflate(true, nonblocking);
     pg.lastUsed = performance.now();
     return pg;
   }
@@ -1207,6 +1216,7 @@ class Score {
     // "unuse" the given @pg, making it a candidate for deflation
     if (!pg.inUse) return;
     pg.inUse = false;
+
     // We don't immediately deflate an unused pg: instead, deflate least recently
     // used unused pg's, allowing at most Score.MAX_INFLATED inflated but unused pg's.
     let deflatable = this.pgs.filter((pg) => pg.inflated && !pg.inUse);
