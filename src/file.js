@@ -321,7 +321,7 @@ class LocalSrc extends FileSrc {
   }
 
   async putFile(path, name, data, handle = null) {
-    if (showSaveFilePicker) {
+    if (window.showSaveFilePicker) {
       // Use "experimental" file system access api, if supported:
       if (!handle) {
         const options = {
@@ -343,13 +343,14 @@ class LocalSrc extends FileSrc {
       let file = await handle.getFile();
       return { name: file.name, modified: file.lastModified };
     } else {
-      data = new Blob(data);
+      data = new Blob([data]);
       let url = URL.createObjectURL(data);
       let link = document.createElement('a');
       link.download = name;
       link.href = url;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
       return { name: name, modified: Date.now() };
-      // revoke url
     }
   }
 

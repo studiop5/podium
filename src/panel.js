@@ -830,7 +830,7 @@ for more details.</p>
           <a target="_blank" rel="noopener noreferrer" href="https://www.studiop5.org/privacy.html">Privacy</a>&nbsp;
           <a target="_blank" rel="noopener noreferrer" href="https://www.studiop5.org/terms.html">Terms</a>&nbsp;
           <a target="_blank" rel="noopener noreferrer" href="https://github.com/studiop5/podium">Github</a>&nbsp;
-          <a href="mailto:glen@studiop5.org">Contact \u2709</a>
+          <a target="_blank" rel="noopener noreferrer" href="https://github.com/studiop5/podium/issues">Contact / Feedback \u2709</a>
         </div>
      </div>`
   );

@@ -838,7 +838,7 @@ class Score {
         modified: "modified" in updates ? updates.modified : prev?.modified || "?",
       });
     }
-    recent.slice(0, 20); // limit to 20 most recent
+    if(recent.length > 20) recent.length = 20; // limit to 20 most recent
     localStorage.setItem("recent", JSON.stringify(recent));
   }
 
