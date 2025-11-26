@@ -1,8 +1,16 @@
 // +skip
 
 /**
+  NOTE: This file contains library-free OAuth implementation for future
+  browser extension work. It is NOT used in v1.1 or current builds.
+
+  v1.1 uses src/file.js which relies on Google GIS and Microsoft MSAL libraries.
+  This file will be integrated post-v1.1 for extension release.
+**/
+
+/**
   Copyright 2025 Glendon Diener
- 
+
   This file is part of Podium.
  
   Podium is free software: you can redistribute it and/or modify it
