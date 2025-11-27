@@ -167,11 +167,7 @@ let css = (name, rules) => {
 };
 
 
-css( // common css declarations. note: if you change bodyColor, be sure to 
-     // change the background-color style declarations in pod.html and
-   // podium.html. Those are defined so that there is not a brief 
-   // flash of white screen before the background paints.
-
+css( // common css declarations.
   "common", `
 
   :root {
@@ -181,7 +177,7 @@ css( // common css declarations. note: if you change bodyColor, be sure to
     --panelWidth: 12em;
 
     /* Light theme colors */
-    --bodyColor: #c8c8c8;
+    --bodyColor: #efefef;
     --panTexture: ${panSvg};
 
     /* Typography */
