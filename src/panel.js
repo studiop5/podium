@@ -619,7 +619,9 @@ class OpenPanel extends FilePanel {
   constructor(cell) {
     super(cell);
     this.mode = "open";
-    this.tabView = new TabView(this, "Recent", ...Object.values(Score.sources));
+    // Filter out WWW - it's a source type but not a file browser tab
+    const fileSources = Object.entries(Score.sources).filter(([key]) => key !== "url").map(([, value]) => value);
+    this.tabView = new TabView(this, "Recent", ...fileSources);
     this.body.append(this.tabView.elm);
     for (let title in this.tabView.tabs) {
       let tab = this.tabView.tabs[title];
@@ -661,7 +663,9 @@ class SavePanel extends FilePanel {
     // doesn't have a "Recent" tab
     super(cell);
     this.mode = "save";
-    this.tabView = new TabView(this, ...Object.values(Score.sources));
+    // Filter out WWW - it's a source type but not a file browser tab
+    const fileSources = Object.entries(Score.sources).filter(([key]) => key !== "url").map(([, value]) => value);
+    this.tabView = new TabView(this, ...fileSources);
     this.body.append(this.tabView.elm);
     // Source tabs
     for (let title in this.tabView.tabs) {

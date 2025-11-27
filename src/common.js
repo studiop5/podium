@@ -1539,7 +1539,7 @@ class TabView {
             let offsetX = e.clientX - this.sash.offsetLeft;
             let limit = this.sash.offsetWidth - this.frame.offsetWidth;
             let mv = listen(this.sash, "pointermove", (emv) => {
-              if (mvmt(e, emv, 8, 1000))
+              if (mvmt(e, emv, 96, 1000))
                 this.sash.setPointerCapture(e.pointerId);
               this.sash.style.left =
                 clamp(emv.clientX - offsetX, -limit, 0) + "px";
@@ -1936,23 +1936,19 @@ function unlisten(...listenerArgs) {
   }
 }
 
-function mvmt(e, emv, xLimit = 8, yLimit = 6) {
+function mvmt(e, emv, xLimit = 48, yLimit = 36) {
   // Helper function used when dragging div's: purpose is to ignore
-  // jitter that occuring when a user uses as a  finger as a pointer.
-  // It takes two events: a down event
-  // @e, and a move event:
-  // @emv, and sets e.moved to true when the total of movement in either
-  //   x or y exceeds the corresponding limit:
-  // @xLimit in px,
-  // @yLimit  in px
+  // jitter that occurs when a user uses a finger or stylus as a pointer.
+  // It takes two events: a down event @e, and a move event @emv,
+  // and sets e.moved to true when the total of movement in either
+  // x or y exceeds the corresponding limit.
+  // @xLimit in CSS px (default 48 works well for touch/stylus/mouse)
+  // @yLimit in CSS px (default 36 works well for touch/stylus/mouse)
+
   if (!e.moved) {
-    e.sumX = (e.sumX = e.sumX || 0) + Math.abs(emv.movementX);
-    e.sumY = (e.sumY = e.sumY || 0) + Math.abs(emv.movementY);
-    e.moved =
-      e.sumX > xLimit ||
-      e.sumX < -xLimit ||
-      e.sumY > yLimit ||
-      e.sumY < -yLimit;
+    e.sumX = (e.sumX || 0) + Math.abs(emv.movementX);
+    e.sumY = (e.sumY || 0) + Math.abs(emv.movementY);
+    e.moved = e.sumX > xLimit || e.sumY > yLimit;
   }
   return e.moved;
 }

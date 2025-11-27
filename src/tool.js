@@ -957,8 +957,8 @@ class Stopwatch extends Surface {
             <path id="hourPointer" d="M585,640 L600,210 L615,640,Z"/>
             <path id="minutePointer" d="M590,640 L600,210 L610,640,Z"/>
             <path id="secondPointer" d="M590,640 L600,390 L610,640,Z"/>
-            <circle id="outerFace" pathLength="600" fill="none" stroke="currentColor" cx="600" cy="600" r="400"/>
-            <circle id="innerFace"  pathLength="600" fill="none" stroke="currentColor" cx="600" cy="600" r="200"/>
+            <circle id="outerFace" pathLength="600" fill="none" stroke="black" cx="600" cy="600" r="400"/>
+            <circle id="innerFace"  pathLength="600" fill="none" stroke="black" cx="600" cy="600" r="200"/>
             <radialGradient id="casingGradient">
               <stop offset="0%" stop-color="grey" />
               <stop offset="93%" stop-color="white" />
