@@ -1303,10 +1303,23 @@ class ODriveSrc extends CachedSrc {
       const account = this.msalClient.getAllAccounts()[0];
       let result;
       if (account) {
-        result = await this.msalClient.acquireTokenSilent({
-          scopes: [ "Files.ReadWrite.All", "offline_access" ],
-          account,
-        });
+        try {
+          result = await this.msalClient.acquireTokenSilent({
+            scopes: [ "Files.ReadWrite.All", "offline_access" ],
+            account,
+          });
+        } catch (silentError) {
+          // If silent auth fails (token expired, interaction required), fall back to popup
+          if (silentError.errorCode === "interaction_required" ||
+              silentError.errorCode === "consent_required" ||
+              silentError.errorCode === "login_required") {
+            result = await this.msalClient.loginPopup({
+              scopes: [ "Files.ReadWrite.All", "offline_access" ],
+            });
+          } else {
+            throw silentError;
+          }
+        }
       } else {
         result = await this.msalClient.loginPopup({
           scopes: [ "Files.ReadWrite.All", "offline_access" ],
