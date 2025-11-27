@@ -516,14 +516,14 @@ class BookLayout extends Layout {
           .BookLayout__spine {
             position:absolute;
             left:50%;
-            width: 0;
+            width: 0; 
             height:0;
             z-index: 1;
            }
           .BookLayout__binding {
              height:100%; 
-             width:2em;
-             left:calc(50% - 1em);
+             width:1em;
+             left:calc(50% - .5em);
              position:absolute;
              pointer-events: none;
              background: linear-gradient(to right,
