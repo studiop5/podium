@@ -281,24 +281,28 @@ async function main() {
       let layout = Layout.activeLayout;
       if (!layout || !_score_) return;
       let forward = _score_.numbers.forward ;
-      let reverse = _score_?.numbers?.reverse 
+      let reverse = _score_?.numbers?.reverse
       let forwardBookMarks = e.ctrlKey || forward == "Marks";
       let reverseBookMarks = e.ctrlKey || reverse == "Marks";
       switch (e.code) {
         case "ArrowLeft":
         case "ArrowUp":
         case "PageUp":
+          e.preventDefault(); // Prevent iOS from generating pointer events
           layout.pgOpen("prev", reverseBookMarks);
           break;
         case "ArrowRight":
         case "ArrowDown":
         case "PageDown":
+          e.preventDefault(); // Prevent iOS from generating pointer events
           layout.pgOpen("next", forwardBookMarks);
           break;
         case "Home":
+          e.preventDefault(); // Prevent iOS from generating pointer events
           layout.pgOpen("first", e.ctrlKey);
           break;
         case "End":
+          e.preventDefault(); // Prevent iOS from generating pointer events
           layout.pgOpen("last", e.ctrlKey);
           break;
         default:
