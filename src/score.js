@@ -970,8 +970,13 @@ class Score {
     panels.InfoPanel.get(_menu_.rings.score.cells.info).refresh();
     // layout the score using current active layout, defaulting to book layout
     _menu_.reset();
+    // temporarily activate the layout ring
+    _menu_.activateRing(_menu_.rings.layout);
     let layoutKey = _menu_.rings.layout.stash.active || "book" ;
     let cell = _menu_.rings.layout.cells[layoutKey];
+    _menu_.activateCell(cell);
+    // restore the score ring
+    _menu_.activateRing(_menu_.rings.score) ;
     await Layout.open(cell);
     return this;
   }

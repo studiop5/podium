@@ -557,6 +557,7 @@ class Menu {
         numbers: {
           name: "Numbers",
           svgPath: iconPaths["Numbers"],
+          stash: { forward: "Pages", reverse: "Pages" },
         },
         add: {
           name: "Add",

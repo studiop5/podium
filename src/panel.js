@@ -1318,22 +1318,20 @@ class NumbersPanel extends Panel {
     });
 
     this.forwardGroup = new ButtonGroup(
-      this.cell.stash,
+      score.numbers,
       { Pages: { svg: "Page", radio: "forward" },
         Marks: { svg: "Mark", radio: "forward" },
       },
-      (e, tag, value) => {
-        this.cell.stash.tag = value;
-      }
+      (e, tag, value) => score.numbers.tag  = value,
     );
     this.forward.replaceWith(this.forwardGroup.elm);
 
     this.reverseGroup = new ButtonGroup(
-      this.cell.stash,
+      score.numbers,
       { Pages: { svg: "Page", radio: "reverse" },
         Marks: { svg: "Mark", radio: "reverse" },
       },
-      (e, tag, value) => this.cell.stash.tag = value,
+      (e, tag, value) => score.numbers.tag = value,
     );
     this.reverse.replaceWith(this.reverseGroup.elm);
     listen(_body_, "NUMBERS", (e) => {

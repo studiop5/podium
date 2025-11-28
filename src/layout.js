@@ -405,9 +405,12 @@ class Layout {
     return false;
   }
 
-  async pgOpen(how, unused) {
+  async pgOpen(how,unused) {
     // Subclasses override with logic to open page, where @how is one
     // of "next","prev","first","last".
+    // Ignore rapid page turn requests while operation is in progress
+    if (this.inOp) return;
+
     let bookmarks = [];
     this.score.pgs.forEach((pg, i) => {
       if (pg.bookmark) bookmarks.push(i + 1); // pn is 1-based
@@ -881,10 +884,25 @@ class BookLayout extends Layout {
       // add a shadow (actually, a border) to right page where it joins the left, so fold between white pages is visible:
       let addShadow = () => {
         if(pg.deferred) return delay(1, () => addShadow());
-        if(pn & 1) pg.elm.firstChild.style.borderLeft = `.05em solid ${BookLayout.bindingColor}`; 
+        if(pn & 1) pg.elm.firstChild.style.borderLeft = `.05em solid ${BookLayout.bindingColor}`;
         else pg.elm.firstChild.style.borderLeft = "unset";
       };
       addShadow();
+    }
+  }
+
+  pgResetSlots() {
+    // Reset all slot styling that may have been set by pgMove during animation
+    for (let slot of this.slots) {
+      slot.style.transform = "";
+      slot.style.transformOrigin = "";
+      slot.style.left = "";
+      slot.style.zIndex = "";
+      slot.style.filter = "";
+      // Reset clip paths on children
+      for (let child of slot.children) {
+        if (child.firstChild) child.firstChild.style.clipPath = "";
+      }
     }
   }
 
@@ -997,14 +1015,23 @@ class BookLayout extends Layout {
 
   async pgOpen(how, bookMarks) {
     if (bookMarks) return super.pgOpen(how);
+    // Ignore rapid page turn requests while animation is in progress
+    if (this.inOp) return;
+
     // flip the page forward to next *pair* of pages
     let pn = parseInt(_score_.numbers.pn);
-    let inc = pn & 0x01 ? 1 : 2;
+    let inc = 2; // Always turn by 2 pages (one spread) for consistent page turns
+    let pgCount = this.score.pgs.length;
+
     switch (how) {
       case "next":
+        // Don't wrap - stop at end
+        if (pn + inc > pgCount) return;
         pn += inc;
         break;
       case "prev":
+        // Don't wrap - stop at beginning
+        if (pn - inc <= 0) return;
         pn -= inc;
         break;
       case "first":
@@ -1014,9 +1041,9 @@ class BookLayout extends Layout {
         pn = Number.MAX_SAFE_INTEGER;
         break;
     }
-    let pgCount = this.score.pgs.length;
-    if (pn <= 0) pn = pgCount;
-    else if (pn > pgCount) pn = 1;
+
+    // Clamp to valid range
+    pn = clamp(pn, 1, pgCount);
     this.pnPost(await this.pgGoTo(pn));
   }
 
@@ -1051,8 +1078,11 @@ class BookLayout extends Layout {
   async pgGoTo(pn) {
     pn = clamp(pn, 1, this.score.pgs.length);
     let pn0 = pn - (pn & 0x01 ? 3 : 2);
+
     this.pgFlipAnimator.cancel();
-    let advancing = pn > this.pn0;
+    this.pgResetSlots();
+
+    let advancing = pn - 2 > this.pn0;
     if(pn == 1) advancing = false; // can't advance into 1st page
 
     if(advancing) { 
@@ -1072,7 +1102,7 @@ class BookLayout extends Layout {
     let {pgWidth, pgHeight} = this.cell.geo;
     if (advancing) this.pgFlip(pgWidth, 0, -pgWidth, pgHeight / 2, true,
       async () => await this.pgShift(true, false));
-    else this.pgFlip(-pgWidth, pgHeight, pgWidth, pgHeight /2, false,
+    else this.pgFlip(-pgWidth, pgHeight, pgWidth, pgHeight / 2, false,
       async() => await this.pgShift(false, false));
     this.pnPost(pn, true);
     return pn;
@@ -2042,32 +2072,41 @@ class TableLayout extends Layout {
 */
 
     if (this.active?.pn == pn) return pn; // active page was reselected, noop
+    this.inOp = true;
     this.pnPost(pn);
     // turn elm at pn into an active (full) pg
     await this.buildPgActive(pn, this.grid.children.item(pn - 1));
+    this.inOp = false;
     return pn;
   }
 
   async pgOpen(how, bookMarks) {
     if (bookMarks) return super.pgOpen(how);
+    // Ignore rapid page turn requests while operation is in progress
+    if (this.inOp) return;
+
     let pn = _score_.numbers.pn;
+    let pgCount = this.score.pgs.length;
+
     switch (how) {
       case "next":
+        // Don't wrap - stop at end
+        if (pn + 1 > pgCount) return;
         ++pn;
         break;
       case "prev":
+        // Don't wrap - stop at beginning
+        if (pn - 1 <= 0) return;
         --pn;
         break;
       case "first":
         pn = 1;
         break;
       case "last":
-        pn = Number.MAX_SAFE_INTEGER;
+        pn = pgCount;
         break;
     }
-    let pgCount = this.score.pgs.length;
-    if (pn > pgCount) pn = 1;
-    else if (pn == 0) pn = pgCount;
+
     this.pnPost(await this.pgGoTo(pn));
   }
 
