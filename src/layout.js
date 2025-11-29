@@ -276,9 +276,9 @@ class Layout {
          clone.canvas.upperCanvasEl.style.width = pg.canvas.upperCanvasEl.style.width;
          clone.canvas.lowerCanvasEl.style.height = pg.canvas.lowerCanvasEl.style.height;
          clone.canvas.upperCanvasEl.style.height = pg.canvas.upperCanvasEl.style.height;
-         if(clone.mozCanvas) {
-           clone.mozCanvas.style.height = elm.mozCanvas.style.height;
-           clone.mozCanvas.style.width = elm.mozCanvas.style.width;
+         if(clone.mozCanvas && pg.mozCanvas) {
+           clone.mozCanvas.style.height = pg.mozCanvas.style.height;
+           clone.mozCanvas.style.width = pg.mozCanvas.style.width;
          }
          pg.elm.append(clone.elm);
          elm = clone.elm;
@@ -1557,11 +1557,17 @@ class ScrollLayout extends Layout {
     // flip the page forward to next pair of pages
     let pn = parseInt(_score_.numbers.pn);
     let inc = Math.max(this.pgSnap, 1); // at least 1 page
+    let pgCount = this.score.pgs.length;
+
     switch (how) {
       case "next":
+        // Don't wrap - stop at end
+        if (pn + inc > pgCount) return;
         pn += inc;
         break;
       case "prev":
+        // Don't wrap - stop at beginning
+        if (pn - inc <= 0) return;
         pn -= inc;
         break;
       case "nextBookmark":
@@ -1574,12 +1580,12 @@ class ScrollLayout extends Layout {
         pn = 1;
         break;
       case "last":
-        pn = Number.MAX_SAFE_INTEGER;
+        pn = pgCount;
         break;
     }
-    let pgCount = this.score.pgs.length;
-    if (pn > pgCount) pn = 1;
-    else if (pn == 0) pn = pgCount;
+
+    // Clamp to valid range
+    pn = clamp(pn, 1, pgCount);
     this.pnPost(await this.pgGoTo(pn));
   }
 
