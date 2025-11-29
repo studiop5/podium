@@ -542,10 +542,13 @@ class Piano {
         let offsetX = e.clientX - optionsView.frame.offsetLeft;
         let limit = this.body.offsetWidth - optionsView.frame.offsetWidth;
         let mv = listen(optionsView.frame, "pointermove", (emv) => {
-           _moveEvents_.push(emv);
-           if(emv.movementX) optionsView.sash.setPointerCapture(e.pointerId);
+          mvmt(e,emv) ;
+          if(e.moved) {
+            _moveEvents_.push(emv);
+            if(emv.movementX) optionsView.sash.setPointerCapture(e.pointerId);
             optionsView.frame.style.left = clamp(emv.clientX - offsetX, 0, limit) + "px";
             e.emv = emv;
+          }
         });
         listen(optionsView.sash, "pointerup", (eup) => {
           if(flung(null, eup)) {
