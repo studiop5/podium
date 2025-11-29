@@ -910,8 +910,11 @@ class Score {
       let loadingTask = window.pdfjsLib.getDocument(pdfData);
 
       // is this an encrypted pdf?
-      loadingTask.onPassword = (callback) => {
-        let password = prompt("Enter Document Password:", "");
+      loadingTask.onPassword = (callback, reason) => {
+        let message = reason === 1 ?
+          "Incorrect password. Please try again." :
+          "This PDF is password-protected. You can view and annotate it, but cannot save changes or copy pages.\n\nEnter password:";
+        let password = prompt(message, "");
         if (password) callback(password);
         else throw new Error("pdf password failure");
       };
@@ -939,7 +942,7 @@ class Score {
       }
 
       // create a Pg instance for every pdf page, and calculate the
-      // max {width/height} over all pgs. 
+      // max {width/height} over all pgs.
       for (let i = 1; i <= this.mozDoc.numPages; i++) {
         let mozPage = await this.mozDoc.getPage(i);
         let [left, top, width, height] = mozPage.view;
@@ -948,7 +951,7 @@ class Score {
         if(pgJson?.bookmark) this.pgs[this.pgs.length -1].bookmark = pgJson.bookmark;
         this.maxWidth = Math.max(width, this.maxWidth);
         this.maxHeight = Math.max(height, this.maxHeight);
-      } 
+      }
     }
     if(activate) await this.activate();
     return this;
@@ -993,19 +996,34 @@ class Score {
       // When shade is cancelled, set cancelPdf. This will interrupt lib-pdf when
       // it next calls waitForTick by calling our monkey-patched setTimeout
       _shade_.onCancel = () => { window.cancelPdf = true; };
-      let srcPLibDoc = this.mozDoc ? await PDFLib.PDFDocument.load(await this.mozDoc.getData()) : null;
+      let srcPLibDoc = null;
+      if (this.mozDoc) {
+        try {
+          // Try loading without ignoreEncryption - getData() should return decrypted data from PDF.js
+          srcPLibDoc = await PDFLib.PDFDocument.load(await this.mozDoc.getData());
+        } catch (err) {
+          // If load fails due to encryption
+          if (err.message?.includes('encrypted') || err.message?.includes('Encrypt')) {
+            // Can't copy or save encrypted PDFs
+            let msg = pns ? "Due to copy protection, page can't be copied." : "Due to copy protection, score can't be saved.";
+            throw new Error(msg, { cause: "fileSrc" });
+          } else {
+            throw err; // Re-throw other errors
+          }
+        }
+      }
 
       // Verify the catalog was parsed correctly
-      if (srcPLibDoc && (!srcPLibDoc.catalog || typeof srcPLibDoc.catalog.Pages !== 'function')) 
-          throw new Error("PDF catalog corrupted.<br>File too large?<br>Try splitting into sections.", { cause: "fileSrc"}) 
+      if (srcPLibDoc && (!srcPLibDoc.catalog || typeof srcPLibDoc.catalog.Pages !== 'function'))
+          throw new Error("PDF catalog corrupted.<br>File too large?<br>Try splitting into sections.", { cause: "fileSrc"})
 
       let dstPLibDoc = await PDFLib.PDFDocument.create();
       dstPLibDoc.registerFontkit(window.fontkit);
       // Reset the embeddedFonts array: it prevents Pg instances from embedding same font twice.
       this.embeddedFonts = [];
       let now = new Date();
-  
-      let attachment = { 
+
+      let attachment = {
         created: this.created,
         modified: now,
         maxWidth: this.maxWidth,
@@ -1023,14 +1041,18 @@ class Score {
         _shade_.update(`Building page ${j + 1} of ${pns.length} (${percent}%)`);
         let pg = this.pgs[pn-1];
         // if pg is "backed" by a page in mozDoc (1-based), copy page to dstDoc, otherwise add a new "empty" page
-        if (pg.mozPn) pLibPg = dstPLibDoc.addPage((await dstPLibDoc.copyPages(srcPLibDoc, [pg.mozPn-1]))[0]);
-        else pLibPg = dstPLibDoc.addPage([pg.width, pg.height]);
+        if (pg.mozPn) {
+          pLibPg = dstPLibDoc.addPage((await dstPLibDoc.copyPages(srcPLibDoc, [pg.mozPn-1]))[0]);
+        } else {
+          pLibPg = dstPLibDoc.addPage([pg.width, pg.height]);
+        }
         setTimeout(_voidFunc_, 0);
         // add fabric objects to the page
         let pgJson = await pg.toPdf(ink, pLibPg);
         attachment.pages[j+1] = pgJson;
-        if(window.gc) window.gc(); 
+        if(window.gc) window.gc();
       }
+
       // Add the pdf attachment
       let jsonString = JSON.stringify(attachment);
       await dstPLibDoc.attach(new TextEncoder().encode(jsonString), "podium", {
