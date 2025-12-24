@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Test Google Drive Integration</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    button:hover {
+      background: #5568d3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .section {
+      margin: 30px 0;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    .output {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 10px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .error {
+      background: #fee;
+      color: #c00;
+    }
+    .success {
+      background: #efe;
+      color: #060;
+    }
+    h1 {
+      color: #333;
+    }
+    h2 {
+      margin-top: 0;
+      color: #667eea;
+    }
+    .note {
+      background: #fff9e6;
+      padding: 10px;
+      border-left: 4px solid #ffd700;
+      margin: 10px 0;
+    }
+    .info {
+      background: #e6f3ff;
+      padding: 10px;
+      border-left: 4px solid #4a90e2;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Google Drive Integration Test</h1>
+
+  <div class="info">
+    <strong>Testing Chrome Identity API</strong><br>
+    This uses <code>chrome.identity.getAuthToken()</code> instead of OAuth2 popup flow.
+    Should work automatically with the client ID in manifest.json.
+  </div>
+
+  <div class="section">
+    <h2>Google Drive</h2>
+    <div>
+      <button id="gdrive-login">Login to Google Drive</button>
+      <button id="gdrive-list">List PDF Files</button>
+      <button id="gdrive-logout">Logout</button>
+    </div>
+    <div id="gdrive-output" class="output">Click "Login to Google Drive" to start...</div>
+  </div>
+
+  <div class="section">
+    <h2>Extension Info</h2>
+    <div id="info-output" class="output">Loading...</div>
+  </div>
+
+  <script type="module" src="test-gdrive.js"></script>
+</body>
+</html>

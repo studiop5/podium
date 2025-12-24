@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 400px;
+      padding: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      margin: 0;
+    }
+    .launch-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 10px 16px;
+      background: #c8c8c8;
+      color: #333;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .launch-btn:hover {
+      background: #b0b0b0;
+    }
+    .launch-btn img {
+      width: 20px;
+      height: 20px;
+    }
+    .recent {
+      margin-top: 12px;
+      border-top: 1px solid #e0e0e0;
+      padding-top: 8px;
+    }
+    .recent-header {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 6px;
+    }
+    .recent-item {
+      display: block;
+      padding: 6px 8px;
+      color: #333;
+      text-decoration: none;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 13px;
+    }
+    .recent-item:hover {
+      background: #f0f0f0;
+    }
+    .no-recent {
+      color: #999;
+      font-size: 12px;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <button class="launch-btn" id="launch">
+    <img src="icons/icon48.png" alt="">
+    Launch Podium
+  </button>
+  <div class="recent" id="recent"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
