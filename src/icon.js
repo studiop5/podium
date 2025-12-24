@@ -369,6 +369,10 @@ Rastrum:
 Replace:
   `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M 2.28,16.6 12.3,5.33 11.2,3.9 h 5.4 v 5.72 l -1.3,-1.1 -5.55,5.98 -1.51,-1.3 0.11,6.1 5.15,-0.1 -1,-1.6 9.9,-11.03"/>`,
 
+Repeat:
+  `<text y="20" x="6" font-family="Bravura" font-size="14px" fill="currentColor">\ue040</text>
+   <text y="20" x="13" font-family="Bravura" font-size="14px" fill="currentColor">\ue041</text>`,
+
 Replay:
   `<text y="22" x="2" font-family="Bravura" font-size="21px">\ueb18</text>`,
 

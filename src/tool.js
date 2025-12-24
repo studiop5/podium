@@ -23,6 +23,7 @@
 import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, flung, getBox, helm, hide, iconSvg, listen, mvmt, schedule, Schedule, SliderGroup, TabView, toast, unlisten, pxToEm } from "./common.js";
 import { pianoSamples } from "./sample.js";
 import { panels } from "./panel.js"; 
+import { Yin } from "./yin.js";
 export { Review, Metronome, Clock, Stopwatch, Piano, Volume };
 
 // -skip
@@ -152,7 +153,7 @@ class Piano {
     .a,.b,.d,.e,.g {
       margin:0 0 0 -1.16em
     }
-    /* piano buttons (pedaldown/up, resize, tuner, options) are surrounded by a larger "holder" button that makes their
+    /* piano buttons (pedaldown/up, resize, pitch, options, repeat) are surrounded by a larger "holder" button that makes their
        touch area bigger: this helps on  small screens where they are otherwise hard to touch */
     .Piano__button-holder { 
       position: absolute;
@@ -161,15 +162,16 @@ class Piano {
       width: 5em;
       top: -.5em;
     }
-    .Piano__button { 
+    .Piano__button {
       position: absolute;
-      font-family: Bravura;
+      font-family: Bravura; 
       height: 2em;
       width: 2em;
       top: calc(50% - 1em);
       left:calc(50% - 1em);
       border-radius: 100%;
       background: #eee6;
+      color: #000;
     }
     .Piano__button-active {
       background: #3336;
@@ -245,7 +247,7 @@ class Piano {
     this.panel = panel;
     this.cell = cell;
     Object.assign(this, dataIndex("tag", this.elm));
-    this.c4Elm = dataIndex("midi", this.elm)["60/0"];
+    this.c4Elm = dataIndex("sample", this.elm)["60/0"];
 
     // complete the temperaments table with several historical tunings
     // by converting frequency ratios to cents
@@ -260,10 +262,10 @@ class Piano {
 
     // pedal button...swaps Pedal and PedalUp icons
     let pedalDownButton = helm(
-      `<div class="Piano__button-holder" style="right: calc(50% + 8em)">
+      `<div class="Piano__button-holder" style="right: calc(50% + 6em)">
         ${iconSvg("Pedal", { tag: "pedal", class: "Piano__button" })}</div>`);
     let pedalUpButton = helm(
-      `<div class="Piano__button-holder" style="right: calc(50% + 8em)">
+      `<div class="Piano__button-holder" style="right: calc(50% + 9em)">
         ${iconSvg("Pedal Up", {tag: "pedalup", class: "Piano__button" })}</div>`);
 
     this.panel.header.append(pedalDownButton);
@@ -295,27 +297,9 @@ class Piano {
       })
     );
 
-    // tuner: control that repeats key press every 2 seconds
-    // as an tuning aid. Must be an ivar: used on keyboard noteOn.
-    this.tunerButton = helm(
-      `<div class="Piano__button-holder" style="left: calc(50% + 8em)">     
-        ${iconSvg("TuningFork", { tag: "tune", class: "Piano__button" })}</div`);
-    this.panel.header.append(this.tunerButton);
-    this.panel.listeners.push(
-      listen(this.tunerButton, "pointerdown", (e) => {
-        e.stopPropagation();
-        this.tunerButton.firstElementChild.classList.toggle("Piano__button-active");
-        this.tuning = this.tunerButton.firstElementChild.classList.contains("Piano__button-active");
-        if (this.tuningScheduler) {
-          this.tuningScheduler.cancel();
-          this.tuningScheduler = null;
-        }
-      })
-    );
-
-    // Control to allow adjusting keyboard width
+    // stretcher: control to allow adjusting keyboard width
     let stretcherButton = helm(
-      `<div class="Piano__button-holder" style="right: calc(50% + 3em)">     
+      `<div class="Piano__button-holder" style="right: calc(50% + 1em)">
         ${iconSvg("Stretch", { tag: "tune", class: "Piano__button" })}</div>`);
 
     this.panel.header.append(stretcherButton);
@@ -334,7 +318,7 @@ class Piano {
 
         let mv = listen(e.target, "pointermove", (emv) => {
           let delta = emv.clientX - e.clientX;
-          let minWidth = this.c4Elm.offsetWidth * 9.75; // minimum display E3-A4
+          let minWidth = this.c4Elm.offsetWidth * 8.75; // minimum display - reduced for mobile
           let newWidth = clamp(e.offWidth + delta + delta, minWidth, this.keyboard.offsetWidth);
           this.panel.panel.style.width = pxToEm(newWidth, this.panel.elm);
         });
@@ -352,9 +336,10 @@ class Piano {
       })
     );
 
+
     // options button
     this.optionsButton = helm(
-      `<div class="Piano__button-holder" style="left: calc(50% + 3em)">     
+      `<div class="Piano__button-holder" style="left: calc(50% + 1em)">
         ${iconSvg("Options", { tag: "options", class: "Piano__button",
            style: "transform:scale(.9) translate(0px,2px);"})}` );
     this.panel.header.append(this.optionsButton);
@@ -373,6 +358,71 @@ class Piano {
       })
     );
 
+    // repeater: control that repeats key press every 2 seconds
+    // as an tuning aid. Must be an ivar: used on keyboard noteOn.
+    this.repeatButton = helm(
+      `<div class="Piano__button-holder" style="left: calc(50% + 5.5em)">
+        ${iconSvg("Repeat", { tag: "tune", class: "Piano__button" })}</div`);
+    this.panel.header.append(this.repeatButton);
+    this.panel.listeners.push(
+      listen(this.repeatButton, "pointerdown", (e) => {
+        e.stopPropagation();
+        this.repeatButton.firstElementChild.classList.toggle("Piano__button-active");
+        this.tuning = this.repeatButton.firstElementChild.classList.contains("Piano__button-active");
+        if (this.repeatScheduler) {
+          this.repeatScheduler.cancel();
+          this.repeatScheduler = null;
+        }
+      })
+    );
+
+    // pitch tracker button
+    this.pitchButton = helm(
+      `<div class="Piano__button-holder" style="left: calc(50% + 10em)">
+        ${iconSvg("TuningFork", { tag: "pitch", class: "Piano__button",
+           style: "transform:scale(.9) translate(0px,2px);"})}` );
+    this.panel.header.append(this.pitchButton);
+
+    this.panel.listeners.push(
+      listen(this.pitchButton, "pointerdown", (e) => {
+        e.stopPropagation();
+        this.marker.remove();
+        if (this.pitchButton.firstElementChild.classList.contains("Piano__button-active")) {
+          this.pitchButton.firstElementChild.classList.remove("Piano__button-active");
+          this.yin.stop();
+        } else {
+          this.pitchButton.firstElementChild.classList.add("Piano__button-active");
+          this.yin.start(this.cell.stash.a4);
+        }
+      })
+    );
+
+    this.marker = helm(`<div style="z-index:1000;position:relative;top:50%;left:calc(50% - 1.75em);width:3.5em;
+        display:flex;flex-direction:column;align-items:center;pointer-events:none;">
+      <div style="font-family:Bravura;font-size:3.5em;line-height:1;">\uE0A2</div>
+      <div style="font-size:0.8em;font-weight:bold;margin-top:-0.3em;"></div>
+    </div>`);
+
+    delay(1, async() => {
+      let self = this;
+      let [actx] = Actx.get();
+      this.yin = new Yin((arg) => {
+        let key = arg.freq > 0 ? dataIndex("midi",self.elm)["" + arg.midi] : null;
+        if(key) {
+          let isBlack = [1,3,6,8,10].includes(arg.midi % 12);
+          this.marker.style.color = isBlack ? "#ffffff" : "#000000";
+          this.marker.style.textShadow = isBlack ? "0 0 2px #000000, 0 0 4px #000000" : "none";
+          this.marker.style.top = isBlack ? "30%" : "50%";
+          this.marker.style.opacity = 0.5 + (arg.confidence || 0.3) * 0.5;
+          this.marker.children[1].innerText = arg.cents;
+          key.append(self.marker);
+        } else {
+          this.marker.style.color = "#808080";
+          this.marker.style.opacity = "0.3";
+        }
+      });
+      await this.yin.init(actx);
+    });
     this.buildAudio();
     this.buildOptions();
   }
@@ -416,7 +466,7 @@ class Piano {
       }
     }
 
-    listen([this.pedalUpButton, this.tunerButton], ["pointerdown","spacebar"], (e)=> {
+    listen([this.pedalUpButton, this.repeatButton], ["pointerdown","spacebar"], (e)=> {
        this.activeNotes.forEach((note, tag) => noteOff(tag, true));
        this.repeater.cancel();
        this.damper.cancel();
@@ -436,8 +486,8 @@ class Piano {
       // define the source node: oscillator or audio buffer:
       if (piano) {
        source = new AudioBufferSourceNode(actx);
-       source.buffer = pianoSamples[midiNum]; 
-      }   
+       source.buffer = pianoSamples[midiNum];
+      }
       else
         source = new OscillatorNode(actx, {
           frequency: 440 * (2 ** ((midiNum - 69) / 12)),
@@ -459,9 +509,9 @@ class Piano {
         // when tuning, we "auto repeat" the note by recusive calls to noteOn
         let repeatMs = piano ? 2500:4000;
         this.repeater.run(repeatMs, () => noteOn(midiOffset));
-        this.tunerButton.firstElementChild.animate([{ color: "black" }, { color: "white" }], repeatMs);
+        this.repeatButton.firstElementChild.animate([{ color: "black" }, { color: "white" }], repeatMs);
         // dampen the note just before it repeats
-        this.damper.run(piano ? 2200:7500, () => envelope.gain.setTargetAtTime(0.0, now, 0.015)); 
+        this.damper.run(piano ? 2200:7500, () => envelope.gain.setTargetAtTime(0.0, now, 0.015));
       }
       else envelope.gain.setTargetAtTime(1.0, now,  0.015); 
 
@@ -478,7 +528,7 @@ class Piano {
     // piano key press handler
     this.panel.listeners.push(listen(this.keyboard, "pointerdown", (e) => {
       e.target.setPointerCapture(e.pointerId); 
-      let midiOffset = e.target.dataset.midi;
+      let midiOffset = e.target.dataset.sample;
       noteOn(midiOffset);
       listen(e.target, "pointerup", (e) => {
         noteOff(midiOffset);
@@ -518,10 +568,10 @@ class Piano {
       let clazz = noteName.includes("s") ? "Piano__key-black" : "Piano__key-white" + " " + noteName;
       let realMidiNumber = midiTable[midi0][0] + octave;
       let midiOffset = realMidiNumber + "/" + midiTable[midi0][1];
-      keyHtml += `<div data-midi="${midiOffset}" class="${clazz}"}></div>\n`;
+      keyHtml += `<div data-sample="${midiOffset}" data-midi=${"" + midi} class="${clazz}"}></div>\n`;
     }
     // last high f taken from lower d2 + 200 cents
-    keyHtml += `<div data-midi="87/200" class="Piano__key-white f"></div>`;
+    keyHtml += `<div data-sample="87/200" class="Piano__key-white f"></div>`;
     return keyHtml;
   }
 
@@ -684,7 +734,7 @@ class Piano {
            <div data-tag="voices" style="width:50em;padding-bottom:1.5em;"></div>
            <div data-tag="options" class="Piano__options__options">
              ${option("data-timbre=piano","Piano","Yamaha C5, ", "archive.org/details/SalamanderGrandPianoV3","Salamander V3")}
-             ${option("data-timbre=sine","Tuning Fork", "Pure Sine Wave, ", 
+             ${option("data-timbre=sine","Tuning Fork", "Pure Sine Wave, ",
               "www.whipplemuseum.cam.ac.uk/explore-whipple-collections/acoustics/historical-notes-brief-chronicle-tuning-fork",
               "Brief Chronicle")}
           </div>
@@ -735,6 +785,21 @@ class Piano {
     // "60/0", i.e. midi 60 plus 0 cents adjustment.
     // Note: the -2  here subtracts half the width of a key
     this.keyboard.style.left = (this.elm.offsetWidth / 2 - this.c4Elm.offsetLeft) / _pxPerEm_ - 2 + "em";
+
+    // Force reflow to ensure DOM is laid out, then defer width calculation
+    this.c4Elm.offsetWidth; // force reflow
+    delay(4, () => {
+      // Set panel width - use same minimum as stretcher button
+      let keyWidth = this.c4Elm.offsetWidth;
+      let minKeyCount = 8.75; // same as stretcher button minimum
+      let minWidth = keyWidth * minKeyCount;
+      let maxWidth = this.keyboard.offsetWidth; // full keyboard
+
+      // Start with minimum width, let user expand with stretcher if they want more keys
+      let panelWidth = Math.min(minWidth, maxWidth);
+
+      this.panel.panel.style.width = pxToEm(panelWidth, this.panel.elm);
+    });
   }
 }
 
