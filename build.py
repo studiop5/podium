@@ -9,14 +9,16 @@ from io import BytesIO
 import os
 import pdb
 import sys
+import subprocess
 
 if len(sys.argv) == 1:
-   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, ext=False, cert=False, clean=False) ;
+   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, yin=True, ext=False, cert=False, clean=False) ;
 else:
   parser = argparse.ArgumentParser()
   parser.add_argument('-s','--sample', action='store_true', help='(re)build build/sample.js')
   parser.add_argument('-f','--font', action='store_true', help='(re)build build/font.js')
   parser.add_argument('-p','--podium', action='store_true', help='(re)build build/podium.html')
+  parser.add_argument('-y','--yin', action='store_true', help='(re)build build/yin.js')
   parser.add_argument('-e','--ext', action='store_true', help='(re)build browser extension in ext/')
   parser.add_argument('--certificate', action='store_true', dest='cert', help='(re)build certificate')
   parser.add_argument('-c','--clean', action='store_true', help='clean build artifacts from build/ and ext/')
@@ -61,6 +63,78 @@ if args.clean:
     sys.exit(0)
 
 os.system('mkdir build 2> /dev/null') ;
+
+def build_yin(args):
+    print("Building YIN class...")
+
+    # Define paths
+    src_dir = 'src'
+    build_dir = 'build'
+    yin_c_path = os.path.join(src_dir, 'yin-wasm.c')
+    yin_wasm_path = os.path.join(build_dir, 'yin.wasm')
+    worklet_template_path = os.path.join(src_dir, 'yin-worklet.js')
+    yin_class_path = os.path.join(src_dir, 'yin.js')
+    output_path = os.path.join(build_dir, 'yin.js')
+
+    # Step 1: Compile WASM using emcc
+    if args.verbose: print("  1. Compiling yin-wasm.c to yin.wasm with emcc...")
+    emcc_command = [
+        'emcc', yin_c_path,
+        '-o', yin_wasm_path,
+        '-s', 'WASM=1',
+        '-s', 'STANDALONE_WASM',
+        '-s', 'EXPORTED_FUNCTIONS=["_yinf0"]',
+        '-Wl,--no-entry',
+        '-O3'
+    ]
+    result = subprocess.run(emcc_command, capture_output=True, text=True)
+    if result.returncode != 0:
+        print("     emcc compilation failed!", file=sys.stderr)
+        print(result.stderr, file=sys.stderr)
+        sys.exit(1)
+    if args.verbose: print("     emcc compilation successful.")
+
+    # Step 2: Read and Base64-encode WASM
+    if args.verbose: print("  2. Reading and encoding yin.wasm...")
+    with open(yin_wasm_path, 'rb') as f:
+        wasm_bytes = f.read()
+    wasm_b64 = base64.b64encode(wasm_bytes).decode('ascii')
+
+    # Step 3: Read worklet template
+    if args.verbose: print("  3. Reading worklet template...")
+    with open(worklet_template_path, 'r') as f:
+        worklet_template = f.read()
+    
+    # Step 4: Embed WASM into worklet code
+    if args.verbose: print("  4. Embedding WASM into worklet...")
+    worklet_code = worklet_template.replace("__WASM_BASE64_PLACEHOLDER__", wasm_b64)
+
+    # Step 5: Read Yin class source
+    if args.verbose: print("  5. Reading Yin class source from yin.js...")
+    with open(yin_class_path, 'r') as f:
+        yin_class_code = f.read()
+
+    # Step 6: Embed worklet into Yin class
+    if args.verbose: print("  6. Embedding worklet into Yin class...")
+    worklet_escaped = worklet_code.replace('\\', '\\\\').replace('`', '\\`').replace('$', '\\$')
+
+    # Replace __WORKLET_CODE__ placeholder with escaped worklet code
+    built_class_code = yin_class_code.replace("__WORKLET_CODE__", worklet_escaped)
+    
+    load_wasm_method = """    async _loadWasmBytes() {
+        const response = await fetch('yin.wasm');
+        const bytes = await response.arrayBuffer();
+        return bytes;
+    }"""
+    built_class_code = built_class_code.replace(load_wasm_method, "")
+
+    # Step 7: Write output
+    if args.verbose: print(f"  7. Writing final output to {output_path}...")
+    with open(output_path, 'w') as f:
+        f.write(built_class_code)
+
+    if args.verbose: print(f"-- {output_path} (re)built")
+
 
 if args.font:
     #################################
@@ -233,6 +307,9 @@ export {pianoSamples}
         os.remove(ofname)
       except OSError:
         pass
+
+if args.yin:
+    build_yin(args)
 
 # Define Packager class (used by both --podium and --ext builds)
 import shutil
