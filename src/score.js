@@ -934,9 +934,6 @@ class Score {
         this.modified = scoreJson.modified || this.modified;
         this.quality = scoreJson.quality ?? this.quality;
         this.numbers = scoreJson.numbers ?? this.numbers;
-        this.pn = scoreJson.pn ?? 1;
-        this.first = scoreJson.first ?? 1;
-        this.prelim = scoreJson.prelin ??0;
         if(activate) // don't use stashed values if not activating!
           _menu_.stashFromJsonObj(scoreJson.menu);
       }
@@ -1033,6 +1030,7 @@ class Score {
         pages: {},
         menu: _menu_.stashToJsonObj(),
       };
+      console.log("Saving attachment with numbers:", attachment.numbers);
       let pLibPg;
       pns = pns || Array.from({length: this.pgs.length}, (_, i) => i + 1);
       for(let j = 0; j < pns.length; j++) {

@@ -12,7 +12,7 @@ import sys
 import subprocess
 
 if len(sys.argv) == 1:
-   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, yin=True, ext=True, cert=False, clean=False) ;
+   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, yin=True, ext=True, www=False, cert=False, clean=False) ;
 else:
   parser = argparse.ArgumentParser()
   parser.add_argument('-s','--sample', action='store_true', help='(re)build build/sample.js')
@@ -20,6 +20,7 @@ else:
   parser.add_argument('-p','--podium', action='store_true', help='(re)build build/podium.html')
   parser.add_argument('-y','--yin', action='store_true', help='(re)build build/yin.js')
   parser.add_argument('-e','--ext', action='store_true', help='(re)build browser extension in ext/')
+  parser.add_argument('-w','--www', action='store_true', help='deploy to ../www (copies podium.html, sw.js, manifest, and icons)')
   parser.add_argument('--certificate', action='store_true', dest='cert', help='(re)build certificate')
   parser.add_argument('-c','--clean', action='store_true', help='clean build artifacts from build/ and ext/')
   parser.add_argument('-v','--verbose', action='store_true')
@@ -471,6 +472,52 @@ if args.podium:
     build("src/podium.html", "build/podium.html")
     if args.verbose: print('-- podium.html (re)built.')
 
+    # Generate PWA icons from SVG
+    if args.verbose: print('Generating PWA icons...')
+    os.makedirs('build/icons', exist_ok=True)
+
+    # Use the same SVG as the extension, but with white background and 20% safe zone padding for maskable icons
+    piano_glyph_path = "M274 274C243 274 221 264 203 248C189 236 186 228 182 228C177 228 180 235 171 252C164 264 149 273 123 273C64 273 32 231 1 174C-4 165 -6 160 -6 155C-6 148 -1 144 5 144C12 144 16 150 21 159C50 209 70 235 88 235C96 235 99 230 99 223C99 215 96 205 93 198L-30 -107C-33 -115 -35 -117 -45 -117H-76C-85 -117 -89 -121 -89 -130C-89 -138 -85 -142 -77 -142H116C125 -142 129 -138 129 -129C129 -121 125 -117 117 -117H77C71 -117 68 -117 68 -114C68 -113 69 -110 70 -107L115 5C117 10 119 17 124 17C129 17 132 7 148 -1C162 -8 175 -10 192 -10C288 -10 366 90 366 185C366 243 330 274 274 274ZM247 237C264 237 270 222 270 200C270 151 217 24 169 24C152 24 144 35 144 56C144 77 152 97 163 125L183 174C197 208 223 237 247 237Z"
+
+    # PWA icon with maskable safe zone (80% size centered = 20% padding)
+    podium_icon_svg = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="{size}" height="{size}">
+  <rect width="24" height="24" fill="#ffffff"/>
+  <g transform="translate(2.4, 2.4) scale(0.8)">
+    <path fill="#aaaaaa" stroke="#000" stroke-width=".6" stroke-linejoin="round"
+      d="M4 23v-3h16v3h1.5h-19Z M7 20v-14h10v14 M7 12h-2l-3 -10 h20l-3 10h-2"/>
+    <path fill="#000" transform="translate(9.8, 13.5) scale(0.015, -0.015)" d="''' + piano_glyph_path + '''"/>
+  </g>
+</svg>'''
+
+    pwa_icons_generated = False
+    try:
+        import cairosvg
+        for size in [192, 512]:
+            svg_content = podium_icon_svg.format(size=size)
+            cairosvg.svg2png(bytestring=svg_content.encode('utf-8'),
+                           write_to=f'build/icons/icon{size}.png',
+                           output_width=size,
+                           output_height=size)
+        pwa_icons_generated = True
+        if args.verbose: print('  Generated PWA icons using cairosvg')
+    except ImportError:
+        # Try ImageMagick as fallback
+        if shutil.which('convert'):
+            for size in [192, 512]:
+                svg_content = podium_icon_svg.format(size=size)
+                svg_file = f'build/icons/icon{size}.svg'
+                with open(svg_file, 'w') as f:
+                    f.write(svg_content)
+                os.system(f'convert -background white {svg_file} -resize {size}x{size} -type TrueColor build/icons/icon{size}.png 2>/dev/null')
+                os.remove(svg_file)
+            pwa_icons_generated = True
+            if args.verbose: print('  Generated PWA icons using ImageMagick')
+        else:
+            if args.verbose: print('  Warning: Could not generate PWA icons (install cairosvg or ImageMagick)')
+
+    if not pwa_icons_generated:
+        print('  NOTE: PWA icons not generated. Install cairosvg (pip install cairosvg) or ImageMagick')
+
 if(args.cert):
     if shutil.which('openssl') == None:
          sys.exit("Fatal error: creating certificate requires openssl executable in your path.") ;
@@ -662,3 +709,52 @@ These should be PNG images at 16x16, 48x48, and 128x128 pixels respectively.
     else:
         print('   Icons generated successfully in ext/icons/')
     print(f'   Extension ZIP created: {zip_path}')
+
+if args.www:
+    #####################################################
+    #                                                   #
+    #  Deploy to ../www for web hosting                #
+    #                                                   #
+    #####################################################
+
+    www_dir = '../www'
+
+    # Check if ../www directory exists
+    if not os.path.exists(www_dir):
+        print(f'Error: {www_dir} directory does not exist')
+        sys.exit(1)
+
+    if args.verbose: print(f'Deploying to {www_dir}...')
+
+    # Ensure podium.html is built
+    if not os.path.exists('build/podium.html'):
+        print('Error: build/podium.html not found. Run with --podium first.')
+        sys.exit(1)
+
+    # Copy podium.html
+    shutil.copy('build/podium.html', f'{www_dir}/podium.html')
+    os.chmod(f'{www_dir}/podium.html', 0o644)
+    if args.verbose: print(f'  Copied podium.html to {www_dir}/')
+
+    # Copy service worker
+    shutil.copy('src/sw.js', f'{www_dir}/sw.js')
+    os.chmod(f'{www_dir}/sw.js', 0o644)
+    if args.verbose: print(f'  Copied sw.js to {www_dir}/')
+
+    # Copy manifest
+    shutil.copy('src/manifest.webmanifest', f'{www_dir}/manifest.webmanifest')
+    os.chmod(f'{www_dir}/manifest.webmanifest', 0o644)
+    if args.verbose: print(f'  Copied manifest.webmanifest to {www_dir}/')
+
+    # Copy icons to top level (consistent with other icons in www/)
+    if os.path.exists('build/icons/icon192.png'):
+        shutil.copy('build/icons/icon192.png', f'{www_dir}/icon192.png')
+        os.chmod(f'{www_dir}/icon192.png', 0o644)
+        shutil.copy('build/icons/icon512.png', f'{www_dir}/icon512.png')
+        os.chmod(f'{www_dir}/icon512.png', 0o644)
+        if args.verbose: print(f'  Copied PWA icons to {www_dir}/')
+    else:
+        print(f'  Warning: PWA icons not found in build/icons/. Run with --podium to generate them.')
+
+    print(f'-- Deployed to {www_dir}/')
+    print(f'   Files: podium.html, sw.js, manifest.webmanifest, icon192.png, icon512.png')

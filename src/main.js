@@ -401,3 +401,5 @@ async function main() {
 
 main();
 
+// import { show} from "../video.js";
+// show(finger);

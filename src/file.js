@@ -715,9 +715,11 @@ class CachedSrc extends FileSrc {
 
     async putFile(path, name, data) {
         checkPath(path, name);
+        // Get directory metadata
         let dir = await this.getDir(path);
         if (dir.dirs[name]) return err(`putFile(${path},${name},...)`, "Path not found.");
-        await this.putFileSrc(path, name, await data, dir, null);
+        await this.putFileSrc(path, name, await data, dir, dir.files[name]);
+        // Cache is updated inside putFileSrc with metadata from upload response
     }
 
     async renameFile(path, name, newName) {
@@ -1007,7 +1009,7 @@ class GDriveSrc extends CachedSrc {
         });
       }
     } else {
-      await fetch(this.uploadUrl + file.id + "?uploadType=media", {
+      let response = await fetch(this.uploadUrl + file.id + "?uploadType=media", {
         method: "PATCH",
         headers: {
           Authorization: "Bearer " + this.tokens.access_token,
@@ -1015,6 +1017,21 @@ class GDriveSrc extends CachedSrc {
         },
         body: data,
       });
+      if (!response.ok) {
+        err(`GDrive putFileSrc(${path},${name},...)`, await response.text());
+      } else {
+        // Get updated file metadata from response and update cache
+        let updatedFile = await response.json();
+        if (dir && dir.files && dir.files[file.name]) {
+          dir.files[file.name] = {
+            id: updatedFile.id,
+            name: updatedFile.name,
+            size: updatedFile.size || data.byteLength,
+            created: updatedFile.createdTime,
+            modified: updatedFile.modifiedTime
+          };
+        }
+      }
     }
   }
 
