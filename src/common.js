@@ -979,17 +979,15 @@ class PodiumSlider extends HTMLElement {
       let mv = listen(this.knob, "pointermove", (emv) => {
         e.stopImmediatePropagation();
 
-        mvmt(e, emv);
-        if (e.moved) {
-          set(
-            emv.clientX,
-            Math.abs(emv.clientY - sliderBox.top - sliderBox.height / 2)
-          );
-          let ein = new Event("input", { bubbles: true });
-          ein.clientX = emv.clientX;
-          ein.clientY = emv.clientY;
-          this.dispatchEvent(ein);
-        }
+        // For sliders, respond immediately without jitter filtering
+        set(
+          emv.clientX,
+          Math.abs(emv.clientY - sliderBox.top - sliderBox.height / 2)
+        );
+        let ein = new Event("input", { bubbles: true });
+        ein.clientX = emv.clientX;
+        ein.clientY = emv.clientY;
+        this.dispatchEvent(ein);
       });
 
       listen(
@@ -2057,6 +2055,8 @@ css(
       transition: opacity ease-out .5s;
       z-index: 1000;
       background-color: var(--bodyColor);
+      text-align: left !important;
+      justify-content: flex-start !important;
    }`
 );
 
@@ -2069,13 +2069,32 @@ function ptrMsg(e, msgFunc, styles) {
   let div = helm(`<div class="ptrMsg floatingMsg" style="${styles}"></div>`);
   _body_.append(div);
 
+  // Track maximum width to prevent shrinking when digit count changes
+  let maxWidth = 0;
+
   // when pointer is not a mouse, double distance between it and the div,
   // so, for example, user's finger doesn't obscure ability to read div msg
   let expander = e.pointertype == "mouse" ? 1 : 2;
   let put = (ev) => {
+    let result = msgFunc(ev, div);
+    if (result) div.innerHTML = result;
+
+    // Measure true content width (only clear minWidth if it's already set)
+    if (maxWidth > 0) div.style.minWidth = "";
     let b = getBox(div);
-    let wd = b.width;
+    let contentWidth = b.width;
     let hg = b.height;
+
+    // Update maxWidth and set minWidth constraint
+    if (contentWidth > maxWidth) {
+      maxWidth = contentWidth;
+      div.style.minWidth = maxWidth + "px";
+    } else if (maxWidth > 0) {
+      div.style.minWidth = maxWidth + "px";
+    }
+
+    // Use maxWidth for positioning to prevent tooltip from jumping
+    let wd = maxWidth;
     let [left, top] = [ev.clientX - wd / 2, ev.clientY - hg * expander];
     left = clamp(left, 0, innerWidth - wd);
     top = clamp(top, 0, innerHeight - hg);
@@ -2089,8 +2108,6 @@ function ptrMsg(e, msgFunc, styles) {
       left: left + "px",
       top: top + "px",
     });
-    let result = msgFunc(ev, div);
-    if (result) div.innerHTML = result;
   };
 
   put(e);

@@ -142,20 +142,24 @@
 
         .video-container {
             position: relative;
-            display: inline-block;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             width: 100%;
         }
 
         .video-container img {
-            max-width: 100%;
+            max-width: 70%;
             height: auto;
             border-radius: 4px;
             cursor: pointer;
         }
 
         .video-container video {
+            position: absolute;
             display: none;
-            max-width: 100%;
+            max-width: 70%;
+            max-height: 100%;
             height: auto;
             border-radius: 4px;
         }
@@ -171,13 +175,8 @@
             display: none;
         }
 
-        .video-container.playing {
-            display: flex;
-            justify-content: center;
-        }
-
         .video-container.playing img {
-            display: none;
+            visibility: hidden;
         }
 
         .video-container.playing video {
@@ -515,7 +514,15 @@ function closeVideo(event, container) {
     <p>Activate any tool, then tap or drag on the score to use it. <strong>Safety tip:</strong> Most Ink tools automatically deactivate after a few seconds of inactivity, so you won't accidentally stay in annotation mode when navigating.</p>
 
     <figure>
-        <img src="assets/quickannotate.jpg" alt="Ink Ring with annotations">
+        <div class="video-container" onclick="playVideo(this)">
+            <img src="assets/quickannotate.jpg" alt="Ink Ring with annotations">
+            <div class="play-overlay"></div>
+            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture>
+                <source src="assets/quickannotate.webm" type="video/webm">
+                Your browser does not support the video tag.
+            </video>
+        </div>
         <figcaption>Screenshot showing Ink Ring activated with various annotation types visible on a score</figcaption>
     </figure>
 
@@ -534,7 +541,7 @@ function closeVideo(event, container) {
 
     <figure>
         <div class="video-container" onclick="playVideo(this)">
-            <img src="assets/quickmenu.jpg" alt="Circular menu" class="small">
+            <img src="assets/quickmenu.jpg" alt="Circular menu">
             <div class="play-overlay"></div>
             <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
             <video controls controlsList="nofullscreen nodownload" disablePictureInPicture>
@@ -562,7 +569,15 @@ function closeVideo(event, container) {
     <p>Tap the inner ring's "Score" cell, then tap "Save" in the outer ring (or drag out from Save to choose a new location/name). Your annotations and settings are saved within the PDF file.</p>
 
     <figure>
-        <img src="assets/quicksave.jpg" alt="Save Panel">
+        <div class="video-container" onclick="playVideo(this)">
+            <img src="assets/quicksave.jpg" alt="Save Panel">
+            <div class="play-overlay"></div>
+            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture>
+                <source src="assets/quicksave.webm" type="video/webm">
+                Your browser does not support the video tag.
+            </video>
+        </div>
         <figcaption>Screenshot showing Save Panel with file name field and storage options</figcaption>
     </figure>
 
@@ -579,7 +594,8 @@ function closeVideo(event, container) {
     <p><strong>Safety tip:</strong> Like Ink tools, Page tools auto-deactivate after a few seconds of inactivity.</p>
 
     <figure>
-        <figcaption>Screenshot showing Table layout with Page Ring active for page management</figcaption>
+        <img src="assets/quickpage.jpg" alt="Page Ring with table layout">
+        <figcaption>Screenshot showing Table layout with Page Ring active for page management (dark theme)</figcaption>
     </figure>
 
     <p><a href="#chapter-5" class="chapter-link">See Chapter 5: Page Ring</a> for complete page management features</p>
@@ -630,17 +646,13 @@ function closeVideo(event, container) {
         <li><strong>Layouts:</strong> 4 different ways to display your score.</li>
     </ul>
 
-    <figure>
-        <figcaption>Podium interface showing Menu, Panel, and Layout elements</figcaption>
-    </figure>
-
     <h3>Moving Things Around</h3>
 
     <p><strong>Sandpaper texture:</strong> Notice the sandpaper-like texture on the menu's center grip, panel headers, and sliders. Drag any textured area to move that element. (Mouse users: click-drag instead.)</p>
 
     <p><strong>Pinch-zoom (universal):</strong> Use a 2-finger pinch-zoom anywhere on the Menu, Panels, or Layouts to move and resize them. Pinch-zoom on the Background to resize everything at once.</p>
 
-    <p><strong>Mouse alternative:</strong> Hold Ctrl and drag to move. Hold Ctrl and scroll the mouse wheel to resize.</p>
+    <p><strong>Mouse alternative:</strong> Hold Ctrl and drag to move. Hold Ctrl and scroll the mouse wheel to resize. For greater accuracy, hold Ctrl+Shift while scrolling.</p>
 
     <h3>Background Gestures</h3>
     <ul>
@@ -653,9 +665,7 @@ function closeVideo(event, container) {
 
     <p>On launch, Podium displays a circular menu on a gray background. The menu has three parts:</p>
 
-    <figure>
-        <figcaption>Menu diagram with labeled parts</figcaption>
-    </figure>
+    <p><strong>Dark mode:</strong> Podium supports dark mode, which automatically activates when your device's system theme is set to dark. In dark mode, the menu and interface elements use a dark color scheme that's easier on the eyes in low-light conditions.</p>
 
     <h4>Grip (center circle)</h4>
     <ul>
@@ -695,6 +705,15 @@ function closeVideo(event, container) {
     <p>A floating window displays the current value, positioned so your hand won't block it.</p>
 
     <figure>
+        <div class="video-container" onclick="playVideo(this)">
+            <img src="assets/interfacesliders.jpg" alt="Slider precision mode">
+            <div class="play-overlay"></div>
+            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture>
+                <source src="assets/interfaceslider.webm" type="video/webm">
+                Your browser does not support the video tag.
+            </video>
+        </div>
         <figcaption>Slider with precision mode: drag away from slider to increase accuracy</figcaption>
     </figure>
 </section>
@@ -706,9 +725,10 @@ function closeVideo(event, container) {
 
     <p>Most of the Score Ring's cells are grayed out until a score is Opened, or until a New, empty score is created.</p>
 
-    <div class="note">In Podium, only one score can be open at a time. When opening a score, if the current score has unsaved changes, those changes will be lost. For this reason, you'll be prompted to confirm.</div>
+    <div class="note">In Podium, only one score can be open at a time in each browser window or tab. When opening a score, if the current score has unsaved changes, those changes will be lost. For this reason, you'll be prompted to confirm. You can open multiple scores simultaneously by opening Podium in additional browser windows or tabs. The <a href="#chapter-5" class="chapter-link">Page Ring</a> allows you to copy pages between scores opened in different windows.</div>
 
     <figure>
+        <img src="assets/scorecells.jpg" alt="Score Ring menu cells">
         <figcaption>Score Ring menu cells diagram</figcaption>
     </figure>
 
@@ -720,8 +740,7 @@ function closeVideo(event, container) {
         <li><strong>New (tap):</strong> Tap this cell to create a new, empty score.</li>
         <li><strong>New (drag):</strong> Drag out to reveal a Panel that configures properties of newly created scores</li>
         <li><strong>Close:</strong> Close the current score</li>
-        <li><strong>Bind:</strong> Bind (append) another score to the current score (Drag out to reveal an Open Panel to choose the other score)</li>
-        <li><strong>Details:</strong> Drag out to reveal a panel showing detailed information about the score</li>
+        <li><strong>Info:</strong> Drag out to reveal a panel showing detailed information about the score</li>
         <li><strong>Print:</strong> Drag out to reveal a Panel used to print the current score</li>
     </ul>
 
@@ -755,13 +774,13 @@ function closeVideo(event, container) {
         <figcaption>Open/Save Panel showing: Left«right draggable tab strip, Up↕down draggable list of files and folders, Left«right draggable folder path, Create new folder button, Editable file name, Rename score icon, Move score to recycle bin icon, Upload button</figcaption>
     </figure>
 
-    <h3 id="chapter-2-new-print">Score Ring: New, Print, Details</h3>
+    <h3 id="chapter-2-new-print">Score Ring: New, Print, Info</h3>
 
     <figure>
-        <figcaption>New, Print, and Details panels</figcaption>
+        <figcaption>New, Print, and Info panels</figcaption>
     </figure>
 
-    <h4>Details Panel:</h4>
+    <h4>Info Panel:</h4>
     <ul>
         <li>Displays metadata created by Podium and from original PDF file, if any.</li>
         <li>Configurable display quality: higher quality uses more memory.</li>
@@ -786,6 +805,11 @@ function closeVideo(event, container) {
     <h2>Chapter 3: Layout Ring</h2>
 
     <p>Determine how scores are displayed.</p>
+
+    <figure>
+        <img src="assets/layoutcells.jpg" alt="Layout Ring menu cells">
+        <figcaption>Layout Ring menu cells</figcaption>
+    </figure>
 
     <p>Podium implements 4 layout schemes:</p>
     <ul>
@@ -904,7 +928,8 @@ function closeVideo(event, container) {
     <p>Add annotations to a score.</p>
 
     <figure>
-        <figcaption>Ink Ring menu and tools</figcaption>
+        <img src="assets/inkcells.jpg" alt="Ink Ring menu cells">
+        <figcaption>Ink Ring menu cells</figcaption>
     </figure>
 
     <p>The Ink Ring's cells add annotation objects—staves, music symbols, text boxes, external images, and line drawings—to score pages. Tap any cell to activate it, then touch any score page to start drawing, to insert a symbol, image, or text box, or to perform any of the Ring's other actions: cut, copy, paste, grid, or transform.</p>
@@ -1031,7 +1056,8 @@ function closeVideo(event, container) {
     <p>Manage the pages and page numbers of a score.</p>
 
     <figure>
-        <figcaption>Page Ring menu</figcaption>
+        <img src="assets/pagecells.jpg" alt="Page Ring menu cells">
+        <figcaption>Page Ring menu cells</figcaption>
     </figure>
 
     <div class="note">Normally, any gestures made on score pages are interpreted as page navigation commands. However, if the Page Ring is selected, and if it has an activated cell, that cell's action will be performed instead.</div>
@@ -1117,7 +1143,8 @@ function closeVideo(event, container) {
     <p>Musician's toolkit.</p>
 
     <figure>
-        <figcaption>More Ring with practice tools</figcaption>
+        <img src="assets/morecells.jpg" alt="More Ring menu cells">
+        <figcaption>More Ring menu cells</figcaption>
     </figure>
 
     <ul>
