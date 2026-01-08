@@ -82,6 +82,10 @@
             margin: 1em 0 0 0;
         }
 
+        nav ul ul {
+            margin-left: 2em;
+        }
+
         nav li {
             margin: 0.5em 0;
         }
@@ -374,7 +378,9 @@ function closeVideo(event, container) {
         <li><a href="#chapter-2">Chapter 2: Score Ring</a>
             <ul>
                 <li><a href="#chapter-2-open-save">Open, Save</a></li>
-                <li><a href="#chapter-2-new-print">New, Print, Details</a></li>
+                <li><a href="#chapter-2-new">New</a></li>
+                <li><a href="#chapter-2-print">Print</a></li>
+                <li><a href="#chapter-2-info">Info</a></li>
             </ul>
         </li>
         <li><a href="#chapter-3">Chapter 3: Layout Ring</a>
@@ -664,9 +670,6 @@ function closeVideo(event, container) {
     <h3>Menu</h3>
 
     <p>On launch, Podium displays a circular menu on a gray background. The menu has three parts:</p>
-
-    <p><strong>Dark mode:</strong> Podium supports dark mode, which automatically activates when your device's system theme is set to dark. In dark mode, the menu and interface elements use a dark color scheme that's easier on the eyes in low-light conditions.</p>
-
     <h4>Grip (center circle)</h4>
     <ul>
         <li>Tap: Collapse or expand the menu</li>
@@ -733,72 +736,116 @@ function closeVideo(event, container) {
     </figure>
 
     <ul>
-        <li><strong>Save (drag):</strong> Drag out to reveal a panel that writes the currently open score to digital storage</li>
-        <li><strong>Save (tap):</strong> After a score is open, tapping this cell saves the score to its original location</li>
-        <li><strong>Open (drag):</strong> Drag out to reveal a panel that opens stored PDF score files from digital storage</li>
+        <li><strong>Open (drag):</strong> Drag out to reveal a Panel that opens stored PDF score files from digital storage</li>
         <li><strong>Open (tap):</strong> After a score is open, tapping this cell reverts the score to its saved state</li>
-        <li><strong>New (tap):</strong> Tap this cell to create a new, empty score.</li>
+        <li><strong>Save (drag):</strong> Drag out to reveal a Panel that writes the currently open score to digital storage</li>
+        <li><strong>Save (tap):</strong> After a score is open, tapping this cell saves the score to its original location</li>
         <li><strong>New (drag):</strong> Drag out to reveal a Panel that configures properties of newly created scores</li>
-        <li><strong>Close:</strong> Close the current score</li>
-        <li><strong>Info:</strong> Drag out to reveal a panel showing detailed information about the score</li>
-        <li><strong>Print:</strong> Drag out to reveal a Panel used to print the current score</li>
+        <li><strong>New (tap):</strong> Tap this cell to create a new, empty score</li>
+        <li><strong>Close (tap):</strong> Close the current score</li>
+        <li><strong>Print (drag):</strong> Drag out to reveal a Panel used to print the current score</li>
+        <li><strong>Info (drag):</strong> Drag out to reveal a Panel showing detailed information about the score</li>
     </ul>
 
     <h3 id="chapter-2-open-save">Score Ring: Open, Save</h3>
 
     <p>Open and save PDF score files.</p>
 
-    <p>Open/Save scores from locally attached storage or from the cloud storage services of Google Drive, Dropbox, or Microsoft OneDrive. Though these services require accounts, they all offer free subscription tiers.</p>
+    <p>Both Open and Save Panels work with locally attached storage or with cloud storage services: Google Drive, Dropbox, or Microsoft OneDrive. Though these services require accounts, they all offer free subscription tiers.</p>
 
-    <p>In either panel, tap any tab on the tab strip to open a service. Drag the strip left«right to access other tabs.</p>
+    <h4>Panel Navigation (Common to Both)</h4>
 
-    <p>Each panel displays a scrolling list of PDF file and folder entries. Drag or fling that list up/down to scroll the contents. The list is alphabetical A-Z, with directories grouped after files.</p>
+    <p>In either Panel, tap any tab on the tab strip to select a storage service. Drag the strip left↔right to access other tabs.</p>
+
+    <p>Each Panel displays a scrolling list of PDF file and folder entries. Drag or fling that list up/down to scroll the contents. The list is alphabetical A-Z, with directories grouped after files.</p>
 
     <p>Tap a folder entry to repopulate the list with that folder's contents. Below the tab strip is the Folder Path strip: it shows the current folder path. Tap a folder name or icon to load the corresponding folder. Tap New to create a new folder.</p>
-
-    <p>Tap a PDF score file in the Open Panel to download and display that score.</p>
-
-    <p>The Save Panel has a widget for editing the file name. Inside the widget there is an Upload button: tap it to save the current score, with the given name, to the selected folder.</p>
 
     <p>Each entry in the file/folder list has icons for renaming or deleting. There is no built-in copy/paste functionality: instead, open the file, save it to the desired location, then delete the original.</p>
 
     <div class="note">By design, Podium never actually deletes files: instead, it moves them to the storage provider's recycle bin. Log in to the provider to manage the recycle bin through its native interface.</div>
 
-    <p>Browser security provides very limited access to local files. The Local tab simply hands off control to the device's built-in file manager widget. Unfortunately, it's impossible to pre-populate this widget.</p>
+    <h4>Opening Scores</h4>
 
-    <p>The Recent tab provides access to the 20 last visited PDF score files. This list is stored in the browser's local storage, so it will have unique contents for each device/browser combination.</p>
-
-    <p>The Menu's Open and Save cells are tappable. With a score open, tapping the Open cell reloads the current file (i.e. "revert to saved"). Tapping the Save cell saves the current file, bypassing the Save panel.</p>
+    <p>Tap a PDF score file in the Open Panel to download and display that score.</p>
 
     <figure>
-        <figcaption>Open/Save Panel showing: Left«right draggable tab strip, Up↕down draggable list of files and folders, Left«right draggable folder path, Create new folder button, Editable file name, Rename score icon, Move score to recycle bin icon, Upload button</figcaption>
+        <img src="assets/scoreopen.jpg" alt="Open Panel">
+        <figcaption>Open Panel showing cloud storage tabs and file list</figcaption>
     </figure>
 
-    <h3 id="chapter-2-new-print">Score Ring: New, Print, Info</h3>
+    <p>The Menu's Open cell is also tappable. With a score already open, tapping the Open cell reloads the current file (i.e. "revert to saved").</p>
+
+    <p><strong>Recent Tab:</strong> The Recent tab provides quick access to the 20 last visited PDF score files. This list is stored in the browser's local storage, so it will have unique contents for each device/browser combination.</p>
+
+    <div class="note">Browser security provides very limited access to local files. The Local tab simply hands off control to the device's built-in file manager widget. Unfortunately, it's impossible to pre-populate this widget with a specific folder location.</div>
+
+    <h4>Saving Scores</h4>
+
+    <p>The Save Panel has a widget for editing the file name. Inside the widget there is an Upload button: tap it to save the current score, with the given name, to the selected folder.</p>
 
     <figure>
-        <figcaption>New, Print, and Info panels</figcaption>
+        <img src="assets/scoresave.jpg" alt="Save Panel">
+        <figcaption>Save Panel with file name editor and upload button</figcaption>
     </figure>
 
-    <h4>Info Panel:</h4>
+    <p>The Menu's Save cell is also tappable. With a score open, tapping the Save cell saves the current file to its original location, bypassing the Save Panel.</p>
+
+    <h3 id="chapter-2-new">Score Ring: New</h3>
+
+    <p>Create new, empty scores.</p>
+
+    <p>New empty scores are created by activating the New cell. The newly created score is made using the number of pages, size, and background color and opacity specified in the New Panel.</p>
+
+    <figure>
+        <img src="assets/scorenew.jpg" alt="New Panel">
+        <figcaption>New Panel showing page count, size options, and background settings</figcaption>
+    </figure>
+
+    <p>The New Panel allows you to configure:</p>
     <ul>
-        <li>Displays metadata created by Podium and from original PDF file, if any.</li>
-        <li>Configurable display quality: higher quality uses more memory.</li>
+        <li><strong>Number of Pages:</strong> Set the initial number of pages in the score (you can add or remove pages later using the Page Ring)</li>
+        <li><strong>Page Size:</strong> A dropdown menu allows you to pick from standard page sizes (Letter, Legal, A4, etc.) or specify custom dimensions</li>
+        <li><strong>Background Color:</strong> Tap the color swatch to choose the background color for new pages</li>
+        <li><strong>Background Opacity:</strong> Adjust the opacity of the background color</li>
     </ul>
 
-    <h4>New Panel:</h4>
-    <p>Determines how the New Cell creates new, empty scores:</p>
+    <h3 id="chapter-2-print">Score Ring: Print</h3>
+
+    <p>Print the current score with or without annotations.</p>
+
+    <figure>
+        <img src="assets/scoreprint.jpg" alt="Print Panel">
+        <figcaption>Print Panel showing ink options and page range settings</figcaption>
+    </figure>
+
+    <p>In Podium, user-created annotations are called Ink. The Print Panel allows you to configure printing options:</p>
     <ul>
-        <li>Initial number of pages in score (add/remove pages later with the Page Ring)</li>
-        <li>Physical size of each page: choose from presets, or create a custom size</li>
+        <li><strong>Ink:</strong> Print with user-created annotations included</li>
+        <li><strong>No Ink:</strong> Print without user-created annotations (original PDF only)</li>
+        <li><strong>Page Range:</strong> Specify the start and end pages to print a subset of the score</li>
     </ul>
 
-    <h4>Print Panel:</h4>
-    <p>In Podium, user-created annotations are called Ink.</p>
+    <div class="note">Large scores or scores with particularly dense or poorly encoded, unoptimized PDF content can fail while printing. If you encounter printing failures, try printing the score in several smaller sections by specifying different page ranges.</div>
+
+    <h3 id="chapter-2-info">Score Ring: Info</h3>
+
+    <p>The Info Panel displays comprehensive information about the currently open score.</p>
+
+    <figure>
+        <img src="assets/scoreinfo.jpg" alt="Info Panel">
+        <figcaption>Info Panel showing score metadata and display options</figcaption>
+    </figure>
+
+    <p><strong>Metadata:</strong> The panel displays metadata created by Podium (such as when the score was last modified) as well as any metadata from the original PDF file. This may include information about the score's provenance, such as the original author, creation date, and other document properties.</p>
+
+    <p><strong>Page Sizing:</strong> In Podium, all pages in a score are displayed at the same size, though this is not necessarily the case for PDF files in general. By default, Podium sizes pages to match the largest page in the PDF and centers smaller pages within that rectangle. The Info Panel contains a radio button that determines how smaller pages are treated:</p>
     <ul>
-        <li><strong>Ink:</strong> print with user-created annotations</li>
-        <li><strong>No Ink:</strong> print without user-created annotations</li>
+        <li><strong>Center:</strong> (Default) Smaller pages are centered within the standard page size</li>
+        <li><strong>Expand:</strong> Smaller pages are expanded to fill the standard page size</li>
     </ul>
+
+    <p><strong>Display Quality:</strong> The panel allows you to configure display quality. Higher quality uses more memory but provides sharper rendering.</p>
 </section>
 
 <section id="chapter-3">
