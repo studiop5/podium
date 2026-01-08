@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 
 crossOrigin = False
 # the build directory should come first
-docRoots = ["../www", "build", "src", "lib", "yin"]
+docRoots = ["../www", "build", "src", "lib", "doc"]
 
 MIME_MAP = {
    "": "text/html",
@@ -12,6 +12,8 @@ MIME_MAP = {
    ".otf": "application/font-otf",
    ".pdf": "application/pdf",
    ".png": "image/png",
+   ".jpg": "image/jpeg",
+   ".webm": "video/webm",
 }
 
 logger = logging.getLogger(__name__)

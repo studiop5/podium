@@ -913,8 +913,11 @@ for more details.</p>
    `);
 
   helpFace = helm(
-    `<object type="application/pdf" data="https://www.studiop5.org/Guidebook.pdf"
-       style="width:100%;height:100%;"></object>`
+    `<div style="position:relative;overflow:hidden;width:100%;height:100%;">
+       <div data-tag="docFrame" style="position:relative;top:0px;width:100%;overflow:hidden;">
+         <iframe src="/Guidebook.html" style="width:100%;height:100%;border:none;overflow:hidden;" scrolling="no"></iframe>
+       </div>
+     </div>`
   );
 
   constructor(cell) {
@@ -968,6 +971,61 @@ for more details.</p>
 
     // Doc tab
     tabView.tabs["Doc"].face.append(this.helpFace);
+
+    // Make Doc draggable/flingable
+    let docFrame = dataIndex("tag", this.helpFace).docFrame;
+    let iframe = docFrame.querySelector("iframe");
+
+    // Resize iframe container to match content height
+    iframe.addEventListener("load", () => {
+      try {
+        const doc = iframe.contentDocument;
+        const contentHeight = Math.max(
+          doc.body.scrollHeight,
+          doc.documentElement.scrollHeight,
+          doc.body.offsetHeight,
+          doc.documentElement.offsetHeight
+        );
+        docFrame.style.height = (contentHeight + 50) + "px"; // add 50px padding
+      } catch (e) {
+        console.warn("Could not access iframe content height:", e);
+        docFrame.style.height = "800em"; // fallback
+      }
+    });
+
+    listen(docFrame, "pointerdown", (e) => {
+      // Don't interfere with link clicks inside the iframe
+      try {
+        const iframeDoc = iframe.contentDocument;
+        const clickedElement = iframeDoc.elementFromPoint(e.clientX - iframe.getBoundingClientRect().left, e.clientY - iframe.getBoundingClientRect().top);
+        if (clickedElement && clickedElement.closest('a')) {
+          return; // Let the link click through
+        }
+      } catch (ex) {}
+
+      docFrame.style.transition = "unset";
+      let origin = docFrame.offsetTop;
+      let minTop = docFrame.parentElement.offsetHeight - docFrame.offsetHeight;
+      docFrame.setPointerCapture(e.pointerId);
+      e.mv1 = e.mv0 = e;
+
+      let mv = listen(docFrame, "pointermove", (emv) => {
+        if (mvmt(e, emv)) {
+          docFrame.style.top = clamp(origin + emv.clientY - e.clientY, minTop, 0) + "px";
+        }
+        e.mv1 = e.mv0;
+        e.mv0 = emv;
+      });
+
+      listen(docFrame, "pointerup", (eup) => {
+        unlisten(mv);
+        if (mvmt(e, eup)) {
+          docFrame.style.transition = "1s top ease-out";
+          let speed = (e.mv0.clientY - e.mv1.clientY) / Math.max(eup.timeStamp - e.mv0.timeStamp, e.mv0.timeStamp - e.mv1.timeStamp);
+          docFrame.style.top = clamp(docFrame.offsetTop + speed * 500, minTop, 0) + "px";
+        }
+      }, { once: true });
+    });
 
     // Install tab
     tabView.tabs["Install"].face.append(this.installFace);
