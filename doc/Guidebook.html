@@ -507,7 +507,7 @@ function closeVideo(event, container) {
     <p><a href="#chapter-3" class="chapter-link">See Chapter 3: Layout Ring</a> for detailed layout controls and settings</p>
 
     <h4>3. Navigate and Annotate</h4>
-    <p><strong>Navigation:</strong> Swipe or fling pages to turn them. Long-press anywhere on the background to summon the menu. To hide the menu, long-press the menu's center grip or fling it to any corner or edge. Swipe left-to-right on the background to enter full-screen mode.</p>
+    <p><strong>Navigation:</strong> Swipe or fling pages to turn them. Long-press anywhere on the background to summon the menu. To hide the menu, long-press the menu's center grip or fling it to any corner or edge. Swipe left↔right on the background to enter full-screen mode.</p>
 
     <p><strong>Annotations:</strong> Tap the inner ring's "Ink" cell to add annotations. The outer ring shows tools for:</p>
     <ul>
@@ -866,35 +866,38 @@ function closeVideo(event, container) {
         <li><strong>Table:</strong> all pages visible at once in a grid of thumbnails</li>
     </ul>
 
-    <p>The Screen cell toggles full screen mode. Alternatively, toggle full screen by swiping left«right on the background.</p>
+    <p>The Screen cell toggles full screen mode. Alternatively, toggle full screen by swiping left↔right on the background.</p>
 
     <p>By default, scores open with the last used layout on the current browser/platform or, if none, Book. The layout can be changed any time by tapping the desired cell. Whenever a score is saved, its last layout is stored as metadata in the PDF file, as well as in browser local storage.</p>
 
-    <div class="note">In a Podium Layout, all pages must be the same size. Whenever a score file is opened, the maximum page width and height are first determined. Then, if any pages are smaller than this maximum, they are padded to the maximum with a grey border at the top and sides.</div>
+    <div class="note">In a Podium Layout, all pages must be the same size. Whenever a score file is opened, the maximum page width and height are first determined. Then, if any pages are smaller than this maximum, they are by default centered and padded with a grey border on all sides. Alternatively, smaller pages can be expanded: the score is scaled so its largest dimension fills the page, then centered in the other dimension. See the <a href="#chapter-2-info" class="chapter-link">Info Panel</a> to configure this behavior.</div>
 
     <h3 id="chapter-3-book">Layout Ring: Book</h3>
 
     <p>Simulate a physical book.</p>
 
     <figure>
-        <figcaption>Book layout with pages and controls</figcaption>
+        <img src="assets/layoutbook.jpg" alt="Book layout">
+        <figcaption>Book layout with pages and panel</figcaption>
     </figure>
+
+    <div class="note">In addition to being aesthetically pleasing, the Book layout allows you to practice with page turns the way you would in performance using a physical score. This helps build muscle memory for when and how to turn pages during actual performances.</div>
 
     <p>Turn pages by flinging (i.e. touch→drag→release, all in one quick motion), or by more deliberate dragging. When dragging, if you release without dragging past the central spine, the dragged page will flop back to its original position.</p>
 
-    <p>The Book Panel's buttons determine the score's initial sizing:</p>
+    <p>The Book Panel's Fit buttons determine the score's initial sizing:</p>
     <ul>
+        <li><strong>Auto:</strong> picks between Width or Height such that the entire score is on screen.</li>
         <li><strong>None:</strong> sized as indicated in PDF file. Podium maps PDF "points" 1:1 with "CSS pixels".</li>
         <li><strong>Width:</strong> sized to fit the width of the screen.</li>
         <li><strong>Height:</strong> sized to fit the height of the screen.</li>
-        <li><strong>Auto:</strong> picks between Width or Height such that the entire score is on screen.</li>
     </ul>
 
-    <p>After the initial layout, use 2 fingers to pan-zoom the score to move/resize as desired.</p>
+    <p>After initial layout, use 2 fingers to pinch-zoom the score to move/resize as desired.</p>
 
-    <p>Page numbers can be turned on or off in the Book panel. Current page numbers are shown at the left and right sides of the layout: drag the page number to quickly flip to other pages.</p>
+    <p>Page numbers can be turned on or off in the Book Panel. Current page numbers are shown at the left and right sides of the layout: drag the page number to quickly flip to other pages.</p>
 
-    <p>Long-press on a page number to set a bookmark. Bookmarks appear as colored tabs on the book jacket. Press on any bookmark to jump there. Long-press on any bookmark to remove it.</p>
+    <p><strong>Bookmarks:</strong> Long-press on a page number to set a bookmark. Bookmarks appear as colored tabs on the book jacket. Press on any bookmark to jump there. Long-press on any bookmark to remove it.</p>
 
     <div class="note">Physical books must have an even number of pages, as each page has 2 sides. If the PDF score file contains an odd number of pages, the layout acts as if the last page is "glued" to the back inside cover of the book, and it can't be flipped.</div>
 
@@ -903,40 +906,49 @@ function closeVideo(event, container) {
     <p>Display the score as a continuous, horizontally-scrollable flow of pages.</p>
 
     <figure>
-        <figcaption>Horizontal layout</figcaption>
+        <img src="assets/layouthorizontal.jpg" alt="Horizontal layout">
+        <figcaption>Horizontal layout with pages and panel</figcaption>
     </figure>
 
-    <p>The Horizontal panel's Fit radio buttons determine the layout's initial size:</p>
+    <p>The Horizontal Panel's Fit buttons determine the layout's initial size:</p>
     <ul>
+        <li><strong>Auto:</strong> picks between Width or Height such that the entire score is on screen.</li>
         <li><strong>None:</strong> sized as indicated in PDF file. Technically, Podium maps PDF "points" 1:1 with "CSS pixels".</li>
         <li><strong>Width:</strong> sized to fit the width of the screen.</li>
         <li><strong>Height:</strong> sized to fit the height of the screen.</li>
-        <li><strong>Auto:</strong> picks between Width or Height such that the entire score is on screen.</li>
     </ul>
 
     <p>After initial layout, pinch-zoom the score to resize/move as desired.</p>
 
-    <p>The panel's <strong>Show:</strong> slider determines how many pages are visible at a time (from 1-8)</p>
+    <p>The Panel's <strong>Show:</strong> slider determines how many pages are visible at a time (from 1-8)</p>
 
-    <p>The panel's <strong>Gap</strong> slider determines how much space to leave around each page, as a percentage of the page's width.</p>
+    <p>The Panel's <strong>Gap</strong> slider determines how much space to leave around each page, as a percentage of the page's width.</p>
 
-    <p>Scroll pages by dragging or flinging. The panel's <strong>Snap:</strong> slider determines how many pages the scroll advances when a page is dragged or flung, ensuring that after a scroll, the leftmost and rightmost pages align with the left and right scrollers. Move the Snap: slider all the way to the left to completely disable page snapping.</p>
+    <p>Scroll pages by dragging or flinging. The Panel's <strong>Snap:</strong> slider determines how many pages the scroll advances when a page is dragged or flung, ensuring that after a scroll, the leftmost and rightmost pages align with the left and right scrollers. Move the Snap: slider all the way to the left to completely disable page snapping.</p>
 
-    <p>Page numbers can be turned on or off in the panel. Current page numbers are shown at the left and right sides of the layout: drag the page number to quickly scroll to other pages.</p>
+    <p>Page numbers can be turned on or off in the Panel. Current page numbers are shown at the left and right sides of the layout: drag the page number to quickly scroll to other pages.</p>
 
-    <p>Long-press on a page number to set a bookmark. Bookmarks appear as colored tabs on the book jacket. Press on any bookmark to jump there. Long-press on any bookmark to remove it.</p>
+    <p><strong>Bookmarks:</strong> Work the same as in Book layout (see above).</p>
 
     <h3 id="chapter-3-vertical">Layout Ring: Vertical</h3>
 
     <p>Display the score as a continuous, vertically-scrollable flow of pages.</p>
 
     <figure>
-        <figcaption>Vertical layout on smartphone</figcaption>
+        <img src="assets/layoutvertical.jpg" alt="Vertical layout">
+        <figcaption>Vertical layout with pages and panel</figcaption>
     </figure>
 
     <p>Settings for this layout function identically to the Horizontal Layout, see previous section.</p>
 
-    <div class="note">For viewing on a smartphone or small tablet, Vertical layout often gives the best experience. Activate full-screen mode, turn off Numbers, set Page Fit: Width, Show: 1 page, and Snap: disabled. Then thumb-scroll through the score. In real-world use, you'd likely dismiss the Panel, either by clicking the close button's X, or by simply flinging the panel.</div>
+    <div class="note">When Snap is disabled, scores can be scrolled so that the bottom of one page is positioned right above the top of the next page. This seamless viewing is very useful for practice and analysis, as it eliminates the visual interruption between pages.</div>
+
+    <figure>
+        <img src="assets/layoutphone.jpg" alt="Vertical layout on smartphone">
+        <figcaption>Vertical layout on smartphone</figcaption>
+    </figure>
+
+    <div class="note">For viewing on a smartphone or small tablet, Vertical layout often gives the best experience. Phone works best in landscape orientation. Activate full-screen mode, turn off Numbers, set Page Fit: Width, Show: 1 page, and Snap: disabled. Dismiss the Panel, either by clicking the close button's X, or by simply flinging the panel. Then thumb-scroll through the score.</div>
 
     <h3 id="chapter-3-table">Layout Ring: Table</h3>
 
@@ -945,12 +957,11 @@ function closeVideo(event, container) {
     <p>Convenient for adding or rearranging pages (using the Page Ring), or for quickly locating a page in a large score.</p>
 
     <figure>
-        <figcaption>Table layout showing all pages in a grid</figcaption>
+        <img src="assets/layouttable.jpg" alt="Table layout">
+        <figcaption>Table layout with pages and panel</figcaption>
     </figure>
 
-    <div class="note">To ease memory usage, the Layout Ring shows low-resolution copies of all pages except the current page. These copies must all be generated before the Table Layout can be drawn: this may take several seconds to several minutes, depending on the score size.</div>
-
-    <p>The panel's Fit radio buttons determine the layout's initial size:</p>
+    <p>The Table Panel's Fit buttons determine the layout's initial size:</p>
     <ul>
         <li><strong>Width:</strong> sized to fit the width of the screen.</li>
         <li><strong>Height:</strong> sized to fit the height of the screen.</li>
@@ -958,15 +969,21 @@ function closeVideo(event, container) {
 
     <p>After initial layout, pinch-zoom the score to resize/move as desired.</p>
 
-    <p>The panel's <strong>Pages per row:</strong> slider determines how many pages are shown in each row.</p>
+    <p>The Panel's <strong>Pages per row:</strong> slider determines how many pages are shown in each row.</p>
 
-    <p>The panel's <strong>Horizontal Gap</strong> slider determines the horizontal gap between neighbouring pages, as a percentage of the page's width. Setting this to a negative value causes the pages to be displayed overlapping each other.</p>
+    <p>The Panel's <strong>Horizontal Gap</strong> slider determines the horizontal gap between neighbouring pages, as a percentage of the page's width. Setting this to a negative value causes the pages to be displayed overlapping each other, much like playing cards.</p>
 
-    <p>The panel's <strong>Vertical Gap</strong> slider determines the vertical gap between neighbouring pages, as a percentage of the page's height. Setting this to a negative value causes the pages to be displayed overlapping each other.</p>
+    <p>The Panel's <strong>Vertical Gap</strong> slider determines the vertical gap between neighbouring pages, as a percentage of the page's height. Setting this to a negative value causes the pages to be displayed overlapping each other, much like playing cards.</p>
 
-    <p>At any time, there is always a current page, drawn slightly larger and on top of all other pages. If you change to another layout, that layout will open at the current page.</p>
+    <p>Page numbers can be turned on or off in the Panel.</p>
 
-    <div class="note">When using the functions of the Ink ring, they will only affect the current page.</div>
+    <p><strong>Current Page:</strong> At any time, there is always a current page, drawn in higher resolution, slightly larger, and on top of all other pages. Click on any page to make it current. If you change to another layout, that layout will open at the current page.</p>
+
+    <p><strong>Bookmarks:</strong> Long-press on a page to both make it current and toggle its bookmark state (add bookmark if none exists, remove bookmark if one already exists).</p>
+
+    <div class="note">To ease memory usage, the Table Layout shows low-resolution copies of all pages except the current page. These copies must all be generated before the Table Layout can be drawn: this may take several seconds to several minutes, depending on the score size.</div>
+
+    <div class="note">You cannot add annotations to a page in Table layout unless it is current. See the <a href="#chapter-4" class="chapter-link">Ink Ring</a> chapter for details on annotations.</div>
 </section>
 
 <section id="chapter-4">
@@ -1044,7 +1061,7 @@ function closeVideo(event, container) {
     <h4>Symbols Panel:</h4>
     <p>Symbols are arranged in groups as defined by the Standard Music Font Layout (SMuFL), see: <a href="https://w3c.github.io/smufl" target="_blank">https://w3c.github.io/smufl</a></p>
 
-    <p>Choose a Symbols Group from dropdown, then tap to select a symbol in the Preview. Note that most groups have many more symbols than are visible in the preview: drag left«right to see them all.</p>
+    <p>Choose a Symbols Group from dropdown, then tap to select a symbol in the Preview. Note that most groups have many more symbols than are visible in the preview: drag left↔right to see them all.</p>
 
     <h3 id="chapter-4-rastrum">Ink Ring: Rastrum</h3>
 
@@ -1259,7 +1276,7 @@ function closeVideo(event, container) {
         <figcaption>Piano keyboard with controls, pitch detector display, and settings panel</figcaption>
     </figure>
 
-    <p>Drag left«right from the 8va button to widen/narrow keyboard range to a maximum of F1-F6, or minimum of E3-A4.</p>
+    <p>Drag left↔right from the 8va button to widen/narrow keyboard range to a maximum of F1-F6, or minimum of E3-A4.</p>
 
     <div class="note">Piano samples make up a significant portion of Podium's download size. For this reason, the maximum keyboard size is limited to 5 octaves, a common size for an 18th century harpsichord or pianoforte. Samples have been truncated and down-sampled, reducing size while maintaining (hopefully) acceptable audio quality.</div>
 
