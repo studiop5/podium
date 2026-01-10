@@ -149,12 +149,12 @@ class Menu {
   scale = 1;
 
   // The autoOff scheduler  (_menu_.autoOff.run()) will deactivate the
-  // current cell in the ink or page rings 3750 msecs (or n msecs, if you call run(n).
+  // current cell in the ink or page rings 4000 msecs (or n msecs, if you call run(n).
   // If its already scheduled, then calling it again will delay the
-  // activation further. 3750 is not magic: it just seems like a good.
+  // activation further. 4000 is not magic: it just seems like a good.
   // value after emperical testing.
   busy = false;
-  autoOff = new Schedule(3750, () => {
+  autoOff = new Schedule(4000, () => {
     if(this.busy) this.autoOff.run();
     else if (["ink","page"].includes(this.activeRing.key)) this.activateCell(null);
   });
