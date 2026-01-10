@@ -302,8 +302,19 @@
             margin: 1.5em 0 2em;
         }
 
+        .back-to-toc {
+            display: block;
+            text-align: center;
+            margin: 2em 0 1em;
+            font-size: 0.9em;
+            color: #3498db;
+        }
+
         /* Print styles */
         @media print {
+            .back-to-toc {
+                display: none;
+            }
             body {
                 max-width: 100%;
                 padding: 0;
@@ -318,6 +329,10 @@
             }
 
             nav {
+                page-break-after: always;
+            }
+
+            section {
                 page-break-after: always;
             }
 
@@ -394,9 +409,12 @@ function closeVideo(event, container) {
         <li><a href="#chapter-4">Chapter 4: Ink Ring</a>
             <ul>
                 <li><a href="#chapter-4-pen-pencil">Pen, Pencil</a></li>
-                <li><a href="#chapter-4-text-symbols">Text, Symbols</a></li>
                 <li><a href="#chapter-4-rastrum">Rastrum</a></li>
+                <li><a href="#chapter-4-text">Text</a></li>
+                <li><a href="#chapter-4-symbols">Symbols</a></li>
+                <li><a href="#chapter-4-undo">Undo</a></li>
                 <li><a href="#chapter-4-grid">Grid</a></li>
+                <li><a href="#chapter-4-cut-copy-paste">Cut, Copy, Paste</a></li>
                 <li><a href="#chapter-4-transform">Transform</a></li>
             </ul>
         </li>
@@ -404,6 +422,10 @@ function closeVideo(event, container) {
             <ul>
                 <li><a href="#chapter-5-numbers">Numbers</a></li>
                 <li><a href="#chapter-5-add">Add</a></li>
+                <li><a href="#chapter-5-delete">Delete</a></li>
+                <li><a href="#chapter-5-undo">Undo</a></li>
+                <li><a href="#chapter-5-copy">Copy</a></li>
+                <li><a href="#chapter-5-paste">Paste</a></li>
                 <li><a href="#chapter-5-merge">Merge</a></li>
             </ul>
         </li>
@@ -639,6 +661,7 @@ function closeVideo(event, container) {
     </ul>
 
     <p>That's it! You're ready to use Podium. Explore the chapters below for in-depth information on each feature.</p>
+    <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
 <section id="chapter-1">
@@ -719,6 +742,7 @@ function closeVideo(event, container) {
         </div>
         <figcaption>Slider with precision mode: drag away from slider to increase accuracy</figcaption>
     </figure>
+    <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
 <section id="chapter-2">
@@ -846,6 +870,7 @@ function closeVideo(event, container) {
     </ul>
 
     <p><strong>Display Quality:</strong> The panel allows you to configure display quality. Higher quality uses more memory but provides sharper rendering.</p>
+    <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
 <section id="chapter-3">
@@ -981,9 +1006,14 @@ function closeVideo(event, container) {
 
     <p><strong>Bookmarks:</strong> Long-press on a page to both make it current and toggle its bookmark state (add bookmark if none exists, remove bookmark if one already exists).</p>
 
+    <p><strong>Reordering pages:</strong> You can easily reorder pages by dragging them to a new location in the table. This provides a visual way to reorganize your score.</p>
+
+    <p><strong>Deleting pages:</strong> You can quickly delete pages by dragging them out of the table. This is faster than using the Page Ring Cut operation for removing unwanted pages.</p>
+
     <div class="note">To ease memory usage, the Table Layout shows low-resolution copies of all pages except the current page. These copies must all be generated before the Table Layout can be drawn: this may take several seconds to several minutes, depending on the score size.</div>
 
     <div class="note">You cannot add annotations to a page in Table layout unless it is current. See the <a href="#chapter-4" class="chapter-link">Ink Ring</a> chapter for details on annotations.</div>
+    <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
 <section id="chapter-4">
@@ -1000,15 +1030,9 @@ function closeVideo(event, container) {
 
     <div class="note">Normally, any gestures made on score pages are interpreted as page navigation commands. However, if the Ink Ring is selected, and if it has an activated cell, that cell's action will be performed instead.</div>
 
-    <div class="note">When an Ink Ring Cell is activated, it stays active until tapped again, or until a different Ink Ring Cell is activated. As a convenience, when a touch is held without movement for over a second, immediately before release, the cell deactivates: there's no need to re-tap the menu. Similarly, holding a touch for longer than 2 seconds activates the Transform cell.</div>
+    <div class="note">When an Ink Ring Cell is activated, it stays active until tapped again, or until a different Ink Ring Cell is activated. Cells automatically deactivate after 4 seconds if not used.</div>
 
     <h3>Tools Overview:</h3>
-
-    <p><strong>Cut, Copy, Paste:</strong> Each annotation is an independent object that can be cut, copied, pasted, or transformed. To cut or copy an object, tap the Cut or Copy cell, then tap the target object on the score page. Then, if desired, tap the Paste cell, then tap the score page where you want to paste the previously Cut/Copied object.</p>
-
-    <div class="note">The Copy cell has an associated Open Panel that can be used to select an external PNG or JPEG image file from digital storage. Select the desired image file, then use the Paste cell to convert that image into an annotation object that can be pasted into a score page.</div>
-
-    <p><strong>Transform:</strong> while active, tapping on any existing annotation allows it to be selected, moved, rotated, or resized.</p>
 
     <p><strong>Pencil, Pen:</strong> line drawing tools. They are functionally identical; however, using their associated panels, they can be configured differently (color, line width, etc.) so that two different line types are immediately available for use.</p>
 
@@ -1022,11 +1046,18 @@ function closeVideo(event, container) {
 
     <p><strong>Grid:</strong> Displays a configurable drawing grid over the page.</p>
 
+    <p><strong>Cut, Copy, Paste:</strong> Each annotation is an independent object that can be cut, copied, pasted, or transformed. To cut or copy an object, tap the Cut or Copy cell, then tap the target object on the score page. Then, if desired, tap the Paste cell, then tap the score page where you want to paste the previously Cut/Copied object.</p>
+
+    <div class="note">The Copy cell has an associated Open Panel that can be used to select an external PNG or JPEG image file from digital storage. Select the desired image file, then use the Paste cell to convert that image into an annotation object that can be pasted into a score page.</div>
+
+    <p><strong>Transform:</strong> while active, tapping on any existing annotation allows it to be selected, moved, rotated, or resized.</p>
+
     <h3 id="chapter-4-pen-pencil">Ink Ring: Pen, Pencil</h3>
 
     <p>Draw lines on score pages.</p>
 
     <figure>
+        <img src="assets/inkpencilpen.jpg" alt="Pen and Pencil panels">
         <figcaption>Pen and Pencil panels</figcaption>
     </figure>
 
@@ -1041,49 +1072,76 @@ function closeVideo(event, container) {
         <li><strong>Free:</strong> unconstrained drawing.</li>
         <li><strong>L-R:</strong> constrained to horizontal, left to right straight lines.</li>
         <li><strong>T-B:</strong> constrained to vertical, top to bottom straight lines.</li>
-        <li><strong>Slope:</strong> constrained to angled straight lines</li>
+        <li><strong>Slope:</strong> draws a straight line between two points with no angle restrictions</li>
     </ul>
-
-    <h3 id="chapter-4-text-symbols">Ink Ring: Text, Symbols</h3>
-
-    <p>Add text boxes and music symbols to a page.</p>
-
-    <figure>
-        <figcaption>Text and Symbols panels</figcaption>
-    </figure>
-
-    <h4>Text panel:</h4>
-    <ul>
-        <li>Set (inter) line height for multi-line text.</li>
-        <li>Choose from any of the 14 standard PDF fonts, plus the Bravura font.</li>
-    </ul>
-
-    <h4>Symbols Panel:</h4>
-    <p>Symbols are arranged in groups as defined by the Standard Music Font Layout (SMuFL), see: <a href="https://w3c.github.io/smufl" target="_blank">https://w3c.github.io/smufl</a></p>
-
-    <p>Choose a Symbols Group from dropdown, then tap to select a symbol in the Preview. Note that most groups have many more symbols than are visible in the preview: drag left↔right to see them all.</p>
 
     <h3 id="chapter-4-rastrum">Ink Ring: Rastrum</h3>
 
     <p>Draw music staves.</p>
 
     <figure>
-        <figcaption>Examples of Rastrum usage: Staff with 4 bars, Staff with no bars, Plainchant staff, Tablature, Chord Charts</figcaption>
+        <img src="assets/inkrastrum.jpg" alt="Rastrum Panel">
+        <figcaption>Rastrum Panel showing 5-line staff, staff with barlines, renaissance lute staff, plainchant staff, guitar and mandolin chord charts</figcaption>
     </figure>
 
-    <p>In the physical world, a rastrum is a 5-pointed pen for ruling manuscript paper.</p>
+    <p>The tool's name comes from the Latin word for "rake." Historically, a rastrum (plural: rastra) was a specialized multi-nibbed writing instrument used to draw the parallel lines of musical staves on manuscript paper. Like a small rake, its multiple nibs would draw several lines simultaneously—typically five for standard notation, though rastra with different numbers of nibs existed for various musical purposes.</p>
 
-    <p>Podium's Rastrum draws multiple lines, with potentially multiple bar lines.</p>
+    <p>Podium's Rastrum extends this concept, allowing you to draw any number of parallel lines with optional bar lines.</p>
 
     <p>The tool is used by first touching the page, then dragging to define the rastrum object's length.</p>
 
     <p>Set the style to L-R or T-B to draw horizontally or vertically. Once drawn, a rastrum object can always be rotated using the Transform tool.</p>
+
+    <p><strong>Staff Space:</strong> The staff space panel setting determines the pixel difference between staff lines. Matching this value with the staff space setting in the <a href="#chapter-4-symbols" class="chapter-link">Symbols tool</a> ensures that staves and symbols are correctly sized for each other.</p>
+
+    <div class="note">The Rastrum tool, in combination with <a href="#chapter-4-cut-copy-paste" class="chapter-link">Copy/Paste</a>, the <a href="#chapter-4-grid" class="chapter-link">Grid</a>, and the <a href="#chapter-5-merge" class="chapter-link">Merge operation</a>, can be used to design manuscript paper of arbitrary complexity.</div>
+
+    <h3 id="chapter-4-text">Ink Ring: Text</h3>
+
+    <p>Add text boxes to a page.</p>
+
+    <figure>
+        <img src="assets/inktext.jpg" alt="Text Panel">
+        <figcaption>Text Panel</figcaption>
+    </figure>
+
+    <p>The Text Panel allows you to configure text properties:</p>
+    <ul>
+        <li>Set (inter) line height for multi-line text.</li>
+        <li>Choose from standard PDF fonts, plus Vercetti, Bravura, and Patrick Hand fonts.</li>
+    </ul>
+
+    <h3 id="chapter-4-symbols">Ink Ring: Symbols</h3>
+
+    <p>Add music symbols to a page.</p>
+
+    <figure>
+        <img src="assets/inksymbols.jpg" alt="Symbols Panel">
+        <figcaption>Symbols Panel showing random selection of the approximately 3500 available glyphs</figcaption>
+    </figure>
+
+    <p> Symbols are arranged in groups as defined by the Standard Music Font Layout (SMuFL). The <a href="https://w3c.github.io/smufl" target="_blank">SMuFL webpage</a> displays a comprehensive table showing all glyphs and their names in the SMuFL standard. In Podium, all music symbols come from the SMuFL reference <a href="https://github.com/steinbergmedia/bravura" target="_blank">Bravura font</a>.</p>
+
+    <p>Choose a Symbols Group from the dropdown, then tap to select a symbol in the Preview. Note that most groups have many more symbols than are visible in the preview: drag left↔right to see them all.</p>
+
+    <p><strong>Staff Space Sizing:</strong> This setting sizes the synbol by specifying the distance between adjacent staff lines that symbol is designed for. Matching the staff space value in the Symbols Panel to the staff space value in the <a href="#chapter-4-rastrum" class="chapter-link">Rastrum tool</a> will ensure that music symbols are correctly sized for a corresponding staff.</p>
+
+    <p>After placing a symbol, use the <a href="#chapter-4-transform" class="chapter-link">Transform tool</a> to precisely position, resize, or rotate it.</p>
+
+    <h3 id="chapter-4-undo">Ink Ring: Undo</h3>
+
+    <p>Undo the last Ink Ring action.</p>
+
+    <p>To undo an action on a page, activate the Undo cell, then tap on that page to revert it to its state before the last action. Podium stores the most recent 10 actions made on each page.</p>
+
+    <p>You can undo any Ink Ring action including paste, delete, and transform operations. The only exception is the Copy action itself, which cannot be undone (though you can undo the subsequent paste).</p>
 
     <h3 id="chapter-4-grid">Ink Ring: Grid</h3>
 
     <p>Draw a 2-d guide grid for measuring and layout.</p>
 
     <figure>
+        <img src="assets/inkgrid.jpg" alt="Grid Panel">
         <figcaption>Grid panel and grid overlay on score</figcaption>
     </figure>
 
@@ -1091,15 +1149,32 @@ function closeVideo(event, container) {
 
     <p>The Grid is 2-dimensional: adjust the X and Y Step sliders to change distance between grid lines.</p>
 
-    <p>To precisely position the Grid, first activate the Grid cell, then touch the score. Before releasing this touch, the position of the grid will follow your touch. Use this to align the grid with current features of the score page.</p>
+    <p>To precisely position the Grid, first activate the Grid cell, then touch any page in the score. Before releasing this touch, the position of the grid will follow your touch. Use this to align the grid with current features of the score page. The grid can be repositioned by first tapping the page to remove the grid, then tap-hold and drag to reposition.</p>
 
     <p>When Numbers is On, labels on the grid lines show the distance from the origin, marked with a "o".</p>
+
+    <p>The Grid is not itself an annotation object: it does not interfere with any other Ink actions and is not present when a score is saved or printed.</p>
+
+    <p>The Grid helps in aligning and precisely positioning ink elements. It can also be used to measure distance between elements or score features: when activating the grid, set the 0 point to the start of the measurement and then read off the length. Grid measurements represent Podium's best guess at the size of the corresponding printed representation of the score, regardless of zoom level or monitor resolution.</p>
+
+    <h3 id="chapter-4-cut-copy-paste">Ink Ring: Cut, Copy, Paste</h3>
+
+    <p>Manage annotation objects.</p>
+
+    <p>Each annotation is an independent object that can be cut, copied, pasted, or transformed. To cut or copy an object, tap the Cut or Copy cell, then tap the target object on the score page. The object is placed in a paste buffer associated with the score, allowing annotation objects to be moved or copied between pages.</p>
+
+    <p>To paste an object from the paste buffer, tap the Paste cell, then tap any score page where you want to paste that object.</p>
+
+    <p><strong>Deleting annotations:</strong> To delete an annotation object, activate the Cut cell and tap the object. If you don't subsequently paste the object elsewhere, it is effectively deleted from the score.</p>
+
+    <p>The Copy cell has an associated Open Panel where you can choose PNG or JPEG images from digital storage and put them into the paste buffer. These images can then be pasted into any score page and positioned or resized as desired using the Transform tool.</p>
 
     <h3 id="chapter-4-transform">Ink Ring: Transform</h3>
 
     <p>Transform (move, resize, rotate) objects.</p>
 
     <figure>
+        <img src="assets/inktransform1.jpg" alt="Transform handles">
         <figcaption>Transform handles on selected object</figcaption>
     </figure>
 
@@ -1112,6 +1187,27 @@ function closeVideo(event, container) {
         <li><strong>Middle handles:</strong> resize, stretching object's aspect ratio.</li>
         <li><strong>Touch-drag within the object:</strong> move it.</li>
     </ul>
+
+    <figure>
+        <img src="assets/inktransform2.jpg" alt="Group transformation">
+        <figcaption>Multiple objects selected for group transformation</figcaption>
+    </figure>
+
+    <p>You can drag across multiple objects to select them, then transform them as a group. Click the lock icon to make the group behave like a single object. Click it again to ungroup.</p>
+
+    <h3>Annotations and Workflow Tips</h3>
+
+    <p><strong>Saving and persistence:</strong> All annotations are automatically saved with the score when you save the file. Annotations are preserved when switching between different layout modes.</p>
+
+    <p><strong>Page limitations:</strong> Annotation objects cannot span multiple pages, but they can be easily copied between pages using the Cut/Copy/Paste tools.</p>
+
+    <p><strong>Performance considerations:</strong> Annotations, especially free drawings with many pen/pencil strokes, can significantly increase the size of a saved score. For complex annotated pages, consider using the Merge operation (in the <a href="#chapter-5" class="chapter-link">Page Ring</a>) to convert annotations into the PDF itself, which can improve performance.</p>
+
+    <p><strong>Precision workflow:</strong> For precise notation work, combine the Grid tool with Rastrum for staff placement, then use Symbols to add notation. The Transform tool allows fine-tuning of symbol positions after placement.</p>
+
+    <p><strong>Reusable symbol library:</strong> If you frequently reuse a set of symbols, <a href="#chapter-5-add" class="chapter-link">add a blank page</a> to your score and place those symbols on it. This creates a personal symbol library that's always available for Copy/Paste. You can easily move this symbol set page around the score using Page Ring commands or by dragging pages in the <a href="#chapter-3-table" class="chapter-link">Table Layout</a>.</p>
+
+    <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
 <section id="chapter-5">
@@ -1126,17 +1222,23 @@ function closeVideo(event, container) {
 
     <div class="note">Normally, any gestures made on score pages are interpreted as page navigation commands. However, if the Page Ring is selected, and if it has an activated cell, that cell's action will be performed instead.</div>
 
-    <div class="note">When a Page Ring Cell is activated, it stays active until tapped again, or until a different Page Ring Cell is activated. As a convenience, when a touch is held without movement for over a second, immediately before release, the cell deactivates: there's no need to re-tap the menu.</div>
+    <div class="note">When a Page Ring Cell is activated, it stays active until tapped again, or until a different Page Ring Cell is activated. Cells automatically deactivate after 4 seconds if not used.</div>
 
     <h3>Page Ring Tools:</h3>
 
+    <p><strong>Numbers:</strong> Drag out to reveal a panel that displays and configures score page numbers.</p>
+
     <p><strong>Add:</strong> Insert a new, empty page into the score, as configured by the Add Panel.</p>
 
-    <p><strong>Cut, Copy, Paste:</strong> Activate the Cut (or Copy) cell, then touch the score page you wish to cut (or copy). Next, activate the Paste cell, then tap a score page. If the tap is on the left side of the page, the cut (or copied) page is inserted before the tapped page, else it is inserted after. (For Vertical Layout only: touch above the middle of the score page to insert before, or below the middle to insert after). Note that there is no Delete Page operation: instead, cut the desired page, then skip any subsequent paste.</p>
+    <p><strong>Delete:</strong> Remove a page from the score by tapping it with the Delete cell active.</p>
 
-    <p><strong>Merge:</strong> A merge operation merges all Ink objects on the tapped page into the page itself. After merging, those objects can no longer be transformed: they are no longer treated as annotations, becoming instead integral parts of the score. Because this operation cannot be undone, you'll be prompted to confirm before the operation is committed.</p>
+    <p><strong>Undo:</strong> Undo the last page operation (delete, copy, or paste).</p>
 
-    <p><strong>Numbers:</strong> Drag out to reveal a panel that displays and configures score page numbers.</p>
+    <p><strong>Copy:</strong> Copy a page to the paste buffer for duplication within the score or to another score.</p>
+
+    <p><strong>Paste:</strong> Insert a previously copied page at a new location in the score.</p>
+
+    <p><strong>Merge:</strong> Merge all Ink objects on a page into the page itself, converting annotations into permanent PDF content.</p>
 
     <h3 id="chapter-5-numbers">Page Ring: Numbers</h3>
 
@@ -1184,6 +1286,40 @@ function closeVideo(event, container) {
         <li>Select the <strong>Title Type</strong> to add a page that is pre-populated with score metadata. Each metadata field is actually an annotation object, and can be edited after selecting it with the Transform tool of the Ink Ring.</li>
     </ul>
 
+    <h3 id="chapter-5-delete">Page Ring: Delete</h3>
+
+    <p>Remove pages from the score.</p>
+
+    <p>To delete a page, activate the Delete cell, then tap the page you wish to remove from the score. The page is immediately deleted.</p>
+
+    <p>In <a href="#chapter-3-table" class="chapter-link">Table Layout</a>, you can also delete pages by dragging them out of the table, which provides a quick visual method for removing unwanted pages.</p>
+
+    <div class="note">Page deletion can be undone using the Undo cell, which allows you to recover recently deleted pages.</div>
+
+    <h3 id="chapter-5-undo">Page Ring: Undo</h3>
+
+    <p>Undo the last page operation.</p>
+
+    <p>To undo a page operation (delete, copy, or paste), activate the Undo cell. The most recent operation will be immediately reversed. The Page Ring maintains a limited undo history of recent operations.</p>
+
+    <div class="note">Unlike the Ink Ring's per-page undo stack, the Page Ring undo operates on page-level operations across the entire score.</div>
+
+    <h3 id="chapter-5-copy">Page Ring: Copy</h3>
+
+    <p>Copy a page to the paste buffer.</p>
+
+    <p>To copy a page, activate the Copy cell, then tap the page you wish to copy. The page is placed in a paste buffer where it can be pasted into the current score or into a different score opened in another browser window or tab.</p>
+
+    <p>The paste buffer preserves both the page content and all annotations, allowing you to duplicate complex pages with all their markup intact.</p>
+
+    <h3 id="chapter-5-paste">Page Ring: Paste</h3>
+
+    <p>Insert a previously copied page at a new location.</p>
+
+    <p>To paste a page from the paste buffer, activate the Paste cell, then tap on a score page. If the tap is on the left side of the page, the copied page is inserted before the tapped page, else it is inserted after. (For Vertical Layout only: tap above the middle of the score page to insert before, or below the middle to insert after).</p>
+
+    <p>You can paste the same copied page multiple times, and you can paste pages between different scores by opening Podium in multiple browser windows or tabs.</p>
+
     <h3 id="chapter-5-merge">Page Ring: Merge</h3>
 
     <p>Merge a score page's Ink annotations into the PDF.</p>
@@ -1199,6 +1335,7 @@ function closeVideo(event, container) {
     <p>Merges are often very useful. For example, suppose you've used the Ink Ring's Rastrum tool to draw a staff on a page, and you want to use the Pencil and Pen tools to draw on that staff. The drawing will be much easier to edit if you first Merge the staff into the background layer. That way, you'll be able to perform edits without accidentally selecting and editing the staff itself.</p>
 
     <div class="note">Because a merge operation cannot be undone, you'll be prompted to confirm before the operation is performed.</div>
+    <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
 <section id="chapter-6">
@@ -1358,6 +1495,7 @@ function closeVideo(event, container) {
         <li><strong>Menu:</strong> tapping this returns all Panel settings to their default values.</li>
         <li><strong>Recent:</strong> tapping this button clears the Recent Files list from local storage.</li>
     </ul>
+    <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
 <section id="chapter-7">
@@ -1367,6 +1505,7 @@ function closeVideo(event, container) {
 
     <p><em>-glen diener</em><br>
     <a href="mailto:glen@studiop5.org">glen@studiop5.org</a></p>
+    <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
 </body>
