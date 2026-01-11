@@ -890,6 +890,9 @@ class Score {
     Object.assign(this, { source, path, name });
     // Reset quality to default; will be overridden by scoreJson if stored in the PDF
     this.quality = 2;
+    // Initialize page undo stack
+    this.undoStack = [];
+    this.maxUndo = 10;
     this.pgFit = _menu_.rings.score.cells.info.stash.pgFit ?? this.pgFit;
 
 
@@ -1149,7 +1152,7 @@ class Score {
     pg.undoPn = pn;
     if(push) {
       this.undoStack.push(pg);
-      while(this.undoStack.length > Score.MAX_UNDO) this.undoStack.shift();
+      while(this.undoStack.length > this.maxUndo) this.undoStack.shift();
     }
     this.pgRefresh();
     return pg;
