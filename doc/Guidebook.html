@@ -865,8 +865,8 @@ function closeVideo(event, container) {
 
     <p><strong>Page Sizing:</strong> In Podium, all pages in a score are displayed at the same size, though this is not necessarily the case for PDF files in general. By default, Podium sizes pages to match the largest page in the PDF and centers smaller pages within that rectangle. The Info Panel contains a radio button that determines how smaller pages are treated:</p>
     <ul>
-        <li><strong>Center:</strong> (Default) Smaller pages are centered within the standard page size</li>
-        <li><strong>Expand:</strong> Smaller pages are expanded to fill the standard page size</li>
+        <li><strong>Center:</strong> (Default) Smaller pages are centered within the uniform page size</li>
+        <li><strong>Expand:</strong> Smaller pages are resized so their largest dimension—height or width—fills the uniform page size, and the other dimension is centered</li>
     </ul>
 
     <p><strong>Display Quality:</strong> The panel allows you to configure display quality. Higher quality uses more memory but provides sharper rendering.</p>
@@ -1222,7 +1222,7 @@ function closeVideo(event, container) {
 
     <div class="note">Normally, any gestures made on score pages are interpreted as page navigation commands. However, if the Page Ring is selected, and if it has an activated cell, that cell's action will be performed instead.</div>
 
-    <div class="note">When a Page Ring Cell is activated, it stays active until tapped again, or until a different Page Ring Cell is activated. Cells automatically deactivate after 4 seconds if not used.</div>
+    <div class="note">When a Page Ring Cell is activated, it stays active until tapped again, or until a different Page Ring Cell is activated. Cells automatically deactivate after 4 seconds if not used. Exception: the Numbers cell never activates—it simply holds a panel for configuring page numbering and keyboard shortcuts.</div>
 
     <h3>Page Ring Tools:</h3>
 
@@ -1236,37 +1236,50 @@ function closeVideo(event, container) {
 
     <p><strong>Copy:</strong> Copy a page to the paste buffer for duplication within the score or to another score.</p>
 
-    <p><strong>Paste:</strong> Insert a previously copied page at a new location in the score.</p>
+    <p><strong>Paste:</strong> Insert previously copied pages at a new location in the score, including pages copied from other Podium instances running in different tabs or windows.</p>
 
     <p><strong>Merge:</strong> Merge all Ink objects on a page into the page itself, converting annotations into permanent PDF content.</p>
 
     <h3 id="chapter-5-numbers">Page Ring: Numbers</h3>
 
-    <p>Show/set the score's effective current page number and configure how page numbers are counted.</p>
+    <p>Configure page numbering and view the current page number displayed in the layout margins.</p>
 
     <figure>
+        <img src="assets/pagenumbers.jpg" alt="Numbers panel">
         <figcaption>Numbers panel showing page numbering controls</figcaption>
     </figure>
 
-    <p>The Effective page is the page number Podium displays in the layout's margins. This can be different from the page's 1-based sequence number. It is determined by combining the sequential page index (1st page, 2nd page, etc.) with these two settings:</p>
+    <p>Every page in a score has two numbers: its sequential position (1st, 2nd, 3rd...) and its displayed page number. Podium shows the displayed page number in the layout margins, which you configure using two settings:</p>
 
-    <p><strong>First Page Number:</strong> the number to assign to the first non-preliminary page. Normally 1, but this often does not match the page number in the PDF, if any. For example, when sections of a larger score are converted to PDF, the first sequential page index in the PDF file might well display a page number other than 1. This is especially problematic when the PDF has a table of contents or other preliminary material, because the page references don't align with sequential page indices.</p>
+    <p><strong>Roman pages:</strong> How many pages at the beginning of the score should be numbered with lowercase Roman numerals (i, ii, iii...). Typically used for front matter such as title pages, table of contents, and introductory material.</p>
 
-    <p><strong>Preliminary pages:</strong> The number of preliminary pages (title page, contents, copyright, and other introductory material). Podium adopts the convention that such pages are displayed using lower-case Roman numerals.</p>
+    <p><strong>First Page Number:</strong> What number to display on the first non-Roman page. This allows you to match page numbers from the original score.</p>
 
-    <p>The Numbers panel's First Page Number and Prelim (Roman) Pages sliders allow you to correct for such mismatches. To illustrate, the following layout shows an excerpt from Bach's first Cello Suite. Though the page's sequential indices are 1, 2, and 3, the first numbered page (i.e. the middle page in the layout) is numbered 69 in the PDF. To align the effective page numbers with the PDF, set the First Page Number value to 69, and set the "Prelim (Roman) Pages" value to 1. Accordingly, Podium displays the roman numeral i in the left pager, and the arabic number 69 in the right pager. The Panel reports the current page (i.e. the leftmost page) as Roman number i, and that this is sequential index number 1 out of a total page count of 37.</p>
+    <p>In the screenshot example:</p>
+    <ul>
+        <li>The score has 5 pages in sequential positions 1-5</li>
+        <li>Roman pages = 2, so positions 1-2 display as i, ii</li>
+        <li>First Page Number = 143, so position 3 displays as 143</li>
+        <li>Positions 4-5 continue as 144, 145</li>
+        <li>Final result: i, ii, 143, 144, 145</li>
+    </ul>
 
-    <h4>Keyboard Shortcuts:</h4>
+    <p>This is useful when working with excerpts from larger scores. Here, you might have extracted a title page, table of contents, and pages 143-145 from a complete work. The numbering scheme preserves the original page references.</p>
+
+    <h4>Footpedal Keys:</h4>
+
+    <p>These controls are designed for Bluetooth footpedal page turners commonly used by musicians. Since footpedals are simply specialized keyboards with only a few keys, these commands work equally well with regular computer keyboards.</p>
 
     <p>You can assign one shortcut to the up or right cursor arrow keys, and one to the left or down cursor arrow keys. Tap the appropriate button to determine if an up or right key press will navigate to the next page, or instead navigate to the next bookmark. Similarly, choose the appropriate button to determine if the left or down keys will navigate to the previous page, or navigate to the previous bookmark.</p>
 
-    <div class="note">These keyboard shortcuts are helpful for reading scores that have repeats spanning several pages. Set a bookmark on the page containing the beginning of the repeated section, then configure the right or up arrow keys to Pages, and the left or down arrow key to Marks. Play through the repeat, using the right arrow key (or its foot pedal equivalent) to navigate forward through the following pages. Then, when you reach the end of the repeated section, use the left arrow key to immediately flip back to the beginning of the repeat.</div>
+    <div class="tip">The usual usage is to page forward or backward through the score. However, the ability to navigate forward or backward through bookmarks is a particularly helpful feature for reading scores with repeats spanning several pages. Set a bookmark on the page containing the beginning of the repeated section, then configure the right or up arrow keys to Pages, and the left or down arrow key to Marks. Play through the repeat, using the right arrow key (or its foot pedal equivalent) to navigate forward through the following pages. Then, when you reach the end of the repeated section, use the left arrow key to immediately flip back to the beginning of the repeat.</div>
 
     <h3 id="chapter-5-add">Page Ring: Add</h3>
 
     <p>Configure the appearance of new pages added to the score.</p>
 
     <figure>
+        <img src="assets/pageadd.jpg" alt="Add Panel">
         <figcaption>Add panel configuration</figcaption>
     </figure>
 
@@ -1280,10 +1293,11 @@ function closeVideo(event, container) {
         <li>Tap on the double circle to launch a slider that sets the page's opacity.</li>
     </ul>
 
-    <h4>To configure the content of added pages:</h4>
+    <h4>To set the size of added pages:</h4>
     <ul>
-        <li>Select type <strong>Blank</strong> to add blank pages.</li>
-        <li>Select the <strong>Title Type</strong> to add a page that is pre-populated with score metadata. Each metadata field is actually an annotation object, and can be edited after selecting it with the Transform tool of the Ink Ring.</li>
+        <li><strong>Match Score (default):</strong> Added pages will have the maximum page width and height of all pages in the score. See the <a href="#chapter-2-info">Score Ring: Info Panel</a> for an explanation of expand vs center options.</li>
+        <li><strong>Standard Size:</strong> Choose from standard paper sizes (Letter, Legal, A4, etc.).</li>
+        <li><strong>Custom Size:</strong> Specify custom dimensions for added pages.</li>
     </ul>
 
     <h3 id="chapter-5-delete">Page Ring: Delete</h3>
@@ -1300,7 +1314,9 @@ function closeVideo(event, container) {
 
     <p>Undo the last page operation.</p>
 
-    <p>To undo a page operation (delete, copy, or paste), activate the Undo cell. The most recent operation will be immediately reversed. The Page Ring maintains a limited undo history of recent operations.</p>
+    <p>To undo a page operation (delete or paste), activate the Undo cell. The most recent operation will be immediately reversed. The Page Ring maintains an undo history of the last 10 operations.</p>
+
+    <div class="note">Copy operations cannot be undone. Undo does not modify the paste buffer—if you undo a paste operation, the pasted page remains available in the buffer for pasting again.</div>
 
     <div class="note">Unlike the Ink Ring's per-page undo stack, the Page Ring undo operates on page-level operations across the entire score.</div>
 
@@ -1310,15 +1326,39 @@ function closeVideo(event, container) {
 
     <p>To copy a page, activate the Copy cell, then tap the page you wish to copy. The page is placed in a paste buffer where it can be pasted into the current score or into a different score opened in another browser window or tab.</p>
 
-    <p>The paste buffer preserves both the page content and all annotations, allowing you to duplicate complex pages with all their markup intact.</p>
+    <p>You can copy multiple pages sequentially—each copied page is added to the paste buffer in the order you copy them. The paste buffer preserves both the page content and all annotations, allowing you to duplicate complex pages with all their markup intact.</p>
+
+    <p>See <a href="#chapter-5-paste">Page Ring: Paste</a> for complete details about the paste buffer's capabilities and management.</p>
 
     <h3 id="chapter-5-paste">Page Ring: Paste</h3>
 
-    <p>Insert a previously copied page at a new location.</p>
+    <p>Insert pages from the paste buffer into the current score.</p>
 
-    <p>To paste a page from the paste buffer, activate the Paste cell, then tap on a score page. If the tap is on the left side of the page, the copied page is inserted before the tapped page, else it is inserted after. (For Vertical Layout only: tap above the middle of the score page to insert before, or below the middle to insert after).</p>
+    <figure>
+        <img src="assets/pagepaste.jpg" alt="Paste Panel">
+        <figcaption>Paste panel showing paste buffer with multiple pages</figcaption>
+    </figure>
 
-    <p>You can paste the same copied page multiple times, and you can paste pages between different scores by opening Podium in multiple browser windows or tabs.</p>
+    <p>The page paste buffer has superpowers! Behind the scenes, it's actually a separate PDF file consisting of all the pages you've cut or copied, in the order you cut or copied them. When you activate the Paste cell and touch a page, this PDF file is merged into the current score—before the page if you click on the left half (top half for Vertical Layout), or after the page if you click on the right half (bottom half for Vertical Layout).</p>
+
+    <p>The Paste Panel shows you a horizontally draggable view of thumbnails of this separate PDF file, along with two management buttons:</p>
+
+    <ul>
+        <li><strong>Undo:</strong> Removes the most recently copied page from the paste buffer. This does not affect the current score—use the Delete cell if you want to remove pages from the score itself.</li>
+        <li><strong>Clear:</strong> Completely empties the paste buffer, removing all pages at once.</li>
+    </ul>
+
+    <h4>Cross-Instance Sharing:</h4>
+
+    <p>The paste buffer is shared by all instances of Podium running in any browser tab or window. It persists even if you close a score and reopen another in the same tab, or close and restart the browser entirely. This makes it easy to work with pages across multiple scores simultaneously.</p>
+
+    <div class="note"><strong>Privacy Note:</strong> If you share a browser with others and are concerned with privacy, you should clear the paste buffer after your Podium session. You can use the Clear button in the Paste Panel, or clear it from the <a href="#chapter-6-help-storage">More Ring: Help panel's Storage tab</a> by clicking the Buffer button.</div>
+
+    <h4>Primary Use Case: Practice Scores</h4>
+
+    <p>Create your own custom practice scores by extracting pages from all the scores you're currently practicing into one combined score. This reduces the chore of opening and closing multiple files during practice sessions.</p>
+
+    <div class="note"><strong>Performance Note:</strong> Copying pages between PDFs is very compute intensive, as the PDF format was not designed for this type of operation. It's best not to fill the paste buffer with too many pages at once, or the system will become very slow.</div>
 
     <h3 id="chapter-5-merge">Page Ring: Merge</h3>
 
@@ -1332,7 +1372,11 @@ function closeVideo(event, container) {
 
     <p>Activate the Merge cell, then tap a page to merge its overlay layer into the background layer. The operation converts all of the page's Ink objects into PDF objects, then incorporates these objects into the background layer [courtesy of the open-source pdf-lib library]. After that, these merged objects can no longer be selected or edited: they have become an integral part of the score's PDF content.</p>
 
-    <p>Merges are often very useful. For example, suppose you've used the Ink Ring's Rastrum tool to draw a staff on a page, and you want to use the Pencil and Pen tools to draw on that staff. The drawing will be much easier to edit if you first Merge the staff into the background layer. That way, you'll be able to perform edits without accidentally selecting and editing the staff itself.</p>
+    <h4>Common Use Cases:</h4>
+
+    <p><strong>Preventing accidental edits:</strong> Suppose you've used the Ink Ring's Rastrum tool to draw a staff on a page, and you want to use the Pencil and Pen tools to draw on that staff. The drawing will be much easier to edit if you first Merge the staff into the background layer. That way, you'll be able to perform edits without accidentally selecting and editing the staff itself.</p>
+
+    <p><strong>Creating manuscript paper:</strong> You can create custom manuscript paper by using Ink annotations to design the page layout, then merging them to make them permanent. Use the <a href="#chapter-4-rastrum">Rastrum tool</a> to draw staves, add <a href="#chapter-4-symbols">Symbols</a> for clefs if desired, and use the <a href="#chapter-4-grid">Grid</a> for proper alignment. Once everything is positioned correctly, merge all these annotations so they become an integral part of the page. You can then copy this page to create multiple pages of custom manuscript paper, or use it as a template for your compositions.</p>
 
     <div class="note">Because a merge operation cannot be undone, you'll be prompted to confirm before the operation is performed.</div>
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
@@ -1470,13 +1514,24 @@ function closeVideo(event, container) {
 
     <h3 id="chapter-6-help">More Ring: Help</h3>
 
-    <p>A tabbed panel with 4 tabs:</p>
+    <p>A tabbed panel with 5 tabs:</p>
 
     <ul>
         <li><strong>Help:</strong> contains a link to this document.</li>
         <li><strong>Credits:</strong> lists of the open source projects used to build Podium.</li>
         <li><strong>License:</strong> copyright and license declaration (GNU Affero General Public License)</li>
-        <li><strong>About:</strong> shows the application's version number, and the Factory Reset buttons</li>
+        <li><strong>Storage:</strong> <span id="chapter-6-help-storage">manage browser storage including the paste buffer, menu settings, and recent files list</span></li>
+        <li><strong>About:</strong> shows the application's version number</li>
+    </ul>
+
+    <h4>Storage Tab:</h4>
+
+    <p>The Storage tab provides buttons to manage Podium's browser storage:</p>
+
+    <ul>
+        <li><strong>Buffer:</strong> Clears the page paste buffer. Use this for privacy if you share a browser with others (see <a href="#chapter-5-paste">Page Ring: Paste</a> for details).</li>
+        <li><strong>Menu:</strong> Resets all Panel settings to their default values.</li>
+        <li><strong>Recent:</strong> Clears the Recent Files list from local storage.</li>
     </ul>
 
     <h4>Settings Storage and Factory Reset:</h4>
@@ -1489,12 +1544,7 @@ function closeVideo(event, container) {
 
     <p>The Open Panel's list of Recently opened scores is also saved to the browser's local storage whenever it changes. However, this list is kept in the browser's local storage only. Unlike Panel settings, it is never stored within the score. This is because Local files on one device are unlikely to be the same as local files on another device.</p>
 
-    <p>The Menu's state, as well as the Recent list, can be reset to their initial values by tapping the appropriate Factory Reset button:</p>
-
-    <ul>
-        <li><strong>Menu:</strong> tapping this returns all Panel settings to their default values.</li>
-        <li><strong>Recent:</strong> tapping this button clears the Recent Files list from local storage.</li>
-    </ul>
+    <p>You can clear stored settings and data using the buttons in the Storage tab described above.</p>
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
