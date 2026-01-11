@@ -1377,7 +1377,7 @@ class NumbersPanel extends Panel {
     let score = _score_;
 
     let formatPn = () => {
-      return `Page: ${pnToString(_score_.numbers.pn + score.numbers.first - 1)} 
+      return `Page: ${pnToString(_score_.numbers.pn)} 
       (${_score_.numbers.pn} / ${score.pgs.length})`;
     };
 
@@ -1387,7 +1387,7 @@ class NumbersPanel extends Panel {
       prelim: {min: 0, max: 100,value: _score_.numbers.prelim,step: 1,
         msg: () => `Roman: ${_score_.numbers.prelim}`,throttle: 500 },
       first: { min: 1, max: 1000, value: _score_.numbers.first, step: 1,
-        msg: () => `First #: ${_score_.numbers.first}`,throttle: 500},
+        msg: () => `First: ${_score_.numbers.first}`,throttle: 500},
     };
     this.pnSliderGroup = new SliderGroup(
        _score_.numbers,
