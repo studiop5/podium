@@ -137,9 +137,8 @@ Dropbox:
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-35.3175 -50 306.085 300"><defs id="defs112"><style id="style110">.cls-1{fill:#0061ff}</style></defs><path id="polygon116" class="cls-1" d="M58.86 75l58.87-37.5L58.86 0 0 37.5z"/><path id="polygon118" class="cls-1" d="M176.59 75l58.86-37.5L176.59 0l-58.86 37.5z"/><path id="polygon120" class="cls-1" d="M117.73 112.5L58.86 75 0 112.5 58.86 150z"/><path id="polygon122" class="cls-1" d="M176.59 150l58.86-37.5L176.59 75l-58.86 37.5z"/><path id="polygon124" class="cls-1" d="M176.59 162.5L117.73 125l-58.87 37.5 58.87 37.5z"/></svg>`,
 
 Dark:
-  `<path fill="currentColor" d="M 16,6 A 7,7 0 0 0 9,13 A 7,7 0 0 0 16,20 A 7,7 0 0 0 21,18.5 A 8,8 0 0 1 13,12 A 8,8 0 0 1 16,6 Z"/>
-   <circle fill="currentColor" cx="5" cy="5" r="0.7"/>
-   <circle fill="currentColor" cx="7" cy="8" r="0.5"/>`,
+  `<circle fill="currentColor" cx="12" cy="12" r="4"/>
+   <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M12,2.5v2M12,19.5v2M21.5,12h-2M4.5,12h-2M18.4,5.6l-1.4,1.4M7,17l-1.4,1.4M18.4,18.4l-1.4-1.4M7,7L5.6,5.6"/>`,
 
 Expand:
   `<rect x="2" y="2" width="20" height="20" fill="#aaa" stroke="currentColor" stroke-width="0.6"/>
@@ -208,8 +207,9 @@ Layout:
   `<path fill="none" stroke="currentColor" stroke-width="0.8" d="m 12.1,1.82 v 2.13 m 0,8.35 v 3.9 M 16.8,11 A 3.88,4.91 86.2 0 1 11.9,14.3 3.88,4.91 86.2 0 1 7.09,11.1 M 11.4,8.08 C 10.3,7.89 9.88,6.88 9.99,5.76 10.1,4.65 11.1,3.81 12.2,3.84 c 1.1,0 2,0.92 2.1,2.04 0,1.11 -0.4,2 -1.5,2.13 M 4.97,21 12.2,7.03 19.8,21"/>`,
 
 Light:
-  `<circle fill="currentColor" cx="12" cy="12" r="4"/>
-   <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M12,2.5v2M12,19.5v2M21.5,12h-2M4.5,12h-2M18.4,5.6l-1.4,1.4M7,17l-1.4,1.4M18.4,18.4l-1.4-1.4M7,7L5.6,5.6"/>`,
+  `<path fill="currentColor" d="M 16,6 A 7,7 0 0 0 9,13 A 7,7 0 0 0 16,20 A 7,7 0 0 0 21,18.5 A 8,8 0 0 1 13,12 A 8,8 0 0 1 16,6 Z"/>
+   <circle fill="currentColor" cx="5" cy="5" r="0.7"/>
+   <circle fill="currentColor" cx="7" cy="8" r="0.5"/>`,
 
 Local:
   `<path fill-rule="evenodd" fill="#aaa" stroke="currentColor" stroke-width="1.2" d="m 6.22,13.5 v 2.8 M 5.39,13.5 v 2.8 M 6.35,5.65 V 8.47 M 5.5,5.66 v 2.85 m 5.4,3.99 -2.03,2 m 7.43,-7.19 -2,2 m -0.2,3.19 2,2 M 8.87,7.29 10.9,9.25 m 3.7,1.55 a 2.09,2.22 0 0 1 -2.1,2.2 2.09,2.22 0 0 1 -2.1,-2.2 2.09,2.22 0 0 1 2.1,-2.22 2.09,2.22 0 0 1 2.1,2.22 m -9.51,9.5 v 1.8 h 2.2 V 20.3 M 5.97,4.49 H 19 V 17.8 H 5.73 Z M 3.57,20.1 V 2.13 H 21.5 V 20.2 Z m 14.23,0.2 v 1.8 H 20 v -1.8" />`,
