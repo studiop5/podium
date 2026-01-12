@@ -1392,21 +1392,32 @@ function closeVideo(event, container) {
         <figcaption>More Ring menu cells</figcaption>
     </figure>
 
-    <ul>
-        <li>Animated Metronome</li>
-        <li>Stopwatch with splits</li>
-        <li>Wall clock with date</li>
-        <li>Piano with tuning features and pitch detector</li>
-        <li>Review tool: camera and waveform/spectrogram with instant replay</li>
-        <li>Volume slider</li>
-        <li>Help panel with three tabs: Help, Open Source Credits, About</li>
-    </ul>
+    <h3>More Ring Tools:</h3>
+
+    <p><strong>Metronome:</strong> Animated metronome with simulated conductor patterns.</p>
+
+    <p><strong>Stopwatch:</strong> Practice timer with split times for tracking practice sessions.</p>
+
+    <p><strong>Clock:</strong> Wall clock displaying current time and date.</p>
+
+    <p><strong>Piano:</strong> Playable piano keyboard with tuning features and pitch detection.</p>
+
+    <p><strong>Review:</strong> Audio/video recording with waveform/spectrogram display and instant replay.</p>
+
+    <p><strong>Volume:</strong> Master volume control slider for all audio playback.</p>
+
+    <p><strong>Theme:</strong> Toggle between light and dark display themes.</p>
+
+    <p><strong>Help:</strong> Documentation, credits, license information, storage management, and application version.</p>
+
+    <div class="note">Since all More Ring cells exist solely to provide panels, the touch action automatically opens the panel and positions it near its icon for convenient access.</div>
 
     <h3 id="chapter-6-detached">More Ring: Detached Panels</h3>
 
     <p>Simplify layout by detaching panel contents.</p>
 
     <figure>
+        <img src="assets/moredetach.jpg" alt="Detached panels">
         <figcaption>Detached panels on background</figcaption>
     </figure>
 
@@ -1423,14 +1434,24 @@ function closeVideo(event, container) {
     <p>Animated metronome with simulated conductor.</p>
 
     <figure>
+        <img src="assets/moremetronome.jpg" alt="Metronome panel">
         <figcaption>Metronome panel with conducting pattern</figcaption>
     </figure>
 
+    <p>Use the buttons to play/pause the metronome and the slider to set beats per minute.</p>
+
     <p>Use the dropdown list to change graphic from traditional metronome to conducting pattern, with six different beat patterns.</p>
 
-    <p>While detached, long-press to play/pause.</p>
+    <figure>
+        <img src="assets/moremetronomeopts.jpg" alt="Metronome dropdown options">
+        <figcaption>Metronome display options</figcaption>
+    </figure>
 
-    <p>While detached, tap on the metronome at the desired speed to set its tempo.</p>
+    <p>When the metronome is detached, the tempo is displayed on the pattern itself. In the diagram above, the left pattern shows 60 bpm and displays a fermata symbol indicating it is paused, while the right pattern shows 167 bpm and is actively playing.</p>
+
+    <p>While detached, long-press to play/pause. You can change the tempo by tapping on the pattern at the desired frequency.</p>
+
+    <div class="note">Hiding the panel by flinging (detached or not) keeps the metronome playing in the background. To stop and close the metronome, click the X button—this effectively deletes the panel. The next time you drag out the Metronome cell, the panel is recreated from scratch.</div>
 
     <div class="note">The conducting patterns are experimental: due to the complexity of the animation, expect some misalignment of the pattern and the animation, particularly on slower devices, and at faster tempos.</div>
 
@@ -1439,46 +1460,54 @@ function closeVideo(event, container) {
     <p>Timer for your practice sessions.</p>
 
     <figure>
+        <img src="assets/morestopwatch.jpg" alt="Stopwatch panel">
         <figcaption>Stopwatch panel showing controls and split times</figcaption>
     </figure>
 
-    <ul>
-        <li>Tap to start/stop</li>
-        <li>Tap to record Split</li>
-        <li>Tap to Reset</li>
-        <li>Drag to resize split readout</li>
-    </ul>
+    <p>The stopwatch displays split times with the latest split first. If the list scrolls off the panel, drag the lower right corner to resize the panel.</p>
+
+    <p>The stopwatch is fully functional when detached: touch the middle button to start/stop, the left button to reset, and the right button to record a split. To see the split times, you'll need to view the whole panel—simply drag out from the menu cell again.</p>
+
+    <div class="note">Hiding the panel by flinging (detached or not) keeps the stopwatch running in the background. To stop and close the stopwatch, click the X button—this effectively deletes the panel. The next time you drag out the Stopwatch cell, the panel is recreated from scratch.</div>
 
     <h3 id="chapter-6-piano">More Ring: Piano</h3>
 
     <p>Playable piano keyboard with tuning and pitch detection features.</p>
 
     <figure>
-        <figcaption>Piano keyboard with controls, pitch detector display, and settings panel</figcaption>
+        <img src="assets/morepiano.jpg" alt="Piano panel">
+        <figcaption>Piano keyboard with controls</figcaption>
     </figure>
 
     <p>Drag left↔right from the 8va button to widen/narrow keyboard range to a maximum of F1-F6, or minimum of E3-A4.</p>
 
     <div class="note">Piano samples make up a significant portion of Podium's download size. For this reason, the maximum keyboard size is limited to 5 octaves, a common size for an 18th century harpsichord or pianoforte. Samples have been truncated and down-sampled, reducing size while maintaining (hopefully) acceptable audio quality.</div>
 
-    <p><strong>Tuning Mode:</strong> Tap the Tuning Mode button to toggle tuning mode. When enabled, key presses automatically repeat every 2.5 seconds (5 seconds for Tuning Fork timbre, see Settings:Timbre below), as an aid to tuning.</p>
+    <p><strong>Sustain Mode:</strong> Identified by the standard piano pedal symbol. In sustain mode, notes continue to sound even after the key is released. Note however that piano notes only last for a maximum of a little over 2 seconds—Podium is not a sophisticated audio workstation.</p>
 
-    <div class="note">For traditional tuning using the "beats" method, use Tuning Mode with Tuning Fork timbre. For electronic tuning assistance, use the Pitch Detector described below.</div>
+    <p><strong>Autorepeat Mode:</strong> Tap the Autorepeat Mode button to toggle autorepeat mode. When enabled, key presses automatically repeat every 2.5 seconds (5 seconds for Tuning Fork timbre, see Settings:Timbre below), as an aid to tuning.</p>
 
-    <p><strong>Pitch Detector:</strong> Tap the Pitch Detector button to toggle the pitch detection display. When active, the detector analyzes audio from your device's microphone and displays:</p>
-    <ul>
-        <li>The detected pitch as a note name overlaid on the corresponding piano key</li>
-        <li>The deviation from equal temperament shown below as +/− cents</li>
-    </ul>
-    <p>The pitch detector uses the YIN algorithm for accurate fundamental frequency estimation. This is helpful for tuning acoustic instruments or checking intonation.</p>
+    <div class="note">For traditional tuning using the "beats" method, use Autorepeat Mode with Tuning Fork timbre. For electronic tuning assistance, use the Pitch Detector described below.</div>
+
+    <p><strong>Pitch Detector:</strong> Identified by a tuning fork icon. Tap the Pitch Detector button to toggle pitch detection on/off. When on, a <a href="https://asa.scitation.org/doi/10.1121/1.1458024">YIN-based pitch detector</a> attempts to estimate the closest piano note to what it hears in the microphone. It overlays a whole note on the corresponding key, plus shows the number of cents deviation from that key's expected pitch. The expected pitch is affected by the Settings Pitch setting (see below), but not by the Temperament setting—i.e., it's the deviation from equal tempered tuning regardless of Temperament setting.</p>
+
+    <figure>
+        <img src="assets/morepianodetect.jpg" alt="Piano pitch detector">
+        <figcaption>Pitch detector showing detected note and cents deviation</figcaption>
+    </figure>
 
     <p><strong>Settings:</strong> Tap the Toggle Settings button to toggle the Settings Panel on/off. Once open, you can close it by flinging. This internal panel is always enclosed by the keyboard: drag horizontally to reposition. It has 3 tabs:</p>
 
     <ul>
-        <li><strong>Pitch:</strong> Set the desired frequency of A4 using the slider, or choose any of the 7 presets.</li>
-        <li><strong>Temperament:</strong> Choose the desired temperament.</li>
-        <li><strong>Timbre:</strong> use the slider to set the maximum number of voices. Select the timbre: Piano or Tuning Fork (i.e. pure Sine Wave).</li>
+        <li><strong>Pitch:</strong> Adjust the frequency of the entire keyboard by setting the frequency, in Hz, of A4. Several common options are provided as presets, with web links to explanations.</li>
+        <li><strong>Temperament:</strong> Retune the piano to several historical tunings in addition to the default equal temperament.</li>
+        <li><strong>Timbre:</strong> Specify the use of the included <a href="https://github.com/sfzinstruments/SalamanderGrandPiano">Yamaha C5 samples</a> or a synthesized sine wave (effectively a tuning fork) for tuning use. Also includes a slider to control the maximum number of notes (voices) that can be played at once—maximum 16.</li>
     </ul>
+
+    <figure>
+        <img src="assets/morepianooptions.jpg" alt="Piano settings panel">
+        <figcaption>Piano settings showing Pitch, Temperament, and Timbre tabs</figcaption>
+    </figure>
 
     <div class="note">Several options include links to explanatory web articles. When choosing an option, avoid tapping on these links.</div>
 
