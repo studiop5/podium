@@ -253,12 +253,14 @@
         .layout-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            max-width: 100%;
+            gap: 3px;
+            width: 90%;
+            max-width: 90%;
         }
 
         .layout-grid img {
             width: 100%;
+            max-width: 100%;
             height: auto;
             border-radius: 4px;
             border: 1px solid #ddd;
@@ -382,7 +384,7 @@ function closeVideo(event, container) {
     <img src="assets/podium-icon.jpg" alt="Podium icon">
 </div>
 
-<div class="version">Version 1.2</div>
+<div class="version">Version 2.0</div>
 
 <nav id="toc">
     <h2>Table of Contents</h2>
@@ -623,8 +625,10 @@ function closeVideo(event, container) {
 
     <figure>
         <img src="assets/quickpage.jpg" alt="Page Ring with table layout">
-        <figcaption>Screenshot showing Table layout with Page Ring active for page management (dark theme)</figcaption>
+        <figcaption>Screenshot showing Table layout with Page Ring active for page management</figcaption>
     </figure>
+
+    <div class="note"><strong>Quick tip:</strong> In Table layout, you can reorder pages by simply dragging them to a new location—other pages will split apart to show where the page will be inserted. You can also delete pages by dragging them completely out of the layout. This direct manipulation is often faster than using Page Ring tools!</div>
 
     <p><a href="#chapter-5" class="chapter-link">See Chapter 5: Page Ring</a> for complete page management features</p>
 
@@ -1006,9 +1010,9 @@ function closeVideo(event, container) {
 
     <p><strong>Bookmarks:</strong> Long-press on a page to both make it current and toggle its bookmark state (add bookmark if none exists, remove bookmark if one already exists).</p>
 
-    <p><strong>Reordering pages:</strong> You can easily reorder pages by dragging them to a new location in the table. This provides a visual way to reorganize your score.</p>
+    <p><strong>Reordering pages:</strong> Touch-drag a page to a new location. As you drag the page across the layout, other pages will split apart showing you where the page will be inserted if you release the drag. This effect works best when pages are not too extensively overlapped using negative values for the Vertical and Horizontal Gap sliders in the Layout Panel.</p>
 
-    <p><strong>Deleting pages:</strong> You can quickly delete pages by dragging them out of the table. This is faster than using the Page Ring Cut operation for removing unwanted pages.</p>
+    <p><strong>Deleting pages:</strong> Dragging pages out of the layout deletes them from the score. This can also be accomplished using the Delete cell of the menu's Page Ring.</p>
 
     <div class="note">To ease memory usage, the Table Layout shows low-resolution copies of all pages except the current page. These copies must all be generated before the Table Layout can be drawn: this may take several seconds to several minutes, depending on the score size.</div>
 
@@ -1339,7 +1343,7 @@ function closeVideo(event, container) {
         <figcaption>Paste panel showing paste buffer with multiple pages</figcaption>
     </figure>
 
-    <p>The page paste buffer has superpowers! Behind the scenes, it's actually a separate PDF file consisting of all the pages you've cut or copied, in the order you cut or copied them. When you activate the Paste cell and touch a page, this PDF file is merged into the current score—before the page if you click on the left half (top half for Vertical Layout), or after the page if you click on the right half (bottom half for Vertical Layout).</p>
+    <p>The page paste buffer has superpowers! Behind the scenes, it's actually a separate PDF file consisting of all the pages you've copied, in the order you copied them. When you activate the Paste cell and touch a page, this PDF file is merged into the current score—before the page if you click on the left half (top half for Vertical Layout), or after the page if you click on the right half (bottom half for Vertical Layout).</p>
 
     <p>The Paste Panel shows you a horizontally draggable view of thumbnails of this separate PDF file, along with two management buttons:</p>
 
@@ -1427,7 +1431,7 @@ function closeVideo(event, container) {
 
     <p>To hide a detached panel, simply fling it.</p>
 
-    <p>To close, drag the panel from the menu again, then tap the panel's x close button.</p>
+    <p>To close and delete a detached panel, drag out the panel from the menu again, then tap the panel's X button.</p>
 
     <h3 id="chapter-6-metronome">More Ring: Metronome</h3>
 
@@ -1440,7 +1444,7 @@ function closeVideo(event, container) {
 
     <p>Use the buttons to play/pause the metronome and the slider to set beats per minute.</p>
 
-    <p>Use the dropdown list to change graphic from traditional metronome to conducting pattern, with six different beat patterns.</p>
+    <p>Use the dropdown list to change the graphic from traditional metronome to conducting pattern, with six different beat patterns.</p>
 
     <figure>
         <img src="assets/moremetronomeopts.jpg" alt="Metronome dropdown options">
@@ -1485,18 +1489,20 @@ function closeVideo(event, container) {
 
     <p><strong>Sustain Mode:</strong> Identified by the standard piano pedal symbol. In sustain mode, notes continue to sound even after the key is released. Note however that piano notes only last for a maximum of a little over 2 seconds—Podium is not a sophisticated audio workstation.</p>
 
-    <p><strong>Autorepeat Mode:</strong> Tap the Autorepeat Mode button to toggle autorepeat mode. When enabled, key presses automatically repeat every 2.5 seconds (5 seconds for Tuning Fork timbre, see Settings:Timbre below), as an aid to tuning.</p>
+    <p><strong>Autorepeat Mode:</strong> Tap the Autorepeat Mode button to toggle autorepeat mode. When enabled, key presses automatically repeat at intervals (2.5 seconds for piano samples, 5 seconds for tuning fork timbre—see Settings:Timbre below), allowing you to hear sustained notes for easier tuning.</p>
 
     <div class="note">For traditional tuning using the "beats" method, use Autorepeat Mode with Tuning Fork timbre. For electronic tuning assistance, use the Pitch Detector described below.</div>
 
-    <p><strong>Pitch Detector:</strong> Identified by a tuning fork icon. Tap the Pitch Detector button to toggle pitch detection on/off. When on, a <a href="https://asa.scitation.org/doi/10.1121/1.1458024">YIN-based pitch detector</a> attempts to estimate the closest piano note to what it hears in the microphone. It overlays a whole note (semibreve) on the corresponding key, plus shows the number of cents deviation from that key's expected pitch. The expected pitch is affected by the Settings Pitch setting (see below), but not by the Temperament setting—i.e., it's the deviation from equal tempered tuning regardless of Temperament setting.</p>
+    <p><strong>Pitch Detector:</strong> Identified by a tuning fork icon. Tap the Pitch Detector button to toggle pitch detection on/off. When on, a <a href="https://asa.scitation.org/doi/10.1121/1.1458024">YIN-based pitch detector</a> attempts to estimate the closest piano note to what it hears in the microphone. It overlays a whole note (semibreve) on the corresponding key, plus shows the number of cents deviation from that key's expected pitch. The opacity of the whole note reflects the algorithm's confidence—the symbol becomes more transparent as confidence decreases. The expected pitch is affected by the Settings Pitch setting (see below), but not by the Temperament setting—i.e., it's the deviation from equal tempered tuning regardless of Temperament setting.</p>
+
+    <div class="note">The pitch detector is monophonic—it works best with a single note at a time. When multiple pitches or unpitched sounds (such as speech or noise) are present in the microphone input, the detector will produce unreliable results.</div>
 
     <figure>
         <img src="assets/morepianodetect.jpg" alt="Piano pitch detector">
         <figcaption>Pitch detector showing detected note and cents deviation</figcaption>
     </figure>
 
-    <p><strong>Settings:</strong> Tap the Toggle Settings button to toggle the Settings Panel on/off. Once open, you can close it by flinging. This internal panel is always enclosed by the keyboard: drag horizontally to reposition. It has 3 tabs:</p>
+    <p><strong>Settings:</strong> Tap the Settings button to open/close the Settings Panel. Once open, you can close it by flinging. This internal panel is always enclosed by the keyboard: drag horizontally to reposition. It has 3 tabs:</p>
 
     <ul>
         <li><strong>Pitch:</strong> Adjust the frequency of the entire keyboard by setting the frequency, in Hz, of A4. Several common options are provided as presets, with web links to explanations.</li>
@@ -1509,24 +1515,37 @@ function closeVideo(event, container) {
         <figcaption>Piano settings showing Pitch, Temperament, and Timbre tabs</figcaption>
     </figure>
 
-    <div class="note">Several options include links to explanatory web articles. When choosing an option, avoid tapping on these links.</div>
+    <div class="note">Most options include links to explanatory web articles. To select an option, tap the option name itself rather than the link.</div>
 
     <h3 id="chapter-6-review">More Ring: Review</h3>
 
     <p>Record audio/video with instant replay.</p>
 
-    <figure>
-        <figcaption>Review panel showing video/waveform display</figcaption>
-    </figure>
+    <div class="note">If Podium does not find a usable camera and microphone, this tool will not run.</div>
 
-    <p>Monitor a device's camera and microphone, with instant replay of the last ~30 seconds (configurable). Optionally view Video or audio waveform, overlaid on a waterfall spectrogram.</p>
+    <p>Monitor a device's camera and microphone, with instant replay of the last ~30 seconds (configurable).</p>
 
     <div class="note">The tool is designed for interactive use only. By design, its recordings are transient and discarded when the tool is closed.</div>
 
+    <p>The Review panel has three tabs:</p>
+
+    <h4>Video Tab:</h4>
+    <p>Displays live video from your camera with playback controls.</p>
+
+    <figure>
+        <img src="assets/morereviewvideo.jpg" alt="Review video tab">
+        <figcaption>Review panel Video tab showing live camera feed with playback controls</figcaption>
+    </figure>
+
+    <p>The Review tool records you continuously while practicing/rehearsing. If you make a mistake (or do something great!) you can immediately replay the moment for analysis.</p>
+
+    <p>You can let the Review run for hours without worrying about running out of memory. Behind the scenes, Podium maintains two alternating recordings of a configurable maximum length (typically 30 seconds to a few minutes). When the first recording reaches half its length, the second starts. When the second reaches half its length, the first is discarded and restarted, and so on. This ensures at least half the maximum recording length is always available for review.</p>
+
+    <div class="note">Although this prevents your system from consuming memory, it can use a lot of battery, so works best if your device is plugged in to a power supply rather than running off battery.</div>
+
     <p>At any time, the tool will be in one of two modes:</p>
 
-    <h4>Live Mode:</h4>
-    <p>Audio and video are continuously recorded, and the Play button's text label is Live. When the recording length reaches a preset maximum, the first half of the recording is discarded, but recording continues. You'll always have at least half of the preset maximum available for replay.</p>
+    <p><strong>Live Mode:</strong> Audio and video are continuously recorded, and the Play button displays "Live". As described above, when the recording reaches the preset maximum, older content is automatically discarded while recording continues.</p>
 
     <p>Pause recording by tapping the Pause button, and resume by tapping the Play button (labeled Live).</p>
 
@@ -1534,46 +1553,89 @@ function closeVideo(event, container) {
 
     <p>To enter Playback mode, drag the scrubber to the left. Playback begins at the chosen location.</p>
 
-    <h4>Playback Mode:</h4>
-    <p>Recorded audio and video are played back, and the Play button's text label is "Replay".</p>
+    <p><strong>Playback Mode:</strong> Recorded audio and video are played back, and the Play button's text label is "Replay".</p>
 
     <p>Pause playback by tapping the Pause button, and resume by tapping the Play Button (labeled Replay).</p>
 
     <p>To reenter Live mode, drag the scrubber to the right, or simply wait until Playback ends. Then tap the Play Button to restart recording. Any previous recording will be lost.</p>
 
-    <h3 id="chapter-6-help">More Ring: Help</h3>
+    <h4>Waveform Tab:</h4>
+    <p>Displays the waveform of the input from the microphone overlaid on a waterfall spectrum. Mostly useful as just something to look at when practicing scales and arpeggios!</p>
 
-    <p>A tabbed panel with 5 tabs:</p>
+    <figure>
+        <img src="assets/morereviewwave.jpg" alt="Review waveform tab">
+        <figcaption>Review panel Waveform tab showing audio visualization</figcaption>
+    </figure>
+
+    <h4>Options Tab:</h4>
+    <p>Configure the Review tool settings:</p>
 
     <ul>
-        <li><strong>Help:</strong> contains a link to this document.</li>
-        <li><strong>Credits:</strong> lists of the open source projects used to build Podium.</li>
-        <li><strong>License:</strong> copyright and license declaration (GNU Affero General Public License)</li>
-        <li><strong>Storage:</strong> <span id="chapter-6-help-storage">manage browser storage including the paste buffer, menu settings, and recent files list</span></li>
-        <li><strong>About:</strong> shows the application's version number</li>
+        <li><strong>Camera Orientation:</strong> Choose whether the video tab shows how you will look through a camera (Front) or if you were looking in a mirror (Mirror).</li>
+        <li><strong>Recording Length:</strong> Set the minimum and maximum recording length. These two numbers work as described in Live Mode above.</li>
+        <li><strong>Device Selection:</strong> If your device has multiple cameras or microphones, you can choose which devices will be used by the tool.</li>
     </ul>
 
-    <h4>Storage Tab:</h4>
+    <figure>
+        <img src="assets/morereviewoptions.jpg" alt="Review options tab">
+        <figcaption>Review panel Options tab showing camera, recording, and device settings</figcaption>
+    </figure>
+
+    <h3 id="chapter-6-help">More Ring: Help</h3>
+
+    <p>A tabbed panel with 6 tabs providing access to documentation, settings, and information about Podium.</p>
+
+    <figure>
+        <img src="assets/morehelp.jpg" alt="Help panel Doc tab">
+        <figcaption>Help panel showing the Doc tab with the guidebook</figcaption>
+    </figure>
+
+    <h4>About Tab:</h4>
+    <p>Shows the application's version number and provides links to:</p>
+    <ul>
+        <li><strong>Terms:</strong> Terms of use</li>
+        <li><strong>Privacy:</strong> Privacy policy</li>
+        <li><strong>Github:</strong> Source code repository</li>
+        <li><strong>Issues:</strong> Bug reporting and feature requests</li>
+    </ul>
+
+    <h4>Doc Tab:</h4>
+    <p>Displays this guidebook if you are online.</p>
+
+    <h4>Release Notes Tab:</h4>
+    <p>Shows all release notes for Podium version history.</p>
+
+    <h4 id="chapter-6-help-storage">Storage Tab:</h4>
 
     <p>The Storage tab provides buttons to manage Podium's browser storage:</p>
 
     <ul>
-        <li><strong>Buffer:</strong> Clears the page paste buffer. Use this for privacy if you share a browser with others (see <a href="#chapter-5-paste">Page Ring: Paste</a> for details).</li>
-        <li><strong>Menu:</strong> Resets all Panel settings to their default values.</li>
-        <li><strong>Recent:</strong> Clears the Recent Files list from local storage.</li>
+        <li><strong>Menu:</strong> Clears stored values of many menu settings. Clicking this will reset the menu to its defaults.</li>
+        <li><strong>Recent:</strong> Clears the recently visited list displayed in the Open, Save, and Copy panels.</li>
+        <li><strong>Buffer:</strong> Clears the distributed paste buffer contents (see <a href="#chapter-5-paste">Page Ring: Paste</a> for details).</li>
     </ul>
 
-    <h4>Settings Storage and Factory Reset:</h4>
+    <h4>Credits Tab:</h4>
+    <p>Lists the open source projects Podium is built on.</p>
 
-    <p>The Menu's state, including most Panel settings, is automatically stored in browser local storage. This means that, for a given browser, on a given device, these settings will persist across application restarts. However, if you use a different browser and/or device, the settings could well be different.</p>
+    <h4>License Tab:</h4>
+    <p>Official copyright and license statement (GNU Affero General Public License).</p>
+
+    <h4>What does Podium save to your browser?</h4>
+
+    <p>Podium stores several types of data in your browser's storage:</p>
+
+    <p><strong>Menu Settings:</strong> The Menu's state, including most Panel settings, is automatically stored in browser local storage. This means that, for a given browser, on a given device, these settings will persist across application restarts. However, if you use a different browser and/or device, the settings could well be different.</p>
 
     <div class="note">The storage mechanism is triggered every time the user interface is tapped. However, to prevent a flood of storage writes, the operation doesn't actually run until 5 seconds of idle time have passed since the last tap.</div>
 
     <p>The Menu's state is also stored within the score whenever it is saved, and restored when that score is next opened. These settings take precedence over settings found in browser local storage. Since these settings are part of the score file itself, they will be the same, regardless of the device or browser in use.</p>
 
-    <p>The Open Panel's list of Recently opened scores is also saved to the browser's local storage whenever it changes. However, this list is kept in the browser's local storage only. Unlike Panel settings, it is never stored within the score. This is because Local files on one device are unlikely to be the same as local files on another device.</p>
+    <p><strong>Recent Files List:</strong> The Open Panel's list of Recently opened scores is saved to the browser's local storage whenever it changes. However, this list is kept in the browser's local storage only. Unlike Panel settings, it is never stored within the score. This is because local files on one device are unlikely to be the same as local files on another device.</p>
 
-    <p>You can clear stored settings and data using the buttons in the Storage tab described above.</p>
+    <p><strong>Distributed Paste Buffer:</strong> The page paste buffer (see <a href="#chapter-5-paste">Page Ring: Paste</a>) is stored in the browser's IndexedDB as a separate PDF file. This buffer is shared across all Podium instances in the same browser, allowing you to copy pages from one score and paste them into another.</p>
+
+    <div class="note">If you share a browser with others, you may want to clear these storage areas for privacy. Use the buttons in the Storage tab (described above) to clear menu settings, recent files, and paste buffer contents as needed.</div>
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 

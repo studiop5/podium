@@ -73,7 +73,7 @@ Element.prototype["replace"] = function(newElm) {
 // properties defined on the window "global" namespace
 // are distinguished using the convention of leading+trailing underscores:
 
-window._podiumVersion_ = "1.1";
+window._podiumVersion_ = "2.0";
 window._body_ = document.body;
 window._dvPxRt_ = 1 + (devicePixelRatio - 1) * 0.3;
 window._frMs_ = 0.06; // initial estimate of number of frames per millisecond (60fps)
