@@ -834,7 +834,7 @@ for more details.</p>
           <a target="_blank" rel="noopener noreferrer" href="https://www.studiop5.org/privacy.html">Privacy</a>&nbsp;
           <a target="_blank" rel="noopener noreferrer" href="https://www.studiop5.org/terms.html">Terms</a>&nbsp;
           <a target="_blank" rel="noopener noreferrer" href="https://github.com/studiop5/podium">Github</a>&nbsp;
-          <a target="_blank" rel="noopener noreferrer" href="https://github.com/studiop5/podium/issues">Contact / Feedback \u2709</a>
+          <a target="_blank" rel="noopener noreferrer" href="https://github.com/studiop5/podium/issues">Issues \u2709</a>
         </div>
      </div>`
   );
@@ -844,41 +844,6 @@ for more details.</p>
         <div style="margin-top:1em;">Factory Reset:</div>
         <div data-tag="buttons"></div>
      <div>`
-  );
-
-  installFace = helm(
-    `<div style="padding:2em;text-align:left;font-size:.9em;">
-      <h3 style="text-align:center;">Install Podium as a Progressive Web App</h3>
-
-      <p>Installing Podium as a PWA allows you to:</p>
-      <ul>
-        <li>Use Podium offline (after first visit)</li>
-        <li>Add it to your home screen or app launcher</li>
-        <li>Run it in a standalone window without browser UI</li>
-      </ul>
-
-      <div data-tag="installButtonSection" style="display:none;">
-        <h4>Installation:</h4>
-        <p>Click the button below to install:</p>
-        <div data-tag="installButton" style="text-align:center;margin:1em 0;">
-          <!-- Install button will be inserted here by JavaScript -->
-        </div>
-      </div>
-
-      <div data-tag="browserInstructions">
-        <h4>Installation:</h4>
-        <p>Use your browser's install feature:</p>
-        <ul>
-          <li><b>Chrome/Edge (Desktop):</b> Look for the install icon in the address bar, or open the menu (⋮) → "Install Podium..."</li>
-          <li><b>Chrome/Edge (Mobile):</b> Open the menu (⋮) → "Add to Home screen"</li>
-          <li><b>Safari (iOS):</b> Tap the Share button → "Add to Home Screen"</li>
-          <li><b>Firefox (Desktop):</b> Look for the install icon in the address bar</li>
-        </ul>
-      </div>
-
-      <h4>Checking for Updates:</h4>
-      <p>When you visit Podium after an update, the service worker will automatically download the new version in the background. Simply reload the page to get the latest version.</p>
-    </div>`
   );
 
   releaseNotesFace = helm(
@@ -920,7 +885,7 @@ for more details.</p>
 
   constructor(cell) {
     super(cell);
-    let tabView = new TabView(this, "About", "Doc", "Install", "Release Notes", "Storage", "Credits", "License");
+    let tabView = new TabView(this, "About", "Doc", "Release Notes", "Storage", "Credits", "License");
     Object.assign(this.body.style, {
       margin: 0,
       width: "90vw",
@@ -989,43 +954,6 @@ for more details.</p>
       } catch (ex) {
         console.warn("Cannot access iframe content:", ex);
       }
-    });
-
-
-    // Install tab
-    tabView.tabs["Install"].face.append(this.installFace);
-
-    // Add install button functionality
-    let installElements = dataIndex("tag", this.installFace);
-    let installButtonContainer = installElements.installButton;
-    let installButtonSection = installElements.installButtonSection;
-    let browserInstructions = installElements.browserInstructions;
-    let deferredPrompt;
-
-    // Listen for beforeinstallprompt event
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-
-      // Show install button section, hide browser instructions
-      installButtonSection.style.display = 'block';
-      browserInstructions.style.display = 'none';
-
-      // Create install button
-      let installButton = helm(`<button style="padding:1em 2em;font-size:1.2em;cursor:pointer;">Install Podium</button>`);
-      installButtonContainer.append(installButton);
-
-      listen(installButton, 'click', async () => {
-        if (!deferredPrompt) return;
-
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-
-        if (outcome === 'accepted') {
-          installButtonContainer.innerHTML = '<p style="color:green;">✓ Installation started!</p>';
-        }
-        deferredPrompt = null;
-      });
     });
 
     this.body.append(tabView.elm);
