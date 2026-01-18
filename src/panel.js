@@ -433,7 +433,7 @@ class ClockPanel extends Panel {
   }
 }
 
-class InfoPanel extends Panel {
+class DetailsPanel extends Panel {
   content = helm(`<div style="margin:1em;width:20em;"></div>`);
 
   constructor(cell) {
@@ -567,18 +567,22 @@ class InfoPanel extends Panel {
             `<div style="font-size:1em;text-align:center;padding:.5em;">PDF Metadata:</div>`
           )
         );
-        let infoHtml = "";
+        let detailsHtml = "";
         for (let [k, v] of Object.entries(score.pdfInfo)) {
           if (!k) continue;
-          infoHtml += `<div style="text-align:right">${k}:&nbsp;&nbsp;</div><div>${v}</div>`;
-          if (typeof v === "string" && v.startsWith("D:"))
-            infoHtml += `<div></div><div>\u27a1${new Date(
-              this.parseTs(v)
-            ).toLocaleString()}</div>`;
+          // Filter out technical fields
+          if (k === "PDFFormatVersion" || k === "Language" || k === "EncryptFilterType" || k === "EncryptFilterName") continue;
+          if (k.startsWith("Is") || k.startsWith("is")) continue; // Skip isLinearized, isPureXfa, etc.
+
+          // For date fields, show only the decoded date
+          if (typeof v === "string" && v.startsWith("D:")) {
+            v = new Date(this.parseTs(v)).toLocaleString();
+          }
+          detailsHtml += `<div style="text-align:right">${k}:&nbsp;&nbsp;</div><div>${v}</div>`;
         }
         this.content.append(
           helm(
-            `<div style="display:grid;grid-template-columns:40% 60%;font-size:.8em;">${infoHtml}</div>`
+            `<div style="display:grid;grid-template-columns:40% 60%;font-size:.8em;">${detailsHtml}</div>`
           )
         );
       }
@@ -768,9 +772,9 @@ class GridPanel extends Panel {
   }
 }
 
-class HelpPanel extends Panel {
+class AboutPanel extends Panel {
   static css = css(
-    "HelpPanel",
+    "AboutPanel",
     `.Credit {
         font-size: var(--font-size-sm);
         margin: var(--spacing-lg);
@@ -827,7 +831,7 @@ for more details.</p>
     `<div style="position:relative;width:100%;height:100%;box-sizing:border-box;">
         <div style="position:absolute;top:35%;left:50%;transform:translate(-50%,-50%);text-align:center;font-size:1.5em;">
           <div>Podium</div>
-          ${iconSvg("Podium", { style: "width:4em;" })}
+          ${iconSvg("Podium", { style: "width:8em;" })}
           <div>Version ${_podiumVersion_}</div>
         </div>
         <div style="position:absolute;bottom:10em;left:50%;transform:translateX(-50%);font-size:1.2em;text-align:center;">
@@ -840,10 +844,12 @@ for more details.</p>
   );
 
   settingsFace = helm(
-    `<div style="display:flex;align-items:center;flex-direction:column;justify-content:center;padding:1em;font-size:1.5em;">
-        <div style="margin-top:1em;">Factory Reset:</div>
-        <div data-tag="buttons"></div>
-     <div>`
+    `<div style="position:relative;width:100%;height:100%;box-sizing:border-box;">
+        <div style="position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);text-align:center;font-size:1.5em;">
+          <div>Factory Reset:</div>
+          <div data-tag="buttons"></div>
+        </div>
+     </div>`
   );
 
   releaseNotesFace = helm(
@@ -857,7 +863,7 @@ for more details.</p>
   <li><b>Dark Mode (More ring)</b><br>
   Reduces eye strain during long practice sessions or low-light environments.
   </li><br>
-  <li><b>Page Expansion (Score ring → Info)</b><br>
+  <li><b>Page Expansion (Score ring → Details)</b><br>
   Pages smaller than the maximum size in a score can now be expanded to fill the available space, providing a more
   consistent viewing experience.
   </li><br>
@@ -877,15 +883,9 @@ for more details.</p>
 
    `);
 
-  helpFace = helm(
-    `<div style="padding:0;width:100%;height:100%;box-sizing:border-box;overflow:hidden;position:relative;">
-       <iframe src="/Guidebook.html" style="width:100%;height:100%;border:none;display:block;"></iframe>
-     </div>`
-  );
-
   constructor(cell) {
     super(cell);
-    let tabView = new TabView(this, "About", "Doc", "Release Notes", "Storage", "Credits", "License");
+    let tabView = new TabView(this, "Version", "Release Notes", "Storage", "Credits", "License");
     Object.assign(this.body.style, {
       margin: 0,
       width: "90vw",
@@ -894,8 +894,8 @@ for more details.</p>
       maxHeight: "40em",
     });
 
-    // About tab
-    tabView.tabs["About"].face.append(this.aboutFace);
+    // Version tab
+    tabView.tabs["Version"].face.append(this.aboutFace);
 
     // Release Notes tab
     tabView.tabs["Release Notes"].face.append(this.releaseNotesFace);
@@ -932,8 +932,30 @@ for more details.</p>
     tabView.tabs["Credits"].face.append(this.creditsFace);
     tabView.tabs["License"].face.append(this.licenseFace);
 
-    // Doc tab
-    tabView.tabs["Doc"].face.append(this.helpFace);
+    this.body.append(tabView.elm);
+    tabView.tabs["Version"].select();
+  }
+}
+
+class GuidePanel extends Panel {
+  helpFace = helm(
+    `<div style="padding:0;width:100%;height:100%;box-sizing:border-box;overflow:hidden;position:relative;">
+       <iframe src="/Guidebook.html" style="width:100%;height:100%;border:none;display:block;"></iframe>
+     </div>`
+  );
+
+  constructor(cell) {
+    super(cell);
+    Object.assign(this.body.style, {
+      margin: 0,
+      padding: 0,
+      width: "90vw",
+      maxWidth: "60em",
+      height: "90vh",
+      maxHeight: "50em",
+    });
+
+    this.body.append(this.helpFace);
 
     // Handle iframe link clicks to prevent overflow issue
     let iframe = this.helpFace.querySelector("iframe");
@@ -955,9 +977,6 @@ for more details.</p>
         console.warn("Cannot access iframe content:", ex);
       }
     });
-
-    this.body.append(tabView.elm);
-    tabView.tabs["About"].select();
   }
 }
 
@@ -2185,10 +2204,11 @@ let panels = {
   BookPanel,
   ClockPanel,
   CopyPanel,
-  InfoPanel,
+  GuidePanel,
+  DetailsPanel,
   GridPanel,
   HorizontalPanel,
-  HelpPanel,
+  AboutPanel,
   MetronomePanel,
   NewPanel,
   NumbersPanel,
