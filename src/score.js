@@ -184,6 +184,8 @@ class Pg {
           enablePointerEvents: true,
           allowTouchScrolling: false, // Required!
           imageSmoothingEnabled: false,
+          moveCursor: 'none', // Hide cursor when moving objects for better placement
+          perPixelTargetFind: true, // More accurate selection based on actual pixels, not bounding box
       });
       checkAbort();
   
@@ -893,7 +895,7 @@ class Score {
     // Initialize page undo stack
     this.undoStack = [];
     this.maxUndo = 10;
-    this.pgFit = _menu_.rings.score.cells.info.stash.pgFit ?? this.pgFit;
+    this.pgFit = _menu_.rings.score.cells.details.stash.pgFit ?? this.pgFit;
 
 
     if (pdfData) {
@@ -964,13 +966,13 @@ class Score {
     _score_ = this;
     document.title = `Podium ${this.name ? this.name.replace(/\.pdf/i, ""):"*"} (${_podId_})`;
     // update the _menu_ state for this Score instance:
-    _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/info", "score/print"]);
+    _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"]);
     _menu_.enableCells("ink/undo", false); // nothing to undo yet
     _menu_.enableCells("page/undo", this.undoStack.length > 0);
     this.pgRefresh();
     // Sync quality to stash so InfoPanel slider shows correct value
-    _menu_.rings.score.cells.info.stash.quality = this.quality;
-    panels.InfoPanel.get(_menu_.rings.score.cells.info).refresh();
+    _menu_.rings.score.cells.details.stash.quality = this.quality;
+    panels.DetailsPanel.get(_menu_.rings.score.cells.details).refresh();
     // layout the score using current active layout, defaulting to book layout
     _menu_.reset();
     // temporarily activate the layout ring
@@ -1064,8 +1066,23 @@ class Score {
       });
       // set pdf doc metadata
       dstPLibDoc.setModificationDate(now);
-      dstPLibDoc.setCreationDate(now);
-      dstPLibDoc.setCreator("Podium vers." + _podiumVersion_);
+
+      // If this is an original PDF with metadata, preserve it
+      if (this.pdfInfo) {
+        // Preserve original metadata
+        if (this.pdfInfo.Title) dstPLibDoc.setTitle(this.pdfInfo.Title);
+        if (this.pdfInfo.Author) dstPLibDoc.setAuthor(this.pdfInfo.Author);
+        if (this.pdfInfo.Subject) dstPLibDoc.setSubject(this.pdfInfo.Subject);
+        if (this.pdfInfo.Keywords) dstPLibDoc.setKeywords(this.pdfInfo.Keywords);
+        if (this.pdfInfo.Producer) dstPLibDoc.setProducer(this.pdfInfo.Producer);
+        if (this.pdfInfo.Creator) dstPLibDoc.setCreator(this.pdfInfo.Creator);
+        if (this.pdfInfo.CreationDate) dstPLibDoc.setCreationDate(new Date(this.pdfInfo.CreationDate));
+      } else {
+        // New score created from scratch - set Podium metadata
+        dstPLibDoc.setCreationDate(now);
+        dstPLibDoc.setCreator("Podium vers." + _podiumVersion_);
+        dstPLibDoc.setProducer("pdf-lib v1.17.1");
+      }
       if (doc) return dstPLibDoc;
       _shade_.update("Generating Pdf document");
       let bytes = await dstPLibDoc.save({objectsPerTick: 1000});

@@ -49,7 +49,7 @@ class Menu {
       position: absolute;
       transition: opacity var(--transition-slow);
       z-index: 101;
-      filter: drop-shadow(.1em .2em .2em #0004);
+      filter: drop-shadow(.3em .3em .3em #0001);
       transform: translateZ(0); /* fix for ipad compositing */
       will-change: transform; /* fix for ipad compositing */
       border-radius: 50%;
@@ -204,8 +204,8 @@ class Menu {
       ringRadius: 11,
       diskRadius: 6.5,
       gripRadius: 1.75,
-      cellGap: 0.025,
-      ringGap: 0.025, // i.e. ring cell gap
+      cellGap: 0.045,
+      ringGap: 0.045, // i.e. inner ring cell gap
       cellIcon: 1.85,
       fontSize: 0.7,
     };
@@ -265,7 +265,7 @@ class Menu {
     }
 
     // set initial cell state
-    this.enableCells(["layout", "ink", "ink/paste", "page", "score/close", "score/save", "score/info", "score/print", "page/paste"], false);
+    this.enableCells(["layout", "ink", "ink/paste", "page", "score/close", "score/save", "score/details", "score/print", "page/paste"], false);
 
     this.stashDefaults = this.stashToJson();
     // load menu stash from localStorage
@@ -338,7 +338,7 @@ class Menu {
         },
         close: { name: "Close", svgPath: iconPaths["Close"] },
         print: { name: "Print", svgPath: iconPaths["Print"] },
-        info: { name: "Info", svgPath: iconPaths["Info"], stash: { quality: 2, pgFit: "Center"} },
+        details: { name: "Details", svgPath: iconPaths["Details"], stash: { quality: 2, pgFit: "Center"} },
       },
       svgPath: iconPaths["Score"],
     };
@@ -357,10 +357,10 @@ class Menu {
        this.activateCell(null);
     });
 
-    this.listen(["score/info/out", "score/open/out","score/save/out","score/new/out","score/print/out"], (cell) => this.openPanel(cell));
-    // The print, info, bind cells have no /up functionality, so we let the up action  open their panels:
+    this.listen(["score/details/out", "score/open/out","score/save/out","score/new/out","score/print/out"], (cell) => this.openPanel(cell));
+    // The print, details, bind cells have no /up functionality, so we let the up action  open their panels:
     this.listen("score/print/up", (cell) => panels.PrintPanel.get(cell).show().setPosition(this.grip));
-    this.listen("score/info/up", (cell) => panels.InfoPanel.get(cell).show().setPosition(this.grip));
+    this.listen("score/details/up", (cell) => panels.DetailsPanel.get(cell).show().setPosition(this.grip));
 
     this.listen("score/new/up", async (cell) => {
       if(!await checkUnsaved()) return;
@@ -383,9 +383,9 @@ class Menu {
       _score_ = null;
       for(let panel of Object.values(panels)) {
          // Several panels need to close when the Score closes, otherwise they will have stale state.
-         if(panel.cell && ["Info", "Save", "Paste", "Print"].includes(panel.cell.name)) panel.close();
+         if(panel.cell && ["Details", "Save", "Paste", "Print"].includes(panel.cell.name)) panel.close();
       }
-      _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/info", "score/print"], false);
+      _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"], false);
     });
 
 
@@ -437,12 +437,6 @@ class Menu {
           },
           svgPath: iconPaths["Table"],
         },
-        screen: {
-          name: "Screen",
-          stash: { },
-          svgPath: iconPaths["Full Screen"],
-        },
-
       },
       name: "Layout",
       stash: { active: "book"},
@@ -450,7 +444,6 @@ class Menu {
     };
 
     // actions:
-
     this.listen("layout/up", () => this.activateRing(rings.layout));
     let paths = Object.keys(rings.layout.cells).map((path) => `layout/${path}/`);
    
@@ -462,18 +455,6 @@ class Menu {
     );
 
     this.listen(paths.map((path) => path + "out"), (cell) => this.openPanel(cell));
-
-    this.listen("layout/screen/up", (cell) => {
-      let cellIcon = dataIndex("tag", rings.layout.cells.screen.elm).cellIcon;
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
-        cellIcon.innerHTML = iconPaths["Normal Screen"];
-      } else if (document.exitFullscreen) {
-        document.exitFullscreen();
-        cellIcon.innerHTML = iconPaths["Full Screen"];
-      }
-    });
-
 
     // Ink ring
     rings.ink = {
@@ -590,6 +571,53 @@ class Menu {
     this.listen("page/numbers/up", (cell) => panels.NumbersPanel.get(cell).show().setPosition(this.grip));
 
 
+    rings.app = {
+      name: "App",
+      cells: {
+        about: { name: "About", svgPath: iconPaths["About"], stash: {} },
+        theme: { name: "Theme", svgPath: iconPaths["Light"], stash: {} },
+        guide: { name: "Guide", svgPath: iconPaths["Guide"], stash: {} },
+        screen: {  name: "Screen",  stash: { },  svgPath: iconPaths["Full Screen"],
+        },
+      },
+      svgPath: iconPaths["Podium"],
+
+    }
+
+    this.listen("app/up", () => this.activateRing(rings.app));
+
+    this.listen("app/about/out", (cell) => this.openPanel(cell));
+    this.listen("app/guide/out", (cell) => this.openPanel(cell));
+
+    this.listen("app/screen/up", (cell) => {
+      let cellIcon = dataIndex("tag", rings.app.cells.screen.elm).cellIcon;
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+        cellIcon.innerHTML = iconPaths["Normal Screen"];
+      } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+        cellIcon.innerHTML = iconPaths["Full Screen"];
+      }
+    });
+
+// should be storeed in stash.....rem grd
+    this.listen("app/theme/up", (cell) => {
+      let theme = localStorage.getItem("theme") || "Light";
+      theme = theme == "Dark" ? "Light" : "Dark";
+      document.documentElement.setAttribute("data-theme", theme);
+      dataIndex("tag", rings.app.cells.theme.elm).cellIcon.innerHTML = iconPaths[theme];
+      localStorage.setItem("theme", theme);
+    });
+
+    // Set initial icon for theme cell
+    let theme = localStorage.getItem("theme") || "Light";
+    document.documentElement.setAttribute("data-theme", theme);
+    // Need to delay for menu to be built:
+    delay(10, () => dataIndex("tag", rings.app.cells.theme.elm).cellIcon.innerHTML = iconPaths[theme]);
+
+
+
+
     // More ring
     rings.more = {
       cells: {
@@ -630,8 +658,6 @@ class Menu {
           svgPath: iconPaths["Volume"],
           stash: { volume:1},
         },
-        theme: { name: "Theme", svgPath: iconPaths["Light"], stash: {} },
-        help: { name: "Help", svgPath: iconPaths["Help"], stash: {} },
       },
       name: "More",
       stash: { active: null },
@@ -641,24 +667,13 @@ class Menu {
     this.listen("more/up", () => this.activateRing(rings.more));
 
     paths = Object.keys(rings.more.cells).map((path) => `more/${path}/`);
-    // All but 1 cell in the more ring have panels...remove it from paths...
-    paths = paths.filter((key) => !["more/theme/"].includes(key));
 
     this.listen(paths.map((path) => path + "out"),  (cell) => this.openPanel(cell));
 
-    this.listen("more/theme/up", (cell) => {
-      let theme = localStorage.getItem("theme") || "Light";
-      theme = theme == "Dark" ? "Light" : "Dark";
-      document.documentElement.setAttribute("data-theme", theme);
-      dataIndex("tag", rings.more.cells.theme.elm).cellIcon.innerHTML = iconPaths[theme];
-      localStorage.setItem("theme", theme);
-    });
 
-    // Set initial icon for theme cell
-    let theme = localStorage.getItem("theme") || "Light";
-    document.documentElement.setAttribute("data-theme", theme);
-    // Need to delay for menu to be built:
-    delay(10, () => dataIndex("tag", rings.more.cells.theme.elm).cellIcon.innerHTML = iconPaths[theme]);
+
+
+
 
 
 
@@ -669,11 +684,17 @@ class Menu {
    this.listen("more/piano/up", (cell) => panels.PianoPanel.get(cell).show().setPosition(this.grip));
    this.listen("more/review/up", (cell) => panels.ReviewPanel.get(cell).show().setPosition(this.grip));
    this.listen("more/volume/up", (cell) => panels.VolumePanel.get(cell).show().setPosition(this.grip));
-   this.listen("more/help/up", (cell) => panels.HelpPanel.get(cell).show().setPosition(this.grip));
+
+
+
+
 
    // grip: no cells here, just handlers
    this.listen("up", () => this.collapse());
    this.listen("long", () => this.park());
+
+
+
 
     // Add a "key" key to every cell so that, given a cell,
     // we know immediately what its key is. Add a "ring" entry

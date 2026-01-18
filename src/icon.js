@@ -46,6 +46,8 @@ Alpha:
   `<circle style="fill:#000;" cx="8" cy="12" r="6"/>
    <circle style="fill:#8888;" cx="14" cy="12" r="6"/>`,
 
+About:
+  `<text font-size="42px" y="20" x="7" font-family="Bravura" fill="currentColor">\ued19</text>`,
 
 "Blank Page":
   `<path style="fill:none;stroke:#000;stroke-width:.6" d="M3 3h17v20 h-17Z"/>`,
@@ -115,11 +117,11 @@ Close:
      <path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.42) translate(14.5,18.5)" fill="#aaa" stroke-linecap="round" stroke="currentColor" stroke-width="0.8" d=" m 13.7,7.93 -1.5,0.6 h 4.4 l 1.8,-3.2 -1.2,0.5 -1.2,-1.1 c -0.3,-0.3 -0.6,-0.6 -0.8,-0.6 l -4.4,-0.3 0.9,0.9 z M 6.97,7.33 8.65,4.77 C 9.82,3.57 11.2,4.62 11.4,5 L 12,6.14 10,9.33 Z M 8.67,12.4 10,12.9 7.87,9.33 h -3.9 l 1.5,0.97 -0.9,1.8 c -0.3,0.3 -0.3,0.8 -0.3,1.1 l 2.1,3.9 0.3,-1.2 z  m 3.03,6.1 -3.33,0.3 c -1.7,-0.6 -1.7,-2.3 -1.4,-2.6 l 0.8,-1.5 h 3.93 z m 3.2,-3.8 v -1.5 l -2.1,3.6 2.1,3.4 v -1.4 h 2 c 0.6,0 0.6,-0.3 0.9,-0.6 l 2.1,-3.8 -0.9,0.3 z m 3.8,-5.87 1.8,2.97 c 0.5,1.7 -0.9,2.6 -1.5,2.6 h -1.5 l -2.3,-3.8 z"/>`,
 
 
-Info:
-  `<defs><mask id="info">
+Details:
+  `<defs><mask id="details">
     <rect x="0" y="0" height="24" width="24" fill="white"></rect>
     <path stroke="none" fill="black" d="M 5 15 A 8 8  0 0 1 19 15 Z"/></mask></defs>
-    <path mask="url(#info)" fill="#aaa" stroke="currentColor" stroke-width=".6"
+    <path mask="url(#details)" fill="#aaa" stroke="currentColor" stroke-width=".6"
       d="M 1 18 A 8 8 0 0 1 23 18Z  M 5 15 A 8 8  0 0 1 19 15 Z     M3 18v-1  M6 18v-1.5 M9 18 v-1 M12 18 v-2 M15 18v-1 M18 18 v-1.5 M21 18v-1   M4 15 l-1.5 -.25 M7 11 l-1 -1 M12 10v-2  M17 11l 1 -1 M20 15l1.5 -.25"/>`,
 
 Drive:
@@ -178,6 +180,8 @@ Free:
 Grid:
   `<text font-size="25px" y="12" x="-12" font-family="Bravura" fill="currentColor">\uee37</text>`,
 
+Guide:
+  `<text font-size="22px" x="2" y="18" font-family="Bravura" fill="currentColor" stroke="currentColor" stroke-width="0.6" style="paint-order:stroke;">\uec46</text>`,
 
 Help:
   ` <g style="fill:none;stroke:currentColor;stroke-width:.6px">
@@ -208,8 +212,7 @@ Layout:
 
 Light:
   `<path fill="currentColor" d="M 16,6 A 7,7 0 0 0 9,13 A 7,7 0 0 0 16,20 A 7,7 0 0 0 21,18.5 A 8,8 0 0 1 13,12 A 8,8 0 0 1 16,6 Z"/>
-   <circle fill="currentColor" cx="5" cy="5" r="0.7"/>
-   <circle fill="currentColor" cx="7" cy="8" r="0.5"/>`,
+   <circle fill="currentColor" cx="7" cy="8" r="0.8"/>`,
 
 Local:
   `<path fill-rule="evenodd" fill="#aaa" stroke="currentColor" stroke-width="1.2" d="m 6.22,13.5 v 2.8 M 5.39,13.5 v 2.8 M 6.35,5.65 V 8.47 M 5.5,5.66 v 2.85 m 5.4,3.99 -2.03,2 m 7.43,-7.19 -2,2 m -0.2,3.19 2,2 M 8.87,7.29 10.9,9.25 m 3.7,1.55 a 2.09,2.22 0 0 1 -2.1,2.2 2.09,2.22 0 0 1 -2.1,-2.2 2.09,2.22 0 0 1 2.1,-2.22 2.09,2.22 0 0 1 2.1,2.22 m -9.51,9.5 v 1.8 h 2.2 V 20.3 M 5.97,4.49 H 19 V 17.8 H 5.73 Z M 3.57,20.1 V 2.13 H 21.5 V 20.2 Z m 14.23,0.2 v 1.8 H 20 v -1.8" />`,
@@ -354,9 +357,10 @@ Png:
    <text y="22" x="6" font-size="6px">PNG</text>`,
 
 Podium:
-  `<path fill="#aaa" stroke="currentColor" stroke-width=".6" stroke-linejoin="round"
+  `<g transform="translate(1),scale(0.9,0.9)">
+<path  fill="#aaa" stroke="currentColor" stroke-width=".6" stroke-linejoin="round"
   d="M4 23v-3h16v3h1.5h-19Z M7 20v-14h10v14 M7 12h-2l-3 -10 h20l-3 10h-2"/>
-  <text x="10" y="14" font-family="Bravura" font-size="12px">\ue520</text>`,
+  <text x="10" y="14" font-family="Bravura" font-size="12px">\ue520</text></g>`,
 
 Print:
   `<path fill="#aaa" stroke="currentColor" stroke-width=".5" d="m14.3,12h2.2 M 18.6,15.6 17.5,13 M 6.18,12 H 7.97 M 3.37,15.6 5.17,13 M 11.1,1.96 h 1 M 10.7,3.13 11.4,2.57 11.1,2 M 11.8,3.12 12.4,2.53 12.1,1.96 M 11.1,6.91 10.6,6.28 11.2,5.88 10.6,5.19 11.1,4.75 10.7,4.18 M 12.4,6.86 12,6.23 12.6,5.82 12,5.13 12.4,4.69 12.1,4.12 m 0.8,2.85 H 9.85 V 8.83 H 12.9 V 8.28 L 20.8,8.15 V 7.69 L 12.9,7.58 Z M 7.02,8.82 H 15.7 V 10.3 H 7.01 Z M 8.19,11.6 6.63,14.4 H 15.3 L 14.1,11.6 Z M 3.56,22.9 V 15.6 H 18.4 V 23 H 16.5 V 18.6 H 15.6 V 17 H 6.03 v 1.6 H 5.14 v 4.3 z M 16.6,8.23 V 13 h 0.9 L 17.6,8.24 Z M 5.14,13 V 2.1 H 6.16 V 3.15 H 16.6 v -1.1 h 1.1 l -0.1,5.57 h -1 V 4.09 H 6.16 V 13 Z" />`,
