@@ -477,7 +477,7 @@ class Menu {
           svgPath: iconPaths["Rastrum"],
             // gap is staff space
             stash: { alpha:"1", gap:5,  lines: 5, width: 0.55,
-                     rgb: "#000000", style:"L-R", bars:0}, // style is "L-R" or "T-B"
+                     rgb: "#000000", style:"L-R", bars:0, barWidth:.7}, // style is "L-R" or "T-B"
         },
         text: {
           name: "Text",
@@ -1049,7 +1049,7 @@ class Menu {
     //  -  if currently editing a fabric text object, exit text editing
     //  -  when the ink/transform cell activates/deactivates, must call Score's setTransformable method
     this.checkEditing();
-    let ring = this.activeRing;
+    let ring = cell?.ring || this.activeRing;
 
     // Will this operation toggle the transform cell?
     let transformCell = this.rings.ink.cells.transform;
