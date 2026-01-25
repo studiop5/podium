@@ -205,43 +205,54 @@ function initFabric() {
     draw: function () {
       // Normally, draw is invoked from onMouseUp, but can also be called from the RastrumPanel
       // to re-draw the rastrum.
-      let { canvas, color, gap, lines, width, bars, origin, ptr, style } = this;
+      let { canvas, color, gap, lines, width, bars, barWidth, origin, ptr, style } = this;
       if(this.path) this.canvas.remove(this.path); // might be "re" drawing...remove any prev path
-      let d = "";
-      let dX = ptr.x - origin.x;
-      let dY = ptr.y - origin.y;
-      for (let i = 0, n = gap * lines; i < n; i += gap)
-        if (style == "L-R") d += `M0 ${i} L${dX} ${i}`;
-        else d += `M${i} 0 L${i} ${dY} `;
-      if (bars > 0) {
-        let staffHeight = (lines - 1) * gap;
-        if (style == "L-R") {
-          let barWidth = dX / bars;
-          for (let i = 0, x = 0; i <= bars; i++, x += barWidth)
-            d += `M${x} ${-width/2} v${staffHeight + width} `;
-        } else {
-          let barWidth = dY / bars;
-          for (let i = 0, y = 0; i <= bars; i++, y += barWidth)
-            d += `M0  ${y}h${staffHeight} `;
-        }
-      }
+      // interpret "Auto"  (encoded as 0) to refer to Bravura engravingDefault values (in staff space, i.e. gap)
+      if (width == 0) width = .13 * gap ; 
+      if (barWidth == 0) barWidth = .16 * gap ; 
+      // Draw the staff lines
       // Note: need to subtract width/2 from left and top because
       // the fabric path interprets line width differently than
       // html canvas
-      this.path = new fabric.Path(d, {
+      let d = "";
+      let dX = ptr.x - origin.x;
+      let dY = ptr.y - origin.y;
+      for (let y = 0, n = gap * lines; y < n; y += gap)
+        if (style == "L-R") d += `M0 ${y}h${dX}v${width}h${-dX}Z`;
+        else d += `M${y} 0v${dY}h${width}v${-dY} Z`;
+      let staffPath = new fabric.Path(d, {
         height: dY,
         width: dX,
-        left: Math.min(origin.x, ptr.x) - width / 2,
-        top: Math.min(origin.y, ptr.y) - width / 2,
-        fill: false,
-        stroke: color,
-        strokeLineCap: "butt",
-        strokeWidth: width,
+        left: Math.min(origin.x, ptr.x),
+        top: Math.min(origin.y, ptr.y),
+        fill: color,
       });
+      d = "";
+      if(bars > 0) { // add bar lines
+        let staffHeight = (lines - 1) * gap + width;
+        if (style == "L-R") {
+          let barSpan = (dX - barWidth) / bars;
+          for (let i = 0, x = 0; i <= bars; i++, x += barSpan)
+            d += `M${x} 0v${staffHeight}h${barWidth}v${-staffHeight}Z`; 
+        } else {
+          let barSpan = (dY - barWidth) / bars;
+          for (let i = 0, y = 0; i <= bars; i++, y += barSpan)
+            d += `M0 ${y}v${barWidth}h${staffHeight}v${-barWidth}Z} `;
+        }
+      }
+
+      let barPath = new fabric.Path(d, {
+        height: dY,
+        width: dX,
+        left: Math.min(origin.x, ptr.x),
+        top: Math.min(origin.y, ptr.y),
+        fill: color,
+      });
+
       canvas.clearContext(canvas.contextTop);
-      canvas.fire("before:path:created", { path: this.path });
-      canvas.add(this.path);
-    }
+//      canvas.fire("before:path:created", { path: this.path });
+      canvas.add(new fabric.Group([staffPath,barPath]));
+     }
   });
   
   // LineBrush's lines are restricted to stright lines

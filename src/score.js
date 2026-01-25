@@ -237,7 +237,7 @@ class Pg {
   
       canvas.on("mouse:down:before", async (opts) => {
         if(_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) 
-          _menu_.pgDownEvent(opts, this);
+          _menu_.pgEvent(opts, this);
       });
   
       canvas.on("mouse:up", opts => {
@@ -246,6 +246,12 @@ class Pg {
         if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) _menu_.pgUpEvent(opts, this); 
       });
   
+      canvas.on("selection:created", opts => {
+        if (_menu_.activeRing.key == "ink" && ["cut","copy","transform"].includes(_menu_.activeRing.activeCell.key))
+         _menu_.pgEvent(opts, this); 
+        else
+         canvas.discardActiveObject();
+      });
   
       // Each pg instance has its own undo stack. Initially, the
       // stack has 1 entry: its state *before* anything has been
@@ -556,14 +562,20 @@ class Pg {
               pathStr += xx + " " + yy + " ";
             }
           });
-
+ 
+          // we do fill or stroke, but not both
+          if(obj.fill) {
           await this.objToPdf(obj, ink, pLibPg, pLibPg.drawSvgPath, [
             pathStr,
-            {
-              // PDFLib flips the y axis, but doesn't do a translation,
-              // hence y must be set to pageHeight, otherwise drawing
-              // is below visible portion of page
-              y: pageHeight,
+            { y: pageHeight,
+              color: toPDFColor(obj.fill),
+              opacity: toPDFOpacity(obj.fill),
+            },
+           ]);
+          }
+          else await this.objToPdf(obj, ink, pLibPg, pLibPg.drawSvgPath, [
+            pathStr,
+            { y: pageHeight,
               borderWidth: obj.strokeWidth * obj.scaleX, // assume obj.scaleX == obj.scaleY
               borderColor: toPDFColor(obj.stroke),
               borderOpacity: toPDFOpacity(obj.stroke),
@@ -1035,7 +1047,6 @@ class Score {
         pages: {},
         menu: _menu_.stashToJsonObj(),
       };
-      console.log("Saving attachment with numbers:", attachment.numbers);
       let pLibPg;
       pns = pns || Array.from({length: this.pgs.length}, (_, i) => i + 1);
       for(let j = 0; j < pns.length; j++) {
