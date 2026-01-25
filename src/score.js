@@ -247,10 +247,15 @@ class Pg {
       });
   
       canvas.on("selection:created", opts => {
+        // Allow dragging selection by clicking anywhere in bounding box, not just pixels
+        canvas.perPixelTargetFind = false;
+
         if (_menu_.activeRing.key == "ink" && ["cut","copy","transform"].includes(_menu_.activeRing.activeCell.key))
-         _menu_.pgEvent(opts, this); 
-        else
-         canvas.discardActiveObject();
+         _menu_.pgEvent(opts, this);
+      });
+
+      canvas.on("selection:cleared", () => {
+        canvas.perPixelTargetFind = true;
       });
   
       // Each pg instance has its own undo stack. Initially, the

@@ -571,11 +571,11 @@ class DetailsPanel extends Panel {
         for (let [k, v] of Object.entries(score.pdfInfo)) {
           if (!k) continue;
           // Filter out technical fields
-          if (k === "PDFFormatVersion" || k === "Language" || k === "EncryptFilterType" || k === "EncryptFilterName") continue;
+          if (k == "PDFFormatVersion" || k == "Language" || k == "EncryptFilterType" || k == "EncryptFilterName") continue;
           if (k.startsWith("Is") || k.startsWith("is")) continue; // Skip isLinearized, isPureXfa, etc.
 
           // For date fields, show only the decoded date
-          if (typeof v === "string" && v.startsWith("D:")) {
+          if (typeof v == "string" && v.startsWith("D:")) {
             v = new Date(this.parseTs(v)).toLocaleString();
           }
           detailsHtml += `<div style="text-align:right">${k}:&nbsp;&nbsp;</div><div>${v}</div>`;
@@ -731,14 +731,14 @@ class GridPanel extends Panel {
 
     {
       // inches
-      let steps = ["1", "1/2", "1/4", "1/8"];
+      let steps = ["1", "1/2", "1/4", "1/8", "1/16"];
       let xStepMsg = (tag, value) => "X Step: " + steps[value] + " inch";
       let yStepMsg = (tab, value) => "Y Step: " + steps[value] + " inch";
       this.inchSliders = new SliderGroup(
         this.cell.stash,
         {
-          xStep: { min: 0, max: 3, step: 1, value: 0, msg: xStepMsg },
-          yStep: { min: 0, max: 3, step: 1, value: 0, msg: yStepMsg },
+          xStep: { min: 0, max: 4, step: 1, value: 0, msg: xStepMsg },
+          yStep: { min: 0, max: 4, step: 1, value: 0, msg: yStepMsg },
         },
         () => {}
       );
@@ -747,15 +747,15 @@ class GridPanel extends Panel {
 
     {
       // metric
-      let steps = [4, 2, 1, 0.5];
+      let steps = [4, 2, 1, 0.5, 0.25];
       let xStepMsg = (tag, value) => "X Step: " + steps[value] + " cm";
       let yStepMsg = (tab, value) => "Y Step: " + steps[value] + " cm";
 
       this.metricSliders = new SliderGroup(
         this.cell.stash,
         {
-          xStep: { min: 0, max: 3, step: 1, value: 0, msg: xStepMsg },
-          yStep: { min: 0, max: 3, step: 1, value: 0, msg: yStepMsg },
+          xStep: { min: 0, max: 4, step: 1, value: 0, msg: xStepMsg },
+          yStep: { min: 0, max: 4, step: 1, value: 0, msg: yStepMsg },
         },
         () => {}
       );
@@ -1618,7 +1618,7 @@ class RastrumPanel extends PencilPanel {
     bars: {
       throttle: 250, min: 0, max: 60, step: 1, value: 4, msg: "Bars: {value}" },
     barWidth: {
-      throttle: 250, min: 0, max: 30, step: 1, value: 4, msg: (tag, value) => 
+      throttle: 250, min: 0, max: 30, step: 0.1, value: 4, msg: (tag, value) => 
         `Barline Width: ${value == 0 ? "Auto":value + "px"}` },
 
   };
@@ -2201,6 +2201,128 @@ class StopwatchPanel extends Panel {
   }
 }
 
+class TransformPanel extends Panel {
+
+  content = helm(`
+    <div data-tag="body" class="Panel__body" style="min-width: 15em;">
+      <div data-tag="noSelection" style="padding: 1em; text-align: center; color: #888;">
+        No object selected
+      </div>
+      <div data-tag="slidersContainer" style="display: none;">
+        <div data-tag="objectType" style="text-align: center; font-weight: bold; margin-bottom: 0.5em;"></div>
+      </div>
+    </div>`);
+
+  // Props object that syncs with the active fabric object
+  transformProps = { x: 0, y: 0, width: 100, height: 100, angle: 0 };
+
+  slidersDef = {
+    x: { min: 0, max: 1000, step: .1, value: 0, msg: "X: {value} px" },
+    y: { min: 0, max: 1000, step: .1, value: 0, msg: "Y: {value} px" },
+    width: { min: 1, max: 1000, step: .1, value: 100, msg: "Width: {value} px" },
+    height: { min: 1, max: 1000, step: .1, value: 100, msg: "Height: {value} px" },
+    angle: { min: 0, max: 360, step: .1, value: 0, msg: "Angle: {value}°" },
+  };
+
+  constructor(cell) {
+    super(cell);
+    this.body.replaceWith(this.content);
+    Object.assign(this, dataIndex("tag", this.content));
+
+    this.sliderGroup = new SliderGroup(
+      this.transformProps,
+      this.slidersDef,
+      (e, tag, value) => this.handleSliderChange(tag, Number(value))
+    );
+    this.slidersContainer.append(this.sliderGroup.elm);
+  }
+
+  handleSliderChange(tag, value) {
+    let obj = this.getActiveObject();
+    if (!obj) return;
+
+    switch (tag) {
+      case 'x': obj.set('left', value); break;
+      case 'y': obj.set('top', value); break;
+      case 'width': obj.set('scaleX', value / obj.width); break;
+      case 'height': obj.set('scaleY', value / obj.height); break;
+      case 'angle': obj.set('angle', value); break;
+    }
+    obj.setCoords();
+    obj.canvas?.requestRenderAll();
+  }
+
+  getActiveObject() {
+    return _score_?.getActiveObject();
+  }
+
+  getObjectTypeName(obj) {
+    if (!obj) return "";
+    if (obj.type == "activeSelection") {
+      let types = obj.getObjects().map(o => this.getObjectTypeName(o));
+      let unique = [...new Set(types)];
+      return unique.length == 1 ? `${unique[0]}s (${types.length})` : `Mixed (${types.length})`;
+    }
+    if (obj.podiumType == "text") return "Text";
+    if (obj.podiumType == "symbols") return "Symbol";
+    if (obj.podiumType == "podPath") return "Path";
+    if (obj.type == "group") return "Rastrum";
+    if (obj.type == "path") return "Path";
+    if (obj.type == "image") return "Image";
+    return obj.type || "Object";
+  }
+
+  show() {
+    super.show();
+    this.refresh();
+    // Poll for selection changes while panel is visible
+    this.pollInterval = setInterval(() => {
+      if (this.elm.style.visibility !== 'visible') {
+        clearInterval(this.pollInterval);
+        return;
+      }
+      this.refresh();
+    }, 200);
+    return this;
+  }
+
+  hide() {
+    if (this.pollInterval) clearInterval(this.pollInterval);
+    super.hide();
+    return this;
+  }
+
+  refresh() {
+    let obj = this.getActiveObject();
+    if (!obj) {
+      this.noSelection.style.display = 'block';
+      this.slidersContainer.style.display = 'none';
+      return;
+    }
+    this.noSelection.style.display = 'none';
+    this.slidersContainer.style.display = 'block';
+
+    // Display object type
+    this.objectType.textContent = this.getObjectTypeName(obj);
+
+    let canvas = obj.canvas;
+    // Update slider ranges based on canvas size
+    this.slidersDef.x.max = canvas.width;
+    this.slidersDef.y.max = canvas.height;
+    this.slidersDef.width.max = canvas.width;
+    this.slidersDef.height.max = canvas.height;
+
+    // Update props from fabric object
+    this.transformProps.x = Math.round(obj.left);
+    this.transformProps.y = Math.round(obj.top);
+    this.transformProps.width = Math.round(obj.getScaledWidth());
+    this.transformProps.height = Math.round(obj.getScaledHeight());
+    this.transformProps.angle = Math.round(obj.angle);
+
+    this.sliderGroup.refresh();
+  }
+}
+
 let panels = {
   // This structure maps every Panel to its class.
   // Panels are instantiated on demand, and the
@@ -2232,6 +2354,7 @@ let panels = {
   SavePanel,
   StopwatchPanel,
   TextPanel,
+  TransformPanel,
   SymbolsPanel,
   TablePanel,
   VerticalPanel,

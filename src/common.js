@@ -947,6 +947,7 @@ class PodiumSlider extends HTMLElement {
 
       e.stopImmediatePropagation();
       this.adjusting = true;
+      _menu_.busy = true;
       this.knob.classList.add("Slider__knob-selected");
       this.indicator.classList.add("Slider__knob__indicator-active");
       this.updateGeometry();
@@ -997,6 +998,8 @@ class PodiumSlider extends HTMLElement {
           e.stopImmediatePropagation();
           unlisten(mv);
           this.adjusting = false;
+          _menu_.busy = false;
+          _menu_.autoOff.run();
           this.knob.classList.remove("Slider__knob-selected");
           this.indicator.classList.remove("Slider__knob__indicator-active");
           // notify listeners that slider is finished

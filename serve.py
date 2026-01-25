@@ -24,6 +24,14 @@ class PodiumHandler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, **kwargs)
         self.protocol_version = "HTTP/1.1"
 
+    def handle_one_request(self):
+        """Handle a single HTTP request, catching malformed request errors."""
+        try:
+            super().handle_one_request()
+        except Exception as e:
+            # Silently ignore malformed requests from port scanners
+            logger.debug(f"Malformed request ignored: {e}")
+
     def log_message(self, format, *args):
         # Override to use Python logging instead of stderr
         logger.info("%s - - [%s] %s" % (self.address_string(), self.log_date_time_string(), format % args))
