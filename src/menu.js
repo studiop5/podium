@@ -528,7 +528,7 @@ class Menu {
     this.listen(paths.map((path) => path + "up"),(cell) => this.activateCell(rings.ink.activeCell === cell ? null :cell));
     this.listen(paths.map((path) => path + "long"),(cell) => this.activateCell(cell));
     // All but 4 cells in the ink ring have panels...remove those from paths...
-    paths = paths.filter((key) => !["ink/undo/","ink/cut/","ink/paste/","ink/transform/"].includes(key));
+    paths = paths.filter((key) => !["ink/undo/","ink/cut/","ink/paste/"].includes(key));
     // ..then listen for "out" on all remaining paths:
     this.listen(paths.map((path) => path + "out"),(cell) => this.openPanel(cell)); 
 
@@ -1376,12 +1376,10 @@ class Menu {
       case "copy": {
         // Handle both single click (target) and rectangle selection (opts.selected)
         let targets = opts.selected || (target ? [target] : []);
-        if (targets.length === 0) return;
+        if (targets.length == 0) return;
 
         // Create target for cloning - single object or ActiveSelection
-        let cloneSource = targets.length === 1
-          ? targets[0]
-          : new fabric.ActiveSelection(targets, { canvas });
+        let cloneSource = targets.length == 1  ? targets[0] : new fabric.ActiveSelection(targets, { canvas });
 
         cloneSource.clone((clone) => this.pasteObj = this.newlyCreated = clone);
         this.enableCells("ink/paste", true);
@@ -1403,6 +1401,10 @@ class Menu {
             canvas.discardActiveObject();
             canvas.requestRenderAll();
           });
+        } else {
+          // For copy, just discard selection
+          canvas.discardActiveObject();
+          canvas.requestRenderAll();
         }
         return;
       }

@@ -338,9 +338,10 @@ class Grid {
   // in 0-3], that determine which sequence to use:
   patterns = [
       [1],
-       [1,.75],
+      [1,.75],
       [1,.5,.75,.5],
-      [1,.35,.5,.35,.75,.35,.5,.35]];
+      [1,.35,.5,.35,.75,.35,.5,.35],
+      [1,.25,.35,.25,.5,.25,.35,.25,.75,.25,.35,.25,.5,.25,.35,.25]];
 
 
   constructor(pg, stash, options) {
@@ -433,7 +434,8 @@ class Grid {
     let ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, width, height);
     let dx = this.dx * this.zoom;
-   
+    let xLabels = []; // collect labels to draw after we know originY
+
     for (let i = 0, x = this.x, labelX = this.labelX; x <= width; x += dx, i++) {
       let idx = i % this.patternX.length;
       let value = this.patternX[idx];
@@ -444,14 +446,14 @@ class Grid {
       ctx.lineTo(x, height);
       ctx.stroke();
       if (this.numbers == "On" && idx == 0) {
-        // label this line
         let label = Math.round(labelX++) * this.stepsPerLabel;
-        if(label == 0) this.originX = x;
-        ctx.strokeText(label, x, 10);
+        if (label == 0) this.originX = x;
+        xLabels.push({ label, x });
       }
     }
 
     let dy = this.dy * this.zoom;
+    let yLabels = []; // collect labels to draw after we know originX
 
     for (let i = 0, y = this.y, labelY = this.labelY; y <= height; y += dy, i++) {
       let idx = i % this.patternY.length;
@@ -464,11 +466,23 @@ class Grid {
       ctx.stroke();
       if (this.numbers == "On" && idx == 0) {
         let label = Math.round(labelY++) * this.stepsPerLabel;
-        if(label == 0) this.originY = y;
-        ctx.strokeText(label, 10, y);
+        if (label == 0) this.originY = y;
+        yLabels.push({ label, y });
       }
     }
-    if(this.origin) {
+
+    // Draw labels at origin axes now that we have both originX and originY
+    if (this.numbers == "On") {
+      ctx.fillStyle = "black";
+      for (let { label, x } of xLabels) {
+        if (label !== 0) ctx.fillText(label, x + 2, this.originY - 2);
+      }
+      for (let { label, y } of yLabels) {
+        if (label !== 0) ctx.fillText(label, this.originX + 2, y - 2);
+      }
+    }
+
+    if (this.origin) {
       this.origin.style.left = this.originX/_pxPerEm_ -.3 + "em";
       this.origin.style.top = this.originY/_pxPerEm_ - .3 + "em";
     }
