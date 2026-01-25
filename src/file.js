@@ -44,7 +44,7 @@ let err = (call, msg) => {
   throw new Error(msg, { cause: "fileSrc" });
 };
 
-let errDialog = (error, stack, msg) => {
+let errDialog = (error, msg) => {
   // Craft an error dialog, given an exception variable and a msg.
   if (error.name == "AbortError") return; // thrown when browser's open/save panels are cancelled
   else if (error.cause == "cancelled") return toast("Cancelled");
@@ -52,8 +52,8 @@ let errDialog = (error, stack, msg) => {
   else if (error.cause == "security") dialog(`<em>Security Error</em><br><br><strong>${error.message}</strong>`);
   else if (error.cause == "fileSrc") dialog(`<em>${msg}</em><br><br><strong>${error.message}</strong>`);
   else {
-    console.warn(`*** Unexpected Podium Error: ${stack}`);
-    dialog(`<em>Unexpected Error</em><br><br><strong>${error}</strong><br><br>Details in console.`);
+    console.error(`*** Unexpected Podium Error:`, error);
+    dialog(`<em>Unexpected Error</em><br><br><strong>${msg}</strong><br><br>Details in console.`);
   }
 };
 
@@ -236,7 +236,7 @@ class FileSrc {
           Score.visit(score, { size, created, modified });
           toast("File reverted.");
         } catch (error) {
-          if (!error.handled) errDialog(error, error.stack, "Error: failed to download file from cloud server.<br>Details in Console.");
+          if (!error.handled) errDialog(error, "Error: failed to download file from cloud server.<br>Details in Console.");
         } finally {
           _shade_.hide();
           accept();
@@ -281,7 +281,7 @@ class FileSrc {
         toast("File saved.");
       } catch (error) {
         if (error.name !== 'AbortError') {
-          errDialog(error, error.stack, "Error: failed to save file.<br>Details in Console.");
+          errDialog(error, "Error: failed to save file.<br>Details in Console.");
         }
       } finally {
         _shade_.hide();
@@ -1679,7 +1679,7 @@ class LocalFileView {
       toast("File saved");
     } catch (error) {
       if (error.name !== 'AbortError') {
-        errDialog(error, error.stack, "Failed to save file to local storage");
+        errDialog(error, "Failed to save file to local storage");
       }
     } finally {
       _shade_.hide();
@@ -2023,7 +2023,7 @@ class FileListView {
         }
         toast("File downloaded");
       } catch (error) {
-        if (!error.handled) errDialog(error, error.stack, "Error: failed to download file from cloud server.");
+        if (!error.handled) errDialog(error, "Error: failed to download file from cloud server.");
       } finally {
         _shade_.hide();
         this.panel.hide();
@@ -2070,7 +2070,7 @@ class FileListView {
             }
             toast("File renamed");
           } catch (error) {
-            errDialog(error, error.stack, "Error: failed to rename file on cloud server.");
+            errDialog(error, "Error: failed to rename file on cloud server.");
           } finally {
             _shade_.hide();
             accept();
@@ -2099,7 +2099,7 @@ class FileListView {
           else this.select();
           toast("File trashed");
         } catch (error) {
-          errDialog(error, error.stack, "Error: failed to trash file on cloud server.");
+          errDialog(error, "Error: failed to trash file on cloud server.");
         } finally {
           _shade_.hide();
           accept();
@@ -2267,7 +2267,7 @@ class FileSystemView extends FileListView {
                 await this.setPath(path + "/" + name, true);
                 toast("Folder created");
               } catch (error) {
-                errDialog(error, error.stack, "Error: failed to create folder on cloud server.");
+                errDialog(error, "Error: failed to create folder on cloud server.");
               } finally {
                 _shade_.hide();
                 accept();
@@ -2305,7 +2305,7 @@ class FileSystemView extends FileListView {
             Score.visit({ source: this.source }, null, this.path);
             this.setPath(path, true);
           } catch (error) {
-            errDialog(error, error.stack, "Error: failed to rename folder on cloud server.");
+            errDialog(error, "Error: failed to rename folder on cloud server.");
           } finally {
             _shade_.hide();
             return accept();
@@ -2332,7 +2332,7 @@ class FileSystemView extends FileListView {
           await this.setPath(path, true);
           toast("Folder trashed");
         } catch (error) {
-          errDialog(error, error.stack, "Error: Failed to trash folder on cloud server.");
+          errDialog(error, "Error: Failed to trash folder on cloud server.");
         } finally {
           _shade_.hide();
           accept();
@@ -2367,7 +2367,7 @@ class FileSystemView extends FileListView {
 
       toast("File uploaded");
     } catch (error) {
-      errDialog(error, error.stack, "Error: failed to upload file to cloud server.<br>Details in Console.");
+      errDialog(error, "Error: failed to upload file to cloud server.<br>Details in Console.");
     } finally {
       _shade_.hide();
       this.panel.hide();
@@ -2408,7 +2408,7 @@ class FileSystemView extends FileListView {
         if (path in this.posForPath) this.flvList.style.top = this.posForPath[path];
         else this.flvList.style.top = "0px";
       } catch (error) {
-        errDialog(error, error.stack, "Error: Failed to read folder from cloud server.<br>Details in Console.");
+        errDialog(error, "Error: Failed to read folder from cloud server.<br>Details in Console.");
       } finally {
         _shade_.hide();
         return accept();

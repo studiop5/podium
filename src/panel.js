@@ -1609,12 +1609,18 @@ class TextPanel extends PencilPanel {
 class RastrumPanel extends PencilPanel {
   slidersDef = {
     gap: {
-      throttle: 250, min: 5, max: 40, step: 1, value: 8, msg: "Staff Space: {value} px" },
+      throttle: 250, min: 5, max: 40, step: 1, value: 8, msg: "Staff Space: {value}px" },
     lines: {
-      throttle: 250, min: 1, max: 30, step: 1, value: 5, msg: "Lines: {value}" },
+      throttle: 250, min: 1, max: 60, step: 1, value: 5, msg: "Lines: {value}" },
     width: {
-      throttle: 250, min: 0.1, max: 10, step: 0.1, value: 1, msg: "Width: {value} px" },
-    bars: { throttle: 250, min: 0, max: 20, step: 1, value: 4, msg: "Bars: {value}" },
+      throttle: 250, min: 0, max: 20, step: 0.1, value: 1, msg: (tag, value) =>
+        `Width: ${value == 0 ? "Auto":value + "px"}` },
+    bars: {
+      throttle: 250, min: 0, max: 60, step: 1, value: 4, msg: "Bars: {value}" },
+    barWidth: {
+      throttle: 250, min: 0, max: 30, step: 1, value: 4, msg: (tag, value) => 
+        `Barline Width: ${value == 0 ? "Auto":value + "px"}` },
+
   };
 
   buttonsDef = {
@@ -1628,7 +1634,7 @@ class RastrumPanel extends PencilPanel {
 
     delay(3, () => { 
       // After superclass constructor has done layout, arrange sliders 
-      // so that Lines and Width are on same line
+      // so that lLines/width, bars/barsWidth are on same line
       this.body.style.width = "16em" ;
       Object.assign(this.sliders.elm.style, {
         "display": "grid",
@@ -1651,57 +1657,60 @@ class RastrumPanel extends PencilPanel {
         "grid-row": 2,
       }),
       Object.assign(sliderBlocks[3].style, {
-        "grid-column": "1/-1",
+        "font-size": "0.75em",
+        "grid-column": "1/4",
+        "grid-row": 3,
+      }),
+      Object.assign(sliderBlocks[4].style, {
+        "font-size": "0.75em",
+        "grid-column": "4/7",
         "grid-row": 3,
       }),
 
       this.sliders.elm.querySelectorAll('.Slider').forEach((slider, i) => {
-        if(i == 1 || i == 2) 
+        if(i != 0) 
           Object.assign(slider.style, {
             width: "calc(50% - 3em)",
             left: "unset",
           })
        });
      }) ;
+     // make preview square
+     this.preview.style.height = "unset";
+     this.preview.style.aspectRatio = 1 ;
     }
 
 
   update() {
-    let { alpha, rgb, style, lines, width, gap, bars} =
+    let { alpha, rgb, style, lines, width, gap, bars, barWidth} =
       this.cell.stash;
     clearChildren(this.preview);
     let linePath = "";
     let barPath = "";
-    let staffHeight = (lines - 1) * gap;
-    if (style == "L-R") {
-      let staffY = (80 - staffHeight) / 2;
-      for (let i = 0, y = staffY; i < lines; i++, y += gap)
-        linePath += `M10 ${y}h180 `;
-      if (bars > 0) {
-        let barWidth = 180 / bars;
-        staffY -= width / 2;
-        staffHeight += width;
-        for (let i = 0, x = 10; i <= bars; i++, x += barWidth)
-          barPath += `M${x} ${staffY}v${staffHeight} `;
-      }
-    } else {
-      let staffX = (200 - staffHeight) / 2;
-      for (let i = 0, x = staffX; i < lines; i++, x += gap)
-        linePath += `M${x} ${10}v80 `;
-      if (bars > 0) {
-        let barWidth = 80 / bars;
-        staffX -= barsWidth / 2;
-        staffHeight += barsWidth;
-        for (let i = 0, y = 10; i <= bars; i++, y += barWidth)
-          barPath += `M${staffX} ${y}h${staffHeight} `;
-      }
-    }
+    // interpret "Auto"  (encoded as 0) to refer to Bravura engravingDefault values (in staff space, i.e. gap)
+    if (width == 0) width = .13 * gap ; 
+    if (barWidth == 0) barWidth = .16 * gap ; 
+    let staffHeight = (lines - 1) * gap + width;
+    let offset = (100 - staffHeight) / 2;
+    for (let i = 0, y = offset; ++i <= lines; y += gap)
+      if (style == "L-R") linePath += `M5 ${y}h90v${width}h-90Z`;
+      else linePath += `M${y} 5v90h${width}v-90Z`;
 
+    if(bars > 0) { // add bar lines
+      let barSpan = (90 - barWidth) / bars;
+      if (style == "L-R") 
+        for (let i = 0, x = 5; i++ <= bars; x += barSpan)
+          barPath += `M${x} ${offset}5v${staffHeight}h${barWidth}v${-staffHeight}Z`; 
+      else
+        for (let i = 0, y = 5; i <= bars; i++, y += barSpan)
+          barPath += `M${offset} ${y}v${barWidth}h${staffHeight}v${-barWidth}Z`;
+    }
     this.preview.append(
       helm(
-        `<svg viewBox="0 0 200 100">
-         <path style="fill:none;stroke:${rgb};stroke-width:${width}px;opacity:${alpha}" d="${linePath}"/>
-         <path style="fill:none;stroke:${rgb};stroke-width:${width}px;opacity:${alpha}" d="${barPath}"/></svg>`
+        `<svg viewBox="0 0 100 100">
+           <path style="fill:${rgb};opacity:${alpha}" d="${linePath}"/>
+           <path style="fill:${rgb};opacity:${alpha}" d="${barPath}"/>
+         </svg>`
       )
     );
 

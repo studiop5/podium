@@ -475,9 +475,9 @@ class Menu {
         rastrum: {
           name: "Rastrum",
           svgPath: iconPaths["Rastrum"],
-            // gap is staff space
-            stash: { alpha:"1", gap:5,  lines: 5, width: 0.55,
-                     rgb: "#000000", style:"L-R", bars:0, barWidth:.7}, // style is "L-R" or "T-B"
+            // note: gap == staff space
+            stash: { alpha:"1", gap:5,  lines: 5, width: 0, // when width or gap == 0, displays as "Auto"
+                     rgb: "#000000", style:"L-R", bars:0, barWidth:0}, // style is "L-R" or "T-B"
         },
         text: {
           name: "Text",
@@ -514,7 +514,7 @@ class Menu {
           name: "Paste",
           svgPath: iconPaths["Paste"],
         },
-
+        
       },
       name: "Ink",
       stash: { active: "pencil", 
@@ -615,9 +615,6 @@ class Menu {
     // Need to delay for menu to be built:
     delay(10, () => dataIndex("tag", rings.app.cells.theme.elm).cellIcon.innerHTML = iconPaths[theme]);
 
-
-
-
     // More ring
     rings.more = {
       cells: {
@@ -670,13 +667,6 @@ class Menu {
 
     this.listen(paths.map((path) => path + "out"),  (cell) => this.openPanel(cell));
 
-
-
-
-
-
-
-
     // more ring's cells have no functionality except their panels, so allow .../up to open the panel
    this.listen("more/metronome/up", (cell) => panels.MetronomePanel.get(cell).show().setPosition(this.grip));
    this.listen("more/stopwatch/up", (cell) => panels.StopwatchPanel.get(cell).show().setPosition(this.grip));
@@ -685,26 +675,19 @@ class Menu {
    this.listen("more/review/up", (cell) => panels.ReviewPanel.get(cell).show().setPosition(this.grip));
    this.listen("more/volume/up", (cell) => panels.VolumePanel.get(cell).show().setPosition(this.grip));
 
-
-
-
-
    // grip: no cells here, just handlers
    this.listen("up", () => this.collapse());
    this.listen("long", () => this.park());
 
-
-
-
-    // Add a "key" key to every cell so that, given a cell,
-    // we know immediately what its key is. Add a "ring" entry
-    // to every outer ring cell so that, given such a cell,
-    // we know immediately what inner ring it belongs to.
-    for (let [ringKey, ringCell] of Object.entries(this.rings)) {
-      ringCell["key"] = ringKey;
-      for (let [cellKey, cell] of Object.entries(ringCell.cells)) {
-        cell["key"] = cellKey;
-      }
+   // Add a "key" key to every cell so that, given a cell,
+   // we know immediately what its key is. Add a "ring" entry
+   // to every outer ring cell so that, given such a cell,
+   // we know immediately what inner ring it belongs to.
+   for (let [ringKey, ringCell] of Object.entries(this.rings)) {
+     ringCell["key"] = ringKey;
+     for (let [cellKey, cell] of Object.entries(ringCell.cells)) {
+       cell["key"] = cellKey;
+     }
     }
 
   }
@@ -1274,7 +1257,7 @@ class Menu {
   // user page interaction according to current state of
   // the menu.
 
-  async pgDownEvent(opts, pg) {
+  async pgEvent(opts, pg) {
 
     let canvas = pg.canvas;
 
@@ -1389,27 +1372,37 @@ class Menu {
         return addObj(new fabric.Text(codePoint, config));
       }
 
-      case "cut": 
+      case "cut":
       case "copy": {
-        if (target) {
-          target.clone((clone) => this.pasteObj = this.newlyCreated = clone);
-          this.enableCells("ink/paste", true);
-          // animate operation's target object back to the paste cell
+        // Handle both single click (target) and rectangle selection (opts.selected)
+        let targets = opts.selected || (target ? [target] : []);
+        if (targets.length === 0) return;
+
+        // Create target for cloning - single object or ActiveSelection
+        let cloneSource = targets.length === 1
+          ? targets[0]
+          : new fabric.ActiveSelection(targets, { canvas });
+
+        cloneSource.clone((clone) => this.pasteObj = this.newlyCreated = clone);
+        this.enableCells("ink/paste", true);
+
+        // Animate operation (only for single click with pointer info)
+        if (opts.e && target) {
           let emWidth = target.getScaledWidth() / _pxPerEm_;
           let {x,y} = target.getLocalPointer();
-          let elm  = helm(`<img src=${target.toDataURL()} style=
+          let elm = helm(`<img src=${target.toDataURL()} style=
              "width:${emWidth}em;height:auto;z-index:1000;left:${opts.e.clientX -x}px;top:${opts.e.clientY-y}px;position:absolute;"></img>`);
           _body_.append(elm);
           hide(elm, dataIndex("tag", _menu_.rings.ink.cells.paste.elm).cellIcon);
           delayMs(500, () => elm.remove());
-          if(activeCell.key == "cut") {
-            delay(1, () => {
-              if( target.type == "activeSelection")
-                target.getObjects().forEach(obj => canvas.remove(obj));
-              else canvas.remove(target);
-              canvas.discardActiveObject();
-            });
-          }
+        }
+
+        if (activeCell.key == "cut") {
+          delay(1, () => {
+            targets.forEach(obj => canvas.remove(obj));
+            canvas.discardActiveObject();
+            canvas.requestRenderAll();
+          });
         }
         return;
       }
