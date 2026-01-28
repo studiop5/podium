@@ -21,7 +21,7 @@
 **/
 
 export { initFabric, Grid };
-import { getBox, helm, listen, unlisten } from "./common.js";
+import { clamp, getBox, helm, listen, unlisten } from "./common.js";
 // -skip
 
 /**
@@ -374,20 +374,39 @@ class Grid {
     // or every successive 4 cm.
     this.stepsPerLabel = this.units == "Inch" ? 1 : 4;
 
-    this.draw(options.e);
+    // Capture pointer to prevent selection while grid is active
+    pg.canvas.upperCanvasEl.setPointerCapture(options.e.pointerId);
+
+    // Determine offset direction based on quadrant of pointerdown
+    // Origin offset pushes toward the quadrant corner (away from center)
+    let offset = 4 * _pxPerEm_;
+    let box = getBox(this.gridCanvas);
+    let startX = options.e.clientX - box.x;
+    let startY = options.e.clientY - box.y;
+    let inLeftHalf = startX < box.width / 2;
+    let inTopHalf = startY < box.height / 2;
+    // Upper left: up & left, Upper right: up & right, Lower left: down & left, Lower right: down & right
+    this.offsetX = inLeftHalf ? -offset : offset;
+    this.offsetY = inTopHalf ? -offset : offset;
 
     if(this.numbers == "On") {
       // put a small circle at the origin (0,0) grid point
-      this.origin = helm(`<div style="position:absolute;width:.5em;height:.5em;border:1px solid black;border-radius:100%;left:${this.originX/_pxPerEm_ - .3}em;top:${this.originY/_pxPerEm_ - .3}em;"></div>`);
+      this.origin = helm(`<div style="position:absolute;width:.5em;height:.5em;border:1px solid rgb(100,150,255);border-radius:100%;pointer-events:none;"></div>`);
       pg.canvas.wrapperEl.append(this.origin);
     }
 
+    this.draw(options.e);
+
     // update the grid as the pointer moves:
     let mv = listen(pg.canvas.upperCanvasEl, "pointermove", (e) => {
+      e.preventDefault();
       e.stopPropagation();
       this.draw(e);
     });
-    listen(pg.canvas.upperCanvasEl, "pointerup", () => unlisten(mv), { once: true });
+    listen(pg.canvas.upperCanvasEl, "pointerup", (e) => {
+      pg.canvas.upperCanvasEl.releasePointerCapture(e.pointerId);
+      unlisten(mv);
+    }, { once: true });
   }
 
   destructor() {
@@ -418,12 +437,25 @@ class Grid {
     //  ...same for y
     let box = getBox(this.gridCanvas);
     let xx = ptr.x - box.x;
-    let maxStep = this.maxStep * this.zoom;
-    this.x = xx - Math.ceil(xx / maxStep) * maxStep; // leftmost vertical grid line 
-    this.labelX = -((xx - this.x) / maxStep) + 1; // label for leftmost vertical grid line
     let yy = ptr.y - box.y;
-    this.y = yy - Math.ceil(yy / maxStep) * maxStep; 
-    this.labelY = -((yy - this.y) / maxStep) + 1;
+
+    // Use offset direction determined at pointerdown based on quadrant
+    let originX = xx + this.offsetX;
+    let originY = yy + this.offsetY;
+
+    // Use origin position (not cursor) for grid calculations so 0,0 is at origin
+    let maxStep = this.maxStep * this.zoom;
+    this.x = originX - Math.ceil(originX / maxStep) * maxStep; // leftmost vertical grid line
+    this.labelX = -((originX - this.x) / maxStep); // label for leftmost vertical grid line
+    this.y = originY - Math.ceil(originY / maxStep) * maxStep;
+    this.labelY = -((originY - this.y) / maxStep);
+
+    // Track cursor position for label placement (use box dimensions for accurate comparison)
+    this.cursorInBottomHalf = yy > box.height / 2;
+    this.cursorInRightHalf = xx > box.width / 2;
+    // Store origin position for marker placement
+    this.originPosX = originX;
+    this.originPosY = originY;
     this.drawGridLines();
   }
 
@@ -441,7 +473,7 @@ class Grid {
       let value = this.patternX[idx];
       ctx.beginPath();
       ctx.lineWidth = value;
-      ctx.strokeStyle = `rgba(127,127,127,${value})`;
+      ctx.strokeStyle = `rgba(100,150,255,${value})`;
       ctx.moveTo(x, 0);
       ctx.lineTo(x, height);
       ctx.stroke();
@@ -460,7 +492,7 @@ class Grid {
       let value = this.patternY[idx];
       ctx.beginPath();
       ctx.lineWidth = value;
-      ctx.strokeStyle = `rgba(127,127,127,${value})`;
+      ctx.strokeStyle = `rgba(100,150,255,${value})`;
       ctx.moveTo(0, y);
       ctx.lineTo(width, y);
       ctx.stroke();
@@ -472,19 +504,30 @@ class Grid {
     }
 
     // Draw labels at origin axes now that we have both originX and originY
+    // Position labels to stay visible based on cursor position:
+    // - Horizontal numbers: above origin when cursor in bottom half, below otherwise
+    // - Vertical numbers: before (left) when cursor in right half, after (right) otherwise
+    // Labels are clamped to stay within canvas bounds when origin is off-page
     if (this.numbers == "On") {
-      ctx.fillStyle = "black";
+      ctx.fillStyle = "rgb(100,150,255)";
+      // Use originPosY/X for label positioning (always set), clamped to canvas bounds
+      let xLabelY = clamp(this.cursorInBottomHalf ? this.originPosY - 2 : this.originPosY + 12, 12, height - 2);
       for (let { label, x } of xLabels) {
-        if (label !== 0) ctx.fillText(label, x + 2, this.originY - 2);
+        if (label !== 0) ctx.fillText(label, x + 2, xLabelY);
       }
       for (let { label, y } of yLabels) {
-        if (label !== 0) ctx.fillText(label, this.originX + 2, y - 2);
+        if (label !== 0) {
+          let textWidth = ctx.measureText(label).width;
+          let labelX = clamp(this.cursorInRightHalf ? this.originPosX - textWidth - 2 : this.originPosX + 2, 2, width - textWidth - 2);
+          ctx.fillText(label, labelX, y - 2);
+        }
       }
     }
 
     if (this.origin) {
-      this.origin.style.left = this.originX/_pxPerEm_ -.3 + "em";
-      this.origin.style.top = this.originY/_pxPerEm_ - .3 + "em";
+      // Position origin marker at grid 0,0 (centered)
+      this.origin.style.left = this.originPosX / _pxPerEm_ - .25 + "em";
+      this.origin.style.top = this.originPosY / _pxPerEm_ - .25 + "em";
     }
   }
 }

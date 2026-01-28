@@ -1426,12 +1426,15 @@ class Menu {
         cloneSource.clone((clone) => this.pasteObj = this.newlyCreated = clone);
         this.enableCells("ink/paste", true);
 
-        // Animate operation (only for single click with pointer info)
-        if (opts.e && target) {
-          let emWidth = target.getScaledWidth() / _pxPerEm_;
-          let {x,y} = target.getLocalPointer();
-          let elm = helm(`<img src=${target.toDataURL()} style=
-             "width:${emWidth}em;height:auto;z-index:1000;left:${opts.e.clientX -x}px;top:${opts.e.clientY-y}px;position:absolute;"></img>`);
+        // Animate operation
+        if (opts.e) {
+          let emWidth = cloneSource.getScaledWidth() / _pxPerEm_;
+          let bounds = cloneSource.getBoundingRect();
+          let canvasRect = canvas.lowerCanvasEl.getBoundingClientRect();
+          let left = canvasRect.left + bounds.left + bounds.width / 2;
+          let top = canvasRect.top + bounds.top + bounds.height / 2;
+          let elm = helm(`<img src=${cloneSource.toDataURL()} style=
+             "width:${emWidth}em;height:auto;z-index:1000;left:${left}px;top:${top}px;position:absolute;"></img>`);
           _body_.append(elm);
           hide(elm, dataIndex("tag", _menu_.rings.ink.cells.paste.elm).cellIcon);
           delayMs(500, () => elm.remove());
