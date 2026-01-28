@@ -307,6 +307,27 @@ class Layout {
     // @return boolean, true if this method handles this event and the subclass
     //   should not process it further.
     if (e.ctrlKey || !e.isPrimary) return true;
+    // When magnify cell is active, update magnifier and suppress layout events:
+    if (_menu_.magnifier?.active) {
+      let pg = e.target.pg || e.target.closest(".canvas-container")?.pg;
+      if (pg) {
+        let updateMag = (ev) => {
+          let box = pg.elm.getBoundingClientRect();
+          // Calculate position as fraction of displayed size (0 to 1)
+          let fracX = (ev.clientX - box.left) / box.width;
+          let fracY = (ev.clientY - box.top) / box.height;
+          _menu_.magnifier.panel?.updateMagnifier(fracX, fracY, pg);
+        };
+        updateMag(e);
+        // Track pointer movement for drag
+        let moveListener = listen(this.elm, "pointermove", updateMag);
+        listen(this.elm, "pointerup", () => {
+          unlisten(moveListener);
+          _menu_.autoOff.run();
+        }, { once: true });
+      }
+      return true;
+    }
     // When there is an active cell in the ink ring, then we're editing a page,
     // So don't allow the layout code to run:
     if (_menu_.activeRing?.key == "ink" && _menu_.activeRing?.activeCell) return true;

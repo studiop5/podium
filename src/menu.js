@@ -114,6 +114,17 @@ class Menu {
     .Menu__cell-disabled {
       color: var(--color-text-muted);
     }
+    .Menu__cell-locked::before {
+      content: "";
+      width: 0.6em;
+      height: 0.6em;
+      background: transparent;
+      border: 0.05em solid var(--menu-panel-indicator);
+      border-radius: 50%;
+      left: calc(50% - 0.345em);
+      top: 0.055em;
+      position: absolute;
+    }
     .Menu__diskIcon {
       position: absolute;
       left: 50%;
@@ -156,8 +167,22 @@ class Menu {
   busy = false;
   autoOff = new Schedule(4000, () => {
     if(this.busy) this.autoOff.run();
-    else if (["ink","page"].includes(this.activeRing.key)) this.activateCell(null);
+    else if (["ink","page"].includes(this.activeRing?.key) && !this.activeRing?.activeCell?.locked)
+      this.activateCell(null);
   });
+
+  toggleLock(cell) {
+    cell.locked = !cell.locked;
+    cell.elm.classList.toggle("Menu__cell-locked", cell.locked);
+    if (cell.locked) {
+      // Only activate if not already active
+      if (cell.ring?.activeCell !== cell) this.activateCell(cell);
+      this.autoOff.cancel();
+    } else if (cell.ring?.activeCell === cell) {
+      // Unlocking while active - restart autoOff
+      this.autoOff.run();
+    }
+  }
 
 
   /*
@@ -260,6 +285,7 @@ class Menu {
       ringCell["key"] = ringKey;
       for (let [cellKey, cell] of Object.entries(ringCell.cells)) {
         cell["key"] = cellKey;
+        cell["ring"] = ringCell;
         if (cell.stash) cell.stash["name"] = cell.name;
       }
     }
@@ -343,6 +369,13 @@ class Menu {
       svgPath: iconPaths["Score"],
     };
 
+    // Magnifier - active when magnify cell is active
+    this.magnifier = {
+      zoom: 1,
+      panel: null, // set by MagnifyPanel constructor
+      get active() { return rings.page.activeCell?.key === 'magnify'; }
+    };
+
     this.listen("score/up", () => this.activateRing(rings.score));
 
     this.listen("score/save/up", async (cell) => {
@@ -358,9 +391,6 @@ class Menu {
     });
 
     this.listen(["score/details/out", "score/open/out","score/save/out","score/new/out","score/print/out"], (cell) => this.openPanel(cell));
-    // The print, details, bind cells have no /up functionality, so we let the up action  open their panels:
-    this.listen("score/print/up", (cell) => panels.PrintPanel.get(cell).show().setPosition(this.grip));
-    this.listen("score/details/up", (cell) => panels.DetailsPanel.get(cell).show().setPosition(this.grip));
 
     this.listen("score/new/up", async (cell) => {
       if(!await checkUnsaved()) return;
@@ -381,10 +411,7 @@ class Menu {
       Layout.activeLayout = null;
       _score_ = null;
       _score_ = null;
-      for(let panel of Object.values(panels)) {
-         // Several panels need to close when the Score closes, otherwise they will have stale state.
-         if(panel.cell && ["Details", "Save", "Paste", "Print"].includes(panel.cell.name)) panel.close();
-      }
+      _menu_.closePanels();
       _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"], false);
     });
 
@@ -459,9 +486,9 @@ class Menu {
     // Ink ring
     rings.ink = {
       cells: {
-        transform: {
-          name: "Transform",
-          svgPath: iconPaths["Transform"] },
+        edit: {
+          name: "Edit",
+          svgPath: iconPaths["Edit"] },
         pencil: {
           name: "Pencil",
           svgPath: iconPaths["Pencil"],
@@ -526,7 +553,7 @@ class Menu {
 
     paths = Object.keys(rings.ink.cells).map((key) => `ink/${key}/`);
     this.listen(paths.map((path) => path + "up"),(cell) => this.activateCell(rings.ink.activeCell === cell ? null :cell));
-    this.listen(paths.map((path) => path + "long"),(cell) => this.activateCell(cell));
+    this.listen(paths.map((path) => path + "long"),(cell) => this.toggleLock(cell));
     // All but 4 cells in the ink ring have panels...remove those from paths...
     paths = paths.filter((key) => !["ink/undo/","ink/cut/","ink/paste/"].includes(key));
     // ..then listen for "out" on all remaining paths:
@@ -550,6 +577,7 @@ class Menu {
         copy: { name: "Copy", svgPath: iconPaths["Copy Page"] },
         paste: { name: "Paste", svgPath: iconPaths["Paste Page"] },
         merge: { name: "Merge", svgPath: iconPaths["Merge"] },
+        magnify: { name: "Magnify", svgPath: iconPaths["Magnify"], stash: { zoom: 1 } },
       },
       name: "Page",
       stash: {},
@@ -561,16 +589,15 @@ class Menu {
     this.listen("page/up", () => this.activateRing(rings.page));
     paths = Object.keys(rings.page.cells).map((path) => `page/${path}/`);
     this.listen(paths.map((path) => path + "up"), (cell) => this.activateCell(rings.page.activeCell === cell ? null :cell));
-    this.listen(["page/numbers/","page/paste/","page/add/"].map((path) => path + "out"), (cell) =>  this.openPanel(cell));
+    this.listen(paths.map((path) => path + "long"), (cell) => this.toggleLock(cell));
+    this.listen(["page/numbers/","page/paste/","page/add/","page/magnify/"].map((path) => path + "out"), (cell) =>  this.openPanel(cell));
 
     this.listen("page/undo/up", async () => {
        _score_.pgUndo();
        await Layout.activeLayout.build(false);
    })
-    // numbers panel has no functionality except its panel, so allow up to open the panel
-    this.listen("page/numbers/up", (cell) => panels.NumbersPanel.get(cell).show().setPosition(this.grip));
 
-
+    
     rings.app = {
       name: "App",
       cells: {
@@ -667,28 +694,20 @@ class Menu {
 
     this.listen(paths.map((path) => path + "out"),  (cell) => this.openPanel(cell));
 
-    // more ring's cells have no functionality except their panels, so allow .../up to open the panel
-   this.listen("more/metronome/up", (cell) => panels.MetronomePanel.get(cell).show().setPosition(this.grip));
-   this.listen("more/stopwatch/up", (cell) => panels.StopwatchPanel.get(cell).show().setPosition(this.grip));
-   this.listen("more/clock/up", (cell) => panels.ClockPanel.get(cell).show().setPosition(this.grip));
-   this.listen("more/piano/up", (cell) => panels.PianoPanel.get(cell).show().setPosition(this.grip));
-   this.listen("more/review/up", (cell) => panels.ReviewPanel.get(cell).show().setPosition(this.grip));
-   this.listen("more/volume/up", (cell) => panels.VolumePanel.get(cell).show().setPosition(this.grip));
-
    // grip: no cells here, just handlers
    this.listen("up", () => this.collapse());
    this.listen("long", () => this.park());
 
-   // Add a "key" key to every cell so that, given a cell,
-   // we know immediately what its key is. Add a "ring" entry
-   // to every outer ring cell so that, given such a cell,
-   // we know immediately what inner ring it belongs to.
-   for (let [ringKey, ringCell] of Object.entries(this.rings)) {
-     ringCell["key"] = ringKey;
-     for (let [cellKey, cell] of Object.entries(ringCell.cells)) {
-       cell["key"] = cellKey;
+   // For any cell that has a panel but no /up listener, auto-register one to open the panel
+   for (let [ringKey, ring] of Object.entries(this.rings)) {
+     for (let [cellKey, cell] of Object.entries(ring.cells)) {
+       let path = `${ringKey}/${cellKey}/up`;
+       let panelClass = panels[cell.name + "Panel"];
+       if (panelClass && !this.listeners[path]) {
+         this.listen(path, (cell) => panelClass.get(cell).show().setPosition(this.grip));
+       }
      }
-    }
+   }
 
   }
 
@@ -818,7 +837,16 @@ class Menu {
         if (op.cell.enabled == false) break;
         op.cell.elm.classList.add("Menu__cell-selected");
         this.notify(`${ringKey}/${cellKey}/down`);
- 
+        // Schedule long press detection for cells
+        op.schedule.run(
+          _longPressMs_,
+          () => {
+            op.completed = true;
+            this.notify(`${ringKey}/${cellKey}/long`);
+            op.cell.elm.classList.remove("Menu__cell-selected");
+          },
+          this
+        );
         break;
       }
       case "disk": {
@@ -962,7 +990,7 @@ class Menu {
 
     switch (op.state) {
       case "ring":
-        this.notify(`${op.ringKey}/${op.cellKey}/up`);
+        if (!op.completed) this.notify(`${op.ringKey}/${op.cellKey}/up`);
         break;
       case "disk":
         this.notify(`${op.ringKey}/up`);
@@ -1030,17 +1058,24 @@ class Menu {
     // had an active cell before this call, it will be deactivated.
     // Special cases:
     //  -  if currently editing a fabric text object, exit text editing
-    //  -  when the ink/transform cell activates/deactivates, must call Score's setTransformable method
+    //  -  when the ink/edit cell activates/deactivates, must call Score's setSelectable method
     this.checkEditing();
     let ring = cell?.ring || this.activeRing;
 
-    // Will this operation toggle the transform cell?
-    let transformCell = this.rings.ink.cells.transform;
-    let transformToggle = (ring.activeCell !== transformCell && cell === transformCell) ||
-        (ring.activeCell === transformCell && cell !== transformCell);
+    // Will this operation toggle the edit cell?
+    let editCell = this.rings.ink.cells.edit;
+    let editToggle = (ring.activeCell !== editCell && cell === editCell) ||
+        (ring.activeCell === editCell && cell !== editCell);
 
     // now update state and appearance for activate/deactivate
-    if (ring?.activeCell) ring.activeCell.elm.classList.remove("Menu__cell-active");
+    if (ring?.activeCell) {
+      ring.activeCell.elm.classList.remove("Menu__cell-active");
+      // Clear lock when deactivating
+      if (ring.activeCell.locked) {
+        ring.activeCell.locked = false;
+        ring.activeCell.elm.classList.remove("Menu__cell-locked");
+      }
+    }
     if (cell) {
       cell.elm.classList.add("Menu__cell-active");
       ring.activeCell = cell;
@@ -1054,8 +1089,8 @@ class Menu {
     if(_score_ && ring.key == "ink") {
       // Score is editable iff ink is activeRing, and it has an activeCell
       _score_.setEditable(ring.activeCell);
-      // Score is transformable iff ink is activeRing, and transform cell is active
-      if(transformToggle) _score_.setTransformable(cell === transformCell);
+      // Score is selectable iff ink is activeRing, and edit cell is active
+      if(editToggle) _score_.setSelectable(cell === editCell);
     }
   }
 
@@ -1069,6 +1104,13 @@ class Menu {
     let classList = cellKey ? cell.elm.classList : cell.cellElm.classList;
     enable ? classList.remove("Menu__cell-disabled") : classList.add("Menu__cell-disabled");
     cell.enabled = enable;
+  }
+
+  closePanels(except = ["app", "more"]) {
+    // Close all open panels except those belonging to rings in the except list
+    for (let panel of Object.values(panels)) {
+      if (panel.cell && !except.includes(panel.cell.ring?.key)) panel.close();
+    }
   }
 
   listen(path, func) {
@@ -1282,7 +1324,7 @@ class Menu {
 
     switch (activeCell.key) {
 
-      case "transform":
+      case "edit":
         if(target && !target.hasControls) {
           target.hasControls = true;
           canvas.requestRenderAll();

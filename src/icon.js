@@ -49,6 +49,19 @@ Alpha:
 About:
   `<text font-size="42px" y="20" x="7" font-family="Bravura" fill="currentColor">\ued19</text>`,
 
+///
+Magnify:
+  `<defs><mask id="glass">
+    <rect x="0" y="0" width="24" height="24" fill="white"/>
+    <circle cx="9" cy="9" r="5.2" fill="black"/>
+    </mask></defs>
+    <path stroke="currentColor" stroke-width=".3" fill="#aaa" d="M12.1 14.4L20 20 L21 18.9 L14.4 12.2Z"/>
+    <circle  mask="url(#glass)" cx="9" cy="9" r="6.1" fill="#aaa" stroke="currentColor" stroke-width=".3"/>
+    <circle  mask="url(#glass)" cx="9" cy="9" r="5.3" fill="#aaa" stroke="currentColor" stroke-width=".3"/>`,
+
+
+//   <line x1="13.5" y1="13.5" x2="20" y2="20" fill="#aaa" stroke="currentColor" stroke-width=".3" stroke-linecap="round"/>`,
+
 "Blank Page":
   `<path style="fill:none;stroke:#000;stroke-width:.6" d="M3 3h17v20 h-17Z"/>`,
 
@@ -428,7 +441,7 @@ Table:
   `<path fill="#999" stroke="currentColor" stroke-width="0.5" fill-rule="nonzero" d="M 22.8,3.78 C 22.6,4.12 22.3,4.46 22.4,4.8 M 17,5.25 V 6.02 M 2.4,4.17 C 2.49,3.91 2.22,3.65 2.04,3.39 L 7.79,2.03 22.9,3.81 17,5.12 2.09,3.45 v 0 M 20.5,7.44 c -0.4,1.58 0.6,7.66 0.4,11.26 0.2,0.5 -0.4,1.2 0.4,1.5 0.5,0.3 0.5,0.7 1.2,-0.4 0.3,-0.4 -0.2,-0.7 -0.5,-1.5 -0.5,-4 1.2,-8 0.4,-11.4 M 17,6.21 2.41,4.19 V 6.52 M 17,8.51 22.4,6.84 V 4.82 L 17,6.16 Z M 14.9,8.26 c 0.7,0.47 1,1.15 1.1,2.44 0.8,3.6 0.6,7.1 0.7,10.7 -0.1,0.7 0.3,0.7 0.7,0.8 0.4,-0.1 0.4,-0.3 0.5,-0.5 C 17.8,19 17.1,18.3 18.4,10.6 18.5,10.1 18.6,8.88 19,7.91 M 9.01,7.63 C 8.45,10 8.51,13.1 8.6,15.8 c 0,1.1 -0.1,1.1 -0.76,1 C 7.46,16.8 7.6,16.1 7.6,15.6 7.39,12.8 7.29,8.91 6.11,6.92 M 5.09,6.81 C 4.35,8.45 4.4,13.9 4.39,17.4 c 0,1.2 0.89,1.2 -1.1,1.3 -0.37,0 -0.55,-0.9 0.18,-1.5 C 3.8,12.1 1.75,8.65 2.53,6.48 l 14.37,2.1">`,
 
 
- Transform: 
+ Edit:
   `<path fill="#aaa" stroke-width="0.6" stroke="currentColor" d="${circlePath(2,12,3)} ${circlePath(2,4,10)} ${circlePath(2,20,10)} ${circlePath(2,4,20)} ${circlePath(2,20,20)} M4,10h16v10h-16zM12,10v-6.5" />`,
 
 Text:
