@@ -184,7 +184,10 @@ class Panel {
     this.setIcon(cell.svgPath);
     this.setTitle(cell.name);
     this.listeners.push(
-      listen(this.closer, "pointerdown", (e) => this.close())
+      listen(this.closer, "pointerdown", (e) => {
+        e.stopPropagation();
+        this.close();
+      })
     );
     this.listeners.push(
       listen(this.header, "pointerdown", (e) => {
@@ -234,9 +237,9 @@ class Panel {
   close() {
     // When a panel is closed, its first hidden, then, removed from
     // the dom, and its singleton is deleted.
-    hide(this.elm, this.elm);
+    hide(this.elm, dataIndex("tag", this.cell.elm).cellIcon);
 
-    schedule(400, () => {
+    schedule(510, () => {
       this.elm.remove();
       this.destructor();
       delete panels[this.cell.key];
@@ -2201,7 +2204,7 @@ class StopwatchPanel extends Panel {
   }
 }
 
-class TransformPanel extends Panel {
+class EditPanel extends Panel {
 
   content = helm(`
     <div data-tag="body" class="Panel__body" style="min-width: 15em;">
@@ -2214,7 +2217,7 @@ class TransformPanel extends Panel {
     </div>`);
 
   // Props object that syncs with the active fabric object
-  transformProps = { x: 0, y: 0, width: 100, height: 100, angle: 0 };
+  editProps = { x: 0, y: 0, width: 100, height: 100, angle: 0 };
 
   slidersDef = {
     x: { min: 0, max: 1000, step: .1, value: 0, msg: "X: {value} px" },
@@ -2230,7 +2233,7 @@ class TransformPanel extends Panel {
     Object.assign(this, dataIndex("tag", this.content));
 
     this.sliderGroup = new SliderGroup(
-      this.transformProps,
+      this.editProps,
       this.slidersDef,
       (e, tag, value) => this.handleSliderChange(tag, Number(value))
     );
@@ -2313,13 +2316,114 @@ class TransformPanel extends Panel {
     this.slidersDef.height.max = canvas.height;
 
     // Update props from fabric object
-    this.transformProps.x = Math.round(obj.left);
-    this.transformProps.y = Math.round(obj.top);
-    this.transformProps.width = Math.round(obj.getScaledWidth());
-    this.transformProps.height = Math.round(obj.getScaledHeight());
-    this.transformProps.angle = Math.round(obj.angle);
+    this.editProps.x = Math.round(obj.left);
+    this.editProps.y = Math.round(obj.top);
+    this.editProps.width = Math.round(obj.getScaledWidth());
+    this.editProps.height = Math.round(obj.getScaledHeight());
+    this.editProps.angle = Math.round(obj.angle);
 
     this.sliderGroup.refresh();
+  }
+}
+
+class MagnifyPanel extends Panel {
+  content = helm(`
+    <div data-tag="body" class="Panel__body" style="min-width: 18em;">
+      <div class="PencilPanel__preview" style="height:6em; margin:0; padding:0;">
+        <canvas data-tag="magCanvas" width="300" height="150"
+          style="width:100%; height:100%; display:block;"></canvas>
+      </div>
+      <div data-tag="slidersContainer" style="margin-top:0.5em;"></div>
+    </div>`);
+
+  constructor(cell) {
+    super(cell);
+    this.body.replaceWith(this.content);
+    Object.assign(this, dataIndex("tag", this.content));
+
+    this.sliderGroup = new SliderGroup(
+      cell.stash,
+      {
+        zoom: { throttle: 100, min: 0.25, max: 5, step: 0.05, value: 1, msg: "Zoom: {value}x" },
+      },
+      (e, tag, value) => {
+        _menu_.magnifier.zoom = Number(value);
+        this.updateMagnifier();
+      }
+    );
+    this.slidersContainer.append(this.sliderGroup.elm);
+
+    // Store reference for magnifier updates
+    _menu_.magnifier.panel = this;
+  }
+
+  show() {
+    super.show();
+    this.cell.stash.zoom = _menu_.magnifier.zoom;
+    this.sliderGroup.refresh();
+    return this;
+  }
+
+  updateMagnifier(fracX, fracY, pg) {
+    // @fracX, @fracY are fractional coordinates (0 to 1) relative to displayed page
+    // Store coordinates if provided
+    if (fracX !== undefined) {
+      this.lastFracX = fracX;
+      this.lastFracY = fracY;
+      this.lastPg = pg;
+    }
+
+    // Use stored coordinates
+    fracX = this.lastFracX;
+    fracY = this.lastFracY;
+    pg = this.lastPg;
+
+    if (!pg?.canvas) return;
+
+    let canvas = pg.canvas;
+    let zoom = _menu_.magnifier.zoom;
+    let destW = 300, destH = 150;
+
+    let ctx = this.magCanvas.getContext("2d");
+    ctx.clearRect(0, 0, destW, destH);
+
+    // Draw from mozCanvas (PDF rendering) first as background
+    if (pg.mozCanvas) {
+      let srcW = pg.mozCanvas.width;
+      let srcH = pg.mozCanvas.height;
+      let srcX = fracX * srcW;
+      let srcY = fracY * srcH;
+      let sourceW = destW / zoom;
+      let sourceH = destH / zoom;
+      ctx.drawImage(
+        pg.mozCanvas,
+        srcX - sourceW/2, srcY - sourceH/2,
+        sourceW, sourceH,
+        0, 0, destW, destH
+      );
+    }
+
+    // Draw from Fabric lower canvas (rendered objects/annotations)
+    let fabW = canvas.lowerCanvasEl.width;
+    let fabH = canvas.lowerCanvasEl.height;
+    let fabX = fracX * fabW;
+    let fabY = fracY * fabH;
+    let fabSourceW = destW / zoom;
+    let fabSourceH = destH / zoom;
+    ctx.drawImage(
+      canvas.lowerCanvasEl,
+      fabX - fabSourceW/2, fabY - fabSourceH/2,
+      fabSourceW, fabSourceH,
+      0, 0, destW, destH
+    );
+
+    // Draw from upper canvas (selections, active drawing)
+    ctx.drawImage(
+      canvas.upperCanvasEl,
+      fabX - fabSourceW/2, fabY - fabSourceH/2,
+      fabSourceW, fabSourceH,
+      0, 0, destW, destH
+    );
   }
 }
 
@@ -2340,6 +2444,7 @@ let panels = {
   GridPanel,
   HorizontalPanel,
   AboutPanel,
+  MagnifyPanel,
   MetronomePanel,
   NewPanel,
   NumbersPanel,
@@ -2354,7 +2459,7 @@ let panels = {
   SavePanel,
   StopwatchPanel,
   TextPanel,
-  TransformPanel,
+  EditPanel,
   SymbolsPanel,
   TablePanel,
   VerticalPanel,

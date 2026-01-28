@@ -236,7 +236,7 @@ class Pg {
       let stateChanged = false; // flag to indicate canvas state has changed s.t. it needs to be pushed to the undoStack
   
       canvas.on("mouse:down:before", async (opts) => {
-        if(_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) 
+        if(_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell)
           _menu_.pgEvent(opts, this);
       });
   
@@ -250,14 +250,15 @@ class Pg {
         // Allow dragging selection by clicking anywhere in bounding box, not just pixels
         canvas.perPixelTargetFind = false;
 
-        if (_menu_.activeRing.key == "ink" && ["cut","copy","transform"].includes(_menu_.activeRing.activeCell.key))
+        if (_menu_.activeRing.key == "ink" && ["cut","copy","edit"].includes(_menu_.activeRing.activeCell.key))
          _menu_.pgEvent(opts, this);
       });
 
       canvas.on("selection:cleared", () => {
         canvas.perPixelTargetFind = true;
       });
-  
+
+
       // Each pg instance has its own undo stack. Initially, the
       // stack has 1 entry: its state *before* anything has been
       // pushed on it.  We need this so that we'll have a state
@@ -985,6 +986,7 @@ class Score {
     // update the _menu_ state for this Score instance:
     _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"]);
     _menu_.enableCells("ink/undo", false); // nothing to undo yet
+    _menu_.closePanels();
     _menu_.enableCells("page/undo", this.undoStack.length > 0);
     this.pgRefresh();
     // Sync quality to stash so InfoPanel slider shows correct value
@@ -1295,9 +1297,9 @@ class Score {
     for (let pg of this.pgs) pg.setEditable(bool);
   }
 
-  setTransformable(bool) {
-    // when a score is transformable, all objects on all pages
-    // can be rotated, scaled, and translated...otherwise not
+  setSelectable(bool) {
+    // when selectable, all objects on all pages
+    // can be selected, rotated, scaled, and translated...otherwise not
     for(let pg of this.pgs) {
       if(!pg.inflated) continue;
       if(!bool) pg.canvas.discardActiveObject();
