@@ -2370,6 +2370,11 @@ class MagnifyPanel extends Panel {
     if (fracX !== undefined) {
       this.lastFracX = fracX;
       this.lastFracY = fracY;
+      // Manage magnifier hold to prevent deflation
+      if (pg !== this.lastPg) {
+        if (this.lastPg) this.lastPg.magnifierHold = false;
+        if (pg) pg.magnifierHold = true;
+      }
       this.lastPg = pg;
     }
 
@@ -2424,6 +2429,13 @@ class MagnifyPanel extends Panel {
       fabSourceW, fabSourceH,
       0, 0, destW, destH
     );
+  }
+
+  destructor() {
+    super.destructor();
+    // Release magnifier hold on the page
+    if (this.lastPg) this.lastPg.magnifierHold = false;
+    _menu_.magnifier.panel = null;
   }
 }
 

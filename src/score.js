@@ -1282,7 +1282,8 @@ class Score {
 
     // We don't immediately deflate an unused pg: instead, deflate least recently
     // used unused pg's, allowing at most Score.MAX_INFLATED inflated but unused pg's.
-    let deflatable = this.pgs.filter((pg) => pg.inflated && !pg.inUse);
+    // Pages with magnifierHold are excluded (being viewed in magnifier panel).
+    let deflatable = this.pgs.filter((pg) => pg.inflated && !pg.inUse && !pg.magnifierHold);
     deflatable.sort((a, b) => b.lastUsed - a.lastUsed);
     while (deflatable.length > Score.MAX_INFLATED) {
       deflatable.pop().deflate();
