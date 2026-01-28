@@ -2088,7 +2088,7 @@ function ptrMsg(e, msgFunc, styles) {
     let contentWidth = b.width;
     let hg = b.height;
 
-    // Update maxWidth and set minWidth constraint
+    // Update maxWidth and set minWidth constraints
     if (contentWidth > maxWidth) {
       maxWidth = contentWidth;
       div.style.minWidth = maxWidth + "px";
