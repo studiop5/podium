@@ -613,7 +613,7 @@ class Piano {
     let option = (tag, optText, prefix=" ", url=null, urlText="") => {
       // Used to format a tab's options: a function avoids tedious repetition
       let txt1 =`<div ${tag} class="Piano__options__option">&nbsp;${optText}<span style="position:absolute;left:18em;">${prefix}`;
-      let txt2 = url ? `<a href="https:/\/${url}" target="_blank" rel="noopener noreferrer">${urlText}</a></span></div>`
+      let txt2 = url ? `<a href="https:/\/${url}">${urlText}</a></span></div>`
       : "</div>";
       return txt1 + txt2
     };
@@ -1824,7 +1824,7 @@ class Review {
         <ul><li>This device doesn't have any audio/video device(s) ?</li>
         <li>Device(s) in use by another app ?</li>
         <li>Wrong permissions ?</li></ul></div>Hint: To check browser permissions:<br>
-        <a target="_blank" href="http://www.google.com/search?q=How+to+set+browser+permissions">How to set browser permissions</a>`);
+        <a href="http://www.google.com/search?q=How+to+set+browser+permissions">How to set browser permissions</a>`);
       return false;
     }
     this.devices = await navigator.mediaDevices.enumerateDevices();

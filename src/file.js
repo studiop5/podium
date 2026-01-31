@@ -343,12 +343,29 @@ class LocalSrc extends FileSrc {
       let file = await handle.getFile();
       return { name: file.name, modified: file.lastModified };
     } else {
-      data = new Blob([data]);
-      let url = URL.createObjectURL(data);
+      // Try Web Share API first (works on iOS with "Save to Files" option)
+      let file = new File([data], name, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] });
+          return { name: name, modified: Date.now() };
+        } catch (e) {
+          if (e.name === 'AbortError') throw e; // User cancelled
+          // Fall through to download approach
+        }
+      }
+      // Fallback: download approach (Android Chrome, Firefox)
+      let blob = new Blob([data], { type: 'application/octet-stream' });
+      let url = URL.createObjectURL(blob);
       let link = document.createElement('a');
       link.download = name;
       link.href = url;
-      link.click();
+      link.target = '_self';
+      link.rel = 'noopener';
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.dispatchEvent(new MouseEvent('click', { bubbles: false, cancelable: true, view: window }));
+      document.body.removeChild(link);
       setTimeout(() => URL.revokeObjectURL(url), 3000);
       return { name: name, modified: Date.now() };
     }
@@ -356,7 +373,7 @@ class LocalSrc extends FileSrc {
 
   async getFileHandle(name) {
     // Get a file handle immediately (during user gesture) for later writing
-    if (!showSaveFilePicker) return null;
+    if (!window.showSaveFilePicker) return null;
     const options = {
       suggestedName: name,
       types: [

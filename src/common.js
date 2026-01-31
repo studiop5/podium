@@ -376,6 +376,10 @@ css( // common css declarations.
     user-select: none;
     touch-action: none;
   }
+
+  a {
+    text-decoration-skip-ink: none;
+  }
   *:not(input):not(textarea) {
     -webkit-user-select: none;  /* disable selection/Copy of UIWebView */
     -webkit-touch-callout: none; /* disable the IOS popup when long-press on a link */
@@ -498,7 +502,14 @@ css( // common css declarations.
 }`
 );
 
-
+// Make all hyperlinks open in new tab (except download links)
+document.addEventListener("click", (e) => {
+  let anchor = e.target.closest("a");
+  if (anchor && anchor.href && !anchor.download) {
+    e.preventDefault();
+    window.open(anchor.href, "_blank");
+  }
+});
 
 /**
 class ButtonGroup

@@ -88,8 +88,8 @@ class Menu {
       height: 0.6em;
       background: var(--menu-panel-indicator);
       clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-      left: calc(50% - 0.15em);
-      top: 0.1em;
+      left: calc(50% - .075em );
+      top: 0.13em;
       position: absolute;
       box-shadow: -0.02em -0.02em 0.04em var(--menu-panel-indicator-highlight) inset,
                   0.02em 0.02em 0.04em var(--menu-panel-indicator-shadow) inset;
@@ -119,9 +119,9 @@ class Menu {
       width: 0.6em;
       height: 0.6em;
       background: transparent;
-      border: 0.05em solid var(--menu-panel-indicator);
+      border: 0.1em solid var(--menu-panel-indicator);
       border-radius: 50%;
-      left: calc(50% - 0.345em);
+      left: calc(50% - 0.3em);
       top: 0.055em;
       position: absolute;
     }
@@ -196,7 +196,7 @@ class Menu {
                                 |
                   _________________________________________________ 
                   /                          / ........ \         \
-             diskHolder                   ring*........ ring*     grip
+             diskHolder                 onpg  ring*........ ring*     grip
                  |                          |
                disk                      ______
                  |                       /....\
@@ -208,7 +208,7 @@ class Menu {
           /       \
        ringName*   iconSvg*
 
-      *: element(s)    added dynamically     
+      *: element(s)    added dynamically 
 
   */
 
@@ -304,11 +304,11 @@ class Menu {
     }
     finally {
       // activate last used layout or, if none, Book Layout
-      this.activeRing = this.rings.layout;  // tmp to initialize 
+      this.activeRing = this.rings.layout;  // tmp to initialize
       let active = this.rings.layout.stash.active;
       if(active) this.activateCell(this.rings.layout.cells[active]);
       else this.activateCell(this.rings.layout.cells.book);
-      // now activate Score ring    
+      // now activate Score ring
       this.activateRing(this.rings.score);
     }
 
@@ -413,6 +413,7 @@ class Menu {
       _score_ = null;
       _menu_.closePanels();
       _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"], false);
+      document.dispatchEvent(new CustomEvent("scoreClosed"));
     });
 
 
@@ -602,6 +603,7 @@ class Menu {
       name: "App",
       cells: {
         about: { name: "About", svgPath: iconPaths["About"], stash: {} },
+        storage: { name: "Storage", svgPath: iconPaths["Storage"], stash: {} },
         theme: { name: "Theme", svgPath: iconPaths["Light"], stash: {} },
         guide: { name: "Guide", svgPath: iconPaths["Guide"], stash: {} },
         screen: {  name: "Screen",  stash: { },  svgPath: iconPaths["Full Screen"],
@@ -614,6 +616,7 @@ class Menu {
     this.listen("app/up", () => this.activateRing(rings.app));
 
     this.listen("app/about/out", (cell) => this.openPanel(cell));
+    this.listen("app/storage/out", (cell) => this.openPanel(cell));
     this.listen("app/guide/out", (cell) => this.openPanel(cell));
 
     this.listen("app/screen/up", (cell) => {
@@ -627,20 +630,13 @@ class Menu {
       }
     });
 
-// should be storeed in stash.....rem grd
     this.listen("app/theme/up", (cell) => {
-      let theme = localStorage.getItem("theme") || "Light";
+      let theme = cell.stash.theme || "Light";
       theme = theme == "Dark" ? "Light" : "Dark";
       document.documentElement.setAttribute("data-theme", theme);
-      dataIndex("tag", rings.app.cells.theme.elm).cellIcon.innerHTML = iconPaths[theme];
-      localStorage.setItem("theme", theme);
+      dataIndex("tag", cell.elm).cellIcon.innerHTML = iconPaths[theme];
+      cell.stash.theme = theme;
     });
-
-    // Set initial icon for theme cell
-    let theme = localStorage.getItem("theme") || "Light";
-    document.documentElement.setAttribute("data-theme", theme);
-    // Need to delay for menu to be built:
-    delay(10, () => dataIndex("tag", rings.app.cells.theme.elm).cellIcon.innerHTML = iconPaths[theme]);
 
     // More ring
     rings.more = {
@@ -1090,6 +1086,18 @@ class Menu {
       // Score is editable iff ink is activeRing, and it has an activeCell
       _score_.setEditable(ring.activeCell);
       // Score is selectable iff ink is activeRing, and edit cell is active
+///
+    if(editToggle && cell && (cell.key == "cut" || cell.key == "copy"))
+    { // check for active selection
+      for(let pg of _score_.pgs) {
+        if(!pg.inflated) continue;
+          let obj = pg.canvas.getActiveObject();
+          if(obj) {
+            obj.type == "activeSelection" ? this.pgEvent({selected:obj._objects},pg) : this.pgEvent({target:obj},pg);
+           return ;
+          }
+        } 
+      }
       if(editToggle) _score_.setSelectable(cell === editCell);
     }
   }
@@ -1198,6 +1206,13 @@ class Menu {
       } catch {
         // ignore corrupt entry
       }
+    }
+    // Apply theme from loaded stash
+    let themeCell = this.rings.app?.cells?.theme;
+    if (themeCell) {
+      let theme = themeCell.stash.theme || "Light";
+      document.documentElement.setAttribute("data-theme", theme);
+      dataIndex("tag", themeCell.elm).cellIcon.innerHTML = iconPaths[theme];
     }
   }
 

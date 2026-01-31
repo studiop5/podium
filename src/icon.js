@@ -49,6 +49,18 @@ Alpha:
 About:
   `<text font-size="42px" y="20" x="7" font-family="Bravura" fill="currentColor">\ued19</text>`,
 
+Storage:
+  `<path d="M2 5h20v14h-8v-1.5h-1.5v1.5H2v-5a2 2 0 0 0 0-4V5z" fill="none" stroke="currentColor" stroke-width="0.8"/>
+   <rect x="6" y="7.5" width="5" height="7" rx="0.5" fill="#aaa" stroke="currentColor" stroke-width="0.8"/>
+   <rect x="15" y="7.5" width="5" height="7" rx="0.5" fill="#aaa" stroke="currentColor" stroke-width="0.8"/>
+   <path d="M6.5 7.5v-1.5 M8.5 7.5v-1.5 M10.5 7.5v-1.5 M6.5 14.5v1.5 M8.5 14.5v1.5 M10.5 14.5v1.5" stroke="currentColor" stroke-width="0.6"/>
+   <path d="M15.5 7.5v-1.5 M17.5 7.5v-1.5 M19.5 7.5v-1.5 M15.5 14.5v1.5 M17.5 14.5v1.5 M19.5 14.5v1.5" stroke="currentColor" stroke-width="0.6"/>
+   <path d="M2 17h10.5 M14 17h8" stroke="currentColor" stroke-width="0.5"/>
+   <path d="M4 19v-2 M6 19v-2 M8 19v-2 M10 19v-2 M16 19v-2 M18 19v-2 M20 19v-2" stroke="currentColor" stroke-width="0.6"/>`,
+
+Refresh:
+  `<path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" fill="currentColor"/>`,
+
 ///
 Magnify:
   `<defs><mask id="glass">
@@ -239,11 +251,11 @@ Mark:
   `<path style="fill:currentColor;stroke:currentColor;stroke-width:0.8;" d="M 8,3 L 8,21 L 12,17 L 16,21 L 16,3 Z"/>`,
 
 Menu:
-  `<circle style="fill:currentColor;" cx="12" cy="12" r="2.5"/>
+  `<circle style="fill:#888;" cx="12" cy="12" r="2.5"/>
    <circle style="fill:none;stroke:currentColor;stroke-width:0.8;" cx="12" cy="12" r="5"/>
    <circle style="fill:none;stroke:currentColor;stroke-width:0.8;" cx="12" cy="12" r="8"/>
-   <line style="stroke:currentColor;stroke-width:0.8;" x1="6.35" y1="6.35" x2="17.65" y2="17.65"/>
-   <line style="stroke:currentColor;stroke-width:0.8;" x1="17.65" y1="6.35" x2="6.35" y2="17.65"/>`,
+   <line style="stroke:#888;stroke-width:0.8;" x1="6.35" y1="6.35" x2="17.65" y2="17.65"/>
+   <line style="stroke:#888;stroke-width:0.8;" x1="17.65" y1="6.35" x2="6.35" y2="17.65"/>`,
 
 
  Merge:
