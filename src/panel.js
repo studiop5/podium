@@ -670,8 +670,13 @@ class SavePanel extends FilePanel {
     // doesn't have a "Recent" tab
     super(cell);
     this.mode = "save";
-    // Filter out WWW - it's a source type but not a file browser tab
-    const fileSources = Object.entries(Score.sources).filter(([key]) => key !== "url").map(([, value]) => value);
+    // Filter out WWW, and Local if no save mechanism available (Firefox)
+    const canSaveLocal = window.showSaveFilePicker ||
+      (navigator.canShare && navigator.canShare({ files: [new File([], 'test.pdf', { type: 'application/pdf' })] }));
+    const fileSources = Object.entries(Score.sources)
+      .filter(([key]) => key !== "url")
+      .filter(([key]) => key !== "local" || canSaveLocal)
+      .map(([, value]) => value);
     this.tabView = new TabView(this, ...fileSources);
     this.body.append(this.tabView.elm);
     // Source tabs
@@ -779,7 +784,7 @@ class AboutPanel extends Panel {
   static css = css(
     "AboutPanel",
     `.Credit {
-        font-size: var(--font-size-sm);
+        font-size: var(--font-size-xs);
         margin: var(--spacing-lg);
      }
      `
@@ -792,7 +797,7 @@ class AboutPanel extends Panel {
   Podium is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br><br>
 
   Podium is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-      <a target="_blank" rel="noopener noreferrer" href="https://www.gnu.org/licenses/agpl-3.0-standalone.html">GNU Affero Public License</a>
+      <a rel="noopener noreferrer" href="https://www.gnu.org/licenses/agpl-3.0-standalone.html">GNU Affero Public License</a>
 for more details.</p>
       `);
 
@@ -800,34 +805,39 @@ for more details.</p>
         <div class="Credit">
           <a href="https://github.com/steinbergmedia/bravura">Bravura</a> Version 1.1<br>
           © 2019, Steinberg Media Technologies GmbH<br>
-          SIL Open Font License
+          SIL OPEN FONT LICENSE Version 1.1
         </div><div class="Credit">
-          <a href="https://filipposfragkogiannis.com/fonts/vercetti-regular">Vercetti</a> Version 1.1<br>
-          Designer: Filippos Fragkogiannis<br>
-          Licence Amicale V. 0.2
+          <a href="https://codepen.io/zastrow/details/kxdYdk">CSS Piano</a><br>
+          © 2026 Philip Zastrow
         </div><div class="Credit">
-          <a href="https://github.com/foliojs/fontkit">fontkit</a> Version 1.1.1<br>
-          Author: Devon Govett
-          MIT license
-        </div><div class="Credit">
-          <a href="https://github.com/fabricjs">fabricjs</a> Version 5.2.1<br>
+          <a href="https://github.com/fabricjs">fabric.js</a> Version 5.2.1<br>
           © 2008-2015 Printio (Juriy Zaytsev, Maxim Chernyak)<br>
+          MIT LICENSE
         </div><div class="Credit">
-          <a href="https://github.com/mozilla/pdf.js">pdf</a> Version 2.0<br>
+          <a href="https://github.com/foliojs/fontkit">fontkit.js</a> Version 1.1.1<br>
+          Author: Devon Govett<br>
+          MIT LICENSE
+        </div><div class="Credit">
+          <a href="https://fonts.google.com/specimen/Patrick+Hand">Patrick Hand Regular</a> Version 1.1.1<br>
+          © 2010-2012 Patrick Wagesreiter<br>
+          SIL OPEN FONT LICENSE Version 1.1
+        </div><div class="Credit">
+          <a href="https://github.com/mozilla/pdf.js">pdf.js</a> Version 2.0<br>
           © 2023 Mozilla Foundation<br>
-          Apache License<br>
+          APACHE LICENSE Version 2.0<br>
         </div><div class="Credit">
-          <a href="https://github.com/Hopding/pdf-lib">pdf-lib</a> Version 1.17.1<br>
+          <a href="https://github.com/Hopding/pdf-lib">pdf-lib.js</a> Version 1.17.1<br>
           © 2019 Andrew Dillon<br>
-          MIT license
+          MIT LICENSE
         </div><div class="Credit">
-          <a href="https://github.com/sfzinstruments/SalamanderGrandPiano">Salamander Grand Piano V2 Yamaha C5</a><br>
+          <a href="https://github.com/sfzinstruments/SalamanderGrandPiano">Salamander Grand Piano</a>  V2 Yamaha C5<br>
           Author: Alexander Holm<br>
           Creative Commons 3.0
         </div><div class="Credit">
-          <a href="https://codepen.io/zastrow/details/kxdYdk">CSS Piano</a><br>
-          © 2025 Philip Zastrow<br>
-        </div>
+          <a href="https://filipposfragkogiannis.com/fonts/vercetti-regular">Vercetti Regular</a> Version 1.1<br>
+          Designer: Filippos Fragkogiannis<br>
+          LICENSE AMICALE V. 0.2
+        </div></div>
          `);
 
   aboutFace = helm(
@@ -838,22 +848,14 @@ for more details.</p>
           <div>Version ${_podiumVersion_}</div>
         </div>
         <div style="position:absolute;bottom:10em;left:50%;transform:translateX(-50%);font-size:1.2em;text-align:center;">
-          <a target="_blank" rel="noopener noreferrer" href="https://www.studiop5.org/privacy.html">Privacy</a>&nbsp;
-          <a target="_blank" rel="noopener noreferrer" href="https://www.studiop5.org/terms.html">Terms</a>&nbsp;
-          <a target="_blank" rel="noopener noreferrer" href="https://github.com/studiop5/podium">Github</a>&nbsp;
-          <a target="_blank" rel="noopener noreferrer" href="https://github.com/studiop5/podium/issues">Issues \u2709</a>
+           <a href="https://www.studiop5.org/privacy.html">\u{1F6E1} Privacy</a>&nbsp;
+          <a href="https://www.studiop5.org/terms.html">\u00A7 Terms</a><br><br>
+          <a href="https://github.com/studiop5/podium">&lt;&sol;&gt; Source</a>&nbsp;
+          <a href="https://github.com/studiop5/podium/issues">\u2709 Issues</a>
         </div>
      </div>`
   );
 
-  settingsFace = helm(
-    `<div style="position:relative;width:100%;height:100%;box-sizing:border-box;">
-        <div style="position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);text-align:center;font-size:1.5em;">
-          <div>Factory Reset:</div>
-          <div data-tag="buttons"></div>
-        </div>
-     </div>`
-  );
 
   releaseNotesFace = helm(
     `<div style="padding:2em;text-align:left;font-size:.8em;">
@@ -888,7 +890,7 @@ for more details.</p>
 
   constructor(cell) {
     super(cell);
-    let tabView = new TabView(this, "Version", "Release Notes", "Storage", "Credits", "License");
+    let tabView = new TabView(this, "Version", "Release Notes", "Credits", "License");
     Object.assign(this.body.style, {
       margin: 0,
       width: "90vw",
@@ -903,12 +905,41 @@ for more details.</p>
     // Release Notes tab
     tabView.tabs["Release Notes"].face.append(this.releaseNotesFace);
 
-    // Storage tab
-    let settings = tabView.tabs["Storage"];
-    settings.face.append(this.settingsFace);
+    // Credits and License tabs
+    tabView.tabs["Credits"].face.append(this.creditsFace);
+    tabView.tabs["License"].face.append(this.licenseFace);
+
+    this.body.append(tabView.elm);
+    tabView.tabs["Version"].select();
+  }
+}
+
+class StoragePanel extends Panel {
+  constructor(cell) {
+    super(cell);
+    Object.assign(this.body.style, {
+      margin: 0,
+      padding: "1em",
+      minWidth: "20em",
+    });
+
+    let content = helm(`
+      <div style="text-align:center;">
+        <div style="margin-bottom:1.5em;">
+          <div style="font-size:1.2em;margin-bottom:0.5em;">Factory Reset</div>
+          <div data-tag="buttons"></div>
+        </div>
+        <div>
+          <div style="font-size:1.2em;margin-bottom:0.5em;">Storage</div>
+          <div data-tag="stats" style="display:grid;grid-template-columns:auto auto;font-size:.8em;text-align:left;width:fit-content;margin:0 auto;"></div>
+          <div data-tag="refresh" style="margin-top:0.5em;"></div>
+        </div>
+      </div>
+    `);
+
+    let { buttons, stats, refresh } = dataIndex("tag", content);
 
     // Factory reset buttons
-    let buttons = dataIndex("tag", this.settingsFace).buttons;
     buttons.replaceWith(
       new ButtonGroup(
         cell,
@@ -920,23 +951,80 @@ for more details.</p>
             toast("Menu reset");
           } else if (tag == "Recent") {
             localStorage.setItem("recent", []);
-            for(let src of Object.values(Score.sources)) // set all "last opened directory" paths to the root path
+            for (let src of Object.values(Score.sources))
               localStorage.setItem(src, "");
             toast("Recent list cleared");
           } else if (tag == "Buffer") {
             _podPb_.clear();
             toast("Paste buffer cleared");
           }
+          this.updateStats(); // refresh after reset
         }
       ).elm
     );
 
-    // Credits and License tabs
-    tabView.tabs["Credits"].face.append(this.creditsFace);
-    tabView.tabs["License"].face.append(this.licenseFace);
+    // Refresh button
+    refresh.replaceWith(
+      new ButtonGroup(
+        cell,
+        { Refresh: { svg: "Refresh" } },
+        () => this.updateStats()
+      ).elm
+    );
 
-    this.body.append(tabView.elm);
-    tabView.tabs["Version"].select();
+    // Refresh on score open/close
+    this.listeners.push(listen(document, "scoreOpened", () => this.updateStats()));
+    this.listeners.push(listen(document, "scoreClosed", () => this.updateStats()));
+
+    this.statsElm = stats;
+    this.body.append(content);
+  }
+
+  show() {
+    super.show();
+    this.updateStats(); // refresh on show
+    return this;
+  }
+
+  async updateStats() {
+    let statsElm = this.statsElm;
+    let rows = [];
+
+    // localStorage size
+    let localStorageSize = 0;
+    for (let key in localStorage) {
+      if (localStorage.hasOwnProperty(key)) {
+        localStorageSize += localStorage[key].length * 2; // UTF-16 = 2 bytes per char
+      }
+    }
+    rows.push(`<div style="text-align:right;">localStorage:&nbsp;</div><div>${this.formatBytes(localStorageSize)}</div>`);
+
+    // IndexedDB size (estimate via Storage API if available)
+    if (navigator.storage && navigator.storage.estimate) {
+      try {
+        let estimate = await navigator.storage.estimate();
+        rows.push(`<div style="text-align:right;">IndexedDB:&nbsp;</div><div>${this.formatBytes(estimate.usage || 0)}</div>`);
+        rows.push(`<div style="text-align:right;">Quota:&nbsp;</div><div>${this.formatBytes(estimate.quota || 0)}</div>`);
+      } catch (e) {
+        rows.push(`<div style="text-align:right;">IndexedDB:&nbsp;</div><div>unavailable</div>`);
+      }
+    }
+
+    // Memory usage (Chrome only)
+    if (performance.memory) {
+      rows.push(`<div style="text-align:right;">JS Heap:&nbsp;</div><div>${this.formatBytes(performance.memory.usedJSHeapSize)}</div>`);
+      rows.push(`<div style="text-align:right;">Heap Limit:&nbsp;</div><div>${this.formatBytes(performance.memory.jsHeapSizeLimit)}</div>`);
+    }
+
+    statsElm.innerHTML = rows.join("");
+  }
+
+  formatBytes(bytes) {
+    if (bytes === 0) return "0 B";
+    let k = 1024;
+    let sizes = ["B", "KB", "MB", "GB"];
+    let i = Math.floor(Math.log(bytes) / Math.log(k));
+    return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
   }
 }
 
@@ -1811,7 +1899,7 @@ class SymbolsPanel extends Panel {
       <select data-tag="groups"></select>
       <div data-tag="picker"></div>
       <div data-tag="staffSpace"></div>
-      <div style="margin: var(--spacing-md); height: 2.5em; display: flex; align-items: center; justify-content: center;"><a href="https://w3c.github.io/smufl/latest/index.html" target="_blank" rel="noopener noreferrer">SMuFL</a></div>
+      <div style="margin: var(--spacing-md); height: 2.5em; display: flex; align-items: center; justify-content: center;"><a href="https://w3c.github.io/smufl/latest/index.html" rel="noopener noreferrer">SMuFL</a></div>
      </div>
    `);
 
@@ -2329,8 +2417,8 @@ class EditPanel extends Panel {
 class MagnifyPanel extends Panel {
   content = helm(`
     <div data-tag="body" class="Panel__body" style="min-width: 18em;">
-      <div class="PencilPanel__preview" style="height:6em; margin:0; padding:0;">
-        <canvas data-tag="magCanvas" width="300" height="150"
+      <div class="PencilPanel__preview" style="height:18em; margin:0; padding:0;">
+        <canvas data-tag="magCanvas" width="300" height="300"
           style="width:100%; height:100%; display:block;"></canvas>
       </div>
       <div data-tag="slidersContainer" style="margin-top:0.5em;"></div>
@@ -2387,7 +2475,7 @@ class MagnifyPanel extends Panel {
 
     let canvas = pg.canvas;
     let zoom = _menu_.magnifier.zoom;
-    let destW = 300, destH = 150;
+    let destW = 300, destH = 300;
 
     let ctx = this.magCanvas.getContext("2d");
     ctx.clearRect(0, 0, destW, destH);
@@ -2469,6 +2557,7 @@ let panels = {
   RastrumPanel,
   ReviewPanel,
   SavePanel,
+  StoragePanel,
   StopwatchPanel,
   TextPanel,
   EditPanel,

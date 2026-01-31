@@ -250,6 +250,14 @@ class Pg {
         // Allow dragging selection by clicking anywhere in bounding box, not just pixels
         canvas.perPixelTargetFind = false;
 
+        // Ensure only one active selection across all pages
+        for (let pg of this.score.pgs) {
+          if (pg !== this && pg.inflated && pg.canvas.getActiveObject()) {
+            pg.canvas.discardActiveObject();
+            pg.canvas.requestRenderAll();
+          }
+        }
+
         if (_menu_.activeRing.key == "ink" && ["cut","copy","edit"].includes(_menu_.activeRing.activeCell.key))
          _menu_.pgEvent(opts, this);
       });
@@ -987,6 +995,7 @@ class Score {
     _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"]);
     _menu_.enableCells("ink/undo", false); // nothing to undo yet
     _menu_.closePanels();
+    document.dispatchEvent(new CustomEvent("scoreOpened"));
     _menu_.enableCells("page/undo", this.undoStack.length > 0);
     this.pgRefresh();
     // Sync quality to stash so InfoPanel slider shows correct value

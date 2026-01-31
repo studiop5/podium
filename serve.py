@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 
 crossOrigin = False
 # the build directory should come first
-docRoots = ["../www", "build", "src", "lib", "doc"]
+docRoots = ["build", "src", "lib", "doc"]
 
 MIME_MAP = {
    "": "text/html",
