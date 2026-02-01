@@ -36,11 +36,11 @@ Fabric.js customizations
 **/
 
 function initFabric() {
-
   fabric.Object.NUM_FRACTION_DIGITS = 2;
   fabric.Object.prototype.transparentCorners = false;
-  fabric.Object.prototype.cornerSize = 48; // Large touch target 
+  fabric.Object.prototype.cornerSize = _mobile_ ? 32:16; // Large touch target
   fabric.Object.prototype.cornerStyle = "circle";
+  fabric.Object.prototype.minScaleLimit = 0.1; // Prevent flipping/inverting
   fabric.Object.prototype.cornerColor = "#00f8";
   fabric.Object.prototype.controls.mtr.offsetY = -80;
 
@@ -127,7 +127,8 @@ function initFabric() {
       if(show) {
         ctx.save();
         ctx.beginPath();
-        ctx.arc(left, top, 8, 0, 2 * Math.PI);
+        let r = fabricObject.cornerSize / 2;
+        ctx.arc(left, top, r, 0, 2 * Math.PI);
         if(key == "mtr") ctx.stroke(); else ctx.fill();
         ctx.restore();
       }
@@ -145,7 +146,10 @@ function initFabric() {
     offsetX: -20,
     actionHandler: fabric.controlsUtils.changeWidth,
     cursorStyleHandler: () => 'ew-resize',
-    render: (ctx, left, top) => ctx.fillRect(left - 8, top - 8, 16, 16),
+    render: (ctx, left, top, styleOverride, fabricObject) => {
+      let s = fabricObject.cornerSize;
+      ctx.fillRect(left - s/2, top - s/2, s, s);
+    },
   });
 
   fabric.Textbox.prototype.controls.mr = new fabric.Control({
@@ -154,7 +158,10 @@ function initFabric() {
     offsetX: 20,
     actionHandler: fabric.controlsUtils.changeWidth,
     cursorStyleHandler: () => 'ew-resize',
-    render: (ctx, left, top) => ctx.fillRect(left - 8, top - 8, 16, 16),
+    render: (ctx, left, top, styleOverride, fabricObject) => {
+      let s = fabricObject.cornerSize;
+      ctx.fillRect(left - s/2, top - s/2, s, s);
+    },
   });
 
   fabric.RastrumBrush = fabric.util.createClass(fabric.BaseBrush, {
@@ -250,7 +257,6 @@ function initFabric() {
       });
 
       canvas.clearContext(canvas.contextTop);
-//      canvas.fire("before:path:created", { path: this.path });
       canvas.add(new fabric.Group([staffPath,barPath]));
      }
   });

@@ -72,19 +72,8 @@ Magnify:
     <circle  mask="url(#glass)" cx="9" cy="9" r="5.3" fill="#aaa" stroke="currentColor" stroke-width=".3"/>`,
 
 
-//   <line x1="13.5" y1="13.5" x2="20" y2="20" fill="#aaa" stroke="currentColor" stroke-width=".3" stroke-linecap="round"/>`,
-
 "Blank Page":
   `<path style="fill:none;stroke:#000;stroke-width:.6" d="M3 3h17v20 h-17Z"/>`,
-
-Bind:
-  `<rect style="x:.5;y:1;width:10;height:16;fill:#aaa;stroke:currentColor;stroke-width=.2;"/>,
-   <rect style="x:12;y:1;width:10;height:16;fill:#aaa0;stroke:currentColor;stroke-width=.2;"/>,
-   <ellipse fill="none" stroke="currentColor" stroke-width=".5" cx="11.25" cy="3" rx="1.4" ry=".6" />
-   <ellipse fill="none" stroke="currentColor" stroke-width=".5" cx="11.25" cy="6" rx="1.4" ry=".6" />
-   <ellipse fill="none" stroke="currentColor" stroke-width=".5" cx="11.25" cy="9" rx="1.4" ry=".6" />
-   <ellipse fill="none" stroke="currentColor" stroke-width=".5" cx="11.25" cy="12" rx="1.4" ry=".6" />
-   <ellipse fill="none" stroke="currentColor" stroke-width=".5" cx="11.25" cy="15" rx="1.4" ry=".6" />` ,
 
 Book:
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:0.6;" d="M 11.9,21.3 C 15.1,20.4 18.3,19.5 23,20.6 V 6 C 22.4,5.55 19.8,4.56 19,4.31 V 15.1 c -2.4,0.3 -4.8,3.4 -7.1,6.2 z"/>
@@ -109,7 +98,7 @@ Clone:
     <rect width="16" height="10" x="7" y="13" style="fill:#aaa;stroke:currentColor;"/>`,
 
 Close:
-  `<path style="fill:#aaa;stroke:currentColor;stroke-width=0.6;transform:scale(1.25,1.25) translate(-3px,-3px);" d="M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z" />`,
+  `<path style="fill:#aaa;stroke:currentColor;stroke-width:0.6;transform:scale(1.25,1.25) translate(-3px,-3px);" d="M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z" />`,
 
 "Close Panel":
   `<path fill="currentColor" d="M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z" />`,
@@ -206,7 +195,7 @@ Grid:
   `<text font-size="25px" y="12" x="-12" font-family="Bravura" fill="currentColor">\uee37</text>`,
 
 Guide:
-  `<text font-size="22px" x="2" y="18" font-family="Bravura" fill="currentColor" stroke="currentColor" stroke-width="0.6" style="paint-order:stroke;">\uec46</text>`,
+  `<g transform="translate(24, 0) scale(-1, 1) rotate(-20 12 12)"><text font-size="22px" x="2" y="18" font-family="Bravura" fill="currentColor" stroke="currentColor" stroke-width="0.6" style="paint-order:stroke;">\uec46</text></g>`,
 
 Help:
   ` <g style="fill:none;stroke:currentColor;stroke-width:.6px">

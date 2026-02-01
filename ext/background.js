@@ -22,8 +22,12 @@
 
 // Create context menu items when extension is installed
 const targetUrlPatterns = [
+  // Direct PDF links
   "*://*/*.pdf",
+  "*://*/*.pdf?*",
   "*://*/*.PDF",
+  "*://*/*.PDF?*",
+  // IMSLP (requires login)
   "*://imslp.org/wiki/Special:ImagefromIndex/*",
   "*://*.imslp.org/wiki/Special:ImagefromIndex/*"
 ];
