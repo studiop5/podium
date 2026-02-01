@@ -603,9 +603,9 @@ class Menu {
       name: "App",
       cells: {
         about: { name: "About", svgPath: iconPaths["About"], stash: {} },
-        storage: { name: "Storage", svgPath: iconPaths["Storage"], stash: {} },
         theme: { name: "Theme", svgPath: iconPaths["Light"], stash: {} },
         guide: { name: "Guide", svgPath: iconPaths["Guide"], stash: {} },
+        storage: { name: "Storage", svgPath: iconPaths["Storage"], stash: {} },
         screen: {  name: "Screen",  stash: { },  svgPath: iconPaths["Full Screen"],
         },
       },

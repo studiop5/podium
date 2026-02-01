@@ -80,10 +80,7 @@ window._frMs_ = 0.06; // initial estimate of number of frames per millisecond (6
 window._gs_ = 618; // golden section (reciprocal) msec (.618 seconds)
 window._gsgs_ = (_gs_ * _gs_) / 1000; // shorter golden section!
 window._longPressMs_ = 750;
-window._mobile_ =
-  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
-  );
+window._mobile_ = window.matchMedia('(pointer: coarse)').matches;
 window._maxMoveEvents_ = 5; // see flung() below
 window._moveEvents_ = []; // see flung() below
 window._msPerObj_ = 1; // for pdf printing, see score.toPdf()
@@ -1687,6 +1684,8 @@ function dialog(
   // automatically dismisses the dialog...this is the default, if def and handler are
   // undefined in the call.
   let elm = helm(`<dialog class="dialog"><div>${innerHtml}</div></dialog>`);
+  // Log dialog text to console for easy copying
+  console.log("Dialog:", elm.firstElementChild.innerText);
   let buttonsElm = new ButtonGroup(
     {
       close: () => {
