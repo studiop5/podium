@@ -355,7 +355,7 @@ class LocalSrc extends FileSrc {
         }
       }
       // Fallback: download approach (Android Chrome, Firefox)
-      let blob = new Blob([data], { type: 'application/octet-stream' });
+      let blob = new Blob([data], { type: 'application/pdf' });
       let url = URL.createObjectURL(blob);
       let link = document.createElement('a');
       link.download = name;
@@ -364,7 +364,7 @@ class LocalSrc extends FileSrc {
       link.rel = 'noopener';
       link.style.display = 'none';
       document.body.appendChild(link);
-      link.dispatchEvent(new MouseEvent('click', { bubbles: false, cancelable: true, view: window }));
+      link.click();
       document.body.removeChild(link);
       setTimeout(() => URL.revokeObjectURL(url), 3000);
       return { name: name, modified: Date.now() };
