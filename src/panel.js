@@ -523,14 +523,15 @@ class DetailsPanel extends Panel {
     if (_score_) {
       let score = _score_;
 
-      this.content.append(
-        helm(
-          `<div style="font-size:1.5em;text-align:center;margin-bottom:.5em;">${score.name.replace(
-            /\.pdf/i,
-            ""
-          )}</div>`
-        )
+      let nameInput = helm(
+        `<input type="text" style="font-size:1.5em;text-align:center;margin-bottom:.5em;width:100%;border:none;border-radius:var(--borderRadius);background:white;" value="${score.name.replace(/\.pdf$/i, "")}">`
       );
+      nameInput.addEventListener("change", () => {
+        let newName = nameInput.value.trim();
+        if (!newName.toLowerCase().endsWith(".pdf")) newName += ".pdf";
+        score.name = newName;
+      });
+      this.content.append(nameInput);
       let source = score.source
         ? `<div style="text-align:right;">Source:&nbsp;</div><div>${score.source}</div>`
         : "";
@@ -544,9 +545,6 @@ class DetailsPanel extends Panel {
         : "";
       this.content.append(
         helm(`<div style="display:grid;grid-template-columns:40% 60%;font-size:.8em;">
-          <div style="text-align:right;">Name:&nbsp;</div><div>${
-            score.name
-          }</div>
           ${source} ${path} ${size}
           <div style="text-align:right;">Pages:&nbsp;</div><div>${
             score.pgs.length
@@ -670,12 +668,9 @@ class SavePanel extends FilePanel {
     // doesn't have a "Recent" tab
     super(cell);
     this.mode = "save";
-    // Filter out WWW, and Local if no save mechanism available (Firefox)
-    const canSaveLocal = window.showSaveFilePicker ||
-      (navigator.canShare && navigator.canShare({ files: [new File([], 'test.pdf', { type: 'application/pdf' })] }));
+    // Filter out WWW (url source)
     const fileSources = Object.entries(Score.sources)
       .filter(([key]) => key !== "url")
-      .filter(([key]) => key !== "local" || canSaveLocal)
       .map(([, value]) => value);
     this.tabView = new TabView(this, ...fileSources);
     this.body.append(this.tabView.elm);
