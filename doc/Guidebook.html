@@ -413,6 +413,8 @@ function closeVideo(event, container) {
 
 <div class="version">Version 2.0</div>
 
+<p style="text-align: center;"><a href="Guidebook.html" target="_blank">Open in new window</a> for convenient side-by-side reading with Podium. | <a href="javascript:window.print()">Print me</a></p>
+
 <nav id="toc">
     <h2>Table of Contents</h2>
     <ul>
@@ -670,7 +672,15 @@ function closeVideo(event, container) {
     <p>The page paste buffer is shared across all Podium tabs and windows, and persists across sessions. This lets you copy pages from one score and paste them into another, making it easy to assemble custom practice scores.</p>
 
     <figure>
-        <img src="assets/quickpage.jpg" alt="Page Ring with horizontal layout and persistent cross-tab paste buffer">
+        <div class="video-container" onclick="playVideo(this)">
+            <img src="assets/quickpage.jpg" alt="Page Ring with horizontal layout and persistent cross-tab paste buffer">
+            <div class="play-overlay"></div>
+            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture>
+                <source src="assets/quickpage.webm" type="video/webm">
+                Your browser does not support the video tag.
+            </video>
+        </div>
         <figcaption>Horizontal layout with Page Ring active showing persistent cross-tab paste buffer for page management</figcaption>
     </figure>
 
@@ -742,7 +752,7 @@ function closeVideo(event, container) {
 
     <p><strong>iOS/iPadOS (Safari only):</strong> Apple does not display install prompts for PWAs. Instead, open Podium in Safari, tap the Share button (square with arrow), then tap "Add to Home Screen". Note: Chrome and other browsers on iOS cannot install PWAs due to Apple's restrictions.</p>
 
-    <div class="note"> When offline, only locally stored scores can be accessed.</div>
+    <div class="note">Naturally, when offline, only locally stored scores can be accessed.</div>
 
     <h3>Platform Compatibility</h3>
 
@@ -895,7 +905,7 @@ function closeVideo(event, container) {
 
     <h3>Panels</h3>
 
-    <p>Menu cells with small diamond-shaped pointers contain hidden panels. To open a panel, drag from its cell in any radial direction (inward or outward). As long as the drag motion isn't circular, the panel will be revealed&mdash;circular motion rotates the ring instead.</p>
+    <p>Menu cells with small diamond-shaped pointers contain hidden panels. To open a panel, drag from its cell in any radial direction (inward or outward). As long as the drag motion isn't circular, the panel will be revealed&mdash;circular motion rotates the ring instead. Revealing a panel does not automatically activate the corresponding cell&mdash;these are completely separate operations.</p>
 
     <p><strong>Moving panels:</strong> Drag from the textured header, or use pinch-zoom anywhere on the panel.</p>
 
@@ -1190,7 +1200,15 @@ function closeVideo(event, container) {
     <p>Convenient for adding or rearranging pages (using the Page Ring), or for quickly locating a page in a large score.</p>
 
     <figure>
-        <img src="assets/layouttable.jpg" alt="Table layout">
+        <div class="video-container" onclick="playVideo(this)">
+            <img src="assets/layouttable.jpg" alt="Table layout">
+            <div class="play-overlay"></div>
+            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture>
+                <source src="assets/layouttable.webm" type="video/webm">
+                Your browser does not support the video tag.
+            </video>
+        </div>
         <figcaption>Table layout with pages and panel</figcaption>
     </figure>
 
@@ -1349,7 +1367,15 @@ function closeVideo(event, container) {
     <p>Draw a 2-d guide grid for measuring and layout.</p>
 
     <figure>
-        <img src="assets/inkgrid.jpg" alt="Grid Panel">
+        <div class="video-container" onclick="playVideo(this)">
+            <img src="assets/inkgrid.jpg" alt="Grid Panel">
+            <div class="play-overlay"></div>
+            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture>
+                <source src="assets/inkgrid.webm" type="video/webm">
+                Your browser does not support the video tag.
+            </video>
+        </div>
         <figcaption>Grid panel and grid overlay on score</figcaption>
     </figure>
 
@@ -1493,7 +1519,7 @@ function closeVideo(event, container) {
 
     <p>You can assign one shortcut to the up or right cursor arrow keys, and one to the left or down cursor arrow keys. Tap the appropriate button to determine if an up or right key press will navigate to the next page, or instead navigate to the next bookmark. Similarly, choose the appropriate button to determine if the left or down keys will navigate to the previous page, or navigate to the previous bookmark.</p>
 
-    <div class="tip">The usual usage is to page forward or backward through the score. However, the ability to navigate forward or backward through bookmarks is a particularly helpful feature for reading scores with repeats spanning several pages. Set a bookmark on the page containing the beginning of the repeated section, then configure the right or up arrow keys to Pages, and the left or down arrow key to Marks. Play through the repeat, using the right arrow key (or its foot pedal equivalent) to navigate forward through the following pages. Then, when you reach the end of the repeated section, use the left arrow key to immediately flip back to the beginning of the repeat.</div>
+    <div class="note">The usual usage is to page forward or backward through the score. However, the ability to navigate forward or backward through bookmarks is a particularly helpful feature for reading scores with repeats spanning several pages. Set a bookmark on the page containing the beginning of the repeated section, then configure the right or up arrow keys to Pages, and the left or down arrow key to Marks. Play through the repeat, using the right arrow key (or its foot pedal equivalent) to navigate forward through the following pages. Then, when you reach the end of the repeated section, use the left arrow key to immediately flip back to the beginning of the repeat.</div>
 
     <h4>Additional Keyboard Shortcuts:</h4>
 
@@ -1615,9 +1641,9 @@ function closeVideo(event, container) {
 
     <h3 id="chapter-5-magnify">Page Ring: Magnify</h3>
 
-    <p>Magnify a portion of the score.</p>
+    <p>Magnify a portion of a page.</p>
 
-    <p>Drag out from the Magnify cell to reveal a panel that displays a zoomed-in view of the score at the current touch point. Touch any page in the score and the magnifier panel updates in real time, showing both the PDF content and any annotations at the touched location.</p>
+    <p>Drag out from the Magnify cell to reveal a panel that displays a zoomed-in view of the page at the current touch point. Touch any page in the score and the magnifier panel updates in real time, showing both the PDF content and any annotations at the touched location.</p>
 
     <p>The Panel's <strong>Zoom:</strong> slider adjusts the magnification level from 0.25x to 5x.</p>
 
@@ -1629,7 +1655,15 @@ function closeVideo(event, container) {
     <div class="note">The Magnify tool is especially useful when annotating. It allows you to see a zoomed view around the pointer when, for example, placing an ornament in a score or when free drawing with the pen or pencil.</div>
 
     <figure>
-        <img src="assets/pagemagnifymordent.jpg" alt="Using Magnify to place an ornament">
+        <div class="video-container" onclick="playVideo(this)">
+            <img src="assets/pagemagnifymordent.jpg" alt="Using Magnify to place an ornament">
+            <div class="play-overlay"></div>
+            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture>
+                <source src="assets/pagemagnifymordent.webm" type="video/webm">
+                Your browser does not support the video tag.
+            </video>
+        </div>
         <figcaption>Using the Magnify tool to precisely place a red mordent ornament in a score</figcaption>
     </figure>
 
