@@ -758,7 +758,7 @@ class ColorPicker {
         opacity: 0;
         width: 100%;
         height: 100%;
-        cursor: pointer;
+        pointer-events: none;
      }
      .ColorPicker__colorDisplay {
         position: absolute;
@@ -843,6 +843,10 @@ class ColorPicker {
 
     alphaSlider.elm.classList.add("ColorPicker__alphaSlider", "void");
     this.alphaSlider.replaceWith(alphaSlider.elm);
+
+    // click on wrapper opens the native color picker (the hidden input's
+    // internal swatch doesn't fill its full area in all browsers)
+    listen(this.color.parentElement, "click", () => this.color.click());
 
     listen(this.color, ["input", "change"], (e) => {
       this.alphaCircle.style.fill = stash.rgb = this.color.value;
