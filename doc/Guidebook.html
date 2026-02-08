@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PODIUM Guidebook v1</title>
+    <title>PODIUM Guidebook v2</title>
     <style>
         * {
             margin: 0;
@@ -445,7 +445,7 @@ function closeVideo(event, container) {
                 <li><a href="#chapter-4-undo">Undo</a></li>
                 <li><a href="#chapter-4-grid">Grid</a></li>
                 <li><a href="#chapter-4-cut-copy-paste">Cut, Copy, Paste</a></li>
-                <li><a href="#chapter-4-transform">Transform</a></li>
+                <li><a href="#chapter-4-edit">Edit</a></li>
             </ul>
         </li>
         <li><a href="#chapter-5">Chapter 5: Page Ring</a>
@@ -457,11 +457,13 @@ function closeVideo(event, container) {
                 <li><a href="#chapter-5-copy">Copy</a></li>
                 <li><a href="#chapter-5-paste">Paste</a></li>
                 <li><a href="#chapter-5-merge">Merge</a></li>
+                <li><a href="#chapter-5-magnify">Magnify</a></li>
             </ul>
         </li>
         <li><a href="#chapter-6">Chapter 6: App Ring</a>
             <ul>
                 <li><a href="#chapter-6-about">About</a></li>
+                <li><a href="#chapter-6-storage">Storage</a></li>
                 <li><a href="#chapter-6-guide">Guide</a></li>
                 <li><a href="#chapter-6-theme">Theme</a></li>
                 <li><a href="#chapter-6-screen">Screen</a></li>
@@ -472,8 +474,10 @@ function closeVideo(event, container) {
                 <li><a href="#chapter-7-detached">Detached Panels</a></li>
                 <li><a href="#chapter-7-metronome">Metronome</a></li>
                 <li><a href="#chapter-7-stopwatch">Stopwatch</a></li>
+                <li><a href="#chapter-7-clock">Clock</a></li>
                 <li><a href="#chapter-7-piano">Piano</a></li>
                 <li><a href="#chapter-7-review">Review</a></li>
+                <li><a href="#chapter-7-volume">Volume</a></li>
             </ul>
         </li>
         <li><a href="#chapter-8">Chapter 8: About the Author</a></li>
@@ -566,15 +570,15 @@ function closeVideo(event, container) {
     <p><a href="#chapter-3" class="chapter-link">See Chapter 3: Layout Ring</a> for detailed layout controls and settings</p>
 
     <h4>3. Navigate and Annotate</h4>
-    <p><strong>Navigation:</strong> Swipe or fling pages to turn them. Long-press anywhere on the background to summon the menu. To hide the menu, long-press the menu's center grip or fling it to any corner or edge. Swipe left ⇄ right on the background to enter full-screen mode.</p>
+    <p><strong>Navigation:</strong> Swipe or fling pages to turn them. Long-press anywhere on the background to summon the menu. To hide the menu, long-press the menu's center grip to collapse and park it in the upper left corner, or fling it to any corner or edge. Swipe left ⇄ right on the background to enter full-screen mode.</p>
 
     <p><strong>Annotations:</strong> Tap the inner ring's "Ink" cell to add annotations. The outer ring shows tools for:</p>
     <ul>
-        <li>Pencil/Pen: Draw freehand lines or constrained straight lines</li>
-        <li>Text: Add text boxes</li>
-        <li>Symbols: Insert music notation symbols</li>
-        <li>Rastrum: Draw music staves</li>
-        <li>Transform: Move, resize, rotate any annotation</li>
+        <li><strong>Pencil/Pen:</strong> Draw freehand lines or constrained straight lines</li>
+        <li><strong>Text:</strong> Add text boxes</li>
+        <li><strong>Symbols:</strong> Insert music notation symbols</li>
+        <li><strong>Rastrum:</strong> Draw music staves</li>
+        <li><strong>Edit:</strong> Move, resize, rotate any annotation</li>
     </ul>
     <p>Activate any tool, then tap or drag on the score to use it. <strong>Note:</strong> Most Ink tools automatically deactivate after a few seconds of inactivity, so you won't accidentally stay in annotation mode when navigating.</p>
 
@@ -627,9 +631,9 @@ function closeVideo(event, container) {
 
     <h4>Background Gestures:</h4>
     <ul>
-        <li>Drag left ⇄ right: Enter/exit full-screen</li>
-        <li>Drag top ⇄ bottom: Reset and center menu</li>
-        <li>Long press: Summon menu to that location</li>
+        <li><strong>Drag left ⇄ right:</strong> Enter/exit full-screen</li>
+        <li><strong>Drag top ⇄ bottom:</strong> Reset and center menu</li>
+        <li><strong>Long press:</strong> Summon menu to that location</li>
     </ul>
 
     <h3>Saving Your Work</h3>
@@ -653,12 +657,17 @@ function closeVideo(event, container) {
     <h3>Managing Pages</h3>
     <p>Need to add, remove, or rearrange pages? Tap the inner ring's "Page" cell. The outer ring provides:</p>
     <ul>
-        <li>Add: Insert blank pages or title pages</li>
-        <li>Cut/Copy/Paste: Rearrange or duplicate pages</li>
-        <li>Numbers: Configure page numbering and keyboard shortcuts</li>
-        <li>Merge: Convert annotations into permanent PDF content</li>
+        <li><strong>Add:</strong> Insert blank pages or title pages</li>
+        <li><strong>Delete:</strong> Remove pages from the score</li>
+        <li><strong>Undo:</strong> Undo the last page operation</li>
+        <li><strong>Copy/Paste:</strong> Rearrange or duplicate pages</li>
+        <li><strong>Numbers:</strong> Configure page numbering and keyboard shortcuts</li>
+        <li><strong>Merge:</strong> Convert annotations into permanent PDF content</li>
+        <li><strong>Magnify:</strong> Zoom in on page details</li>
     </ul>
     <p><strong>Note:</strong> Like Ink tools, Page tools auto-deactivate after a few seconds of inactivity.</p>
+
+    <p>The page paste buffer is shared across all Podium tabs and windows, and persists across sessions. This lets you copy pages from one score and paste them into another, making it easy to assemble custom practice scores.</p>
 
     <figure>
         <img src="assets/quickpage.jpg" alt="Page Ring with horizontal layout and persistent cross-tab paste buffer">
@@ -692,7 +701,7 @@ function closeVideo(event, container) {
     <p><a href="#chapter-5-numbers" class="chapter-link">See Chapter 5: Page Ring - Numbers</a> for keyboard shortcut configuration</p>
 
     <h3>Need Help?</h3>
-    <p>Tap the inner ring's "App" cell, then tap "Guide" in the outer ring to access this documePpnt.</p>
+    <p>Tap the inner ring's "App" cell, then tap "Guide" in the outer ring to access this document.</p>
 
     <p>That's it! You're ready to use Podium. Explore the chapters below for in-depth information on each feature.</p>
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
@@ -805,7 +814,7 @@ function closeVideo(event, container) {
 
     <p style="font-size: 0.85em; color: #666;">
         * Edge for Android has extension support in beta as of this writing.<br>
-        ** Firefox saves to your Downloads folder. Use a Chromium-based browser or Safari to choose file name and location.
+        ** Firefox on any desktop platform saves to your Downloads folder by default. See <a href="#firefox-settings">Recommended Firefox Desktop Settings</a> to configure this, or use a Chromium-based browser or Safari to choose file name and location.
     </p>
 
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
@@ -838,9 +847,9 @@ function closeVideo(event, container) {
 
     <h3>Background Gestures</h3>
     <ul>
-        <li>Drag left ⇄ right: Toggle full-screen</li>
-        <li>Drag top ⇄ bottom: Reset and center menu</li>
-        <li>Long press: Summon menu to that spot</li>
+        <li><strong>Drag left ⇄ right:</strong> Toggle full-screen</li>
+        <li><strong>Drag top ⇄ bottom:</strong> Reset and center menu</li>
+        <li><strong>Long press:</strong> Summon menu to that spot</li>
     </ul>
 
     <h3>Menu</h3>
@@ -848,9 +857,10 @@ function closeVideo(event, container) {
     <p>On launch, Podium displays a circular menu on a gray background. The menu has three parts:</p>
     <h4>Grip (center circle)</h4>
     <ul>
-        <li>Tap: Collapse or expand the menu</li>
-        <li>Drag: Move the menu</li>
-        <li>Fling: Park the menu at any corner or edge</li>
+        <li><strong>Tap:</strong> Collapse or expand the menu</li>
+        <li><strong>Drag:</strong> Move the menu</li>
+        <li><strong>Fling:</strong> Park the menu at any corner or edge</li>
+        <li><strong>Long press:</strong> Collapse menu and park the grip in the upper left corner</li>
     </ul>
 
     <h4>Inner Ring</h4>
@@ -861,11 +871,31 @@ function closeVideo(event, container) {
 
     <p>Unavailable cells are grayed out. On launch, only the Score and More cells (inner ring) and Open and New cells (outer ring) are available.</p>
 
-    <p><strong>Rotating rings:</strong> Drag either ring in a circular motion to rotate it. This is helpful when the menu is positioned near a screen edge and some cells aren't visible.</p>
+    <h4>Cell Auto-Deactivation</h4>
+
+    <p>Cells in the Ink Ring and Page Ring automatically deactivate after 4 seconds of inactivity, returning control to normal page navigation. This is an important safety feature: when an Ink or Page cell is active, touch gestures on score pages are intercepted by that cell's action rather than being interpreted as page navigation. Auto-deactivation ensures you won't accidentally draw on a page or delete it when you intended to simply turn the page.</p>
+
+    <h4>Cell Locking</h4>
+
+    <p>To prevent a cell from auto-deactivating, long-press it. A locked cell displays a circle around its outer edge and remains active indefinitely. Long-press the cell again, or select a different cell, to unlock it. Cell locking is supported by all Ink Ring cells and most Page Ring cells (except Numbers and Merge).</p>
+
+    <figure>
+        <img src="assets/interfacelocking.jpg" alt="Locked cell showing circle indicator around outer edge">
+        <figcaption>A locked cell with circle indicator around its outer edge</figcaption>
+    </figure>
+
+    <h4>Rotating Rings</h4>
+
+    <p>Drag either ring in a circular motion to rotate it. This is helpful when the menu is positioned near a screen edge and some cells aren't visible. Rotating the ring brings hidden cells into view without having to move the menu.</p>
+
+    <figure>
+        <img src="assets/interfacerotating.jpg" alt="Ring rotation showing hidden cells brought into view">
+        <figcaption>Rotating a ring to reveal hidden cells when the menu is near a screen edge</figcaption>
+    </figure>
 
     <h3>Panels</h3>
 
-    <p>Menu cells with small diamond-shaped pointers contain hidden panels. To open a panel, drag out from its cell onto the background.</p>
+    <p>Menu cells with small diamond-shaped pointers contain hidden panels. To open a panel, drag from its cell in any radial direction (inward or outward). As long as the drag motion isn't circular, the panel will be revealed&mdash;circular motion rotates the ring instead.</p>
 
     <p><strong>Moving panels:</strong> Drag from the textured header, or use pinch-zoom anywhere on the panel.</p>
 
@@ -893,7 +923,7 @@ function closeVideo(event, container) {
                 Your browser does not support the video tag.
             </video>
         </div>
-        <figcaption>Slider with precision mode: drag away from slider to increase accuracy</figcaption>
+        <figcaption>Slider with precision mode (dark mode): drag away from the slider, then drag left ⇄ right to adjust with increased sensitivity</figcaption>
     </figure>
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
@@ -957,6 +987,10 @@ function closeVideo(event, container) {
 
     <div class="note">Browser security provides very limited access to local files. The Local tab simply hands off control to the device's built-in file manager widget. Unfortunately, it's impossible to pre-populate this widget with a specific folder location.</div>
 
+    <p><strong>Drag and Drop (Desktop):</strong> On desktop browsers, you can drag a PDF file directly from your file manager onto the Local tab to open it in Podium.</p>
+
+    <p><strong>Password-Protected PDFs:</strong> Podium can open password-protected PDF files. You will be prompted to enter the password. Once opened, you can view and annotate the score, but you cannot save changes or copy pages from a protected PDF.</p>
+
     <h4>Saving Scores</h4>
 
     <p>The Save Panel has a widget for editing the file name. Inside the widget there is an Upload button: tap it to save the current score, with the given name, to the selected folder.</p>
@@ -976,7 +1010,17 @@ function closeVideo(event, container) {
         <li><strong>Android:</strong> The score opens in a new tab with a download button. Tap the button to download. The file name cannot be changed and no folder selection is available&mdash;files go to your Downloads folder.</li>
     </ul>
 
-    <p>On platforms that don't allow specifying the file name during save, edit the score name first in the Details Panel (Score Ring → Details). The .pdf extension is not required&mdash;it's added automatically on save if not present.</p>
+    <h4 id="firefox-settings">Recommended Firefox Desktop Settings</h4>
+
+    <p>For the best experience with Podium on Firefox desktop, configure these settings (found in Firefox Settings &rarr; General):</p>
+    <ul>
+        <li><strong>Files and Applications &rarr; Downloads:</strong> Select "Always ask you where to save files". This lets you choose the file name and save location when saving scores locally.</li>
+        <li><strong>Files and Applications &rarr; Applications:</strong> Find "Portable Document Format (PDF)" in the list and set it to "Always ask". This prevents Firefox from automatically opening PDFs in its built-in viewer, allowing you to choose to open them with Podium instead.</li>
+    </ul>
+
+    <div class="note">Firefox on Android and iOS is not recommended for use with Podium. On these platforms, use Chrome (Android) or Safari (iOS/iPadOS) for the best experience.</div>
+
+    <p>On platforms that don't allow specifying the file name during save, edit the score name first in the Details Panel (Score Ring &rarr; Details). The .pdf extension is not required&mdash;it's added automatically on save if not present.</p>
 
     <h3 id="chapter-2-new">Score Ring: New</h3>
 
@@ -1028,7 +1072,7 @@ function closeVideo(event, container) {
 
     <p><strong>Metadata:</strong> The panel displays metadata created by Podium (such as when the score was last modified) as well as any metadata from the original PDF file. This may include information about the score's provenance, such as the original author, creation date, and other document properties.</p>
 
-    <p><strong>Page Sizing:</strong> In Podium, all pages in a score are displayed at the same size, though this is not necessarily the case for PDF files in general. By default, Podium sizes pages to match the largest page in the PDF and centers smaller pages within that rectangle. The Details Panel contains a radio button that determines how smaller pages are treated:</p>
+    <p><strong>Page Sizing:</strong> In Podium, all pages in a score are displayed at the same size, though this is not necessarily the case for PDF files in general. A single PDF file can contain pages of many different sizes&mdash;for example, a score might mix Letter and A4 pages, or include wide foldout pages alongside standard portrait pages. This is common with scanned scores from libraries like IMSLP, where pages may have been scanned at different times or from different editions. By default, Podium sizes pages to match the largest page in the PDF and centers smaller pages within that rectangle. The Details Panel contains a radio button that determines how smaller pages are treated:</p>
     <ul>
         <li><strong>Center:</strong> (Default) Smaller pages are centered within the uniform page size</li>
         <li><strong>Expand:</strong> Smaller pages are resized so their largest dimension—height or width—fills the uniform page size, and the other dimension is centered</li>
@@ -1058,7 +1102,7 @@ function closeVideo(event, container) {
 
     <p>By default, scores open with the last used layout on the current browser/platform or, if none, Book. The layout can be changed any time by tapping the desired cell. Whenever a score is saved, its last layout is stored as metadata in the PDF file, as well as in browser local storage.</p>
 
-    <div class="note">In a Podium Layout, all pages must be the same size. Whenever a score file is opened, the maximum page width and height are first determined. Then, if any pages are smaller than this maximum, they are by default centered and padded with a grey border on all sides. Alternatively, smaller pages can be expanded: the score is scaled so its largest dimension fills the page, then centered in the other dimension. See the <a href="#chapter-2-info" class="chapter-link">Info Panel</a> to configure this behavior.</div>
+    <div class="note">In a Podium Layout, all pages must be the same size. Whenever a score file is opened, the maximum page width and height are first determined. Then, if any pages are smaller than this maximum, they are by default centered and padded with a grey border on all sides. Alternatively, smaller pages can be expanded: the score is scaled so its largest dimension fills the page, then centered in the other dimension. See the <a href="#chapter-2-details" class="chapter-link">Details Panel</a> to configure this behavior.</div>
 
     <h3 id="chapter-3-book">Layout Ring: Book</h3>
 
@@ -1114,6 +1158,7 @@ function closeVideo(event, container) {
 
     <p>Scroll pages by dragging or flinging. The Panel's <strong>Snap:</strong> slider determines how many pages the scroll advances when a page is dragged or flung, ensuring that after a scroll, the leftmost and rightmost pages align with the left and right scrollers. Move the Snap: slider all the way to the left to completely disable page snapping.</p>
 
+
     <p>Page numbers can be turned on or off in the Panel. Current page numbers are shown at the left and right sides of the layout: drag the page number to quickly scroll to other pages.</p>
 
     <p><strong>Bookmarks:</strong> Work the same as in Book layout (see above).</p>
@@ -1129,14 +1174,14 @@ function closeVideo(event, container) {
 
     <p>Settings for this layout function identically to the Horizontal Layout, see previous section.</p>
 
-    <div class="note">When Snap is disabled, scores can be scrolled so that the bottom of one page is positioned right above the top of the next page. This seamless viewing is very useful for practice and analysis, as it eliminates the visual interruption between pages.</div>
+    <div class="note"><strong>Try disabling Snap!</strong> Slide the Snap slider all the way to the left to turn it off. With snapping disabled, pages scroll freely and continuously, letting you position the score exactly where you need it. You can line up the bottom of one page directly above the top of the next, eliminating the visual interruption between pages. </div>
 
     <figure>
         <img src="assets/layoutphone.jpg" alt="Vertical layout on smartphone">
         <figcaption>Vertical layout on smartphone</figcaption>
     </figure>
 
-    <div class="note">For viewing on a smartphone or small tablet, Vertical layout often gives the best experience. Phone works best in landscape orientation. Activate full-screen mode, turn off Numbers, set Page Fit: Width, Show: 1 page, and Snap: disabled. Dismiss the Panel, either by clicking the close button's X, or by simply flinging the panel. Then thumb-scroll through the score.</div>
+    <div class="note">For viewing on a smartphone or small tablet, Vertical layout often gives the best experience. Smartphones work best in landscape orientation. Activate full-screen mode, turn off Numbers, set Page Fit: Width, Show: 1 page, and Snap: disabled. Dismiss the Panel, either by clicking the close button's X, or by simply flinging the panel. Then thumb-scroll through the score. Pro tip: add a blank page at the end of the score so the bottom of the last page can be scrolled fully into view.</div>
 
     <h3 id="chapter-3-table">Layout Ring: Table</h3>
 
@@ -1189,11 +1234,11 @@ function closeVideo(event, container) {
         <figcaption>Ink Ring menu cells</figcaption>
     </figure>
 
-    <p>The Ink Ring's cells add annotation objects—staves, music symbols, text boxes, external images, and line drawings—to score pages. Tap any cell to activate it, then touch any score page to start drawing, to insert a symbol, image, or text box, or to perform any of the Ring's other actions: cut, copy, paste, grid, or transform.</p>
+    <p>The Ink Ring's cells add annotation objects—staves, music symbols, text boxes, external images, and line drawings—to score pages. Tap any cell to activate it, then touch any score page to start drawing, to insert a symbol, image, or text box, or to perform any of the Ring's other actions: cut, copy, paste, grid, or edit.</p>
 
     <div class="note">Normally, any gestures made on score pages are interpreted as page navigation commands. However, if the Ink Ring is selected, and if it has an activated cell, that cell's action will be performed instead.</div>
 
-    <div class="note">When an Ink Ring Cell is activated, it stays active until tapped again, or until a different Ink Ring Cell is activated. Cells automatically deactivate after 4 seconds if not used.</div>
+    <div class="note">When an Ink Ring Cell is activated, it stays active until tapped again, or until a different Ink Ring Cell is activated. Cells automatically deactivate after 4 seconds if not used. To prevent this, long-press a cell to lock it&mdash;a circle appears around its outer edge to indicate the lock. Long-press again or select a different cell to unlock. All Ink Ring cells support locking.</div>
 
     <h3>Tools Overview:</h3>
 
@@ -1213,7 +1258,7 @@ function closeVideo(event, container) {
 
     <div class="note">The Copy cell has an associated Open Panel that can be used to select an external PNG or JPEG image file from digital storage. Select the desired image file, then use the Paste cell to convert that image into an annotation object that can be pasted into a score page.</div>
 
-    <p><strong>Transform:</strong> while active, tapping on any existing annotation allows it to be selected, moved, rotated, or resized.</p>
+    <p><strong>Edit:</strong> while active, tapping on any existing annotation allows it to be selected, moved, rotated, or resized. Drag out to reveal a panel with precision sliders for exact positioning.</p>
 
     <h3 id="chapter-4-pen-pencil">Ink Ring: Pen, Pencil</h3>
 
@@ -1253,7 +1298,7 @@ function closeVideo(event, container) {
 
     <p>The tool is used by first touching the page, then dragging to define the rastrum object's length.</p>
 
-    <p>Set the style to L-R or T-B to draw horizontally or vertically. Once drawn, a rastrum object can always be rotated using the Transform tool.</p>
+    <p>Set the style to L-R or T-B to draw horizontally or vertically. Once drawn, a rastrum object can always be rotated using the Edit tool.</p>
 
     <p><strong>Staff Space:</strong> The staff space panel setting determines the pixel difference between staff lines. Matching this value with the staff space setting in the <a href="#chapter-4-symbols" class="chapter-link">Symbols tool</a> ensures that staves and symbols are correctly sized for each other.</p>
 
@@ -1287,9 +1332,9 @@ function closeVideo(event, container) {
 
     <p>Choose a Symbols Group from the dropdown, then tap to select a symbol in the Preview. Note that most groups have many more symbols than are visible in the preview: drag left ⇄ right to see them all.</p>
 
-    <p><strong>Staff Space Sizing:</strong> This setting sizes the synbol by specifying the distance between adjacent staff lines that symbol is designed for. Matching the staff space value in the Symbols Panel to the staff space value in the <a href="#chapter-4-rastrum" class="chapter-link">Rastrum tool</a> will ensure that music symbols are correctly sized for a corresponding staff.</p>
+    <p><strong>Staff Space Sizing:</strong> This setting sizes the symbol by specifying the distance between adjacent staff lines that symbol is designed for. Matching the staff space value in the Symbols Panel to the staff space value in the <a href="#chapter-4-rastrum" class="chapter-link">Rastrum tool</a> will ensure that music symbols are correctly sized for a corresponding staff.</p>
 
-    <p>After placing a symbol, use the <a href="#chapter-4-transform" class="chapter-link">Transform tool</a> to precisely position, resize, or rotate it.</p>
+    <p>After placing a symbol, use the <a href="#chapter-4-edit" class="chapter-link">Edit tool</a> to precisely position, resize, or rotate it.</p>
 
     <h3 id="chapter-4-undo">Ink Ring: Undo</h3>
 
@@ -1330,18 +1375,18 @@ function closeVideo(event, container) {
 
     <p><strong>Deleting annotations:</strong> To delete an annotation object, activate the Cut cell and tap the object. If you don't subsequently paste the object elsewhere, it is effectively deleted from the score.</p>
 
-    <p>The Copy cell has an associated Open Panel where you can choose PNG or JPEG images from digital storage and put them into the paste buffer. These images can then be pasted into any score page and positioned or resized as desired using the Transform tool.</p>
+    <p>The Copy cell has an associated Open Panel where you can choose PNG or JPEG images from digital storage and put them into the paste buffer. These images can then be pasted into any score page and positioned or resized as desired using the Edit tool.</p>
 
-    <h3 id="chapter-4-transform">Ink Ring: Transform</h3>
+    <h3 id="chapter-4-edit">Ink Ring: Edit</h3>
 
-    <p>Transform (move, resize, rotate) objects.</p>
+    <p>Edit (move, resize, rotate) annotation objects.</p>
 
     <figure>
         <img src="assets/inktransform1.jpg" alt="Transform handles">
         <figcaption>Transform handles on selected object</figcaption>
     </figure>
 
-    <p>With the Transform cell activated, select an object by touching it, or by sweeping a rectangle around it.</p>
+    <p>With the Edit cell activated, select an object by touching it, or by sweeping a rectangle around it.</p>
 
     <p>Move the rectangular handles to resize/rotate the object:</p>
     <ul>
@@ -1358,6 +1403,17 @@ function closeVideo(event, container) {
 
     <p>You can drag across multiple objects to select them, then transform them as a group. Click the lock icon to make the group behave like a single object. Click it again to ungroup.</p>
 
+    <h4>Edit Panel: Precision Sliders</h4>
+
+    <p>Drag out from the Edit cell to reveal a panel with precision sliders for exact numeric control of the selected object:</p>
+    <ul>
+        <li><strong>X, Y:</strong> Position in pixels</li>
+        <li><strong>Width, Height:</strong> Dimensions in pixels</li>
+        <li><strong>Angle:</strong> Rotation in degrees (0&ndash;360)</li>
+    </ul>
+
+    <p>The panel displays the type of the selected object (Path, Text, Symbol, Rastrum, Image) and updates in real time. When multiple objects are selected, the panel shows the group type and count.</p>
+
     <h3>Annotations and Workflow Tips</h3>
 
     <p><strong>Saving and persistence:</strong> All annotations are automatically saved with the score when you save the file. Annotations are preserved when switching between different layout modes.</p>
@@ -1366,7 +1422,7 @@ function closeVideo(event, container) {
 
     <p><strong>Performance considerations:</strong> Annotations, especially free drawings with many pen/pencil strokes, can significantly increase the size of a saved score. For complex annotated pages, consider using the Merge operation (in the <a href="#chapter-5" class="chapter-link">Page Ring</a>) to convert annotations into the PDF itself, which can improve performance.</p>
 
-    <p><strong>Precision workflow:</strong> For precise notation work, combine the Grid tool with Rastrum for staff placement, then use Symbols to add notation. The Transform tool allows fine-tuning of symbol positions after placement.</p>
+    <p><strong>Precision workflow:</strong> For precise notation work, combine the Grid tool with Rastrum for staff placement, then use Symbols to add notation. The Edit tool allows fine-tuning of symbol positions after placement.</p>
 
     <p><strong>Reusable symbol library:</strong> If you frequently reuse a set of symbols, <a href="#chapter-5-add" class="chapter-link">add a blank page</a> to your score and place those symbols on it. This creates a personal symbol library that's always available for Copy/Paste. You can easily move this symbol set page around the score using Page Ring commands or by dragging pages in the <a href="#chapter-3-table" class="chapter-link">Table Layout</a>.</p>
 
@@ -1385,7 +1441,7 @@ function closeVideo(event, container) {
 
     <div class="note">Normally, any gestures made on score pages are interpreted as page navigation commands. However, if the Page Ring is selected, and if it has an activated cell, that cell's action will be performed instead.</div>
 
-    <div class="note">When a Page Ring Cell is activated, it stays active until tapped again, or until a different Page Ring Cell is activated. Cells automatically deactivate after 4 seconds if not used. Exception: the Numbers cell never activates—it simply holds a panel for configuring page numbering and keyboard shortcuts.</div>
+    <div class="note">When a Page Ring Cell is activated, it stays active until tapped again, or until a different Page Ring Cell is activated. Cells automatically deactivate after 4 seconds if not used. To prevent this, long-press a cell to lock it&mdash;a circle appears around its outer edge to indicate the lock. Long-press again or select a different cell to unlock. All Page Ring cells support locking except Numbers and Merge. Exception: the Numbers cell never activates&mdash;it simply holds a panel for configuring page numbering and keyboard shortcuts.</div>
 
     <h3>Page Ring Tools:</h3>
 
@@ -1402,6 +1458,8 @@ function closeVideo(event, container) {
     <p><strong>Paste:</strong> Insert previously copied pages at a new location in the score, including pages copied from other Podium instances running in different tabs or windows.</p>
 
     <p><strong>Merge:</strong> Merge all Ink objects on a page into the page itself, converting annotations into permanent PDF content.</p>
+
+    <p><strong>Magnify:</strong> Drag out to reveal a magnifier panel that shows a zoomed-in view of the score at the touch point.</p>
 
     <h3 id="chapter-5-numbers">Page Ring: Numbers</h3>
 
@@ -1436,6 +1494,18 @@ function closeVideo(event, container) {
     <p>You can assign one shortcut to the up or right cursor arrow keys, and one to the left or down cursor arrow keys. Tap the appropriate button to determine if an up or right key press will navigate to the next page, or instead navigate to the next bookmark. Similarly, choose the appropriate button to determine if the left or down keys will navigate to the previous page, or navigate to the previous bookmark.</p>
 
     <div class="tip">The usual usage is to page forward or backward through the score. However, the ability to navigate forward or backward through bookmarks is a particularly helpful feature for reading scores with repeats spanning several pages. Set a bookmark on the page containing the beginning of the repeated section, then configure the right or up arrow keys to Pages, and the left or down arrow key to Marks. Play through the repeat, using the right arrow key (or its foot pedal equivalent) to navigate forward through the following pages. Then, when you reach the end of the repeated section, use the left arrow key to immediately flip back to the beginning of the repeat.</div>
+
+    <h4>Additional Keyboard Shortcuts:</h4>
+
+    <p>In addition to the configurable arrow key behavior above, the following keyboard shortcuts are always available:</p>
+    <ul>
+        <li><strong>Home:</strong> Jump to first page</li>
+        <li><strong>End:</strong> Jump to last page</li>
+        <li><strong>Ctrl+Home:</strong> Jump to first bookmark</li>
+        <li><strong>Ctrl+End:</strong> Jump to last bookmark</li>
+        <li><strong>Ctrl+Arrow:</strong> Navigate to next/previous bookmark (regardless of the footpedal arrow key setting above)</li>
+        <li><strong>PageUp / PageDown:</strong> Navigate to previous/next page</li>
+    </ul>
 
     <h3 id="chapter-5-add">Page Ring: Add</h3>
 
@@ -1515,7 +1585,7 @@ function closeVideo(event, container) {
 
     <p>The paste buffer is shared by all instances of Podium running in any browser tab or window. It persists even if you close a score and reopen another in the same tab, or close and restart the browser entirely. This makes it easy to work with pages across multiple scores simultaneously.</p>
 
-    <div class="note"><strong>Privacy Note:</strong> If you share a browser with others and are concerned with privacy, you should clear the paste buffer after your Podium session. You can use the Clear button in the Paste Panel, or clear it from the <a href="#chapter-6-about-storage">App Ring: About panel's Storage tab</a> by clicking the Buffer button.</div>
+    <div class="note"><strong>Privacy Note:</strong> If you share a browser with others and are concerned with privacy, you should clear the paste buffer after your Podium session. You can use the Clear button in the Paste Panel, or clear it from the <a href="#chapter-6-storage">App Ring: Storage panel</a> by clicking the Buffer button.</div>
 
     <h4>Primary Use Case: Practice Scores</h4>
 
@@ -1542,6 +1612,27 @@ function closeVideo(event, container) {
     <p><strong>Creating manuscript paper:</strong> You can create custom manuscript paper by using Ink annotations to design the page layout, then merging them to make them permanent. Use the <a href="#chapter-4-rastrum">Rastrum tool</a> to draw staves, add <a href="#chapter-4-symbols">Symbols</a> for clefs if desired, and use the <a href="#chapter-4-grid">Grid</a> for proper alignment. Once everything is positioned correctly, merge all these annotations so they become an integral part of the page. You can then copy this page to create multiple pages of custom manuscript paper, or use it as a template for your compositions.</p>
 
     <div class="note">Because a merge operation cannot be undone, you'll be prompted to confirm before the operation is performed.</div>
+
+    <h3 id="chapter-5-magnify">Page Ring: Magnify</h3>
+
+    <p>Magnify a portion of the score.</p>
+
+    <p>Drag out from the Magnify cell to reveal a panel that displays a zoomed-in view of the score at the current touch point. Touch any page in the score and the magnifier panel updates in real time, showing both the PDF content and any annotations at the touched location.</p>
+
+    <p>The Panel's <strong>Zoom:</strong> slider adjusts the magnification level from 0.25x to 5x.</p>
+
+    <figure>
+        <img src="assets/pagemagnify.jpg" alt="Magnify panel">
+        <figcaption>Magnify panel showing a zoomed-in view of the score at the touch point</figcaption>
+    </figure>
+
+    <div class="note">The Magnify tool is especially useful when annotating. It allows you to see a zoomed view around the pointer when, for example, placing an ornament in a score or when free drawing with the pen or pencil.</div>
+
+    <figure>
+        <img src="assets/pagemagnifymordent.jpg" alt="Using Magnify to place an ornament">
+        <figcaption>Using the Magnify tool to precisely place a red mordent ornament in a score</figcaption>
+    </figure>
+
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
@@ -1557,7 +1648,9 @@ function closeVideo(event, container) {
 
     <h3>App Ring Cells:</h3>
 
-    <p><strong>About:</strong> Application version, release notes, storage management, credits, and license information.</p>
+    <p><strong>About:</strong> Application version, release notes, credits, and license information.</p>
+
+    <p><strong>Storage:</strong> Manage Podium's browser storage.</p>
 
     <p><strong>Guide:</strong> Opens this guidebook.</p>
 
@@ -1567,7 +1660,7 @@ function closeVideo(event, container) {
 
     <h3 id="chapter-6-about">App Ring: About</h3>
 
-    <p>A tabbed panel providing application information and storage management.</p>
+    <p>A tabbed panel providing application information.</p>
 
     <figure>
         <img src="assets/appabout.jpg" alt="About panel Version tab">
@@ -1577,22 +1670,31 @@ function closeVideo(event, container) {
     <h4>About Tab:</h4>
     <p>Shows the application's version number and provides links to:</p>
     <ul>
-        <li><strong>Terms:</strong> Terms of use</li>
         <li><strong>Privacy:</strong> Privacy policy</li>
-        <li><strong>Github:</strong> Source code repository</li>
+        <li><strong>Terms:</strong> Terms of use</li>
+        <li><strong>Source:</strong> Github source code repository</li>
         <li><strong>Issues:</strong> Bug reporting and feature requests</li>
     </ul>
 
     <h4>Release Notes Tab:</h4>
     <p>Shows all release notes for Podium version history.</p>
 
-    <h4 id="chapter-6-about-storage">Storage Tab:</h4>
-    <p>Provides buttons to manage Podium's browser storage:</p>
+    <h4>Credits Tab:</h4>
+    <p>Lists the open source projects Podium is built on.</p>
+
+    <h4>License Tab:</h4>
+    <p>Official copyright and license statement (GNU Affero General Public License v3).</p>
+
+    <h3 id="chapter-6-storage">App Ring: Storage</h3>
+
+    <p>Manage Podium's browser storage.</p>
 
     <figure>
-        <img src="assets/appaboutstorage.jpg" alt="About panel Storage tab">
-        <figcaption>About panel showing the Storage tab</figcaption>
+        <img src="assets/appstorage.jpg" alt="Storage panel">
+        <figcaption>Storage panel</figcaption>
     </figure>
+
+    <p>The Storage Panel provides buttons to manage data that Podium stores in the browser:</p>
 
     <ul>
         <li><strong>Menu:</strong> Clears stored values of many menu settings. Clicking this will reset the menu to its defaults.</li>
@@ -1600,11 +1702,9 @@ function closeVideo(event, container) {
         <li><strong>Buffer:</strong> Clears the distributed paste buffer contents (see <a href="#chapter-5-paste">Page Ring: Paste</a> for details).</li>
     </ul>
 
-    <h4>Credits Tab:</h4>
-    <p>Lists the open source projects Podium is built on.</p>
+    <p>Where available, the panel also displays a refreshable set of storage statistics useful for developers.</p>
 
-    <h4>License Tab:</h4>
-    <p>Official copyright and license statement (GNU Affero General Public License).</p>
+    <div class="note"><strong>Privacy:</strong> If you share a browser with other users, use the factory reset buttons to clear information you don't want to share after your session. This includes recent file lists, paste buffer contents, and menu settings that may reveal your activity.</div>
 
     <h3 id="chapter-6-guide">App Ring: Guide</h3>
 
@@ -1645,7 +1745,7 @@ function closeVideo(event, container) {
 
     <p><strong>Volume:</strong> Master volume control slider for all audio playback.</p>
 
-    <div class="note">Since all More Ring cells exist solely to provide panels, the touch action automatically opens the panel and positions it near its icon for convenient access.</div>
+    <div class="note">Since all More Ring cells exist solely to provide panels, the touch action — an alternative to dragging — automatically opens the panel and positions it near its icon for convenient access.</div>
 
     <h3 id="chapter-7-detached">More Ring: Detached Panels</h3>
 
@@ -1679,7 +1779,7 @@ function closeVideo(event, container) {
 
     <figure>
         <img src="assets/moremetronomeopts.jpg" alt="Metronome dropdown options">
-        <figcaption>Metronome display options</figcaption>
+        <figcaption>Metronome display options, showing detached panels</figcaption>
     </figure>
 
     <p>When the metronome is detached, the tempo is displayed on the pattern itself. In the diagram above, the left pattern shows 60 bpm and displays a fermata symbol indicating it is paused, while the right pattern shows 167 bpm and is actively playing.</p>
@@ -1704,6 +1804,12 @@ function closeVideo(event, container) {
     <p>The stopwatch is fully functional when detached: touch the middle button to start/stop, the left button to reset, and the right button to record a split. To see the split times, you'll need to view the whole panel—simply drag out from the menu cell again.</p>
 
     <div class="note">Hiding the panel by flinging (detached or not) keeps the stopwatch running in the background. To stop and close the stopwatch, click the X button—this effectively deletes the panel. The next time you drag out the Stopwatch cell, the panel is recreated from scratch.</div>
+
+    <h3 id="chapter-7-clock">More Ring: Clock</h3>
+
+    <p>Wall clock displaying the current time and date, using the platform's default time zone. Useful for keeping track of time during practice sessions without leaving Podium.</p>
+
+    <p>The clock can be detached and positioned anywhere on screen.</p>
 
     <h3 id="chapter-7-piano">More Ring: Piano</h3>
 
@@ -1761,7 +1867,7 @@ function closeVideo(event, container) {
     <p>The Review panel has three tabs:</p>
 
     <h4>Video Tab:</h4>
-    <p>Displays live video from your camera with playback controls.</p>
+    <p>Displays live video from your camera with playback controls. The browser will request camera and microphone permissions when this tool is first used.</p>
 
     <figure>
         <img src="assets/morereviewvideo.jpg" alt="Review video tab">
@@ -1791,7 +1897,7 @@ function closeVideo(event, container) {
     <p>To reenter Live mode, drag the scrubber to the right, or simply wait until Playback ends. Then tap the Play Button to restart recording. Any previous recording will be lost.</p>
 
     <h4>Waveform Tab:</h4>
-    <p>Displays the waveform of the input from the microphone overlaid on a waterfall spectrum. Mostly useful as just something to look at when practicing scales and arpeggios!</p>
+    <p>Displays the waveform of the input from the microphone overlaid on a waterfall spectrum. The browser will request microphone permission when this tool is first used. Mostly useful as just something to look at when practicing scales and arpeggios!</p>
 
     <figure>
         <img src="assets/morereviewwave.jpg" alt="Review waveform tab">
@@ -1811,6 +1917,12 @@ function closeVideo(event, container) {
         <img src="assets/morereviewoptions.jpg" alt="Review options tab">
         <figcaption>Review panel Options tab showing camera, recording, and device settings</figcaption>
     </figure>
+
+    <h3 id="chapter-7-volume">More Ring: Volume</h3>
+
+    <p>Master volume control for all Podium audio output (metronome, piano, review playback).</p>
+
+    <p>This volume control attenuates the platform's own volume setting. For best results, set the platform volume to a high value, then use Podium's volume slider to decrease to the desired level. This is especially convenient when the platform's volume controls are hard to reach, such as during a practice session in full-screen mode.</p>
 
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>

@@ -868,7 +868,7 @@ class Menu {
       }
     }
     op.moveListener = listen(this.elm, "pointermove", this.opMove.bind(this));
-    op.upListener = listen(this.elm, "pointerup", this.opUp.bind(this));
+    op.upListener = listen(this.elm, ["pointerup", "pointercancel"], this.opUp.bind(this));
   }
 
   opMove(emv) {

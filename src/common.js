@@ -1552,7 +1552,7 @@ class TabView {
             });
             listen(
               this.sash,
-              "pointerup",
+              ["pointerup", "pointercancel"],
               (eup) => {
                 unlisten(mv);
               },
@@ -2129,7 +2129,7 @@ function ptrMsg(e, msgFunc, styles) {
 
   listen(
     _body_,
-    "pointerup",
+    ["pointerup", "pointercancel"],
     (eup) => {
       put(eup);
       div.style.opacity = 0;

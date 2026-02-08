@@ -208,7 +208,7 @@ class Panel {
 
         listen(
           header,
-          "pointerup",
+          ["pointerup", "pointercancel"],
           (eup) => {
             header.classList.remove("Panel__header-selected");
             unlisten(mv);
@@ -1940,7 +1940,7 @@ class SymbolsPanel extends Panel {
          mvmt(e, emv);
       });
 
-      listen(this.sash, "pointerup", (eup) => {
+      listen(this.sash, ["pointerup", "pointercancel"], (eup) => {
         unlisten(mv);
         if(!e.moved) {
           let target = document.elementFromPoint(e.clientX, e.clientY);
