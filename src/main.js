@@ -158,12 +158,12 @@ async function main() {
             // pointer movement in px required to cancel long press (overcomes jitter)
             let cancelDelta = 16 ;
 
-            // pointer movement in px required to invoke gestures:
-            let gestureDelta = Math.min(innerWidth * _gsgs_/1000, innerHeight * _gsgs_/1000) ;
+            // pointer movement in px required to invoke gestures: 15% of narrower screen dimension
+            let gestureDelta = Math.min(innerWidth, innerHeight) * 0.15 ;
 
             let mv = listen(_body_, "pointermove", (emv) => Math.hypot(emv.movementX, emv.movementY) > cancelDelta ? timer.cancel() : null) ; 
 
-            listen(_body_, "pointerup", (eup) => {
+            listen(_body_, ["pointerup", "pointercancel"], (eup) => {
               unlisten(mv) ;
               timer.cancel() ;
               if(e.timedOut) return ; // timer ran, so don't do anything else
@@ -206,7 +206,7 @@ async function main() {
 
             listen(
               _body_,
-              "pointerup",
+              ["pointerup", "pointercancel"],
               (eup) => {
                 eup.captured = true;
                 unlisten(mv);
@@ -258,7 +258,7 @@ async function main() {
         { capture: true }
         );
 
-        listen(_body_, "pointerup", (eup) => {
+        listen(_body_, ["pointerup", "pointercancel"], (eup) => {
              unlisten(mv);
              tr1 = tr2 = null ;
           },
@@ -337,7 +337,6 @@ async function main() {
 
   listen(window, ["resize", "fullscreenchange"], (e) => {
     delay(10, () => { // must run *after*  screen orientation change
-      _menu_.center() ;
       let layout = Layout.activeLayout;
       if (layout) {
         rebuildThrottle.cancel();
