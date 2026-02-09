@@ -803,7 +803,7 @@ class Score {
       await score.pgAdd(pg, i, false);
     }
     // don't init score until after pgs are added, or layouts will fail
-    await score.init(null, null, `anon${Math.round(Math.random() * 100)}.pdf`);
+    await score.init(null, null, `Opus ${Math.floor(Math.random() * 100) + 1}.pdf`);
     score.setDirty(false);
     return score;
   }
@@ -990,7 +990,18 @@ class Score {
     // instance the active score
     Score.activeScore = this;
     _score_ = this;
-    document.title = `Podium ${this.name ? this.name.replace(/\.pdf/i, ""):"*"} (${_podId_})`;
+    if (this.name) {
+      // Show score name in tab, truncated from middle if long, without .pdf extension
+      let name = this.name.replace(/\.pdf$/i, "");
+      const maxLen = 30;
+      if (name.length > maxLen) {
+        let half = (maxLen - 1) >> 1; // -1 for the ellipsis character
+        name = name.slice(0, half) + "\u2026" + name.slice(-half);
+      }
+      document.title = name;
+    } else {
+      document.title = `Podium (${_podId_})`;
+    }
     // update the _menu_ state for this Score instance:
     _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"]);
     _menu_.enableCells("ink/undo", false); // nothing to undo yet
