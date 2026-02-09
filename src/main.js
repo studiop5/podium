@@ -399,5 +399,4 @@ async function main() {
 
 main();
 
-import { } from "../video.js";
-//show("finger");
+//import { } from "../video.js";

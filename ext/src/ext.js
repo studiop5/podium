@@ -132,14 +132,28 @@ async function fetchPdfFromUrl(path) {
               html.includes('"js-a4":"15"') ||
               html.includes('friendlyredirect') ||
               response.url.includes('friendlyredirect')) {
-            dialog("Podium requires you to be logged in to IMSLP.<br><br>" +
-                   "<a href='https://imslp.org/wiki/Special:UserLogin' target='_blank'>Log in to IMSLP</a> " +
-                   "or <a href='https://imslp.org/wiki/IMSLP:Subscriptions' target='_blank'>become a member</a>.");
+            dialog("<div style='max-width:22em'>" +
+                   "<div style='font-size:1.3em;font-weight:bold;margin-bottom:.6em'>IMSLP Login Required</div>" +
+                   "<div style='margin-bottom:1em'>Podium requires you to be logged in to IMSLP to open this score.</div>" +
+                   "<a href='https://imslp.org/wiki/Special:UserLogin' target='_blank' " +
+                   "style='display:inline-block;padding:.4em 1em;background:#3498db;color:#fff;border-radius:.3em;text-decoration:none;margin:.3em'>Log in</a> " +
+                   "<a href='https://imslp.org/wiki/IMSLP:Subscriptions' target='_blank' " +
+                   "style='display:inline-block;padding:.4em 1em;background:#888;color:#fff;border-radius:.3em;text-decoration:none;margin:.3em'>Become a member</a>" +
+                   "</div>");
           // Check if this is a disclaimer page
           } else if (html.includes('Disclaimer') || html.includes('disclaimer')) {
-            dialog("IMSLP requires you to accept their disclaimer first.<br><br>Please <a href='" + path + "' target='_blank'>accept the disclaimer on IMSLP</a>.<br><br>After accepting, use 'Open with Podium' on the score link again.");
+            dialog("<div style='max-width:22em'>" +
+                   "<div style='font-size:1.3em;font-weight:bold;margin-bottom:.6em'>IMSLP Disclaimer</div>" +
+                   "<div style='margin-bottom:1em'>IMSLP requires you to accept their disclaimer before downloading.</div>" +
+                   "<a href='" + path + "' target='_blank' " +
+                   "style='display:inline-block;padding:.4em 1em;background:#3498db;color:#fff;border-radius:.3em;text-decoration:none;margin:.3em'>Accept disclaimer on IMSLP</a>" +
+                   "<div style='margin-top:.8em;font-size:.85em;color:#555'>After accepting, use 'Open with Podium' on the score link again.</div>" +
+                   "</div>");
           } else {
-            dialog("Could not find PDF download link on IMSLP page.");
+            dialog("<div style='max-width:22em'>" +
+                   "<div style='font-size:1.3em;font-weight:bold;margin-bottom:.6em'>IMSLP Error</div>" +
+                   "<div>Could not find a PDF download link on this IMSLP page.</div>" +
+                   "</div>");
           }
           return;
         }
