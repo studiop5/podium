@@ -524,12 +524,20 @@ class DetailsPanel extends Panel {
       let score = _score_;
 
       let nameInput = helm(
-        `<input type="text" style="font-size:1.5em;text-align:center;margin-bottom:.5em;width:100%;border:none;border-radius:var(--borderRadius);background:white;" value="${score.name.replace(/\.pdf$/i, "")}">`
+        `<input type="text" style="font-size:1.5em;text-align:center;margin-bottom:.5em;width:100%;border:none;border-radius:var(--borderRadius);background:white;">`
       );
+      nameInput.value = score.name.replace(/\.pdf$/i, "");
       nameInput.addEventListener("change", () => {
         let newName = nameInput.value.trim();
         if (!newName.toLowerCase().endsWith(".pdf")) newName += ".pdf";
         score.name = newName;
+        let title = newName.replace(/\.pdf$/i, "");
+        const maxLen = 30;
+        if (title.length > maxLen) {
+          let half = (maxLen - 1) >> 1;
+          title = title.slice(0, half) + "\u2026" + title.slice(-half);
+        }
+        document.title = title;
       });
       this.content.append(nameInput);
       let source = score.source
