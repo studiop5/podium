@@ -686,15 +686,17 @@ These should be PNG images at 16x16, 48x48, and 128x128 pixels respectively.
         f.write(readme)
     if args.verbose: print('Created ext/README.md')
 
-    # Create ZIP file for store submission
+    # Create ZIP file for store submission (exclude docs and test files)
     import zipfile
     zip_path = 'build/podium-ext.zip'
+    zip_exclude = {'.md', 'test-'}
     os.makedirs('build', exist_ok=True)
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
         for root, dirs, files in os.walk('ext'):
             for file in files:
+                if any(file.endswith(e) or file.startswith(e) for e in zip_exclude):
+                    continue
                 file_path = os.path.join(root, file)
-                # Archive path should be relative to ext/ (no containing folder)
                 arc_path = os.path.relpath(file_path, 'ext')
                 zf.write(file_path, arc_path)
 
