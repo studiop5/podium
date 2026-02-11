@@ -51,6 +51,13 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (!info.linkUrl) return;
 
+  // Request host permission on first use (optional_host_permissions in manifest)
+  let hasPermission = await chrome.permissions.contains({ origins: ["<all_urls>"] });
+  if (!hasPermission) {
+    let granted = await chrome.permissions.request({ origins: ["<all_urls>"] });
+    if (!granted) return;
+  }
+
   const podiumUrl = chrome.runtime.getURL("podium.html") + "?url=" + encodeURIComponent(info.linkUrl);
 
   if (info.menuItemId === "openWithPodiumNewTab") {
