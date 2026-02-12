@@ -13,27 +13,69 @@ function truncateName(name, maxLen = 50) {
 
 // Load and display recent files
 const recentDiv = document.getElementById('recent');
-const recent = JSON.parse(localStorage.getItem('recent') || '[]').slice(0, 5);
+const allRecent = JSON.parse(localStorage.getItem('recent') || '[]');
+const recent = allRecent.slice(0, 5);
 
 if (recent.length > 0) {
   recentDiv.innerHTML = '<div class="recent-header">Recent:</div>';
-  recent.forEach(item => {
+  recent.forEach((item, index) => {
     const div = document.createElement('div');
     div.className = 'recent-item';
-    div.textContent = truncateName(item.name);
-    div.title = item.name; // Full name on hover
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'name';
+    nameSpan.textContent = truncateName(item.name);
+    nameSpan.title = item.name;
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'edit-btn';
+    editBtn.textContent = '\u270E';
+    editBtn.title = 'Rename';
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const input = document.createElement('input');
+      input.className = 'name-input';
+      input.value = item.name.replace(/\.pdf$/i, '');
+      nameSpan.replaceWith(input);
+      editBtn.style.display = 'none';
+      input.focus();
+      input.select();
+
+      const commit = () => {
+        let newName = input.value.trim();
+        if (!newName) newName = item.name;
+        else if (!newName.toLowerCase().endsWith('.pdf')) newName += '.pdf';
+        allRecent[index].name = newName;
+        localStorage.setItem('recent', JSON.stringify(allRecent));
+        nameSpan.textContent = truncateName(newName);
+        nameSpan.title = newName;
+        input.replaceWith(nameSpan);
+        editBtn.style.display = '';
+      };
+
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') input.blur();
+        if (e.key === 'Escape') {
+          input.value = item.name.replace(/\.pdf$/i, '');
+          input.blur();
+        }
+      });
+    });
+
     div.addEventListener('click', () => {
-      // For URL sources, pass the URL; for others, open Podium with Open panel hint
       let url = chrome.runtime.getURL('podium.html');
       if (item.source === 'WWW' && item.path) {
         url += '?url=' + encodeURIComponent(item.path);
       } else {
-        // For local files, pass hint to show Open panel as memory jog
         url += '?open=' + encodeURIComponent(item.name);
       }
       chrome.tabs.create({ url });
       window.close();
     });
+
+    div.appendChild(nameSpan);
+    div.appendChild(editBtn);
     recentDiv.appendChild(div);
   });
 } else {

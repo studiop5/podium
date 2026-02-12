@@ -1657,9 +1657,13 @@ class LocalFileView {
         }
         else {
           if(await checkUnsaved()) {
-            let score = await new Score().init(Score.sources.local, null, file.name, await file.arrayBuffer());
-            Score.visit(score, visitUpdate);
-            toast("File opened");
+            try {
+              let score = await new Score().init(Score.sources.local, null, file.name, await file.arrayBuffer());
+              Score.visit(score, visitUpdate);
+              toast("File opened");
+            } catch (error) {
+              dialog(`Error opening file <i>${escapeHtml(file.name)}</i><br>${error.message || error}`);
+            }
           }
         }
         this.panel.hide();

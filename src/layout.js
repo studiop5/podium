@@ -468,8 +468,10 @@ class Layout {
     if(pg.deferred) // reschedule the padding...
       return delay(5, () => this.pgPad(pg));
     if (!pg.inflated || (pg.width == this.score.maxWidth && pg.height == this.score.maxHeight)) return;
-    let horz = ((this.score.maxHeight - pg.height * pg.stretch) * pg.zoom) / 2;
-    let vert = ((this.score.maxWidth - pg.width * pg.stretch) * pg.zoom) / 2;
+    // Math.max(0, ...) prevents floating-point rounding from producing tiny
+    // negative values whose scientific notation (e.g. -1e-15em) breaks CSS.
+    let horz = Math.max(0, ((this.score.maxHeight - pg.height * pg.stretch) * pg.zoom) / 2);
+    let vert = Math.max(0, ((this.score.maxWidth - pg.width * pg.stretch) * pg.zoom) / 2);
     Object.assign(pg.elm.style, {
       borderWidth: toEm(horz) + " " + toEm(vert),
       borderStyle: "solid",

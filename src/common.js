@@ -1590,7 +1590,7 @@ class Timer {
     this.title = title;
     this.startTime = performance.now();
     this.prevTime = this.startTime;
-    console.log(`Timer ${this.title} started.`);q
+    console.log(`Timer ${this.title} started.`);
   }
 
   lap(tag = "") {
@@ -1688,8 +1688,6 @@ function dialog(
   // automatically dismisses the dialog...this is the default, if def and handler are
   // undefined in the call.
   let elm = helm(`<dialog class="dialog"><div>${innerHtml}</div></dialog>`);
-  // Log dialog text to console for easy copying
-  console.log("Dialog:", elm.firstElementChild.innerText);
   let buttonsElm = new ButtonGroup(
     {
       close: () => {
