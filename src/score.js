@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { clamp, delay, fontUnmap, helm, inflate, rotatePoint } from "./common.js";
+import { clamp, delay, dialog, fontUnmap, helm, inflate, rotatePoint } from "./common.js";
 import { Grid } from "./canvas.js";
 import { Layout } from "./layout.js";
 import { panels } from "./panel.js";
@@ -879,6 +879,7 @@ class Score {
   created = this.now;
   modified = this.now;
   pdfInfo = null; // meta-info extracted from pdf src
+  encrypted = false; // true if PDF has an encryption dictionary
 
   embeddedFonts = null; // Used by this.toPDF() to prevent fonts from being embedded more than once
   maxHeight = -1; // maxHeight among all pg's in score
@@ -954,6 +955,14 @@ class Score {
       // Grab pdf metadata's info, if available
       let meta = await this.mozDoc.getMetadata();
       this.pdfInfo = meta ? meta.info : null;
+
+      // Check for encryption — permissions array means an Encrypt dict exists.
+      // Warn early so user knows before spending time annotating.
+      let perms = await this.mozDoc.getPermissions();
+      if (perms) {
+        this.encrypted = true;
+        dialog("This PDF is encrypted. Saving may not be possible.");
+      }
 
       // Grab podium attachment, if available
       let scoreJson = null;
@@ -1043,11 +1052,21 @@ class Score {
           // Try loading without ignoreEncryption - getData() should return decrypted data from PDF.js
           srcPLibDoc = await PDFLib.PDFDocument.load(await this.mozDoc.getData());
         } catch (err) {
-          // If load fails due to encryption
           if (err.message?.includes('encrypted') || err.message?.includes('Encrypt')) {
-            // Can't copy or save encrypted PDFs
-            let msg = pns ? "Due to copy protection, page can't be copied." : "Due to copy protection, score can't be saved.";
-            throw new Error(msg, { cause: "fileSrc" });
+            // Owner-password PDFs: content is viewable but pdf-lib rejects
+            // the Encrypt dict. Retry ignoring encryption since PDF.js
+            // already proved the content is accessible.
+            try {
+              srcPLibDoc = await PDFLib.PDFDocument.load(
+                  await this.mozDoc.getData(), { ignoreEncryption: true }
+              );
+              // Verify pages are readable — AES-256 encrypted streams will
+              // load but produce broken page objects.
+              srcPLibDoc.getPages();
+            } catch (err2) {
+              let msg = pns ? "Due to copy protection, page can't be copied." : "Due to copy protection, score can't be saved.";
+              throw new Error(msg, { cause: "fileSrc" });
+            }
           } else {
             throw err; // Re-throw other errors
           }
@@ -1111,7 +1130,8 @@ class Score {
         if (this.pdfInfo.Title) dstPLibDoc.setTitle(this.pdfInfo.Title);
         if (this.pdfInfo.Author) dstPLibDoc.setAuthor(this.pdfInfo.Author);
         if (this.pdfInfo.Subject) dstPLibDoc.setSubject(this.pdfInfo.Subject);
-        if (this.pdfInfo.Keywords) dstPLibDoc.setKeywords(this.pdfInfo.Keywords);
+        if (this.pdfInfo.Keywords) dstPLibDoc.setKeywords(
+            Array.isArray(this.pdfInfo.Keywords) ? this.pdfInfo.Keywords : this.pdfInfo.Keywords.split(/[,;]\s*/));
         if (this.pdfInfo.Producer) dstPLibDoc.setProducer(this.pdfInfo.Producer);
         if (this.pdfInfo.Creator) dstPLibDoc.setCreator(this.pdfInfo.Creator);
         if (this.pdfInfo.CreationDate) dstPLibDoc.setCreationDate(new Date(this.pdfInfo.CreationDate));

@@ -43,19 +43,50 @@
       margin-bottom: 6px;
     }
     .recent-item {
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: 4px;
       padding: 6px 8px;
       color: #333;
       text-decoration: none;
       border-radius: 4px;
       cursor: pointer;
+      font-size: 13px;
+    }
+    .recent-item .name {
+      flex: 1;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      font-size: 13px;
+      min-width: 0;
     }
     .recent-item:hover {
       background: #f0f0f0;
+    }
+    .recent-item:hover .edit-btn {
+      opacity: 1;
+    }
+    .edit-btn {
+      opacity: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      color: #999;
+      padding: 0 4px;
+      flex-shrink: 0;
+    }
+    .edit-btn:hover {
+      color: #333;
+    }
+    .recent-item .name-input {
+      flex: 1;
+      font-size: 13px;
+      border: 1px solid #3498db;
+      border-radius: 3px;
+      padding: 1px 4px;
+      outline: none;
+      min-width: 0;
     }
     .no-recent {
       color: #999;

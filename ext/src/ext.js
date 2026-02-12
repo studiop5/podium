@@ -214,8 +214,20 @@ async function fetchPdfFromUrl(path) {
         return;
       }
 
-      // Extract filename from URL, fallback to "download.pdf"
-      let name = decodeURIComponent(path.split('/').pop().split('?')[0]) || "download.pdf";
+      // Extract filename from Content-Disposition header, URL, or fallback
+      let name = "";
+      let cd = response.headers.get("Content-Disposition");
+      if (cd) {
+        // Try RFC 5987 UTF-8 encoded filename first (filename*=UTF-8''...)
+        let utf8Match = cd.match(/filename\*\s*=\s*UTF-8''([^;\s]+)/i);
+        if (utf8Match) name = decodeURIComponent(utf8Match[1]);
+        // Fall back to regular filename="..." or filename=...
+        if (!name) {
+          let match = cd.match(/filename\s*=\s*"([^"]+)"/i) || cd.match(/filename\s*=\s*([^;\s]+)/i);
+          if (match) name = match[1];
+        }
+      }
+      if (!name) name = decodeURIComponent(path.split('/').pop().split('?')[0]) || "download.pdf";
       if (!name.toLowerCase().endsWith('.pdf')) name += '.pdf';
 
       let score = await new Score().init(Score.sources.url, path, name, data);
