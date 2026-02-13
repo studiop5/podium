@@ -1144,7 +1144,7 @@ class Score {
       if (doc) return dstPLibDoc;
       _shade_.update("Generating Pdf document");
       let bytes = await dstPLibDoc.save({objectsPerTick: 1000});
-      _shade_.update("PDF Generated!");
+      _shade_.update("PDF Generated");
       return bytes;   
     } 
     finally {

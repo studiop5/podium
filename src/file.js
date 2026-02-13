@@ -79,7 +79,10 @@ let checkUnsaved = async (msg = "Warning: current score has unsaved changes. Ope
 
 
 let checkFileSize = async (name, size) => {
-  let MAX_FILE_SIZE = 80 * 1024 * 1024; // 80MB
+  let mem = navigator.deviceMemory; // GB, Chrome/Edge only
+  let cores = navigator.hardwareConcurrency || 4;
+  let MAX_FILE_SIZE = (mem >= 8 || (!mem && cores >= 8)) ? 120 : 40;
+  MAX_FILE_SIZE *= 1024 * 1024;
   checkPath(name);
   if (size == 0)
     throw new Error('File is empty', { cause: "security" });
@@ -90,7 +93,7 @@ let checkFileSize = async (name, size) => {
            File: <i>${escapeHtml(name)}</i><br>
            Size: <strong>${(size / 1024 / 1024).toFixed(1)}MB</strong><br><br>
            This file exceeds the recommended size limit of ${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB.<br>
-           Large files may cause performance issues or browser crashes.<br><br>
+           Loading will work, but saving may be slow or fail on large files.<br><br>
            Continue anyway?`,
           { Continue: { svg: "Open" }, Cancel: { svg: "Cancel" } },
           (e, prop, tag, args) => {
@@ -2255,7 +2258,11 @@ class FileSystemView extends FileListView {
       if (!mvmt(e,eup)) {
         if(e.target.dataset.tag == "newDir") return await this.putDir(this.path);
         let target = e.target.closest(".Flv-path__dir");
-        if (target) this.setPath(target.dataset.path);
+        if (target) {
+          let refresh = target.dataset.path === this.path;
+          await this.setPath(target.dataset.path, refresh);
+          if (refresh) toast("Refreshed");
+        }
       }
     },
     { once: true });
