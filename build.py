@@ -12,7 +12,7 @@ import sys
 import subprocess
 
 if len(sys.argv) == 1:
-   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, yin=True, ext=True, www=False, cert=False, clean=False) ;
+   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, yin=True, ext=True, guide=True, www=False, cert=False, clean=False) ;
 else:
   parser = argparse.ArgumentParser()
   parser.add_argument('-s','--sample', action='store_true', help='(re)build build/sample.js')
@@ -20,6 +20,7 @@ else:
   parser.add_argument('-p','--podium', action='store_true', help='(re)build build/podium.html')
   parser.add_argument('-y','--yin', action='store_true', help='(re)build build/yin.js')
   parser.add_argument('-e','--ext', action='store_true', help='(re)build browser extension in ext/')
+  parser.add_argument('-g','--guide', action='store_true', help='(re)build guidebook keyword index')
   parser.add_argument('-w','--www', action='store_true', help='deploy to ../www (copies podium.html, sw.js, manifest, and icons)')
   parser.add_argument('--certificate', action='store_true', dest='cert', help='(re)build certificate')
   parser.add_argument('-c','--clean', action='store_true', help='clean build artifacts from build/ and ext/')
@@ -711,6 +712,223 @@ These should be PNG images at 16x16, 48x48, and 128x128 pixels respectively.
     else:
         print('   Icons generated successfully in ext/icons/')
     print(f'   Extension ZIP created: {zip_path}')
+
+if args.guide:
+    #####################################################
+    #                                                   #
+    #  (Re)build Guidebook keyword index                #
+    #                                                   #
+    #####################################################
+
+    import re as _re
+
+    GUIDEBOOK_PATH = 'doc/Guidebook.html'
+    INDEX_BEGIN = '<!-- BEGIN KEYWORD INDEX -->'
+    INDEX_END = '<!-- END KEYWORD INDEX -->'
+
+    # Curated keywords: body-text terms not found in headings.
+    # Maps keyword -> list of anchor IDs.
+    CURATED_KEYWORDS = {
+        "Annotations": ["chapter-6", "chapter-1"],
+        "Aspect ratio": ["chapter-6-edit"],
+        "Bookmarks": ["chapter-5-book", "chapter-5-horizontal", "chapter-5-table"],
+        "Bravura font": ["chapter-6-symbols"],
+        "Browser extension": ["chapter-2"],
+        "Browser tab naming": ["chapter-3"],
+        "Cell auto-deactivation": ["chapter-3"],
+        "Cell locking": ["chapter-3", "chapter-6"],
+        "Cloud storage": ["chapter-4-open-save"],
+        "Color chooser": ["chapter-6-pen-pencil", "chapter-7-add"],
+        "Conducting patterns": ["chapter-9-metronome"],
+        "Cross-instance sharing": ["chapter-7-paste"],
+        "CSS pixels": ["chapter-5-book", "chapter-5-horizontal"],
+        "Dark theme": ["chapter-8-theme"],
+        "Display quality": ["chapter-4-details"],
+        "Drag and drop": ["chapter-4-open-save"],
+        "Dropbox": ["chapter-4-open-save"],
+        "E-reader": ["overture"],
+        "Equal temperament": ["chapter-9-piano"],
+        "Expand mode": ["chapter-4-details"],
+        "File System Access API": ["chapter-4-open-save"],
+        "Firefox settings": ["firefox-settings"],
+        "Fling gesture": ["chapter-3", "chapter-5-book"],
+        "Footpedal": ["chapter-7-numbers"],
+        "Full screen": ["chapter-8-screen", "chapter-3"],
+        "Gestures": ["chapter-3"],
+        "Google Drive": ["chapter-4-open-save"],
+        "Grip": ["chapter-3"],
+        "Group selection": ["chapter-6-edit"],
+        "Images, importing": ["chapter-6-cut-copy-paste"],
+        "IMSLP": ["chapter-2"],
+        "Inner ring": ["chapter-3"],
+        "Installation": ["chapter-2"],
+        "Keyboard shortcuts": ["chapter-7-numbers"],
+        "Light theme": ["chapter-8-theme"],
+        "Line drawing": ["chapter-6-pen-pencil"],
+        "Live mode": ["chapter-9-review"],
+        "Local storage": ["chapter-8-storage"],
+        "Long press": ["chapter-3"],
+        "Manuscript paper": ["chapter-7-merge", "chapter-6-rastrum"],
+        "Metadata": ["chapter-4-details"],
+        "Microphone": ["chapter-9-review", "chapter-9-piano"],
+        "Mouse controls": ["chapter-3"],
+        "Musopen": ["chapter-2"],
+        "Navigation": ["chapter-1", "chapter-5-book"],
+        "Offline use": ["chapter-2"],
+        "OneDrive": ["chapter-4-open-save"],
+        "Opacity": ["chapter-6-pen-pencil", "chapter-7-add"],
+        "Open source": ["overture"],
+        "Outer ring": ["chapter-3"],
+        "Page numbers": ["chapter-7-numbers", "chapter-5-book"],
+        "Page ordering": ["chapter-5-table"],
+        "Page range": ["chapter-4-print"],
+        "Page sizing": ["chapter-4-details"],
+        "Page turn": ["chapter-5-book"],
+        "Password-protected PDF": ["chapter-4-open-save"],
+        "Paste buffer": ["chapter-7-paste", "chapter-7-copy"],
+        "PDF files": ["chapter-4-open-save", "overture"],
+        "Pinch-zoom": ["chapter-3", "chapter-5-book"],
+        "Pitch detector": ["chapter-9-piano"],
+        "Playback": ["chapter-9-review"],
+        "Practice scores": ["chapter-7-paste"],
+        "Precision sliders": ["chapter-6-edit"],
+        "Print": ["chapter-4-print"],
+        "Privacy": ["chapter-7-paste", "chapter-8-storage"],
+        "Progressive Web App": ["chapter-2"],
+        "Recent files": ["chapter-4-open-save", "chapter-8-storage"],
+        "Recording": ["chapter-9-review"],
+        "Reorder pages": ["chapter-5-table"],
+        "Resize": ["chapter-3"],
+        "Revert to saved": ["chapter-4-open-save"],
+        "Roman numerals": ["chapter-7-numbers"],
+        "Rotating rings": ["chapter-3"],
+        "Salamander Grand Piano": ["chapter-9-piano"],
+        "Scrubber": ["chapter-9-review"],
+        "Sliders": ["chapter-3"],
+        "SMuFL": ["chapter-6-symbols"],
+        "Snap scrolling": ["chapter-5-horizontal", "chapter-5-vertical"],
+        "Spectrogram": ["chapter-9-review"],
+        "Split times": ["chapter-9-stopwatch"],
+        "Staff space": ["chapter-6-rastrum", "chapter-6-symbols"],
+        "Staves": ["chapter-6-rastrum"],
+        "Sustain mode": ["chapter-9-piano"],
+        "Symbol library": ["chapter-6-edit"],
+        "Tablature": ["chapter-6-rastrum"],
+        "Temperament": ["chapter-9-piano"],
+        "Timbre": ["chapter-9-piano"],
+        "Transform handles": ["chapter-6-edit"],
+        "Tuner": ["chapter-9-piano"],
+        "Undo history": ["chapter-6-undo", "chapter-7-undo"],
+        "Waveform": ["chapter-9-review"],
+        "YIN pitch detection": ["chapter-9-piano"],
+        "Zoom": ["chapter-7-magnify", "chapter-3"],
+    }
+
+    with open(GUIDEBOOK_PATH, 'r', encoding='utf-8') as f:
+        guide_html = f.read()
+
+    # Extract headings with IDs -> (anchor_id, section_label, heading_text)
+    headings = []
+    for m in _re.finditer(r'<section\s+id="([^"]+)"[^>]*>\s*<h2>(.+?)</h2>', guide_html):
+        aid, text = m.group(1), m.group(2)
+        if aid == 'overture':
+            headings.append((aid, 'Overture', text))
+        else:
+            ch = _re.match(r'Chapter (\d+)', text)
+            if ch:
+                headings.append((aid, f'Ch.{ch.group(1)}', text))
+    for m in _re.finditer(r'<h3\s+id="([^"]+)">(\d+\.\d+)\s+.+?:\s+(.+?)</h3>', guide_html):
+        headings.append((m.group(1), m.group(2), m.group(3)))
+    for m in _re.finditer(r'<h4\s+id="([^"]+)">(.+?)</h4>', guide_html):
+        headings.append((m.group(1), '4.1', m.group(2)))
+
+    section_labels = {h[0]: h[1] for h in headings}
+
+    # Auto-extract index terms from headings
+    heading_terms = {}
+    for aid, label, text in headings:
+        if text in ('Overture', 'Quick Start', 'About the Author'):
+            continue
+        if text.startswith('Chapter '):
+            parts = text.split(': ', 1)
+            if len(parts) == 2:
+                heading_terms.setdefault(parts[1], set()).add(aid)
+            continue
+        if text.startswith('Recommended '):
+            continue
+        for sub in [t.strip() for t in text.split(',')]:
+            if len(sub) >= 2:
+                heading_terms.setdefault(sub, set()).add(aid)
+
+    # Merge heading terms with curated keywords
+    entries = {}
+    for term, anchors in heading_terms.items():
+        entries.setdefault(term, set()).update(anchors)
+    for term, anchors in CURATED_KEYWORDS.items():
+        entries.setdefault(term, set()).update(anchors)
+
+    # Validate anchor references
+    all_ids = set(_re.findall(r'id="([^"]+)"', guide_html))
+    for term, anchors in entries.items():
+        for anchor in anchors:
+            if anchor not in all_ids:
+                print(f'  WARNING: index keyword "{term}" references missing anchor #{anchor}', file=sys.stderr)
+
+    # Generate index HTML
+    sorted_terms = sorted(entries.keys(), key=lambda t: t.lower())
+    groups = {}
+    for term in sorted_terms:
+        groups.setdefault(term[0].upper(), []).append(term)
+
+    lines = [INDEX_BEGIN, '<nav id="keyword-index">', '    <style>',
+        '        #keyword-index h2 { border-bottom: none; margin-top: 0; }',
+        '        .idx-letter {',
+        '            font-size: 1.3em; font-weight: bold; color: #2c3e50;',
+        '            margin: 1.2em 0 0.3em; border-bottom: 1px solid #dee2e6;',
+        '            padding-bottom: 0.2em;',
+        '        }',
+        '        .idx-letter:first-of-type { margin-top: 0.5em; }',
+        '        #keyword-index dl { margin: 0; columns: 2; column-gap: 2em; }',
+        '        #keyword-index dt { display: inline; font-weight: 500; color: #333; }',
+        '        #keyword-index dd { display: inline; margin: 0; }',
+        '        #keyword-index dd::after { content: ""; display: block; }',
+        '        #keyword-index dd a { font-size: 0.9em; }',
+        '        @media print { #keyword-index { page-break-before: always; } }',
+        '        @media (max-width: 600px) { #keyword-index dl { columns: 1; } }',
+        '    </style>', '    <h2>Index</h2>']
+
+    for letter in sorted(groups.keys()):
+        lines.append(f'    <div class="idx-letter">{letter}</div>')
+        lines.append('    <dl>')
+        for term in groups[letter]:
+            sorted_anchors = sorted(entries[term], key=lambda a: section_labels.get(a, a))
+            refs = ', '.join(f'<a href="#{a}">{section_labels.get(a, a)}</a>' for a in sorted_anchors)
+            lines.append(f'        <dt>{term}</dt><dd> &mdash; {refs}</dd>')
+        lines.append('    </dl>')
+
+    lines.extend(['    <a href="#toc" class="back-to-toc">&uarr; Back to Table of Contents</a>',
+                  '</nav>', INDEX_END])
+    index_html = '\n'.join(lines)
+
+    # Add Index entry to TOC if not present
+    if '#keyword-index' not in guide_html[:guide_html.index('</nav>')]:
+        toc_last = '<li><a href="#chapter-10">Chapter 10: About the Author</a></li>\n    </ul>\n</nav>'
+        toc_new = ('<li><a href="#chapter-10">Chapter 10: About the Author</a></li>\n'
+                   '        <li><a href="#keyword-index">Index</a></li>\n    </ul>\n</nav>')
+        guide_html = guide_html.replace(toc_last, toc_new)
+
+    # Insert or replace index (idempotent)
+    if INDEX_BEGIN in guide_html:
+        before = guide_html[:guide_html.index(INDEX_BEGIN)]
+        after = guide_html[guide_html.index(INDEX_END) + len(INDEX_END):]
+        guide_html = before + index_html + after
+    else:
+        guide_html = guide_html.replace('</body>', '\n' + index_html + '\n\n</body>')
+
+    with open(GUIDEBOOK_PATH, 'w', encoding='utf-8') as f:
+        f.write(guide_html)
+
+    if args.verbose: print(f'-- Guidebook index (re)built: {len(entries)} entries')
 
 if args.www:
     #####################################################

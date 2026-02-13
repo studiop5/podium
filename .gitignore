@@ -1,4 +1,5 @@
 build/
+pdftests/
 GH
 cert.pem
 key.pem
