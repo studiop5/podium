@@ -98,7 +98,7 @@ let checkFileSize = async (name, size) => {
           { Continue: { svg: "Open" }, Cancel: { svg: "Cancel" } },
           (e, prop, tag, args) => {
             args.close();
-            if (tag === "Continue") {
+            if (tag == "Continue") {
               resolve();
             } else {
               reject(new Error("File loading cancelled by user", { cause: "cancelled" }));
@@ -267,7 +267,7 @@ class FileSrc {
       try {
         handle = await src.getFileHandle(score.name);
       } catch (error) {
-        if (error.name === 'AbortError') return; // User cancelled
+        if (error.name == 'AbortError') return; // User cancelled
         throw error;
       }
     }
@@ -353,7 +353,7 @@ class LocalSrc extends FileSrc {
           await navigator.share({ files: [file] });
           return { name: name, modified: Date.now() };
         } catch (e) {
-          if (e.name === 'AbortError') throw e; // User cancelled
+          if (e.name == 'AbortError') throw e; // User cancelled
           // Fall through to download approach
         }
       }
@@ -1347,9 +1347,9 @@ class ODriveSrc extends CachedSrc {
           });
         } catch (silentError) {
           // If silent auth fails (token expired, interaction required), fall back to popup
-          if (silentError.errorCode === "interaction_required" ||
-              silentError.errorCode === "consent_required" ||
-              silentError.errorCode === "login_required") {
+          if (silentError.errorCode == "interaction_required" ||
+              silentError.errorCode == "consent_required" ||
+              silentError.errorCode == "login_required") {
             result = await this.msalClient.loginPopup({
               scopes: [ "Files.ReadWrite.All", "offline_access" ],
             });
@@ -1473,8 +1473,9 @@ class ODriveSrc extends CachedSrc {
   }
 
   async putFileSrc(path, name, data, dir, file) {
-    let id = file?.id ? file.id : dir.id;
-    let url = this.filesUrl + "items/" + id + ":/" + name + ":/createUploadSession";
+    let url = file?.id
+        ? this.filesUrl + "items/" + file.id + "/createUploadSession"
+        : this.filesUrl + "items/" + dir.id + ":/" + name + ":/createUploadSession";
     // get upload session url
     let fetchPromise = await fetch(url, {
       method: "POST",
@@ -1679,7 +1680,7 @@ class LocalFileView {
     // 1-click "mode". The mode is remembered based on user's previous action.
     let tabMode = localStorage.getItem('podium-local-tab-mode') || '2-click';
 
-    if (tabMode === '1-click' && this.mode !== 'save') {
+    if (tabMode == '1-click' && this.mode != 'save') {
       // Auto-trigger picker for open mode
       delay(5, () => this.dialog.showPicker());
     }
@@ -2259,7 +2260,7 @@ class FileSystemView extends FileListView {
         if(e.target.dataset.tag == "newDir") return await this.putDir(this.path);
         let target = e.target.closest(".Flv-path__dir");
         if (target) {
-          let refresh = target.dataset.path === this.path;
+          let refresh = target.dataset.path == this.path;
           await this.setPath(target.dataset.path, refresh);
           if (refresh) toast("Refreshed");
         }

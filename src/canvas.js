@@ -519,10 +519,10 @@ class Grid {
       // Use originPosY/X for label positioning (always set), clamped to canvas bounds
       let xLabelY = clamp(this.cursorInBottomHalf ? this.originPosY - 2 : this.originPosY + 12, 12, height - 2);
       for (let { label, x } of xLabels) {
-        if (label !== 0) ctx.fillText(label, x + 2, xLabelY);
+        if (label != 0) ctx.fillText(label, x + 2, xLabelY);
       }
       for (let { label, y } of yLabels) {
-        if (label !== 0) {
+        if (label != 0) {
           let textWidth = ctx.measureText(label).width;
           let labelX = clamp(this.cursorInRightHalf ? this.originPosX - textWidth - 2 : this.originPosX + 2, 2, width - textWidth - 2);
           ctx.fillText(label, labelX, y - 2);
