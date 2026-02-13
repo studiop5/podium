@@ -605,7 +605,7 @@ class ButtonGroup {
       let { onOff, radio, toggle, disabled } = this.defs[tag];
       let elm = this.elms[tag];
       let iconElm = this.iconElms[tag];
-      if (onOff !== undefined) {
+      if (onOff != undefined) {
         if (this.props[tag]) elm.classList.add("ButtonGroup__button-active");
         else elm.classList.remove("ButtonGroup__button-active");
         continue;
@@ -664,7 +664,7 @@ class ButtonGroup {
           let { radio, onOff, toggle, redo } = this.defs[tag];
           let property = [radio, toggle].find((key) => key);
           let prevTag = property ? this.props[property] : null;
-          if (onOff !== undefined) {
+          if (onOff != undefined) {
             this.props[tag] = this.props[tag] ? false : true;
             this.refresh();
           } else if (radio) {
@@ -1489,7 +1489,7 @@ class TabView {
       // Title is a string to diplay on the tag. If iconPaths[title] exists,
       // the tag will display that icon to the left of title.
       this.tag.textContent = title;
-      if (iconPaths[title] && title !== "Doc")
+      if (iconPaths[title] && title != "Doc")
         this.tag.prepend(
           helm(
             `${iconSvg(title, {
@@ -1574,7 +1574,7 @@ class TabView {
     };
 
     for (let [name, tab] of Object.entries(this.tabs)) {
-      tagOrName === tab.tag || tagOrName == tab.tag.textContent
+      tagOrName == tab.tag || tagOrName == tab.tag.textContent
         ? select(tab)
         : tab.deselect();
     }
@@ -2170,7 +2170,7 @@ String.prototype.format = function () {
   if (arguments.length) {
     let t = typeof arguments[0];
     var args =
-      "string" === t || "number" === t
+      "string" == t || "number" == t
         ? Array.prototype.slice.call(arguments)
         : arguments[0];
     for (let key in args) {

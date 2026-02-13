@@ -790,6 +790,16 @@ class AboutPanel extends Panel {
         font-size: var(--font-size-xs);
         margin: var(--spacing-lg);
      }
+     .AboutPanel__scroll {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        height: 100%;
+        cursor: grab;
+     }
+     .AboutPanel__scroll::-webkit-scrollbar {
+        display: none;
+     }
      `
   );
 
@@ -861,7 +871,28 @@ for more details.</p>
 
 
   releaseNotesFace = helm(
-    `<div style="padding:2em;text-align:left;font-size:.8em;">
+    `<div class="AboutPanel__scroll" style="padding:2em;text-align:left;font-size:.8em;">
+      <h2>V2.0 February 2026</h2>
+  <ul>
+  <li><b>Browser Extension (Chrome, Edge)</b><br>
+  Right-click any PDF link and open it directly in Podium. Includes IMSLP integration for seamless access to the world's largest public domain music library.
+  </li><br>
+  <li><b>Progressive Web App</b><br>
+  Install Podium from your browser for app-like access and offline use.
+  </li><br>
+  <li><b>Magnify (Page ring)</b><br>
+  A dedicated magnification tool for zooming into score details. Drag to reposition, pinch or use the slider to adjust zoom level.
+  </li><br>
+  <li><b>Piano Tuner (More ring)</b><br>
+  Built-in chromatic tuner powered by YIN pitch detection. Use your device's microphone to tune instruments with real-time pitch and confidence display.
+  </li><br>
+  <li><b>Cell Locking</b><br>
+  Long-press any cell to lock it on, preventing auto-deactivation. Useful for extended annotation sessions.
+  </li><br>
+  <li><b>Guidebook (App ring)</b><br>
+  Comprehensive new guidebook with 10 chapters, screenshots, embedded video demos, and a searchable keyword index.
+  </li><br>
+  </ul>
       <h2>V1.1 December 2025</h2>
   <ul>
   <li> <b>Shared Copy/Paste Buffer (Page ring)</b><br>
@@ -905,8 +936,18 @@ for more details.</p>
     // Version tab
     tabView.tabs["Version"].face.append(this.aboutFace);
 
-    // Release Notes tab
+    // Release Notes tab — drag-to-scroll on desktop
     tabView.tabs["Release Notes"].face.append(this.releaseNotesFace);
+    let rnf = this.releaseNotesFace;
+    listen(rnf, "pointerdown", (e) => {
+      let startY = e.clientY;
+      let startScroll = rnf.scrollTop;
+      rnf.setPointerCapture(e.pointerId);
+      let mv = listen(rnf, "pointermove", (emv) => {
+        rnf.scrollTop = startScroll - (emv.clientY - startY);
+      });
+      listen(rnf, "pointerup", () => unlisten(mv), { once: true });
+    });
 
     // Credits and License tabs
     tabView.tabs["Credits"].face.append(this.creditsFace);
@@ -2521,7 +2562,7 @@ class MagnifyPanel extends Panel {
       0, 0, destW, destH
     );
   }
-
+9
   destructor() {
     super.destructor();
     // Release magnifier hold on the page
