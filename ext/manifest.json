@@ -9,6 +9,13 @@
     "tabs",
     "identity"
   ],
+  "host_permissions": [
+    "*://imslp.org/*",
+    "*://*.imslp.org/*",
+    "*://petruccimusiclibrary.ca/*",
+    "*://imslp.eu/*",
+    "*://imslp.tw/*"
+  ],
   "optional_host_permissions": [
     "<all_urls>"
   ],
