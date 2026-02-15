@@ -32,6 +32,31 @@
       width: 20px;
       height: 20px;
     }
+    .import-btn {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 10px 16px;
+      background: #4a90d9;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .import-btn:hover {
+      background: #357abd;
+    }
+    .import-btn .tab-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 300px;
+    }
     .recent {
       margin-top: 12px;
       border-top: 1px solid #e0e0e0;
@@ -96,6 +121,7 @@
   </style>
 </head>
 <body>
+  <button class="import-btn" id="import"></button>
   <button class="launch-btn" id="launch">
     <img src="icons/icon48.png" alt="">
     Launch Podium
