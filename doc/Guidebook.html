@@ -573,7 +573,7 @@ function closeVideo(event, container) {
     <p><a href="#chapter-5" class="chapter-link">See Chapter 5: Layout Ring</a> for detailed layout controls and settings</p>
 
     <h4>3. Navigate and Annotate</h4>
-    <p><strong>Navigation:</strong> Swipe or fling pages to turn them. Long-press anywhere on the background to summon the menu. To hide the menu, long-press the menu's center grip to collapse and park it in the upper left corner, or fling it to any corner or edge. Swipe left ⇄ right on the background to enter full-screen mode.</p>
+    <p><strong>Navigation:</strong> Tap, swipe, or fling pages to turn them. Long-press anywhere on the background to summon the menu. To hide the menu, long-press the menu's center grip to collapse and park it in the upper left corner, or fling it to any corner or edge. Swipe left ⇄ right on the background to enter full-screen mode.</p>
 
     <p><strong>Annotations:</strong> Tap the inner ring's "Ink" cell to add annotations. The outer ring shows tools for:</p>
     <ul>
@@ -1013,7 +1013,17 @@ function closeVideo(event, container) {
 
     <p><strong>Recent Tab:</strong> The Recent tab provides quick access to the 20 last visited PDF score files. This list is stored in the browser's local storage, so it will have unique contents for each device/browser combination.</p>
 
-    <div class="note">Browser security provides very limited access to local files. The Local tab simply hands off control to the device's built-in file manager widget. Unfortunately, it's impossible to pre-populate this widget with a specific folder location.</div>
+    <h4>Local Files</h4>
+
+    <p>The Local tab hands off control to the operating system's built-in file picker. This file picker provides access not only to files stored on the device, but also to cloud storage services registered with the operating system:</p>
+    <ul>
+        <li><strong>iOS/iPadOS (Safari, Chrome):</strong> The system document picker appears, offering iCloud Drive, On My iPad/iPhone, and any installed file providers such as Google Drive, Dropbox, or OneDrive.</li>
+        <li><strong>macOS (Safari):</strong> The native Finder dialog appears, with access to iCloud Drive, local folders, and any installed file provider extensions.</li>
+        <li><strong>Windows (Chrome, Edge):</strong> The standard file dialog appears, with access to local drives, OneDrive, and network locations.</li>
+        <li><strong>Android (Chrome):</strong> The system file picker appears, with access to internal storage, Google Drive, and recent files.</li>
+    </ul>
+
+    <div class="note">Because browser security limits direct access to local files, it is not possible to pre-populate the file picker with a specific folder location.</div>
 
     <p><strong>Drag and Drop (Desktop):</strong> On desktop browsers, you can drag a PDF file directly from your file manager onto the Local tab to open it in Podium.</p>
 
@@ -1151,7 +1161,7 @@ function closeVideo(event, container) {
 
     <div class="note">In addition to being aesthetically pleasing, the Book layout allows you to practice with page turns the way you would in performance using a physical score. This helps build muscle memory for when and how to turn pages during actual performances.</div>
 
-    <p>Turn pages by flinging (i.e. touch→drag→release, all in one quick motion), or by more deliberate dragging. When dragging, if you release without dragging past the central spine, the dragged page will flop back to its original position.</p>
+    <p>Turn pages by tapping, flinging (i.e. touch&rarr;drag&rarr;release, all in one quick motion), or by more deliberate dragging. Tap the right page to advance, or the left page to go back. When dragging, if you release without dragging past the central spine, the dragged page will flop back to its original position.</p>
 
     <p>The Book Panel's Fit buttons determine the score's initial sizing:</p>
     <ul>
@@ -1192,7 +1202,7 @@ function closeVideo(event, container) {
 
     <p>The Panel's <strong>Gap</strong> slider determines how much space to leave around each page, as a percentage of the page's width.</p>
 
-    <p>Scroll pages by dragging or flinging. The Panel's <strong>Snap:</strong> slider determines how many pages the scroll advances when a page is dragged or flung, ensuring that after a scroll, the leftmost and rightmost pages align with the left and right scrollers. Move the Snap: slider all the way to the left to completely disable page snapping.</p>
+    <p>Scroll pages by tapping, dragging, or flinging. When Snap is enabled, tap the right half of the layout to advance or the left half to go back. The Panel's <strong>Snap:</strong> slider determines how many pages the scroll advances when a page is tapped, dragged, or flung, ensuring that after a scroll, the leftmost and rightmost pages align with the left and right scrollers. Move the Snap: slider all the way to the left to completely disable page snapping.</p>
 
 
     <p>Page numbers can be turned on or off in the Panel. Current page numbers are shown at the left and right sides of the layout: drag the page number to quickly scroll to other pages.</p>
@@ -1918,7 +1928,7 @@ function closeVideo(event, container) {
 
     <p>Record audio/video with instant replay.</p>
 
-    <div class="note">If Podium does not find a usable camera and microphone, this tool will not run.</div>
+    <div class="note">The browser will request camera and microphone permissions when this tool is first used. If Podium does not find a usable camera and microphone, this tool will not run.</div>
 
     <p>Monitor a device's camera and microphone, with instant replay of the last ~30 seconds (configurable).</p>
 
@@ -1927,7 +1937,7 @@ function closeVideo(event, container) {
     <p>The Review panel has three tabs:</p>
 
     <h4>Video Tab:</h4>
-    <p>Displays live video from your camera with playback controls. The browser will request camera and microphone permissions when this tool is first used.</p>
+    <p>Displays live video from your camera with playback controls.</p>
 
     <figure>
         <img src="assets/morereviewvideo.jpg" alt="Review video tab">
@@ -1957,7 +1967,7 @@ function closeVideo(event, container) {
     <p>To reenter Live mode, drag the scrubber to the right, or simply wait until Playback ends. Then tap the Play Button to restart recording. Any previous recording will be lost.</p>
 
     <h4>Waveform Tab:</h4>
-    <p>Displays the waveform of the input from the microphone overlaid on a waterfall spectrum. The browser will request microphone permission when this tool is first used. Mostly useful as just something to look at when practicing scales and arpeggios!</p>
+    <p>Displays the waveform of the input from the microphone overlaid on a waterfall spectrum. Mostly useful as just something to look at when practicing scales and arpeggios!</p>
 
     <figure>
         <img src="assets/morereviewwave.jpg" alt="Review waveform tab">

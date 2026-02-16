@@ -797,6 +797,7 @@ class AboutPanel extends Panel {
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
         height: 100%;
+        box-sizing: border-box;
         cursor: grab;
      }
      .AboutPanel__scroll::-webkit-scrollbar {
@@ -861,7 +862,7 @@ for more details.</p>
           <div>Podium</div>
           ${iconSvg("Podium", { style: "width:8em;" })}
           <div>Version ${_podiumVersion_}</div>
-          <div style="font-size:.6em;color:#888;">${chrome?.runtime?.id ? "Browser Extension" : window.matchMedia("(display-mode: standalone)").matches ? "Progressive Web App" : `${location.protocol}//${location.host}`}</div>
+          <div style="font-size:.6em;color:#888;">${typeof chrome !== "undefined" && chrome.runtime?.id ? "Browser Extension" : window.matchMedia("(display-mode: standalone)").matches ? "Progressive Web App" : `${location.protocol}//${location.host}`}</div>
         </div>
         <div style="position:absolute;bottom:10em;left:50%;transform:translateX(-50%);font-size:1.2em;text-align:center;">
            <a href="https://www.studiop5.org/privacy.html">\u{1F6E1} Privacy</a>&nbsp;
@@ -894,6 +895,9 @@ for more details.</p>
   </li><br>
   <li><b>Cell Locking</b><br>
   Long-press supported ink and page ring cells to lock them on, preventing auto-deactivation. Useful for extended annotation or page editing sessions.
+  </li><br>
+  <li><b>Tap to Turn Pages</b><br>
+  In Book, Horizontal, and Vertical layouts, a tap is equivalent to a quick fling.
   </li><br>
   <li><b>Guidebook (App ring)</b><br>
   Comprehensive new guidebook with 10 chapters, screenshots, embedded video demos, and a searchable keyword index.
@@ -938,14 +942,18 @@ for more details.</p>
       height: "90vh",
       maxHeight: "40em",
     });
+    tabView.frame.style.height = "100%";
+    tabView.faces.style.position = "relative";
+    tabView.faces.style.top = "0";
 
     // Version tab
     tabView.tabs["Version"].face.append(this.aboutFace);
 
-    // Release Notes tab — drag-to-scroll on desktop
+    // Release Notes tab — drag-to-scroll for mouse (touch uses native scrolling)
     tabView.tabs["Release Notes"].face.append(this.releaseNotesFace);
     let rnf = this.releaseNotesFace;
     listen(rnf, "pointerdown", (e) => {
+      if (e.pointerType == "touch") return;
       let startY = e.clientY;
       let startScroll = rnf.scrollTop;
       rnf.setPointerCapture(e.pointerId);
@@ -1079,7 +1087,7 @@ class StoragePanel extends Panel {
 }
 
 class GuidePanel extends Panel {
-  helpFace = helm(
+  content = helm(
     `<div style="padding:0;width:100%;height:100%;box-sizing:border-box;overflow:hidden;position:relative;">
        <iframe src="/Guidebook.html" style="width:100%;height:100%;border:none;display:block;"></iframe>
      </div>`
@@ -1096,7 +1104,7 @@ class GuidePanel extends Panel {
       maxHeight: "50em",
     });
 
-    this.body.append(this.helpFace);
+    this.body.append(this.content);
 
     // Handle iframe link clicks to prevent overflow issue
     let iframe = this.helpFace.querySelector("iframe");
