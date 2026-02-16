@@ -854,7 +854,9 @@ class BookLayout extends Layout {
         let flipping = (advancing && x <= 0) || (!advancing && x > 0);
         // Determine if page was "flung": if so, force flipping
         if (advancing) xTravel = -xTravel;
-        if (eup.timeStamp - prevTimeStamp < 250) flipping = xTravel > 0;
+        if (eup.timeStamp - prevTimeStamp < 250 && xTravel != 0) flipping = xTravel > 0;
+        // Tap (no drag, quick touch) = page turn
+        else if (xTravel == 0 && eup.timeStamp - e.timeStamp < 500) flipping = true;
         // Determine x position of where to move page: flip fully to opposite side
         // of spine, or flop fully back to initial side.
         let toX = flipping ? (advancing ? -pgWidth : pgWidth) : advancing ? pgWidth : -pgWidth;
@@ -1516,10 +1518,18 @@ class ScrollLayout extends Layout {
             vel = Math.sign(vel) * Math.pow(Math.abs(vel), 1.3) / 2;
           }
         }
-        // Determine direction from last movement
-        let dir = eup.timeStamp - e.timeStamp > 200 ? "none" :
-            e.mv0[CLIENTX] > e.mv1[CLIENTX] ? "right" :
-            e.mv0[CLIENTX] < e.mv1[CLIENTX] ? "left" : "none";
+        // Determine direction from last movement, or from tap position
+        let dir;
+        if (eup.timeStamp - e.timeStamp < 500 && buf.length == 0) {
+          // Tap with no drag — direction based on which half was tapped
+          dir = eup[CLIENTX] > frameBox[X] + frameBox[WIDTH] / 2 ? "left" : "right";
+          // Nudge sash off the exact boundary so pgSnapTo's ceil/floor will advance
+          this.sashStart += (dir == "left" ? -1 : 1);
+        } else {
+          dir = tapDur > 200 ? "none" :
+              e.mv0[CLIENTX] > e.mv1[CLIENTX] ? "right" :
+              e.mv0[CLIENTX] < e.mv1[CLIENTX] ? "left" : "none";
+        }
         this.pgSnapTo(dir, vel);
       }).bind(this),
       { once: true }
