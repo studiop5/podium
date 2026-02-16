@@ -87,6 +87,8 @@ let PAGE_SIZE_SELECT = `
 `;
 
 class Panel {
+  static _zTop = 1000;
+
   static get(cell) {
     return panels[cell.key] || (panels[cell.key] = new this(cell));
   }
@@ -192,7 +194,7 @@ class Panel {
     this.listeners.push(
       listen(this.header, "pointerdown", (e) => {
         let { header, elm } = this;
-        _body_.append(elm); // move to top of stacking order
+        elm.style.zIndex = ++Panel._zTop; // move to top of stacking order
         this.header.classList.add("Panel__header-selected");
         header.setPointerCapture(e.pointerId);
         let middleX = this.panel.offsetWidth / 2;
@@ -290,7 +292,7 @@ class Panel {
     let fontSize = elm.style.fontSize;
     elm.style.fontSize = 0;
     elm.style.transition = "font-size 0.35s";
-    _body_.append(elm);
+    if (!elm.isConnected) _body_.append(elm);
     listen(elm,"transitionend", () => {
         elm.style.transition = "unset";
         if(onShown) onShown();
@@ -859,6 +861,7 @@ for more details.</p>
           <div>Podium</div>
           ${iconSvg("Podium", { style: "width:8em;" })}
           <div>Version ${_podiumVersion_}</div>
+          <div style="font-size:.6em;color:#888;">${chrome?.runtime?.id ? "Browser Extension" : window.matchMedia("(display-mode: standalone)").matches ? "Progressive Web App" : `${location.protocol}//${location.host}`}</div>
         </div>
         <div style="position:absolute;bottom:10em;left:50%;transform:translateX(-50%);font-size:1.2em;text-align:center;">
            <a href="https://www.studiop5.org/privacy.html">\u{1F6E1} Privacy</a>&nbsp;
@@ -880,14 +883,17 @@ for more details.</p>
   <li><b>Progressive Web App</b><br>
   Install Podium from your browser for app-like access and offline use.
   </li><br>
+  <li><b>App Ring</b><br>
+  New ring with About, Theme, Guide, Storage, and Screen cells for managing application settings, appearance, and documentation.
+  </li><br>
   <li><b>Magnify (Page ring)</b><br>
   A dedicated magnification tool for zooming into score details. Drag to reposition, pinch or use the slider to adjust zoom level.
   </li><br>
-  <li><b>Piano Tuner (More ring)</b><br>
-  Built-in chromatic tuner powered by YIN pitch detection. Use your device's microphone to tune instruments with real-time pitch and confidence display.
+  <li><b>Piano Tuner (More ring &rarr; Piano)</b><br>
+  Built-in chromatic tuner integrated into the Piano panel, powered by YIN pitch detection. Use your device's microphone to tune instruments with real-time pitch and confidence display.
   </li><br>
   <li><b>Cell Locking</b><br>
-  Long-press any cell to lock it on, preventing auto-deactivation. Useful for extended annotation sessions.
+  Long-press supported ink and page ring cells to lock them on, preventing auto-deactivation. Useful for extended annotation or page editing sessions.
   </li><br>
   <li><b>Guidebook (App ring)</b><br>
   Comprehensive new guidebook with 10 chapters, screenshots, embedded video demos, and a searchable keyword index.
@@ -1096,13 +1102,13 @@ class GuidePanel extends Panel {
     let iframe = this.helpFace.querySelector("iframe");
     iframe.addEventListener("load", () => {
       try {
-        const iframeDoc = iframe.contentDocument;
+        let iframeDoc = iframe.contentDocument;
         iframeDoc.addEventListener("click", (e) => {
-          const link = e.target.closest("a");
+          let link = e.target.closest("a");
           if (link && link.hash) {
             e.preventDefault();
-            const targetId = link.hash.substring(1);
-            const targetEl = iframeDoc.getElementById(targetId);
+            let targetId = link.hash.substring(1);
+            let targetEl = iframeDoc.getElementById(targetId);
             if (targetEl) {
               targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
             }
