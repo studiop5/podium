@@ -9,6 +9,9 @@ document.getElementById('launch').addEventListener('click', () => {
   if (!tab || !tab.url) return;
 
   let url = tab.url;
+  // Skip Podium's own tabs
+  if (url.startsWith(chrome.runtime.getURL(''))) return;
+
   // Chrome's PDF viewer (and Adobe Acrobat extension) wraps URLs like:
   // chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://example.com/file.pdf
   const extPrefix = url.match(/^chrome-extension:\/\/[a-z]+\/(https?:\/\/.+)/i);

@@ -470,7 +470,7 @@ class Pg {
 
     let toPDFColor = (fabricColor) => {
       // PDFLib doesn't have rgba: instead, it uses rgb  and a
-      // separate var vor opacity. Here, we convert "rgba(0,127.5,255,xxx)" -> "rgb(0,.5,1)"
+      // separate vor opacity. Here, we convert "rgba(0,127.5,255,xxx)" -> "rgb(0,.5,1)"
       let c = fabricColor.split("(")[1].split(")")[0].split(",");
       return PDFLib.rgb(c[0] / 255, c[1] / 255, c[2] / 255);
     };
@@ -1105,6 +1105,19 @@ class Score {
           pLibPg = dstPLibDoc.addPage((await dstPLibDoc.copyPages(srcPLibDoc, [pg.mozPn-1]))[0]);
         } else {
           pLibPg = dstPLibDoc.addPage([pg.width, pg.height]);
+          if (pg.background) {
+            let hex = pg.background.replace("#", "");
+            let r = parseInt(hex.slice(0, 2), 16) / 255;
+            let g = parseInt(hex.slice(2, 4), 16) / 255;
+            let b = parseInt(hex.slice(4, 6), 16) / 255;
+            let a = hex.length > 6 ? parseInt(hex.slice(6, 8), 16) / 255 : 1;
+            pLibPg.drawRectangle({
+              x: 0, y: 0,
+              width: pg.width, height: pg.height,
+              color: PDFLib.rgb(r, g, b),
+              opacity: a,
+            });
+          }
         }
         setTimeout(_voidFunc_, 0);
         // add fabric objects to the page
@@ -1278,10 +1291,12 @@ class Score {
         this.maxHeight = Math.max(pg.height, this.maxHeight);
       });
     }
-    /// looks like were calling this for score in pgbuffer....
+    // looks like were calling this for score in pgbuffer....
     if(Score.activeScore === this) {
       _menu_.enableCells("page/undo", this.undoStack.length > 0);
       _menu_.enableCells("page/delete", this.pgs.length > 1); // forbid deleting last pg, otherwise allow
+      let detailsCell = _menu_.rings.score?.cells.details;
+      if (detailsCell && panels[detailsCell.key]) panels[detailsCell.key].refresh();
     }
   }
 
