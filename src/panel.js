@@ -375,7 +375,7 @@ class AddPanel extends Panel {
       let inch = (val * (1 / 72)).toFixed(2);
       return `${tag}: ${pt} pt, ${mm} mm, ${inch} in`;
     };
-    let disable = stash.size != "Custom:";
+    let disable = stash.size != "Custom";
 
     this.customGroup = new SliderGroup(stash,
       { Width: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
@@ -565,6 +565,8 @@ class DetailsPanel extends Panel {
           <div style="text-align:right;">Modified:&nbsp;</div><div>${
             score.modified ? new Date(score.modified).toLocaleString() : "?"
           }</div>
+          <div style="text-align:right;">Width:&nbsp;</div><div>${score.maxWidth.toFixed(0)} pt, ${(score.maxWidth / 2.8346456693).toFixed(0)} mm, ${(score.maxWidth / 72).toFixed(2)} in</div>
+          <div style="text-align:right;">Height:&nbsp;</div><div>${score.maxHeight.toFixed(0)} pt, ${(score.maxHeight / 2.8346456693).toFixed(0)} mm, ${(score.maxHeight / 72).toFixed(2)} in</div>
           </div>`)
       );
 
@@ -864,7 +866,7 @@ for more details.</p>
           <div>Version ${_podiumVersion_}</div>
           <div style="font-size:.6em;color:#888;">${typeof chrome !== "undefined" && chrome.runtime?.id ? "Browser Extension" : window.matchMedia("(display-mode: standalone)").matches ? "Progressive Web App" : `${location.protocol}//${location.host}`}</div>
         </div>
-        <div style="position:absolute;bottom:10em;left:50%;transform:translateX(-50%);font-size:1.2em;text-align:center;">
+        <div style="position:absolute;bottom:2em;left:50%;transform:translateX(-50%);font-size:1.2em;text-align:center;">
            <a href="https://www.studiop5.org/privacy.html">\u{1F6E1} Privacy</a>&nbsp;
           <a href="https://www.studiop5.org/terms.html">\u00A7 Terms</a><br><br>
           <a href="https://github.com/studiop5/podium">&lt;&sol;&gt; Source</a>&nbsp;
@@ -1107,7 +1109,7 @@ class GuidePanel extends Panel {
     this.body.append(this.content);
 
     // Handle iframe link clicks to prevent overflow issue
-    let iframe = this.helpFace.querySelector("iframe");
+    let iframe = this.content.querySelector("iframe");
     iframe.addEventListener("load", () => {
       try {
         let iframeDoc = iframe.contentDocument;

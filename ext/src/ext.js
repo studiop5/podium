@@ -45,131 +45,11 @@ async function fetchPdfFromUrl(path) {
   window._shade_.show("Downloading");
   window._shade_.onCancel = () => abortController.abort();
 
-  // Handle IMSLP Special:ImagefromIndex URLs
-  if (path.includes('imslp.org/wiki/Special:ImagefromIndex/')) {
-    try {
-      let response = await fetch(path, { method: "GET", redirect: "follow", signal });
-      // Check if redirected to a PDF
-      if (response.url !== path && response.url.toLowerCase().endsWith('.pdf')) {
-        path = response.url;
-      } else if (response.headers.get("content-type")?.includes("application/pdf")) {
-        path = response.url;
-      } else {
-        // Got HTML - likely a disclaimer page. Parse to find PDF link or form.
-        let html = await response.text();
-        let pdfUrl = null;
-        // Try meta refresh
-        let metaMatch = html.match(/<meta[^>]+http-equiv=["']refresh["'][^>]+content=["'][^"']*url=([^"'\s]+)['"]/i);
-        if (metaMatch) pdfUrl = metaMatch[1];
-        // Try window.location or document.location in JavaScript
-        if (!pdfUrl) {
-          let jsMatch = html.match(/(?:window\.location|document\.location)\s*=\s*["']([^"']+\.pdf[^"']*)["']/i);
-          if (jsMatch) pdfUrl = jsMatch[1];
-        }
-        // Try href links to PDF
-        if (!pdfUrl) {
-          let hrefMatch = html.match(/href=["']([^"']+\.pdf[^"']*)['"]/i);
-          if (hrefMatch) pdfUrl = hrefMatch[1];
-        }
-        // Try imslpcdn.org or other common IMSLP CDN patterns
-        if (!pdfUrl) {
-          let cdnMatch = html.match(/https?:\/\/[^"'\s<>]*(?:imslp|conquest).*?\.pdf/i);
-          if (cdnMatch) pdfUrl = cdnMatch[0];
-        }
-        // Look for form that submits to accept disclaimer
-        if (!pdfUrl) {
-          let formMatch = html.match(/<form[^>]*action=["']([^"']+)["'][^>]*>([\s\S]*?)<\/form>/i);
-          if (formMatch) {
-            let formAction = formMatch[1];
-            let formBody = formMatch[2];
-            let formData = new URLSearchParams();
-            let inputMatches = formBody.matchAll(/<input[^>]+name=["']([^"']+)["'][^>]+value=["']([^"']*)["'][^>]*>/gi);
-            for (let inputMatch of inputMatches) formData.append(inputMatch[1], inputMatch[2]);
-            let inputMatches2 = formBody.matchAll(/<input[^>]+value=["']([^"']*)["'][^>]+name=["']([^"']+)["'][^>]*>/gi);
-            for (let inputMatch of inputMatches2) formData.append(inputMatch[2], inputMatch[1]);
-            // Submit the form
-            try {
-              let formUrl = formAction.startsWith('/') ? 'https://imslp.org' + formAction : formAction;
-              let formResponse = await fetch(formUrl, {
-                method: "POST",
-                body: formData,
-                redirect: "follow",
-                signal,
-                headers: {
-                  "Content-Type": "application/x-www-form-urlencoded"
-                }
-              });
-              // Check if form submission redirected to PDF
-              if (formResponse.url.toLowerCase().endsWith('.pdf') ||
-                  formResponse.headers.get("content-type")?.includes("application/pdf")) {
-                pdfUrl = formResponse.url;
-              }
-            } catch (formError) { /* ignore */ }
-          }
-        }
-        // Look for any URL in onclick or data attributes
-        if (!pdfUrl) {
-          let onclickMatch = html.match(/(?:onclick|data-url)=["']([^"']*\.pdf[^"']*)["']/i);
-          if (onclickMatch) pdfUrl = onclickMatch[1];
-        }
-        // Last resort: look for any mention of imslp CDN domains
-        if (!pdfUrl) {
-          let anyPdfMatch = html.match(/(https?:)?\/\/[^"'\s<>()]*\.pdf/i);
-          if (anyPdfMatch) pdfUrl = anyPdfMatch[0];
-        }
-        if (pdfUrl) {
-          // Handle protocol-relative URLs
-          if (pdfUrl.startsWith('//')) pdfUrl = 'https:' + pdfUrl;
-          // Handle relative URLs
-          if (pdfUrl.startsWith('/')) pdfUrl = 'https://imslp.org' + pdfUrl;
-          path = pdfUrl;
-        } else {
-          window._shade_.hide();
-          window._shade_.onCancel = null;
-          // Check if this is a non-member countdown page or friendlyredirect (JS-based redirect for non-members)
-          if (html.includes('Your download will continue in') ||
-              html.includes('Click here to continue your download') ||
-              html.includes('"js-a4":"15"') ||
-              html.includes('friendlyredirect') ||
-              response.url.includes('friendlyredirect')) {
-            dialog("<div style='max-width:22em'>" +
-                   "<div style='font-size:1.3em;font-weight:bold;margin-bottom:.6em'>IMSLP Login Required</div>" +
-                   "<div style='margin-bottom:1em'>Podium requires you to be logged in to IMSLP to open this score.</div>" +
-                   "<a href='https://imslp.org/wiki/Special:UserLogin' target='_blank' " +
-                   "style='display:inline-block;padding:.4em 1em;background:#3498db;color:#fff;border-radius:.3em;text-decoration:none;margin:.3em'>Log in</a> " +
-                   "<a href='https://imslp.org/wiki/IMSLP:Subscriptions' target='_blank' " +
-                   "style='display:inline-block;padding:.4em 1em;background:#888;color:#fff;border-radius:.3em;text-decoration:none;margin:.3em'>Become a member</a>" +
-                   "</div>");
-          // Check if this is a disclaimer page
-          } else if (html.includes('Disclaimer') || html.includes('disclaimer')) {
-            dialog("<div style='max-width:22em'>" +
-                   "<div style='font-size:1.3em;font-weight:bold;margin-bottom:.6em'>IMSLP Disclaimer</div>" +
-                   "<div style='margin-bottom:1em'>IMSLP requires you to accept their disclaimer before downloading.</div>" +
-                   "<a href='" + path + "' target='_blank' " +
-                   "style='display:inline-block;padding:.4em 1em;background:#3498db;color:#fff;border-radius:.3em;text-decoration:none;margin:.3em'>Accept disclaimer on IMSLP</a>" +
-                   "<div style='margin-top:.8em;font-size:.85em;color:#555'>After accepting, use 'Open with Podium' on the score link again.</div>" +
-                   "</div>");
-          } else {
-            dialog("<div style='max-width:22em'>" +
-                   "<div style='font-size:1.3em;font-weight:bold;margin-bottom:.6em'>IMSLP Error</div>" +
-                   "<div>Could not find a PDF download link on this IMSLP page.</div>" +
-                   "</div>");
-          }
-          return;
-        }
-      }
-    } catch (error) {
-      window._shade_.hide();
-      window._shade_.onCancel = null;
-      if (error.name === "AbortError") return; // User cancelled
-      console.error("Error processing IMSLP URL:", error);
-      dialog(`Error processing IMSLP URL: ${error}`);
-      return;
-    }
-  }
-
+ 
   try {
-    let response = await fetch(path, { method: "GET", signal });
+    // We add credentials: 'include' for cases where the final PDF URL might
+    // still require cookies (e.g., from a CDN session).
+    let response = await fetch(path, { method: "GET", signal, credentials: 'include' });
     if (response.ok) {
       let contentType = response.headers.get("content-type");
       // Stream the response to show download progress
@@ -239,7 +119,13 @@ async function fetchPdfFromUrl(path) {
     }
   } catch (error) {
     if (error.name === "AbortError") return; // User cancelled
-    dialog(`Error opening url <i>${escapeHtml(path)}</i><br>${error}`);
+    // The fetch can still fail due to CORS on the final PDF if the CDN is strict
+    // and the required host permissions haven't been granted via the popup.
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        dialog(`A network error occurred. This can be caused by a strict CORS policy on the server.<br><br>Please try clicking the Podium extension icon and granting the optional host permission.`);
+    } else {
+        dialog(`Error opening url <i>${escapeHtml(path)}</i><br>${error}`);
+    }
   } finally {
     window._shade_.hide();
     window._shade_.onCancel = null;

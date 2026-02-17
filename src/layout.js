@@ -775,13 +775,12 @@ class BookLayout extends Layout {
       this.pagerLeft.elm.remove();
       this.pagerRight.elm.remove();
     }
-    if(!animated) return;
     this.pgGoTo(_score_.numbers.pn);
+    if(!animated) return;
 
     // 
     // set layout's screen position 
     //
-
     let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
 
     if(this.cell.pz)  // custom user-set size/position
@@ -828,7 +827,6 @@ class BookLayout extends Layout {
     this.elm.setPointerCapture(e.pointerId);
     let spineBox = getBox(this.spine);
     this.pgFlip(advancing ? pgWidth : -pgWidth, pgHeight / 2, e.clientX - spineBox.x, e.clientY - spineBox.y, advancing, null);
-
 
     // following 3 vars are used to determine if page is "flung"
     let xTravel = 0;
@@ -906,13 +904,6 @@ class BookLayout extends Layout {
       pg.setZoom(this.cell.geo.zoom);
       this.pgPad(pg);
       this.slots[slot].append(pg.elm);
-      // add a shadow (actually, a border) to right page where it joins the left, so fold between white pages is visible:
-      let addShadow = () => {
-        if(pg.deferred) return delay(1, () => addShadow());
-        if(pn & 1) pg.elm.firstChild.style.borderLeft = `.05em solid ${BookLayout.bindingColor}`;
-        else pg.elm.firstChild.style.borderLeft = "unset";
-      };
-      addShadow();
     }
   }
 
@@ -1142,9 +1133,9 @@ class BookLayout extends Layout {
     //        1 4
     //        0 5
     for (let i of [0, 1, 2]) this.slots[i].style.left = "unset";
-    for (let i of [0, 1, 2]) this.slots[i].style.right = "0";
+    for (let i of [0, 1, 2]) this.slots[i].style.right = ".5px"; // nudged left so adjacent pages dont blend
     for (let i of [5, 4, 3]) this.slots[i].style.right = "unset";
-    for (let i of [5, 4, 3]) this.slots[i].style.left = ".0";
+    for (let i of [5, 4, 3]) this.slots[i].style.left = ".5px"; // nudged right ...
     for (let i of [0, 1, 2, 5, 4, 3]) {
       let slot = this.slots[i];
       slot.style.transformOrigin = "unset";
@@ -1526,7 +1517,7 @@ class ScrollLayout extends Layout {
           // Nudge sash off the exact boundary so pgSnapTo's ceil/floor will advance
           this.sashStart += (dir == "left" ? -1 : 1);
         } else {
-          dir = tapDur > 200 ? "none" :
+          dir = eup.timeStamp - e.timeStamp > 200 ? "none" :
               e.mv0[CLIENTX] > e.mv1[CLIENTX] ? "right" :
               e.mv0[CLIENTX] < e.mv1[CLIENTX] ? "left" : "none";
         }

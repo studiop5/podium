@@ -277,6 +277,7 @@ css( // common css declarations.
     --z-sticky: 20;
     --z-menu: 100;
     --z-modal: 1000;
+    --z-topmost: 1000000000;
   }
 
   /* Dark theme */
@@ -2067,11 +2068,10 @@ css(
       position: absolute;
       width: fit-content;
       height: fit-content;
-      transition: opacity ease-out .5s;
-      z-index: 1000;
+      transition: opacity ease-out ${_gsgs_}ms;
+      z-index: var(--z-topmost);
       background-color: var(--bodyColor);
-      text-align: left !important;
-      justify-content: flex-start !important;
+      text-align: center ;
    }`
 );
 
@@ -2135,7 +2135,7 @@ function ptrMsg(e, msgFunc, styles) {
     (eup) => {
       put(eup);
       div.style.opacity = 0;
-      delay(20, () => div.remove());
+      delay(_gsgs_, () => div.remove());
       unlisten(mv);
     },
     { once: true }
