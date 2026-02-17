@@ -550,7 +550,7 @@ function closeVideo(event, container) {
         <li><strong>Vertical:</strong> Scroll pages top-to-bottom (ideal for smartphones)</li>
         <li><strong>Table:</strong> See all pages at once in a grid (useful for page management)</li>
     </ul>
-    <p>Tap any layout to activate it. Use two-finger pinch-zoom on the score to resize and reposition.</p>
+    <p>Tap any layout cell to activate the layout. Drag out from the cell to open a configuration panel. Use two-finger pinch-zoom on the score to resize and reposition.</p>
 
     <figure>
         <div class="video-container" onclick="playVideo(this)">
@@ -583,7 +583,7 @@ function closeVideo(event, container) {
         <li><strong>Rastrum:</strong> Draw music staves</li>
         <li><strong>Edit:</strong> Move, resize, rotate any annotation</li>
     </ul>
-    <p>Activate any tool, then tap or drag on the score to use it. <strong>Note:</strong> Most Ink tools automatically deactivate after a few seconds of inactivity, so you won't accidentally stay in annotation mode when navigating.</p>
+    <p>Activate any tool, then tap or drag on the score to use it. Configure tools by dragging the corresponding panel from its cell. <strong>Note:</strong> Most Ink tools automatically deactivate after a few seconds of inactivity, so you won't accidentally stay in annotation mode when navigating.</p>
 
     <figure>
         <div class="video-container" onclick="playVideo(this)">
@@ -1352,9 +1352,13 @@ function closeVideo(event, container) {
 
     <p>The tool is used by first touching the page, then dragging to define the rastrum object's length.</p>
 
-    <p>Set the style to L-R or T-B to draw horizontally or vertically. Once drawn, a rastrum object can always be rotated using the Edit tool.</p>
+    <p>Set the style to L-R or T-B to draw horizontally or vertically. The T-B setting is useful for making chord charts for guitar, ukulele, mandolin, and other fretted instruments. Once drawn, a rastrum object can always be rotated using the Edit tool.</p>
 
-    <p><strong>Staff Space:</strong> The staff space panel setting determines the pixel difference between staff lines. Matching this value with the staff space setting in the <a href="#chapter-6-symbols" class="chapter-link">Symbols tool</a> ensures that staves and symbols are correctly sized for each other.</p>
+    <p><strong>Staff Space:</strong> In music typography, a staff space is the standard unit of measurement: the distance from one staff line to the next. All musical elements&mdash;noteheads, rests, clefs, accidentals&mdash;are sized relative to this unit, so that notation scales consistently regardless of the physical size of the staff. A standard notehead, for example, is designed to fill the space between two adjacent lines. The staff space panel setting determines the distance in pixels between staff lines. Matching this value with the staff space setting in the <a href="#chapter-6-symbols" class="chapter-link">Symbols tool</a> ensures that staves and symbols are correctly sized for each other.</p>
+
+    <p><strong>Width:</strong> Sets the thickness of staff lines. Move the slider all the way to the left for Auto, which uses the default recommended thickness for the Bravura font at the current Staff Space value.</p>
+
+    <p><strong>Barline Width:</strong> Sets the thickness of barlines. Move the slider all the way to the left for Auto, which uses the default recommended thickness for the Bravura font at the current Staff Space value.</p>
 
     <div class="note">The Rastrum tool, in combination with <a href="#chapter-6-cut-copy-paste" class="chapter-link">Copy/Paste</a>, the <a href="#chapter-6-grid" class="chapter-link">Grid</a>, and the <a href="#chapter-7-merge" class="chapter-link">Merge operation</a>, can be used to design manuscript paper of arbitrary complexity.</div>
 
@@ -1370,7 +1374,7 @@ function closeVideo(event, container) {
     <p>The Text Panel allows you to configure text properties:</p>
     <ul>
         <li>Set (inter) line height for multi-line text.</li>
-        <li>Choose from standard PDF fonts, plus Vercetti, Bravura, and Patrick Hand fonts.</li>
+        <li>Choose from standard PDF text fonts, plus Vercetti, Bravura, and Patrick Hand fonts.</li>
     </ul>
 
     <h3 id="chapter-6-symbols">6.4 Ink Ring: Symbols</h3>
