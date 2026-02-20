@@ -32,7 +32,10 @@ document.getElementById('launch').addEventListener('click', () => {
   }
 
   const btn = document.getElementById('import');
-  btn.innerHTML = '<span class="tab-name">Open in Podium: ' + name + '</span>';
+  const span = document.createElement('span');
+  span.className = 'tab-name';
+  span.textContent = 'Open in Podium: ' + name;
+  btn.replaceChildren(span);
   btn.style.display = 'flex';
   btn.addEventListener('click', async () => {
     // Ensure we have broad host permission so Podium can fetch the PDF

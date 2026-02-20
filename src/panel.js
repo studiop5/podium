@@ -47,7 +47,7 @@ import {
   toast,
   unlisten,
 } from "./common.js";
-import { FileSrc, FileListView, FileSystemView, LocalFileView } from "./file.js";
+import { escapeHtml, FileSrc, FileListView, FileSystemView, LocalFileView } from "./file.js";
 import { Layout } from "./layout.js";
 import { Pg, Score } from "./score.js";
 import { smuflTable } from "./smufl.js";
@@ -591,7 +591,7 @@ class DetailsPanel extends Panel {
           if (typeof v == "string" && v.startsWith("D:")) {
             v = new Date(this.parseTs(v)).toLocaleString();
           }
-          detailsHtml += `<div style="text-align:right">${k}:&nbsp;&nbsp;</div><div>${v}</div>`;
+          detailsHtml += `<div style="text-align:right">${escapeHtml(k)}:&nbsp;&nbsp;</div><div>${escapeHtml(String(v))}</div>`;
         }
         this.content.append(
           helm(

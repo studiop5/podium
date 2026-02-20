@@ -234,8 +234,18 @@ class FileSrc {
           args.close();
           if (tag == "Cancel") return;
           _shade_.show("Downloading file");
-          let { data, size, created, modified } = await src.getFile(score.path, score.name);
+          let data, size, created, modified;
+          if (score.fileHandle) {
+            let file = await score.fileHandle.getFile();
+            data = await file.arrayBuffer();
+            size = data.byteLength;
+            modified = file.lastModified;
+          } else {
+            ({ data, size, created, modified } = await src.getFile(score.path, score.name));
+          }
+          let fileHandle = score.fileHandle;
           score = await new Score().init(score.source, score.path, score.name, data);
+          if (fileHandle) score.fileHandle = fileHandle;
           Score.visit(score, { size, created, modified });
           toast("File reverted.");
         } catch (error) {
@@ -261,11 +271,13 @@ class FileSrc {
       return;
     }
 
-    // For local files, get file handle immediately while still in user gesture
-    let handle = null;
-    if (src instanceof LocalSrc && src.getFileHandle) {
+    // For local files, reuse the file handle from open (if available) for instant save.
+    // Otherwise, get a new handle via file picker while still in user gesture.
+    let handle = score.fileHandle || null;
+    if (!handle && src instanceof LocalSrc && src.getFileHandle) {
       try {
         handle = await src.getFileHandle(score.name);
+        score.fileHandle = handle; // remember for next save
       } catch (error) {
         if (error.name == 'AbortError') return; // User cancelled
         throw error;
@@ -298,6 +310,15 @@ class LocalSrc extends FileSrc {
   source = Score.sources.local;
 
   async getFile(path, name) {
+    if (window.showOpenFilePicker) {
+      let [handle] = await showOpenFilePicker({
+        types: [{ description: "PDF Files", accept: { "application/pdf": [".pdf"] } }],
+      });
+      let file = await handle.getFile();
+      await checkFileSize(file.name, file.size);
+      let data = await file.arrayBuffer();
+      return { path: null, name: file.name, data: data, created: null, modified: file.lastModified, size: data.byteLength, fileHandle: handle };
+    }
     return new Promise((accept, reject) => {
       let input = helm('<input type="file" style="display:hidden;"></input>');
       _body_.append(input);
@@ -1285,7 +1306,7 @@ class DbxSrc extends CachedSrc {
         Authorization: "Bearer " + this.tokens.access_token,
         "Content-Type": "application/json",
       },
-      body: `{"path":"${path}/${name}"}`,
+      body: JSON.stringify({ path: `${path}/${name}` }),
     });
     let response = await fetchPromise;
     if (!response.ok) err(`trashFileSrc(${path},${name},...)`, await response.text());
@@ -1698,6 +1719,7 @@ class LocalFileView {
       score.source = Score.sources.local;
       let data = await score.toPdf();
       let { name, modified } = await this.src.putFile(score.path, score.name, data, handle);
+      score.fileHandle = handle; // remember for future quick-saves
       score.update({ source: this.source, name: name, path: null });
       Score.visit(score, { size: data.length, modified: modified });
       score.setDirty(false);
@@ -2034,7 +2056,7 @@ class FileListView {
     return new Promise(async (accept, reject) => {
       try {
         let src = FileSrc.get(source);
-        let { path, name, data, size, created, modified } = await src.getFile(requestedPath, requestedName);
+        let { path, name, data, size, created, modified, fileHandle } = await src.getFile(requestedPath, requestedName);
         let visitUpdate = { path, size, created, modified };
         if (this.panel.mode == "copy") {
           let ext = this.acceptExt(requestedName);
@@ -2044,6 +2066,7 @@ class FileListView {
           }
         } else {
           let score = await new Score().init(source, path, name, data);
+          if (fileHandle) score.fileHandle = fileHandle;
           Score.visit(score, visitUpdate);
         }
         toast("File downloaded");
