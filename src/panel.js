@@ -1440,8 +1440,8 @@ class NewPanel extends AddPanel {
     let matchScoreOption = [...this.presets.children].find(opt => opt.value == "score");
     if (matchScoreOption) matchScoreOption.remove();
     this.pagesGroup = new SliderGroup( cell.stash,
-      {  pages: { min: 1, max: 100, 
-          msg: (tag, val) => `${val.toFixed(0)} page${val > 1 ? "s":""}`, step: 1 }, }, null );
+      {  pages: { min: 1, max: 100, value: 5, 
+         msg: (tag, val) => `${val.toFixed(0)} page${val > 1 ? "s":""}`, step: 1 }, }, null );
      this.body.prepend(this.pagesGroup.elm);    
     this.pagesGroup.refresh();
   }

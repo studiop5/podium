@@ -161,7 +161,7 @@ async function main() {
             // pointer movement in px required to invoke gestures: 15% of narrower screen dimension
             let gestureDelta = Math.min(innerWidth, innerHeight) * 0.15 ;
 
-            let mv = listen(_body_, "pointermove", (emv) => Math.hypot(emv.movementX, emv.movementY) > cancelDelta ? timer.cancel() : null) ; 
+            let mv = listen(_body_, "pointermove", (emv) => Math.hypot(emv.movementX, emv.movementY) > cancelDelta ? timer.cancel() : null) ;
 
             listen(_body_, ["pointerup", "pointercancel"], (eup) => {
               unlisten(mv) ;
@@ -174,7 +174,7 @@ async function main() {
               delay(1, () => { // this delay ensures any fullscreen change is executed *before* menu
                 if(dY > gestureDelta) _menu_.center(true) ;
                 else if(-dY > gestureDelta) _menu_.park() ;
-              }) ; 
+              }) ;
             }, { once:true} ) ;
           }
 

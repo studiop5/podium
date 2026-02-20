@@ -19,10 +19,11 @@ MIME_MAP = {
 logger = logging.getLogger(__name__)
 
 class PodiumHandler(http.server.SimpleHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+    timeout = 30  # close idle connections after 30s
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.protocol_version = "HTTP/1.1"
 
     def handle_one_request(self):
         """Handle a single HTTP request, catching malformed request errors."""
@@ -84,9 +85,7 @@ class PodiumHandler(http.server.SimpleHTTPRequestHandler):
               filename, extension = os.path.splitext(path)
               mime_type = MIME_MAP.get(extension, "application/octet-stream")
               self.send_header("content-type", mime_type + "; charset=utf-8")
-              # firefox doesn't like this keep alive scheme, sigh...it just hangs.
-              # self.send_header("connection", "keep-alive")
-              # self.send_header("keep-alive", "timeout=50, max=100")
+              self.send_header("connection", "close")
               self.send_header("content-length", os.path.getsize(fullPath))
               self.send_header("cache-control", "no-store")
               if crossOrigin:
@@ -141,8 +140,20 @@ if not os.path.exists("./cert.pem") or not os.path.exists("./key.pem"):
     logger.error("Generate certificates with: python3 build.py --cert")
     sys.exit(1)
 
-context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-context.load_cert_chain("./cert.pem", keyfile="key.pem")
+sslContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+sslContext.minimum_version = ssl.TLSVersion.TLSv1_2
+sslContext.maximum_version = ssl.TLSVersion.TLSv1_3
+sslContext.load_cert_chain("./cert.pem", keyfile="key.pem")
+
+# Wrap SSL per-connection in threads, not on the listening socket.
+# This prevents a stalled SSL handshake from blocking the main accept loop.
+class ThreadedSSLServer(http.server.ThreadingHTTPServer):
+    def get_request(self):
+        (sock, addr) = super().get_request()
+        sock.settimeout(30)
+        sslSock = sslContext.wrap_socket(sock, server_side=True)
+        return (sslSock, addr)
+
 handler_class = PodiumHandler
 
 logger.info(f"Starting HTTPS server on https://0.0.0.0:{pargs.port}")
@@ -151,8 +162,7 @@ logger.info(f"Cross-origin headers: {crossOrigin}")
 logger.info(f"Log level: {pargs.log_level}")
 
 try:
-    with http.server.ThreadingHTTPServer(address, handler_class) as httpd:
-        httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
+    with ThreadedSSLServer(address, handler_class) as httpd:
         httpd.serve_forever()
 except KeyboardInterrupt:
     logger.info("\nShutting down server...")
