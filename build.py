@@ -8,6 +8,7 @@ from io import StringIO
 from io import BytesIO
 import os
 import pdb
+import socket
 import sys
 import subprocess
 
@@ -477,7 +478,8 @@ if args.podium:
     if args.verbose: print('Generating PWA icons...')
     os.makedirs('build/icons', exist_ok=True)
 
-    # Use the same SVG as the extension, but with white background and 20% safe zone padding for maskable icons
+    # Use the same SVG as the extension, but with white background and 20% safe zone padding for maskable icons.
+    # the piano_glyph is the stylized music symbol "p": 
     piano_glyph_path = "M274 274C243 274 221 264 203 248C189 236 186 228 182 228C177 228 180 235 171 252C164 264 149 273 123 273C64 273 32 231 1 174C-4 165 -6 160 -6 155C-6 148 -1 144 5 144C12 144 16 150 21 159C50 209 70 235 88 235C96 235 99 230 99 223C99 215 96 205 93 198L-30 -107C-33 -115 -35 -117 -45 -117H-76C-85 -117 -89 -121 -89 -130C-89 -138 -85 -142 -77 -142H116C125 -142 129 -138 129 -129C129 -121 125 -117 117 -117H77C71 -117 68 -117 68 -114C68 -113 69 -110 70 -107L115 5C117 10 119 17 124 17C129 17 132 7 148 -1C162 -8 175 -10 192 -10C288 -10 366 90 366 185C366 243 330 274 274 274ZM247 237C264 237 270 222 270 200C270 151 217 24 169 24C152 24 144 35 144 56C144 77 152 97 163 125L183 174C197 208 223 237 247 237Z"
 
     # PWA icon with maskable safe zone (80% size centered = 20% padding)
@@ -522,7 +524,22 @@ if args.podium:
 if(args.cert):
     if shutil.which('openssl') == None:
          sys.exit("Fatal error: creating certificate requires openssl executable in your path.") ;
-    os.system('openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout key.pem -out cert.pem') ;
+    # Discover all LAN IP addresses for the SAN field
+    import subprocess, re
+    lan_ips = set()
+    try:
+        result = subprocess.run(['ip', '-4', '-o', 'addr', 'show'], capture_output=True, text=True)
+        for match in re.finditer(r'inet (\d+\.\d+\.\d+\.\d+)', result.stdout):
+            lan_ips.add(match.group(1))
+    except: pass
+    lan_ips -= {'127.0.0.1'}
+    san = "DNS:localhost,IP:127.0.0.1" + "".join(f",IP:{ip}" for ip in sorted(lan_ips))
+    print(f"  Certificate SAN: {san}")
+    os.system('openssl req -newkey rsa:2048 -new -nodes -x509 -days 825 '
+               '-keyout key.pem -out cert.pem '
+               '-subj "/CN=Podium Dev Server" '
+              f'-addext "subjectAltName={san}" '
+               '-addext "extendedKeyUsage=serverAuth"') ;
 
 if args.ext:
     #####################################################
@@ -933,7 +950,7 @@ if args.guide:
 if args.www:
     #####################################################
     #                                                   #
-    #  Deploy to ../www for web hosting                #
+    #  Deploy to ../www for web hosting                 #
     #                                                   #
     #####################################################
 

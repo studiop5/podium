@@ -48,7 +48,6 @@ function initFabric() {
   fabric.Textbox.prototype.lockScalingFlip = true;
 
   // Customize appearance/behavior of controls:
-
   fabric.ActiveSelection.prototype.controls.groupToggle = 
   fabric.Group.prototype.controls.groupToggle = new fabric.Control({
     x: 0.5,
@@ -126,6 +125,7 @@ function initFabric() {
       if( "text" == fabricObject.type && ["ml","mr"].includes(key)) show = false;
       if(show) {
         ctx.save();
+        ctx.lineWidth = 6;
         ctx.beginPath();
         let r = fabricObject.cornerSize / 2;
         ctx.arc(left, top, r, 0, 2 * Math.PI);

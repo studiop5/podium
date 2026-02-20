@@ -2071,7 +2071,7 @@ css(
       transition: opacity ease-out ${_gsgs_}ms;
       z-index: var(--z-topmost);
       background-color: var(--bodyColor);
-      text-align: center ;
+      will-change: transform, left, top;
    }`
 );
 
@@ -2111,7 +2111,7 @@ function ptrMsg(e, msgFunc, styles) {
     // Use maxWidth for positioning to prevent tooltip from jumping
     let wd = maxWidth;
     let [left, top] = [ev.clientX - wd / 2, ev.clientY - hg * expander];
-    left = clamp(left, 0, innerWidth - wd);
+    left = clamp(left, 0, innerWidth - div.offsetWidth);
     top = clamp(top, 0, innerHeight - hg);
     // prevent readout from going offscreen or under pointer
     if (top < hg) {
