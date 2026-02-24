@@ -84,10 +84,11 @@ async function main() {
     animate(_menu_.disk, { transform: "rotate(2turn)" }, { transform: "rotate(0)" }, `transform ${1000000 / _gs_}ms`);
     await new PasteBuffer().init() ;
     // Extension-specific code: load PDF from URL parameter if present
-    // In bundled build, ext.js is a no-op stub
     // In browser extension, ext.js has the real implementation
-    let { loadPdfFromUrl } = await import("./ext.js");
-    await loadPdfFromUrl();
+    try {
+      let { loadPdfFromUrl } = await import("./ext.js");
+      await loadPdfFromUrl();
+    } catch(e) {}
   }) ;
 
   {

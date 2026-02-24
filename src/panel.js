@@ -864,7 +864,7 @@ for more details.</p>
           <div>Podium</div>
           ${iconSvg("Podium", { style: "width:8em;" })}
           <div>Version ${_podiumVersion_}</div>
-          <div style="font-size:.6em;color:#888;">${typeof chrome !== "undefined" && chrome.runtime?.id ? "Browser Extension" : window.matchMedia("(display-mode: standalone)").matches ? "Progressive Web App" : `${location.protocol}//${location.host}`}</div>
+          <div style="font-size:.6em;color:#888;">${typeof chrome !== "undefined" && chrome.runtime?.id ? "Browser Extension" : window.matchMedia("(display-mode: standalone)").matches ? "Progressive Web App" : location.protocol + "//" + location.host}</div>
         </div>
         <div style="position:absolute;bottom:2em;left:50%;transform:translateX(-50%);font-size:1.2em;text-align:center;">
            <a href="https://www.studiop5.org/privacy.html">\u{1F6E1} Privacy</a>&nbsp;
@@ -901,7 +901,7 @@ for more details.</p>
   <li><b>Tap to Turn Pages</b><br>
   In Book, Horizontal, and Vertical layouts, a tap is equivalent to a quick fling.
   </li><br>
-  <li><b>Guidebook (App ring)</b><br>
+  <li><b>Guide (App ring)</b><br>
   Comprehensive new guidebook with 10 chapters, screenshots, embedded video demos, and a searchable keyword index.
   </li><br>
   </ul>
@@ -1089,9 +1089,14 @@ class StoragePanel extends Panel {
 }
 
 class GuidePanel extends Panel {
+  static guidebookUrl = typeof chrome !== "undefined" && chrome.runtime?.id
+    ? "https://studiop5.org/Guidebook.html"
+    : "Guidebook.html";
+
   content = helm(
     `<div style="padding:0;width:100%;height:100%;box-sizing:border-box;overflow:hidden;position:relative;">
-       <iframe src="/Guidebook.html" style="width:100%;height:100%;border:none;display:block;"></iframe>
+       <iframe style="width:100%;height:100%;border:none;display:none;"></iframe>
+       <div class="guide-msg" style="display:flex;width:100%;height:100%;align-items:center;justify-content:center;color:#888;font-size:1.2em;"></div>
      </div>`
   );
 
@@ -1107,27 +1112,34 @@ class GuidePanel extends Panel {
     });
 
     this.body.append(this.content);
+    this.iframe = this.content.querySelector("iframe");
+    this.msg = this.content.querySelector(".guide-msg");
+    this.fetched = false;
+  }
 
-    // Handle iframe link clicks to prevent overflow issue
-    let iframe = this.content.querySelector("iframe");
-    iframe.addEventListener("load", () => {
-      try {
-        let iframeDoc = iframe.contentDocument;
-        iframeDoc.addEventListener("click", (e) => {
-          let link = e.target.closest("a");
-          if (link && link.hash) {
-            e.preventDefault();
-            let targetId = link.hash.substring(1);
-            let targetEl = iframeDoc.getElementById(targetId);
-            if (targetEl) {
-              targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
-            }
-          }
-        });
-      } catch (ex) {
-        console.warn("Cannot access iframe content:", ex);
+  show() {
+    if (typeof chrome !== "undefined" && chrome.runtime?.id) {
+      // Extension: open in new tab (cross-origin iframe restrictions prevent embedding)
+      if (this.guideWin && !this.guideWin.closed) {
+        this.guideWin.focus();
+      } else {
+        this.guideWin = window.open(GuidePanel.guidebookUrl, "podium-guidebook");
       }
-    });
+      return this;
+    }
+    super.show();
+    if (this.fetched) return this;
+    this.fetched = true;
+    this.msg.textContent = "Fetching Guidebook...";
+    this.iframe.src = GuidePanel.guidebookUrl;
+    this.iframe.addEventListener("load", () => {
+      this.iframe.style.display = "block";
+      this.msg.style.display = "none";
+    }, { once: true });
+    if (!navigator.onLine) {
+      this.msg.textContent = "Guidebook is not available.";
+    }
+    return this;
   }
 }
 

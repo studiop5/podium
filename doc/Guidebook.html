@@ -495,7 +495,7 @@ function closeVideo(event, container) {
         <li>100% browser-based, 100% open source, 100% free!</li>
         <li>No login, no onboarding, no file importing, just use it! No installation required.</li>
         <li>Unique UI featuring a circular menu and multiple layouts.</li>
-        <li>Not a music library: works with PDF files stored locally or in the cloud.</li>
+        <li>Not a music library: works with PDF files stored locally or in the cloud. Users are responsible for ensuring they have the right to use any score files opened in Podium.</li>
         <li>Extensive annotation support.</li>
     </ul>
     <p><strong>...that runs on:</strong></p>
@@ -515,6 +515,7 @@ function closeVideo(event, container) {
     </ul>
     <p><strong>...url:</strong><br>
     <a href="https://studiop5.org/podium" target="_blank">https://studiop5.org/podium</a></p>
+    <p style="font-size:.85em;color:#888;">Podium is provided as-is, without warranty of any kind. See the <a href="https://www.gnu.org/licenses/agpl-3.0-standalone.html" target="_blank">license</a> for complete terms.</p>
 </section>
 
 <section id="chapter-1">
@@ -634,7 +635,7 @@ function closeVideo(event, container) {
 
     <h4>Background Gestures:</h4>
     <ul>
-        <li><strong>Swipe left ⇄ right:</strong> Enter/exit full-screen (on iOS/iPadOS, use the Screen button in the App Ring instead)</li>
+        <li><strong>Swipe left ⇄ right:</strong> Enter/exit full-screen (on iPhone/iPad, use the Screen button in the App Ring instead)</li>
         <li><strong>Swipe top ⇅ bottom:</strong> Reset and center menu</li>
         <li><strong>Long press:</strong> Summon menu to that location</li>
     </ul>
@@ -727,13 +728,13 @@ function closeVideo(event, container) {
 
     <h3>Browser Extension</h3>
 
-    <p>Podium can be installed as a browser extension in supported desktop browsers (Chrome, Edge, and similar browsers). Once installed, the extension provides two additional ways to open scores in Podium:</p>
+    <p>Podium can be installed as a browser extension in supported desktop browsers (Chrome, Edge, and similar browsers). Once installed, tap the Podium extension icon and tap "Launch Podium" to open the app directly. Scores can then be loaded in the usual way. The extension also provides additional ways to open scores:</p>
 
     <p><strong>Context Menu.</strong> Right-click any PDF link on a web page and select "Open with Podium" or "Open with Podium (New Tab)." This works immediately for most PDF links. For IMSLP scores, it works seamlessly if you are logged in to your IMSLP account. If you are not logged in, the link opens normally so you can complete IMSLP's disclaimer, login, or wait process in the browser.</p>
 
     <p><strong>Import Current Tab.</strong> If your browser is displaying a PDF&mdash;whether from IMSLP, Musopen, or any other source&mdash;tap the Podium extension icon. If a PDF is detected, an "Open in Podium" button appears at the top of the popup. Tap it to import the score into Podium. The first time you use this feature, the browser will ask you to grant URL access permission so that the extension can fetch the PDF on your behalf. This permission is retained and not requested again.</p>
 
-    <p>Since the extension works both online and offline, it's ideal for performance situations where you can't rely on an internet connection. Tap the Podium extension icon and open scores using the Local tab in Podium's file chooser. The extension maintains its own recent list, allowing you to reopen a score with a single tap.</p>
+    <p>Since the extension works both online and offline, it's ideal for performance situations where you can't rely on an internet connection. The extension maintains its own recent list of scores opened via "Open with Podium", allowing you to reopen them with a single tap.</p>
 
     <div class="note">Pin the Podium extension to your browser toolbar for easier access. In Chrome, tap the puzzle piece icon in the toolbar and pin Podium.</div>
 
@@ -744,7 +745,7 @@ function closeVideo(event, container) {
         <figcaption>Right-click context menu showing "Open with Podium" option on IMSLP</figcaption>
     </figure>
 
-    <div class="note">Podium's extension is not available on iOS (iPhones or iPads), but can be installed as a progressive web app, see below. On Android, Chrome does not support extensions, but Edge for Android has Beta support for extensions as of this writing.</div>
+    <div class="note">Podium's extension is not available on iPhone or iPad, but can be installed as a progressive web app, see below. On Android, Chrome does not support extensions, but Edge for Android has Beta support for extensions as of this writing.</div>
 
     <h3>Progressive Web App (PWA)</h3>
 
@@ -759,7 +760,7 @@ function closeVideo(event, container) {
 
     <p><strong>Android (Chrome):</strong> Chrome may display an install banner at the bottom of the screen. If not, tap the browser menu (three dots) and select "Add to Home Screen" or "Install App".</p>
 
-    <p><strong>iOS/iPadOS (Safari only):</strong> Apple does not display install prompts for PWAs. Instead, open Podium in Safari, tap the Share button (square with arrow), then tap "Add to Home Screen". Note: Chrome and other browsers on iOS cannot install PWAs due to Apple's restrictions. Also note that iOS may delete an installed PWA's data after a period of inactivity, requiring an internet connection to reload it. To prevent this, simply open Podium occasionally — regular use keeps the app available offline.</p>
+    <p><strong>iPhone/iPad (Safari only):</strong> Apple does not display install prompts for PWAs. Instead, open Podium in Safari, tap the Share button (square with arrow), then tap "Add to Home Screen". Note: Chrome and other browsers on iPhone/iPad cannot install PWAs due to platform restrictions. Also note that if the PWA is not used for an extended period, iPhone/iPad may require an internet connection on next launch and settings such as menu preferences may be reset. To prevent this, simply open Podium occasionally.</p>
 
     <div class="note">Naturally, when offline, only locally stored scores can be accessed.</div>
 
@@ -794,7 +795,7 @@ function closeVideo(event, container) {
             <td>Full-screen swipe gesture</td>
             <td class="yes">Full</td>
             <td class="yes">Full</td>
-            <td class="partial">Enter: use Screen button (iOS/iPadOS)</td>
+            <td class="partial">Enter: use Screen button (iPhone/iPad)</td>
         </tr>
         <tr>
             <td>Browser extension</td>
@@ -818,14 +819,14 @@ function closeVideo(event, container) {
             <td>Offline use</td>
             <td class="yes">Full</td>
             <td class="yes">Full</td>
-            <td class="partial">See note above</td>
+            <td class="partial">iPhone/iPad: may need internet after long inactivity</td>
         </tr>
     </table>
     <p>For the best experience, <strong>Chrome, Edge, or similar browsers</strong> are recommended.</p>
 
     <h4>Recommended browser by platform:</h4>
     <ul>
-        <li><strong>Windows, macOS, Linux:</strong> Chrome or Edge</li>
+        <li><strong>Windows, Mac, Linux:</strong> Chrome or Edge</li>
         <li><strong>Chromebook:</strong> Chrome (built-in)</li>
         <li><strong>Android phone/tablet:</strong> Chrome or Edge</li>
         <li><strong>iPhone, iPad:</strong> Any — on iPhone and iPad, all browsers behave the same as Safari, so the Safari column applies no matter which browser you use</li>
@@ -861,7 +862,7 @@ function closeVideo(event, container) {
 
     <h3>Background Gestures</h3>
     <ul>
-        <li><strong>Swipe left ⇄ right:</strong> Toggle full-screen (entering full-screen is not available on iOS/iPadOS; use the Screen button instead)</li>
+        <li><strong>Swipe left ⇄ right:</strong> Toggle full-screen (entering full-screen is not available on iPhone/iPad; use the Screen button instead)</li>
         <li><strong>Swipe top ⇅ bottom:</strong> Reset and center menu</li>
         <li><strong>Long press:</strong> Summon menu to that spot</li>
     </ul>
@@ -980,7 +981,7 @@ function closeVideo(event, container) {
 
     <p>Open and save PDF score files.</p>
 
-    <p>Both Open and Save Panels work with locally attached storage or with cloud storage services: Google Drive, Dropbox, or Microsoft OneDrive. Though these services require accounts, they all offer free subscription tiers.</p>
+    <p>Both Open and Save Panels work with locally attached storage or with cloud storage services: Google Drive, Dropbox, or Microsoft OneDrive. These services require accounts and are subject to their respective terms of service.</p>
 
     <h4>Panel Navigation (Common to Both)</h4>
 
@@ -992,7 +993,7 @@ function closeVideo(event, container) {
 
     <p>Each entry in the file/folder list has icons for renaming or deleting. There is no built-in copy/paste functionality: instead, open the file, save it to the desired location, then delete the original.</p>
 
-    <div class="note">By design, Podium never actually deletes files: instead, it moves them to the storage provider's recycle bin. Log in to the provider to manage the recycle bin through its native interface.</div>
+    <div class="note">By design, Podium moves deleted files to the storage provider's recycle bin rather than permanently deleting them. Behavior may vary by provider. Log in to the provider to manage the recycle bin through its native interface.</div>
 
     <h4>Opening Scores</h4>
 
@@ -1012,8 +1013,8 @@ function closeVideo(event, container) {
     <p>The Local tab hands off control to the operating system's built-in file picker. This file picker provides access not only to files stored on the device, but also to cloud storage services registered with the operating system:</p>
     <ul>
         <li><strong>Linux (Chrome, Chromium):</strong> The standard file dialog appears.</li>
-        <li><strong>iOS/iPadOS (Safari, Chrome):</strong> The system document picker appears, offering iCloud Drive, On My iPad/iPhone, and any installed file providers such as Google Drive, Dropbox, or OneDrive.</li>
-        <li><strong>macOS (Safari):</strong> The native Finder dialog appears, with access to iCloud Drive, local folders, and any installed file provider extensions.</li>
+        <li><strong>iPhone/iPad (Safari, Chrome):</strong> The system document picker appears, offering iCloud Drive, On My iPhone/iPad, and any installed file providers such as Google Drive, Dropbox, or OneDrive.</li>
+        <li><strong>Mac (Safari):</strong> The native Finder dialog appears, with access to iCloud Drive, local folders, and any installed file provider extensions.</li>
         <li><strong>Windows (Chrome, Edge):</strong> The standard file dialog appears, with access to local drives, OneDrive, and network locations.</li>
         <li><strong>Android (Chrome):</strong> The system file picker appears, with access to internal storage, Google Drive, and recent files.</li>
     </ul>
@@ -1039,7 +1040,7 @@ function closeVideo(event, container) {
 
     <p>Firefox does not support the File System Access API, so local saving works differently:</p>
     <ul>
-        <li><strong>Desktop (Linux, Windows, macOS):</strong> The score opens as a PDF file in a new browser tab. Right-click and choose "Save Page As" to save it locally.</li>
+        <li><strong>Desktop (Linux, Windows, Mac):</strong> The score opens as a PDF file in a new browser tab. Right-click and choose "Save Page As" to save it locally.</li>
         <li><strong>Android:</strong> The score opens in a new tab with a download button. Tap the button to download. The file name cannot be changed and no folder selection is available&mdash;files go to your Downloads folder.</li>
     </ul>
 
@@ -1051,7 +1052,7 @@ function closeVideo(event, container) {
         <li><strong>Files and Applications &rarr; Applications:</strong> Find "Portable Document Format (PDF)" in the list and set it to "Always ask". This prevents Firefox from automatically opening PDFs in its built-in viewer, allowing you to choose to open them with Podium instead.</li>
     </ul>
 
-    <div class="note">Firefox on Android and iOS is not recommended for use with Podium. On these platforms, use Chrome (Android) or Safari (iOS/iPadOS) for the best experience.</div>
+    <div class="note">Firefox on Android, iPhone, and iPad is not recommended for use with Podium. On these devices, use Chrome (Android) or Safari (iPhone/iPad) for the best experience.</div>
 
     <p>On platforms that don't allow specifying the file name during save, edit the score name first in the Details Panel (Score Ring &rarr; Details). The .pdf extension is not required&mdash;it's added automatically on save if not present.</p>
 
@@ -1778,7 +1779,7 @@ function closeVideo(event, container) {
 
     <h3 id="chapter-8-guide">8.3 App Ring: Guide</h3>
 
-    <p>Opens this guidebook in the app.</p>
+    <p>Opens this guidebook in the app. The guidebook is fetched from the web, so an internet connection is required. In the browser extension, the guidebook opens in a new tab. To save it for offline reading, open it in a new window and use your browser's Save Page feature (typically Ctrl+S or Cmd+S) to download it with all images and videos.</p>
 
     <h3 id="chapter-8-theme">8.4 App Ring: Theme</h3>
 
@@ -1786,7 +1787,7 @@ function closeVideo(event, container) {
 
     <h3 id="chapter-8-screen">8.5 App Ring: Screen</h3>
 
-    <p>Toggles full screen mode. Alternatively, toggle full screen by swiping left ⇄ right on the background. On iOS/iPadOS, the swipe gesture can only exit full-screen; use this button to enter.</p>
+    <p>Toggles full screen mode. Alternatively, toggle full screen by swiping left ⇄ right on the background. On iPhone/iPad, the swipe gesture can only exit full-screen; use this button to enter.</p>
 
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
@@ -1914,13 +1915,15 @@ function closeVideo(event, container) {
     <ul>
         <li><strong>Pitch:</strong> Adjust the frequency of the entire keyboard by setting the frequency, in Hz, of A4. Several common options are provided as presets, with web links to explanations.</li>
         <li><strong>Temperament:</strong> Retune the piano to several historical tunings in addition to the default equal temperament.</li>
-        <li><strong>Timbre:</strong> Specify the use of the included <a href="https://github.com/sfzinstruments/SalamanderGrandPiano">Yamaha C5 samples</a> or a synthesized sine wave (effectively a tuning fork) for tuning use. Also includes a slider to control the maximum number of notes (voices) that can be played at once—maximum 16.</li>
+        <li><strong>Timbre:</strong> Specify the use of the included <a href="https://github.com/sfzinstruments/SalamanderGrandPiano">Salamander Grand Piano samples</a> or a synthesized sine wave (effectively a tuning fork) for tuning use. Also includes a slider to control the maximum number of notes (voices) that can be played at once—maximum 16.</li>
     </ul>
 
     <figure>
         <img src="assets/morepianooptions.jpg" alt="Piano settings panel">
         <figcaption>Piano settings showing Pitch, Temperament, and Timbre tabs</figcaption>
     </figure>
+
+    <div class="note">The tuning and pitch detection tools are provided for reference purposes and may not be suitable for professional instrument tuning.</div>
 
     <div class="note">Most options include links to explanatory web articles. To select an option, tap the option name itself rather than the link.</div>
 
@@ -2240,6 +2243,11 @@ function closeVideo(event, container) {
     <a href="#toc" class="back-to-toc">&uarr; Back to Table of Contents</a>
 </nav>
 <!-- END KEYWORD INDEX -->
+
+<footer style="margin-top:3em;padding:2em 1em;border-top:1px solid #ccc;font-size:.75em;color:#888;text-align:center;">
+    <p>Copyright &copy; 2025 Glendon Diener. This document is part of the Podium project, licensed under the <a href="https://www.gnu.org/licenses/agpl-3.0-standalone.html" target="_blank">GNU Affero General Public License v3</a>.</p>
+    <p>All product names, logos, and brands mentioned in this document are property of their respective owners and are used for identification purposes only.</p>
+</footer>
 
 </body>
 </html>
