@@ -993,5 +993,11 @@ if args.www:
     else:
         print(f'  Warning: PWA icons not found in build/icons/. Run with --podium to generate them.')
 
+    # Sync Guidebook and assets (rsync mirrors additions, modifications, and deletions)
+    subprocess.run(['rsync', '-a', '--delete', '--chmod=F644', 'doc/Guidebook.html', f'{www_dir}/'], check=True)
+    if args.verbose: print(f'  Synced Guidebook.html to {www_dir}/')
+    subprocess.run(['rsync', '-a', '--delete', '--chmod=F644', 'doc/assets/', f'{www_dir}/assets/'], check=True)
+    if args.verbose: print(f'  Synced doc/assets/ to {www_dir}/assets/')
+
     print(f'-- Deployed to {www_dir}/')
-    print(f'   Files: podium.html, sw.js, manifest.webmanifest, icon192.png, icon512.png')
+    print(f'   Files: podium.html, sw.js, manifest.webmanifest, icon192.png, icon512.png, Guidebook.html, assets/')

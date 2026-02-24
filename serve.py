@@ -2,8 +2,7 @@ import argparse, http.server, os, ssl, socketserver, sys, logging
 from urllib.parse import urlparse
 
 crossOrigin = False
-# the build directory should come first
-docRoots = ["build", "src", "lib", "doc"]
+docRoots = ["src", "lib", "doc", "build"]
 
 MIME_MAP = {
    "": "text/html",
