@@ -57,6 +57,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
 // #include src/smufl.js minified
 // #include src/panel.js minified
 // #include src/file.js minified
+// #include build/yin.js
 // #include src/tool.js minified
 // #include src/pasteBuffer.js minifiedqy
 async function main() {
@@ -84,11 +85,10 @@ async function main() {
     animate(_menu_.disk, { transform: "rotate(2turn)" }, { transform: "rotate(0)" }, `transform ${1000000 / _gs_}ms`);
     await new PasteBuffer().init() ;
     // Extension-specific code: load PDF from URL parameter if present
-    // In browser extension, ext.js has the real implementation
-    try {
+    if (typeof chrome !== "undefined" && chrome.runtime?.id) {
       let { loadPdfFromUrl } = await import("./ext.js");
       await loadPdfFromUrl();
-    } catch(e) {}
+    }
   }) ;
 
   {
