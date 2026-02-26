@@ -13,18 +13,16 @@ import sys
 import subprocess
 
 if len(sys.argv) == 1:
-   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, yin=True, ext=True, guide=True, www=False, cert=False, clean=False) ;
+   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, yin=True, guide=True, cert=False, clean=False) ;
 else:
   parser = argparse.ArgumentParser()
   parser.add_argument('-s','--sample', action='store_true', help='(re)build build/sample.js')
   parser.add_argument('-f','--font', action='store_true', help='(re)build build/font.js')
   parser.add_argument('-p','--podium', action='store_true', help='(re)build build/podium.html')
   parser.add_argument('-y','--yin', action='store_true', help='(re)build build/yin.js')
-  parser.add_argument('-e','--ext', action='store_true', help='(re)build browser extension in ext/')
   parser.add_argument('-g','--guide', action='store_true', help='(re)build guidebook keyword index')
-  parser.add_argument('-w','--www', action='store_true', help='deploy to ../www (copies podium.html, sw.js, manifest, and icons)')
   parser.add_argument('--certificate', action='store_true', dest='cert', help='(re)build certificate')
-  parser.add_argument('-c','--clean', action='store_true', help='clean build artifacts from build/ and ext/')
+  parser.add_argument('-c','--clean', action='store_true', help='clean build artifacts from build/')
   parser.add_argument('-v','--verbose', action='store_true')
   args = parser.parse_args()
 
@@ -40,27 +38,6 @@ if args.clean:
     if os.path.exists('build'):
         shutil.rmtree('build')
         if args.verbose: print('Removed build/')
-
-    # Remove extension build artifacts (keep static files)
-    if os.path.exists('ext'):
-        # Remove directories (but preserve ext/src/ext.js which is checked into git)
-        for dirname in ['build', 'lib', 'icons']:
-            dirpath = os.path.join('ext', dirname)
-            if os.path.exists(dirpath):
-                shutil.rmtree(dirpath)
-                if args.verbose: print(f'Removed ext/{dirname}/')
-
-        # Clean ext/src but preserve ext.js
-        if os.path.exists('ext/src'):
-            for f in os.listdir('ext/src'):
-                if f != 'ext.js':
-                    fpath = os.path.join('ext/src', f)
-                    os.remove(fpath)
-                    if args.verbose: print(f'Removed ext/src/{f}')
-            if args.verbose: print('Cleaned ext/src/ (preserved ext.js)')
-
-        # Remove generated podium.html if it exists (we now keep it as static)
-        # Actually, podium.html is now static, so don't remove it
 
     if args.verbose: print('Clean complete.')
     sys.exit(0)
@@ -541,195 +518,6 @@ if(args.cert):
               f'-addext "subjectAltName={san}" '
                '-addext "extendedKeyUsage=serverAuth"') ;
 
-if args.ext:
-    #####################################################
-    #                                                   #
-    #  Build browser extension in ext/                  #
-    #                                                   #
-    #####################################################
-
-    # Ensure YIN WASM is built (needed for worklet)
-    if not os.path.exists('build/yin.wasm'):
-        print('YIN WASM not found, building...')
-        build_yin(argparse.Namespace(verbose=args.verbose))
-
-    import json
-
-    # Create extension directory and clean up old files from previous builds
-    os.makedirs('ext', exist_ok=True)
-    os.makedirs('ext/icons', exist_ok=True)
-
-    # Create subdirectories for multi-file approach (like ext.old)
-    import shutil
-    os.makedirs('ext/build', exist_ok=True)
-    os.makedirs('ext/src', exist_ok=True)
-    os.makedirs('ext/lib', exist_ok=True)
-
-    # Copy library files
-    if args.verbose: print('Copying library files...')
-    shutil.copy('lib/fabric.min.js', 'ext/lib/fabric.min.js')
-    shutil.copy('lib/pdf.min.js', 'ext/lib/pdf.min.js')
-    shutil.copy('lib/pdf.worker.min.js', 'ext/lib/pdf.worker.min.js')
-    shutil.copy('lib/pdf-lib.min.js', 'ext/lib/pdf-lib.min.js')
-    shutil.copy('lib/fontkit.umd.min.js', 'ext/lib/fontkit.umd.min.js')
-
-    # Copy source files (excluding ext.js which has its own version in ext/)
-    if args.verbose: print('Copying source files...')
-    for src_file in ['common.js', 'file.js', 'layout.js', 'menu.js',
-                     'panel.js', 'score.js', 'smufl.js', 'tool.js', 'canvas.js', 'pasteBuffer.js', 'icon.js']:
-        shutil.copy(f'src/{src_file}', f'ext/src/{src_file}')
-
-    # Copy and patch main.js to fix pdf.worker path for extension
-    with open('src/main.js', 'r') as f:
-        main_js = f.read()
-    main_js = main_js.replace(
-        'pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";',
-        'pdfjsLib.GlobalWorkerOptions.workerSrc = "lib/pdf.worker.min.js";'
-    )
-    with open('ext/src/main.js', 'w') as f:
-        f.write(main_js)
-
-    # Note: ext/src/ext.js is checked into git and not copied from src/
-    # src/ext.js is a stub, ext/src/ext.js has the real extension implementation
-
-    # Copy build artifacts (font.js, sample.js)
-    if args.verbose: print('Copying build artifacts...')
-    shutil.copy('build/font.js', 'ext/build/font.js')
-    shutil.copy('build/sample.js', 'ext/build/sample.js')
-    # Also copy to src/ so they can be imported as modules
-    shutil.copy('build/font.js', 'ext/src/font.js')
-    shutil.copy('build/sample.js', 'ext/src/sample.js')
-
-    # Build YIN for extension (separate worklet file to avoid blob: CSP issues)
-    if args.verbose: print('Building YIN for extension...')
-
-    # Read WASM and create worklet file
-    yin_wasm_path = 'build/yin.wasm'
-    worklet_template_path = 'src/yin-worklet.js'
-
-    with open(yin_wasm_path, 'rb') as f:
-        wasm_bytes = f.read()
-    wasm_b64 = base64.b64encode(wasm_bytes).decode('ascii')
-
-    with open(worklet_template_path, 'r') as f:
-        worklet_template = f.read()
-
-    worklet_code = worklet_template.replace("__WASM_BASE64_PLACEHOLDER__", wasm_b64)
-
-    # Write standalone worklet file for extension
-    with open('ext/src/yin-worklet.js', 'w') as f:
-        f.write(worklet_code)
-
-    # Create modified yin.js that loads worklet from file instead of blob
-    with open('src/yin.js', 'r') as f:
-        yin_class_code = f.read()
-
-    # Replace blob URL creation with direct file load
-    yin_ext = yin_class_code.replace(
-        "let workletCode = `__WORKLET_CODE__`;\n    let blob = new Blob([workletCode], { 'type': 'application/javascript' });\n    let workletUrl = URL.createObjectURL(blob);\n    await this.audioContext.audioWorklet.addModule(workletUrl);",
-        "let workletUrl = chrome.runtime.getURL('src/yin-worklet.js');\n    await this.audioContext.audioWorklet.addModule(workletUrl);"
-    )
-
-    with open('ext/src/yin.js', 'w') as f:
-        f.write(yin_ext)
-
-    # Note: podium.html, manifest.json, background.js, and README.md are static files
-    # checked into git under ext/ and not generated by the build process
-    # ext/src/ext.js is also checked in (see comment above)
-
-    # Generate icons from SVG
-    # The piano glyph (U+E520) path is extracted from Bravura.otf using fonttools
-    piano_glyph_path = "M274 274C243 274 221 264 203 248C189 236 186 228 182 228C177 228 180 235 171 252C164 264 149 273 123 273C64 273 32 231 1 174C-4 165 -6 160 -6 155C-6 148 -1 144 5 144C12 144 16 150 21 159C50 209 70 235 88 235C96 235 99 230 99 223C99 215 96 205 93 198L-30 -107C-33 -115 -35 -117 -45 -117H-76C-85 -117 -89 -121 -89 -130C-89 -138 -85 -142 -77 -142H116C125 -142 129 -138 129 -129C129 -121 125 -117 117 -117H77C71 -117 68 -117 68 -114C68 -113 69 -110 70 -107L115 5C117 10 119 17 124 17C129 17 132 7 148 -1C162 -8 175 -10 192 -10C288 -10 366 90 366 185C366 243 330 274 274 274ZM247 237C264 237 270 222 270 200C270 151 217 24 169 24C152 24 144 35 144 56C144 77 152 97 163 125L183 174C197 208 223 237 247 237Z"
-    podium_icon_svg = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="{size}" height="{size}">
-  <path fill="#aaaaaa" stroke="#000" stroke-width=".6" stroke-linejoin="round"
-    d="M4 23v-3h16v3h1.5h-19Z M7 20v-14h10v14 M7 12h-2l-3 -10 h20l-3 10h-2"/>
-  <path fill="#000" transform="translate(9.8, 13.5) scale(0.015, -0.015)" d="''' + piano_glyph_path + '''"/>
-</svg>'''
-
-    # Try to generate icons using cairosvg (preferred) or ImageMagick
-    icons_generated = False
-
-    try:
-        import cairosvg
-        for size in [16, 48, 128, 512]:
-            svg_content = podium_icon_svg.format(size=size)
-            cairosvg.svg2png(bytestring=svg_content.encode('utf-8'),
-                           write_to=f'ext/icons/icon{size}.png',
-                           output_width=size,
-                           output_height=size)
-        icons_generated = True
-        if args.verbose: print('Generated icons using cairosvg')
-    except ImportError:
-        # Try ImageMagick as fallback
-        if shutil.which('convert'):
-            for size in [16, 48, 128, 512]:
-                svg_content = podium_icon_svg.format(size=size)
-                svg_file = f'ext/icons/icon{size}.svg'
-                with open(svg_file, 'w') as f:
-                    f.write(svg_content)
-                os.system(f'convert -background none {svg_file} -resize {size}x{size} ext/icons/icon{size}.png 2>/dev/null')
-                os.remove(svg_file)
-            icons_generated = True
-            if args.verbose: print('Generated icons using ImageMagick')
-        else:
-            if args.verbose: print('Warning: Could not generate icons (install cairosvg or ImageMagick)')
-
-    # Create a simple README for the extension
-    readme = '''# Podium Browser Extension
-
-## Installation
-
-### Chrome/Edge:
-1. Open chrome://extensions/ (or edge://extensions/)
-2. Enable "Developer mode"
-3. Click "Load unpacked"
-4. Select the `ext/` directory
-
-### Firefox:
-1. Open about:debugging#/runtime/this-firefox
-2. Click "Load Temporary Add-on"
-3. Select the `manifest.json` file in the `ext/` directory
-
-## Usage
-
-Right-click on any PDF link and select "Open with Podium" to view the PDF in Podium.
-
-## Icons
-
-You need to add icon files (icon16.png, icon48.png, icon128.png) to the ext/icons/ directory.
-These should be PNG images at 16x16, 48x48, and 128x128 pixels respectively.
-'''
-
-    with open('ext/README.md', 'w') as f:
-        f.write(readme)
-    if args.verbose: print('Created ext/README.md')
-
-    # Create ZIP file for store submission (exclude docs and test files)
-    import zipfile
-    zip_path = 'build/podium-ext.zip'
-    zip_exclude = {'.md', 'test-'}
-    os.makedirs('build', exist_ok=True)
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for root, dirs, files in os.walk('ext'):
-            for file in files:
-                if any(file.endswith(e) or file.startswith(e) for e in zip_exclude):
-                    continue
-                file_path = os.path.join(root, file)
-                arc_path = os.path.relpath(file_path, 'ext')
-                zf.write(file_path, arc_path)
-
-    print('-- Browser extension built in ext/')
-    if not icons_generated:
-        print('   NOTE: Icons not generated. Install cairosvg (pip install cairosvg)')
-        print('         or ImageMagick, then rebuild, or manually add icons to ext/icons/:')
-        print('         - icon16.png (16x16)')
-        print('         - icon48.png (48x48)')
-        print('         - icon128.png (128x128)')
-        print('         - icon512.png (512x512) - for store listing')
-    else:
-        print('   Icons generated successfully in ext/icons/')
-    print(f'   Extension ZIP created: {zip_path}')
-
 if args.guide:
     #####################################################
     #                                                   #
@@ -947,57 +735,3 @@ if args.guide:
 
     if args.verbose: print(f'-- Guidebook index (re)built: {len(entries)} entries')
 
-if args.www:
-    #####################################################
-    #                                                   #
-    #  Deploy to ../www for web hosting                 #
-    #                                                   #
-    #####################################################
-
-    www_dir = '../www'
-
-    # Check if ../www directory exists
-    if not os.path.exists(www_dir):
-        print(f'Error: {www_dir} directory does not exist')
-        sys.exit(1)
-
-    if args.verbose: print(f'Deploying to {www_dir}...')
-
-    # Ensure podium.html is built
-    if not os.path.exists('build/podium.html'):
-        print('Error: build/podium.html not found. Run with --podium first.')
-        sys.exit(1)
-
-    # Copy podium.html
-    shutil.copy('build/podium.html', f'{www_dir}/podium.html')
-    os.chmod(f'{www_dir}/podium.html', 0o644)
-    if args.verbose: print(f'  Copied podium.html to {www_dir}/')
-
-    # Copy service worker
-    shutil.copy('src/sw.js', f'{www_dir}/sw.js')
-    os.chmod(f'{www_dir}/sw.js', 0o644)
-    if args.verbose: print(f'  Copied sw.js to {www_dir}/')
-
-    # Copy manifest
-    shutil.copy('src/manifest.webmanifest', f'{www_dir}/manifest.webmanifest')
-    os.chmod(f'{www_dir}/manifest.webmanifest', 0o644)
-    if args.verbose: print(f'  Copied manifest.webmanifest to {www_dir}/')
-
-    # Copy icons to top level (consistent with other icons in www/)
-    if os.path.exists('build/icons/icon192.png'):
-        shutil.copy('build/icons/icon192.png', f'{www_dir}/icon192.png')
-        os.chmod(f'{www_dir}/icon192.png', 0o644)
-        shutil.copy('build/icons/icon512.png', f'{www_dir}/icon512.png')
-        os.chmod(f'{www_dir}/icon512.png', 0o644)
-        if args.verbose: print(f'  Copied PWA icons to {www_dir}/')
-    else:
-        print(f'  Warning: PWA icons not found in build/icons/. Run with --podium to generate them.')
-
-    # Sync Guidebook and assets (rsync mirrors additions, modifications, and deletions)
-    subprocess.run(['rsync', '-a', '--delete', '--chmod=F644', 'doc/Guidebook.html', f'{www_dir}/'], check=True)
-    if args.verbose: print(f'  Synced Guidebook.html to {www_dir}/')
-    subprocess.run(['rsync', '-a', '--delete', '--chmod=F644', 'doc/assets/', f'{www_dir}/assets/'], check=True)
-    if args.verbose: print(f'  Synced doc/assets/ to {www_dir}/assets/')
-
-    print(f'-- Deployed to {www_dir}/')
-    print(f'   Files: podium.html, sw.js, manifest.webmanifest, icon192.png, icon512.png, Guidebook.html, assets/')

@@ -26,6 +26,21 @@ class Yin {
 
     // Load worklet with embedded WASM via blob URL
     let workletCode = `__WORKLET_CODE__`;
+
+    // Dev mode: placeholder not replaced by build — fetch and assemble at runtime
+    if (workletCode === '__WORKLET_CODE__') {
+      let [workletResp, wasmResp] = await Promise.all([
+        fetch('yin-worklet.js'),
+        fetch('yin.wasm'),
+      ]);
+      let workletTemplate = await workletResp.text();
+      let wasmBytes = new Uint8Array(await wasmResp.arrayBuffer());
+      let wasmB64 = '';
+      for (let i = 0; i < wasmBytes.length; i += 8192)
+        wasmB64 += btoa(String.fromCharCode(...wasmBytes.subarray(i, i + 8192)));
+      workletCode = workletTemplate.replace('__WASM_BASE64_PLACEHOLDER__', wasmB64);
+    }
+
     let blob = new Blob([workletCode], { 'type': 'application/javascript' });
     let workletUrl = URL.createObjectURL(blob);
     await this.audioContext.audioWorklet.addModule(workletUrl);
