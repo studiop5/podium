@@ -867,8 +867,8 @@ for more details.</p>
           <div style="font-size:.6em;color:#888;">${typeof chrome !== "undefined" && chrome.runtime?.id ? "Browser Extension" : window.matchMedia("(display-mode: standalone)").matches ? "Progressive Web App" : location.protocol + "//" + location.host}</div>
         </div>
         <div style="position:absolute;bottom:2em;left:50%;transform:translateX(-50%);font-size:1.2em;text-align:center;">
-           <a href="https://www.studiop5.org/privacy.html">\u{1F6E1} Privacy</a>&nbsp;
-          <a href="https://www.studiop5.org/terms.html">\u00A7 Terms</a><br><br>
+           <a href="privacy.html">\u{1F6E1} Privacy</a>&nbsp;
+          <a href="terms.html">\u00A7 Terms</a><br><br>
           <a href="https://github.com/studiop5/podium">&lt;&sol;&gt; Source</a>&nbsp;
           <a href="https://github.com/studiop5/podium/issues">\u2709 Issues</a>
         </div>
@@ -1120,11 +1120,8 @@ class GuidePanel extends Panel {
   show() {
     if (typeof chrome !== "undefined" && chrome.runtime?.id) {
       // Extension: open in new tab (cross-origin iframe restrictions prevent embedding)
-      if (this.guideWin && !this.guideWin.closed) {
-        this.guideWin.focus();
-      } else {
-        this.guideWin = window.open(GuidePanel.guidebookUrl, "podium-guidebook");
-      }
+      if (this.guideWin && !this.guideWin.closed) this.guideWin.focus();
+      else  this.guideWin = window.open(GuidePanel.guidebookUrl, "podium-guidebook");
       return this;
     }
     super.show();
