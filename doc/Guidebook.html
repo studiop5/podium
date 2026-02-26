@@ -671,7 +671,7 @@ function closeVideo(event, container) {
     </ul>
     <p><strong>Note:</strong> Like Ink tools, Page tools auto-deactivate after a few seconds of inactivity.</p>
 
-    <p>The page paste buffer is shared across all Podium tabs and windows, and persists across sessions. This lets you copy pages from one score and paste them into another, making it easy to assemble custom practice scores.</p>
+    <p>The page paste buffer is shared across all Podium tabs and windows, and persists across sessions. This lets you copy pages from one score and paste them into another, making it easy to assemble custom practice scores. Note that tabs of the web app (studiop5.org) share one paste buffer, and tabs of the browser extension share another — copying across these boundaries is not possible.</p>
 
     <figure>
         <div class="video-container" onclick="playVideo(this)">
@@ -946,7 +946,7 @@ function closeVideo(event, container) {
     </figure>
     <h3>Browser Tab Naming</h3>
 
-    <p>Podium can run in multiple browser tabs simultaneously, sharing a common <a href="#chapter-7-paste">page paste buffer</a> between them. To distinguish tabs, each is assigned a short musical identifier drawn from dynamics and solfege: <em>do, re, mi, fa, so, la, ti, ff, mf, mp, pp, sf</em>. When a score is loaded, the browser tab displays the score's file name; otherwise it shows <em>Podium</em> followed by the tab's identifier. In theory, up to 12 Podium tabs can be open at the same time. Keep in mind that each tab consumes additional browser memory and processing resources, so opening more than two or three can be impractical.</p>
+    <p>Podium can run in multiple browser tabs simultaneously, sharing a common <a href="#chapter-7-paste">page paste buffer</a> between them. Tabs of the web app (studiop5.org) share one paste buffer, and tabs of the browser extension share another — copying across these boundaries is not possible. To distinguish tabs, each is assigned a short musical identifier drawn from dynamics and solfege: <em>do, re, mi, fa, so, la, ti, ff, mf, mp, pp, sf</em>. When a score is loaded, the browser tab displays the score's file name; otherwise it shows <em>Podium</em> followed by the tab's identifier. In theory, up to 12 Podium tabs can be open at the same time. Keep in mind that each tab consumes additional browser memory and processing resources, so opening more than two or three can be impractical.</p>
 
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
@@ -1620,7 +1620,7 @@ function closeVideo(event, container) {
 
     <p>Copy a page to the paste buffer.</p>
 
-    <p>To copy a page, activate the Copy cell, then tap the page you wish to copy. The page is placed in a paste buffer where it can be pasted into the current score or into a different score opened in another browser window or tab.</p>
+    <p>To copy a page, activate the Copy cell, then tap the page you wish to copy. The page is placed in a paste buffer where it can be pasted into the current score or into a different score opened in another browser window or tab. Tabs of the web app (studiop5.org) share one paste buffer, and tabs of the browser extension share another — copying across these boundaries is not possible.</p>
 
     <p>You can copy multiple pages sequentially—each copied page is added to the paste buffer in the order you copy them. The paste buffer preserves both the page content and all annotations, allowing you to duplicate complex pages with all their markup intact.</p>
 
