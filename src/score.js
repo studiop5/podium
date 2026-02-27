@@ -471,7 +471,7 @@ class Pg {
     let toPDFColor = (fabricColor) => {
       // PDFLib doesn't have rgba: instead, it uses rgb  and a
       // separate vor opacity. Here, we convert "rgba(0,127.5,255,xxx)" -> "rgb(0,.5,1)"
-      let c = fabricColor.split("(")[1].split(")")[0].split(",");
+      let c = new fabric.Color(fabricColor).split("(")[1].split(")")[0].split(",");
       return PDFLib.rgb(c[0] / 255, c[1] / 255, c[2] / 255);
     };
 

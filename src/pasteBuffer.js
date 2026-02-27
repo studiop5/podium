@@ -30,7 +30,9 @@ export { PasteBuffer }
 
 class PasteBuffer {
 
-  // List of podium tab id's..assigned starting from end.
+  // List of podium tab ids, assigned starting from the end (popped off as tabs open).
+  // Tab titles use these ids to distinguish multiple open tabs: "Podium (do)", "Podium (re)", etc.
+  // Web/PWA tabs use parentheses: Podium (do). Extension tabs use square brackets: Podium [do].
   podIds = ["sf","pp","mp","mf","ff","ti","la","so","fa","mi","re","do"];
 
   constructor() {
@@ -65,8 +67,11 @@ class PasteBuffer {
         // as our ids, and store the rest in the db.
         let ids = [...this.podIds];
         window._podId_ = ids.pop();
+        // Extension tabs use [brackets], web/PWA tabs use (parens), to distinguish them in the tab bar.
+        let podTitle = (window.chrome && chrome.runtime?.id) ? id => `Podium [${id}]` : id => `Podium (${id})`;
         // set up storage listener now that _podId_ exists
         listen(window, 'storage', async (e) => {
+          if (!e.newValue) return;
           let data = JSON.parse(e.newValue);
           switch(e.key) { // interpret incoming signals
     
@@ -82,7 +87,7 @@ class PasteBuffer {
               else {
                 window._podId_ = ids.pop();
                 this.signal("pod-id-check");
-                document.title = `Podium (${_podId_})`;
+                document.title = podTitle(_podId_);
               }
               break;
 
@@ -108,7 +113,7 @@ class PasteBuffer {
 
         // check for _podId_ in use
         this.signal("pod-id-check");
-        document.title = `Podium (${_podId_})`;
+        document.title = podTitle(_podId_);
         _menu_.enableCells("page/paste", (await this.getScore()).pgs.length > 0);
         resolve(_podId_);
       }

@@ -420,7 +420,7 @@ function closeVideo(event, container) {
     <ul>
         <li><a href="#overture">Overture</a></li>
         <li><a href="#chapter-1">Chapter 1: Quick Start</a> — <span style="color:#777">Up and running in minutes</span></li>
-        <li><a href="#chapter-2">Chapter 2: Installation</a> — <span style="color:#777">Launch from URL or install</span></li>
+        <li><a href="#chapter-2">Chapter 2: Running Podium</a> — <span style="color:#777">Launch from URL or install</span></li>
         <li><a href="#chapter-3">Chapter 3: Interface Basics</a> — <span style="color:#777">Menu, panels, gestures, background</span></li>
         <li><a href="#chapter-4">Chapter 4: Score Ring</a> — <span style="color:#777">Manage scores stored as PDF files</span>
             <ul>
@@ -492,7 +492,7 @@ function closeVideo(event, container) {
     <p><strong>Podium is:</strong></p>
     <ul>
         <li>An e-reader for music scores.</li>
-        <li>100% browser-based, 100% open source, 100% free!</li>
+        <li>100% browser-based, 100% open-source, 100% free!</li>
         <li>No login, no onboarding, no file importing, just use it! No installation required.</li>
         <li>Unique UI featuring a circular menu and multiple layouts.</li>
         <li>Not a music library: works with PDF files stored locally or in the cloud. Users are responsible for ensuring they have the right to use any score files opened in Podium.</li>
@@ -720,7 +720,7 @@ function closeVideo(event, container) {
 </section>
 
 <section id="chapter-2">
-    <h2>Chapter 2: Installation</h2>
+    <h2>Chapter 2: Running Podium</h2>
 
     <p>The simplest way to use Podium is to launch it directly from the URL—no installation required. Just open <a href="https://www.studiop5.org/podium.html">studiop5.org/podium.html</a> in your browser and start using it immediately. There is no registration, login, or onboarding of any kind.</p>
 
@@ -946,7 +946,7 @@ function closeVideo(event, container) {
     </figure>
     <h3>Browser Tab Naming</h3>
 
-    <p>Podium can run in multiple browser tabs simultaneously, sharing a common <a href="#chapter-7-paste">page paste buffer</a> between them. Tabs of the web app (studiop5.org) share one paste buffer, and tabs of the browser extension share another — copying across these boundaries is not possible. To distinguish tabs, each is assigned a short musical identifier drawn from dynamics and solfege: <em>do, re, mi, fa, so, la, ti, ff, mf, mp, pp, sf</em>. When a score is loaded, the browser tab displays the score's file name; otherwise it shows <em>Podium</em> followed by the tab's identifier. In theory, up to 12 Podium tabs can be open at the same time. Keep in mind that each tab consumes additional browser memory and processing resources, so opening more than two or three can be impractical.</p>
+    <p>Podium can run in multiple browser tabs simultaneously, sharing a common <a href="#chapter-7-paste">page paste buffer</a> between them. Tabs of the web app (studiop5.org) share one paste buffer, and tabs of the browser extension share another — copying across these boundaries is not possible. To distinguish tabs, each is assigned a short musical identifier drawn from dynamics and solfege: <em>do, re, mi, fa, so, la, ti, ff, mf, mp, pp, sf</em>. When a score is loaded, the browser tab displays the score's file name; otherwise it shows <em>Podium</em> followed by the tab's identifier in parentheses — for example, <em>Podium (do)</em>. Extension tabs use square brackets instead — <em>Podium [do]</em> — so you can tell at a glance whether a tab is running the web app or the browser extension. In theory, up to 12 Podium tabs can be open at the same time. Keep in mind that each tab consumes additional browser memory and processing resources, so opening more than two or three can be impractical.</p>
 
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
@@ -1136,7 +1136,7 @@ function closeVideo(event, container) {
 
     <p>By default, scores open with the last used layout on the current browser/platform or, if none, Book. The layout can be changed any time by tapping the desired cell. Whenever a score is saved, its last layout is stored as metadata in the PDF file, as well as in browser local storage.</p>
 
-    <div class="note">In a Podium Layout, all pages must be the same size. Whenever a score file is opened, the maximum page width and height are first determined. Then, if any pages are smaller than this maximum, they are by default centered and padded with a grey border on all sides. Alternatively, smaller pages can be expanded: the score is scaled so its largest dimension fills the page, then centered in the other dimension. See the <a href="#chapter-4-details" class="chapter-link">Details Panel</a> to configure this behavior.</div>
+    <div class="note">In a Podium Layout, all pages must be the same size. Whenever a score file is opened, the maximum page width and height are first determined. Then, if any pages are smaller than this maximum, they are by default centered and padded with a gray border on all sides. Alternatively, smaller pages can be expanded: the score is scaled so its largest dimension fills the page, then centered in the other dimension. See the <a href="#chapter-4-details" class="chapter-link">Details Panel</a> to configure this behavior.</div>
 
     <h3 id="chapter-5-book">5.1 Layout Ring: Book</h3>
 
@@ -1162,7 +1162,7 @@ function closeVideo(event, container) {
     <p>The Book Panel's Fit buttons determine the score's initial sizing:</p>
     <ul>
         <li><strong>Auto:</strong> picks between Width or Height such that the entire score is on screen</li>
-        <li><strong>None:</strong> sized as indicated in PDF file: Podium maps PDF "points" 1:1 with "CSS pixels"</li>
+        <li><strong>None:</strong> sized as indicated in PDF file: Podium maps PDF "points" (1/72 inch) 1:1 with "CSS pixels" (standard screen units)</li>
         <li><strong>Width:</strong> sized to fit the width of the screen</li>
         <li><strong>Height:</strong> sized to fit the height of the screen</li>
     </ul>
@@ -1644,11 +1644,7 @@ function closeVideo(event, container) {
         <li><strong>Clear:</strong> Completely empties the paste buffer, removing all pages at once.</li>
     </ul>
 
-    <h4>Cross-Instance Sharing:</h4>
-
-    <p>The paste buffer is shared by all instances of Podium running in any browser tab or window. It persists even if you close a score and reopen another in the same tab, or close and restart the browser entirely. This makes it easy to work with pages across multiple scores simultaneously.</p>
-
-    <div class="note"><strong>Privacy Note:</strong> If you share a browser with others and are concerned with privacy, you should clear the paste buffer after your Podium session. You can use the Clear button in the Paste Panel, or clear it from the <a href="#chapter-8-storage">App Ring: Storage panel</a> by tapping the Buffer button.</div>
+    <div class="note"><strong>Cross-Instance Sharing and Privacy:</strong> The paste buffer is shared by all instances of Podium running within the same browser origin. This means that all browser tabs and the installed Progressive Web App (PWA) share a single buffer, while the browser extension maintains its own separate one — copying across these boundaries is not possible. The buffer persists even if you close your score or restart the browser. <strong>If you share a browser with others</strong> and are concerned with privacy, you should clear the paste buffer after your session. Note that if you use both the web app and the extension, you must clear each buffer separately.</div>
 
     <h4>Primary Use Case: Practice Scores</h4>
 
@@ -1775,7 +1771,7 @@ function closeVideo(event, container) {
 
     <p>Where available, the panel also displays a refreshable set of storage statistics useful for developers.</p>
 
-    <div class="note"><strong>Privacy:</strong> If you share a browser with other users, use the factory reset buttons to clear information you don't want to share after your session. This includes recent file lists, paste buffer contents, and menu settings that may reveal your activity.</div>
+    <div class="note"><strong>Privacy:</strong> If you share a browser with other users, use the factory reset buttons to clear information you don't want to share after your session. This includes recent file lists, paste buffer contents, and menu settings. Note that the web app and the browser extension maintain separate storage; if you use both, you must use these reset buttons in both environments to clear all your data.</div>
 
     <h3 id="chapter-8-guide">8.3 App Ring: Guide</h3>
 
@@ -1859,7 +1855,7 @@ function closeVideo(event, container) {
 
     <div class="note">Hiding the panel by flinging (detached or not) keeps the metronome playing in the background. To stop and close the metronome, tap the X button—this effectively deletes the panel. The next time you drag out the Metronome cell, the panel is recreated from scratch.</div>
 
-    <div class="note">The conducting patterns are experimental: due to the complexity of the animation, expect some misalignment of the pattern and the animation, particularly on slower devices, and at faster tempos.</div>
+    <div class="note">The conducting patterns are experimental: due to the complexity of the animation, expect some misalignment between the pattern and the animation, particularly on slower devices, and at faster tempos.</div>
 
     <h3 id="chapter-9-stopwatch">9.3 More Ring: Stopwatch</h3>
 
@@ -1870,7 +1866,7 @@ function closeVideo(event, container) {
         <figcaption>Stopwatch panel showing controls and split times</figcaption>
     </figure>
 
-    <p>The stopwatch displays split times with the latest split first. If the list scrolls off the panel, drag the lower right corner to resize the panel.</p>
+    <p>The stopwatch displays split times with the latest split first. If the list scrolls off the panel, drag the lower-right corner to resize the panel.</p>
 
     <p>The stopwatch is fully functional when detached: touch the middle button to start/stop, the left button to reset, and the right button to record a split. To see the split times, you'll need to view the whole panel—simply drag out from the menu cell again.</p>
 
@@ -2186,6 +2182,7 @@ function closeVideo(event, container) {
         <dt>Review</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Roman numerals</dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
         <dt>Rotating rings</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Running Podium</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
     </dl>
     <div class="idx-letter">S</div>
     <dl>
