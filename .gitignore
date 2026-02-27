@@ -27,10 +27,14 @@ yin/
 test/
 test-js/
 ext.old/
-src/lib/
+font/
+src/lib
 src/manifest.webmanifest
 src/sw.js
 src/video.js
+.eslintrc.json
+eslint.config.js
+doc/assets/*.webm
 
 # Unminified library copies
 lib/fabric.js
