@@ -2,7 +2,7 @@ import argparse, http.server, os, ssl, socketserver, sys, logging
 from urllib.parse import urlparse
 
 crossOrigin = False
-docRoots = ["src", "lib", "doc", "build"]
+docRoots = ["build", "src", "lib", "doc"]
 
 MIME_MAP = {
    "": "text/html",

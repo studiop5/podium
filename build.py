@@ -45,75 +45,40 @@ if args.clean:
 os.system('mkdir build 2> /dev/null') ;
 
 def build_yin(args):
-    print("Building YIN class...")
-
-    # Define paths
-    src_dir = 'src'
-    build_dir = 'build'
-    yin_c_path = os.path.join(src_dir, 'yin-wasm.c')
-    yin_wasm_path = os.path.join(build_dir, 'yin.wasm')
-    worklet_template_path = os.path.join(src_dir, 'yin-worklet.js')
-    yin_class_path = os.path.join(src_dir, 'yin.js')
-    output_path = os.path.join(build_dir, 'yin.js')
+    print("Building YIN worklet...")
 
     # Step 1: Compile WASM using emcc
+    yin_wasm_path = os.path.join('build', 'yin.wasm')
     if args.verbose: print("  1. Compiling yin-wasm.c to yin.wasm with emcc...")
-    emcc_command = [
-        'emcc', yin_c_path,
+    result = subprocess.run([
+        'emcc', os.path.join('src', 'yin-wasm.c'),
         '-o', yin_wasm_path,
         '-s', 'WASM=1',
         '-s', 'STANDALONE_WASM',
         '-s', 'EXPORTED_FUNCTIONS=["_yinf0"]',
         '-Wl,--no-entry',
         '-O3'
-    ]
-    result = subprocess.run(emcc_command, capture_output=True, text=True)
+    ], capture_output=True, text=True)
     if result.returncode != 0:
         print("     emcc compilation failed!", file=sys.stderr)
         print(result.stderr, file=sys.stderr)
         sys.exit(1)
     if args.verbose: print("     emcc compilation successful.")
 
-    # Step 2: Read and Base64-encode WASM
-    if args.verbose: print("  2. Reading and encoding yin.wasm...")
+    # Step 2: Write build/yin-wasm.b64 (raw base64 text)
+    b64_path = os.path.join('build', 'yin-wasm.b64')
+    if args.verbose: print(f"  2. Writing {b64_path}...")
     with open(yin_wasm_path, 'rb') as f:
-        wasm_bytes = f.read()
-    wasm_b64 = base64.b64encode(wasm_bytes).decode('ascii')
+        wasm_b64 = base64.b64encode(f.read()).decode('ascii')
+    with open(b64_path, 'w') as f:
+        f.write(wasm_b64)
 
-    # Step 3: Read worklet template
-    if args.verbose: print("  3. Reading worklet template...")
-    with open(worklet_template_path, 'r') as f:
-        worklet_template = f.read()
-    
-    # Step 4: Embed WASM into worklet code
-    if args.verbose: print("  4. Embedding WASM into worklet...")
-    worklet_code = worklet_template.replace("__WASM_BASE64_PLACEHOLDER__", wasm_b64)
+    # Step 3: Build build/yin-worklet.js via Packager (embeds b64 via 'as' verb)
+    worklet_output_path = os.path.join('build', 'yin-worklet.js')
+    if args.verbose: print(f"  3. Packaging src/yin-worklet.js -> {worklet_output_path}...")
+    build(os.path.join('src', 'yin-worklet.js'), worklet_output_path)
 
-    # Step 5: Read Yin class source
-    if args.verbose: print("  5. Reading Yin class source from yin.js...")
-    with open(yin_class_path, 'r') as f:
-        yin_class_code = f.read()
-
-    # Step 6: Embed worklet into Yin class
-    if args.verbose: print("  6. Embedding worklet into Yin class...")
-    worklet_escaped = worklet_code.replace('\\', '\\\\').replace('`', '\\`').replace('$', '\\$')
-
-    # Replace __WORKLET_CODE__ placeholder with escaped worklet code
-    built_class_code = yin_class_code.replace("__WORKLET_CODE__", worklet_escaped)
-    
-    load_wasm_method = """    async _loadWasmBytes() {
-        const response = await fetch('yin.wasm');
-        const bytes = await response.arrayBuffer();
-        return bytes;
-    }"""
-    built_class_code = built_class_code.replace(load_wasm_method, "")
-
-    # Step 7: Write output
-    if args.verbose: print(f"  7. Writing final output to {output_path}...")
-    with open(output_path, 'w') as f:
-        f.write(built_class_code)
-
-    if args.verbose: print(f"-- {output_path} (re)built")
+    if args.verbose: print(f"-- {worklet_output_path} (re)built")
 
 
 if args.font:
@@ -288,9 +253,6 @@ export {pianoSamples}
       except OSError:
         pass
 
-if args.yin:
-    build_yin(args)
-
 # Define Packager class (used by both --podium and --ext builds)
 import shutil
 
@@ -345,13 +307,18 @@ class Packager(object):
                         stringName = line.split()[-1] ;
                         self.deflateAs(stringName, includedFilePath, outFileObj) ;
                     elif "b64gzip" in line:
-                        self.b64gzip(includedFilePath, outFileObj) 
+                        self.b64gzip(includedFilePath, outFileObj)
                     elif "urlBlob" in line:
                         urlName = line.split()[-1] ;
                         outFileObj.write(f"\n\nfunction {urlName}_func() {{\n") ;
                         shutil.copyfileobj(includedFileObj, outFileObj)
                         outFileObj.write("}\n") ;
                         outFileObj.write(f'let {urlName} = window.URL.createObjectURL(new Blob(["(" + {urlName}_func.toString() + ")"], {{type: "text/javascript"}}));\n');
+                    elif "as" in line.split()[3:]:
+                        varName = line.split()[-1] ;
+                        content = includedFileObj.read()
+                        escaped = content.replace('\\', '\\\\').replace('`', '\\`').replace('$', '\\$')
+                        outFileObj.write(f'{varName} = `{escaped}`;\n')
                     else:
                         shutil.copyfileobj(includedFileObj, outFileObj)
                 continue 
@@ -445,6 +412,9 @@ def build(inFileName, outFileName):
     with open(inFileName) as inFileObj:
         with open(outFileName,"w") as outFileObj:
             Packager(inFileName, inFileObj, outFileObj)
+
+if args.yin:
+    build_yin(args)
 
 if args.podium:
     # Build 1-file, all-included version of podium as "build/podium.html":

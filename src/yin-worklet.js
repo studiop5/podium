@@ -1,5 +1,6 @@
-// YIN Worklet template
-let WASM_BASE64 = "__WASM_BASE64_PLACEHOLDER__";
+// YIN Worklet
+let WASM_BASE64;
+// #include build/yin-wasm.b64 as WASM_BASE64
 
 class PitchDetectorWorklet extends AudioWorkletProcessor {
   constructor() {

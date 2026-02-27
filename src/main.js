@@ -57,9 +57,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
 // #include src/smufl.js minified
 // #include src/panel.js minified
 // #include src/file.js minified
-// #include build/yin.js
+// #include src/yin.js minified
 // #include src/tool.js minified
-// #include src/pasteBuffer.js minifiedqy
+// #include src/pasteBuffer.js minified
 async function main() {
 
   // Initialize theme from localStorage

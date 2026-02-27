@@ -7,12 +7,38 @@ notes
 .aider*
 CLAUDE.md
 
-# Extension build artifacts (keep static files: podium.html, manifest.json, background.js, README.md)
-# ext/src/ext.js is the real extension code, checked in; other ext/src/ files are copied from src/
-ext/build/
-ext/src/*
-!ext/src/ext.js
-ext/lib/
-ext/icons/
-ext/WEBSTORE.md
-ext/test-*
+# Claude memory
+.claude/
+
+# Python venv inside font/
+font/bravura-env/
+
+# Temporary / backup files
+*.old.js
+*.good.js
+src/#*
+src/.#*
+build.py.good
+
+# Dev artifacts
+shots/
+video/
+yin/
+test/
+test-js/
+ext.old/
+src/lib/
+src/manifest.webmanifest
+src/sw.js
+src/video.js
+
+# Unminified library copies
+lib/fabric.js
+lib/pdf-lib.js
+
+# AI review / notes files
+GEMINI.md
+CLAUDE_REVIEW.md
+CODE_REVIEW*.md
+DOCS_NOTES.md
+QUICK_TEST*
