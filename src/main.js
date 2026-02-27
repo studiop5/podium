@@ -123,7 +123,7 @@ async function main() {
     listen(_body_, "wheel", (e) => {
       e.preventDefault();
       if (e.ctrlKey) {
-        let dXY = Math.sign(e.wheelDelta) / 10;
+        let dXY = -Math.sign(e.deltaY) / 100;
         if (e.shiftKey) dXY /= 10; // fine sizing mode
         for (let target of _pzTarget_ == _body_ ? document.getElementsByClassName("pz") : [_pzTarget_]) {
           let fontSize = parseFloat(target.style.fontSize)  || 1 ;

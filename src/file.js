@@ -575,21 +575,15 @@ class CachedSrc extends FileSrc {
         let timeout = (performance.now() / 1000) + this.authTimeout; 
 
         _shade_.show("Authorizing");
-        let popup = this.authPopupOpen(`${this.authUrl}?client_id=${this.clientId}&scope=${this.scopes}&response_type=code&redirect_uri=${this.redirectUri}&code_challenge_method=S256&code_challenge=${challenge}&state=${state}${this.extraAuthParams}`);
+        let fullUrl = `${this.authUrl}?client_id=${this.clientId}&scope=${encodeURIComponent(this.scopes)}&response_type=code&redirect_uri=${encodeURIComponent(this.redirectUri)}&code_challenge_method=S256&code_challenge=${challenge}&state=${state}${this.extraAuthParams}`;
 
         // Return a promise...it runs the "oauth2 PKCE flow for single page web apps":
-        // Repeatedly poll the popup window just opened, looking for a code on the url of
-        // the popup.  Until that code is received, trying to read the url will raise
-        // a security error.  That's OK...we just keep poll'ing until it doesn't, at
-        // which time we know we have the code (or we know that the user has closed
-        // the popup). Once we have the code, we'll call exchange to trade the code
-        // for an auth token.
         return new Promise((resolve, reject) => {
             // exchange code for tokens
-            let exchange = async (code) => {
+            let exchange = async (code, redirectUri) => {
                 const params = new URLSearchParams();
                 params.append('client_id', this.clientId);
-                params.append('redirect_uri', this.redirectUri);
+                params.append('redirect_uri', redirectUri);
                 params.append('code', code);
                 params.append('code_verifier', plainChallenge);
                 params.append('grant_type', 'authorization_code');
@@ -606,16 +600,53 @@ class CachedSrc extends FileSrc {
                 }
             };
 
+            // Extension-specific authentication using launchWebAuthFlow
+            if (window.chrome && chrome.identity && chrome.runtime?.id) {
+                const extRedirectUri = chrome.identity.getRedirectURL();
+                fullUrl = fullUrl.replace(encodeURIComponent(this.redirectUri), encodeURIComponent(extRedirectUri));
+
+                chrome.identity.launchWebAuthFlow({ url: fullUrl, interactive: true }, async (responseUrl) => {
+                    _shade_.pop();
+                    if (chrome.runtime.lastError || !responseUrl) {
+                        return reject(new Error(chrome.runtime.lastError?.message || "Authentication failed or was cancelled.", { cause: "cancelled" }));
+                    }
+                    try {
+                        const url = new URL(responseUrl);
+                        const code = url.searchParams.get("code");
+                        const respState = url.searchParams.get("state");
+                        if (respState != state) throw new Error("CSRF attempt blocked.");
+
+                        this.tokens = await exchange(code, extRedirectUri);
+
+                        let now = performance.now() / 1000;
+                        this.tokens.expiry = now + this.tokens.expires_in;
+                        if(this.tokens.refresh_token)
+                            this.tokens.refresh_expiry = now  + (this.tokens.refresh_token_expires_in || this.refreshExpiry);
+                        resolve();
+                    } catch (e) {
+                        reject(e);
+                    }
+                });
+                return;
+            }
+
+            let popup = this.authPopupOpen(fullUrl);
+
             // poll for code
             let poll = async () => {
                 try {
                     if (popup.closed) throw new Error("Authentication aborted");
                     let href = popup.location.href;
+                    let error = this.getQuery(href, "error=");
+                    if (error) {
+                        let errorMsg = this.getQuery(href, "error_description=") || error;
+                        throw new Error(`Authentication failed: ${decodeURIComponent(errorMsg).replace(/\+/g, " ")}`);
+                    }
                     let code = this.getQuery(href, "code=");
                     if (code) {
                         if(this.getQuery(href, "state=") != state)
                             throw new Error("Possible <i>Cross Site Request Forgery</i> attempt blocked.", {cause:"security"});
-                        this.tokens = await exchange(code);
+                        this.tokens = await exchange(code, this.redirectUri);
                         let now = performance.now() / 1000;
                         this.tokens.expiry = now + this.tokens.expires_in;
                         if(this.tokens.refresh_token) 
@@ -623,10 +654,10 @@ class CachedSrc extends FileSrc {
                         this.authPopupClose(popup);
                         return resolve();
                     }
-                } catch ({ name }) {
-                    if (name != "SecurityError") {
+                } catch (e) {
+                    if (e.name != "SecurityError") {
                         this.authPopupClose(popup);
-                        return reject(new Error("Authentication cancelled by user.", {cause: "cancelled"}));
+                        return reject(e);
                     }
                 }
                 if ((performance.now() / 1000) > timeout) {
@@ -813,7 +844,6 @@ class GDriveSrc extends CachedSrc {
     this.gisClient = null;
   }
 
-
   async loadGIS () {
     if (window.google && window.google.accounts && window.google.accounts.oauth2) return window.google;
     return new Promise((resolve, reject) => {
@@ -830,6 +860,41 @@ class GDriveSrc extends CachedSrc {
   async auth() {
     // If we already have a valid token, reuse it
     if (this.tokens && this.tokens.expiry > Date.now() / 1000) return;
+
+    // Extension-specific authentication using launchWebAuthFlow
+    if (window.chrome && chrome.identity && chrome.runtime?.id) {
+      return new Promise((resolve, reject) => {
+        const redirectUri = chrome.identity.getRedirectURL();
+        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+          `client_id=${this.clientId}&` +
+          `response_type=token&` +
+          `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+          `scope=${encodeURIComponent("https://www.googleapis.com/auth/drive")}`;
+
+        _shade_.show("Authorizing");
+        chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, (responseUrl) => {
+          _shade_.pop();
+          if (chrome.runtime.lastError || !responseUrl) {
+            reject(new Error(chrome.runtime.lastError?.message || "Authentication failed or was cancelled.", {cause:"cancelled"}));
+          } else {
+            // Parse the access token from the redirect URL hash
+            const url = new URL(responseUrl);
+            const params = new URLSearchParams(url.hash.substring(1));
+            const token = params.get("access_token");
+            if (token) {
+              this.tokens = {
+                access_token: token,
+                expiry: Date.now() / 1000 + parseInt(params.get("expires_in") || "3600"),
+              };
+              resolve();
+            } else {
+              reject(new Error("No access token returned from Google."));
+            }
+          }
+        });
+      });
+    }
+
     let google = await this.loadGIS();
 
     if (!this.gisClient) {
@@ -870,7 +935,6 @@ class GDriveSrc extends CachedSrc {
       this.gisClient.requestAccessToken();
     });
   }
-
 
   putCache(path, data) {
     super.putCache(path, data);
@@ -1097,11 +1161,11 @@ class DbxSrc (i.e. Dropbox)
 **/
 class DbxSrc extends CachedSrc {
   source = Score.sources.dbx;
-  authUrl = "https:/\/www.dropbox.com/oauth2/authorize";
+  authUrl = "https://www.dropbox.com/oauth2/authorize";
   extraAuthParams = "&token_access_type=offline";
   clientId = "erqcrdytyixn6h7";
-  scopes = encodeURIComponent("files.content.write files.content.read");
-  tokenUrl = "https:/\/api.dropbox.com/oauth2/token/";
+  scopes = "files.content.write files.content.read";
+  tokenUrl = "https://api.dropbox.com/oauth2/token/";
 
   filesUrl = "https:/\/api.dropboxapi.com/2/files/";
   contentUrl = "https:/\/content.dropboxapi.com/2/files/"; // for upload and download
@@ -1319,77 +1383,14 @@ class ODriveSrc (i.e. Microsoft OneDrive)
 class ODriveSrc extends CachedSrc {
   source = Score.sources.odrive;
   clientId = "b81faf82-539b-4759-bcc9-8fdac6c7ceba";
-  //  scopes = encodeURIComponent("files.readwrite.all offline_access");
-  //  tokenUrl = "https:/\/login.microsoftonline.com/consumers/oauth2/v2.0/token";
-  filesUrl = "https:/\/graph.microsoft.com/v1.0/me/drive/";
+  authUrl = "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
+  tokenUrl = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
+  scopes = "Files.ReadWrite.All offline_access";
+  filesUrl = "https://graph.microsoft.com/v1.0/me/drive/";
 
   constructor() {
     super();
-  }
-
-
-  async loadMSAL() {
-    if (window.msal) return window.msal;
-    return new Promise((resolve, reject) => {
-      let script = document.createElement("script");
-      script.src = "https://alcdn.msauth.net/browser/2.34.0/js/msal-browser.min.js";
-      script.async = true;
-      script.defer = true;
-      script.onload = () => resolve(window.msal);
-      script.onerror = () => reject(new Error("Failed to load MSAL.js"));
-      document.head.append(script);
-    });
-  }
-
-  async auth() {
-    if (this.tokens && this.tokens.expiry > Date.now() / 1000) return;
-  
-    const msal = await this.loadMSAL();
-  
-    if (!this.msalClient) {
-      this.msalClient = new msal.PublicClientApplication({
-        auth: {
-          clientId: this.clientId,
-          authority: "https://login.microsoftonline.com/consumers",
-          redirectUri: location.origin,
-        },
-        cache: { cacheLocation: "localStorage" }
-      });
-    }
-  
-    try {
-      const account = this.msalClient.getAllAccounts()[0];
-      let result;
-      if (account) {
-        try {
-          result = await this.msalClient.acquireTokenSilent({
-            scopes: [ "Files.ReadWrite.All", "offline_access" ],
-            account,
-          });
-        } catch (silentError) {
-          // If silent auth fails (token expired, interaction required), fall back to popup
-          if (silentError.errorCode == "interaction_required" ||
-              silentError.errorCode == "consent_required" ||
-              silentError.errorCode == "login_required") {
-            result = await this.msalClient.loginPopup({
-              scopes: [ "Files.ReadWrite.All", "offline_access" ],
-            });
-          } else {
-            throw silentError;
-          }
-        }
-      } else {
-        result = await this.msalClient.loginPopup({
-          scopes: [ "Files.ReadWrite.All", "offline_access" ],
-        });
-      }
-      this.tokens = {
-        access_token: result.accessToken,
-        expiry: Math.floor(Date.now()/1000) + (result.expiresIn || 3600),
-      };
-    } catch (err) {
-      throw new Error("OneDrive auth failed", { cause: "auth" });
-    }
+    this.tokens = null;
   }
 
 

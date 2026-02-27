@@ -946,7 +946,7 @@ function closeVideo(event, container) {
     </figure>
     <h3>Browser Tab Naming</h3>
 
-    <p>Podium can run in multiple browser tabs simultaneously, sharing a common <a href="#chapter-7-paste">page paste buffer</a> between them. Tabs of the web app (studiop5.org) share one paste buffer, and tabs of the browser extension share another — copying across these boundaries is not possible. To distinguish tabs, each is assigned a short musical identifier drawn from dynamics and solfege: <em>do, re, mi, fa, so, la, ti, ff, mf, mp, pp, sf</em>. When a score is loaded, the browser tab displays the score's file name; otherwise it shows <em>Podium</em> followed by the tab's identifier in parentheses — for example, <em>Podium (do)</em>. Extension tabs use square brackets instead — <em>Podium [do]</em> — so you can tell at a glance whether a tab is running the web app or the browser extension. In theory, up to 12 Podium tabs can be open at the same time. Keep in mind that each tab consumes additional browser memory and processing resources, so opening more than two or three can be impractical.</p>
+    <p>Podium can run in multiple browser tabs simultaneously, sharing a common <a href="#chapter-7-paste">page paste buffer</a> between them. Tabs of the web app (studiop5.org) share one paste buffer, and tabs of the browser extension share another — copying across these boundaries is not possible. To distinguish tabs, each is assigned a short musical identifier drawn from dynamics and solfege: <em>do, re, mi, fa, so, la, ti, ff, mf, mp, pp, sf</em>. When a score is loaded, the browser tab displays the score's file name; otherwise it shows <em>Podium</em> followed by the tab's identifier. In theory, up to 12 Podium tabs can be open at the same time. Keep in mind that each tab consumes additional browser memory and processing resources, so opening more than two or three can be impractical.</p>
 
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
@@ -1644,7 +1644,7 @@ function closeVideo(event, container) {
         <li><strong>Clear:</strong> Completely empties the paste buffer, removing all pages at once.</li>
     </ul>
 
-    <div class="note"><strong>Cross-Instance Sharing and Privacy:</strong> The paste buffer is shared by all instances of Podium running within the same browser origin. This means that all browser tabs and the installed Progressive Web App (PWA) share a single buffer, while the browser extension maintains its own separate one — copying across these boundaries is not possible. The buffer persists even if you close your score or restart the browser. <strong>If you share a browser with others</strong> and are concerned with privacy, you should clear the paste buffer after your session. Note that if you use both the web app and the extension, you must clear each buffer separately.</div>
+    <div class="note"><strong>Cross-Instance Sharing and Privacy:</strong> The paste buffer is shared by all instances of Podium running in any browser tab or window. It persists even if you close a score and reopen another in the same tab, or close and restart the browser entirely. <strong>If you share a browser with others</strong> and are concerned with privacy, you should clear the paste buffer after your Podium session using the <strong>Clear</strong> button in the Paste Panel, or by tapping the <strong>Buffer</strong> button in the <a href="#chapter-8-storage">App Ring: Storage panel</a>.</div>
 
     <h4>Primary Use Case: Practice Scores</h4>
 
@@ -1771,7 +1771,7 @@ function closeVideo(event, container) {
 
     <p>Where available, the panel also displays a refreshable set of storage statistics useful for developers.</p>
 
-    <div class="note"><strong>Privacy:</strong> If you share a browser with other users, use the factory reset buttons to clear information you don't want to share after your session. This includes recent file lists, paste buffer contents, and menu settings. Note that the web app and the browser extension maintain separate storage; if you use both, you must use these reset buttons in both environments to clear all your data.</div>
+    <div class="note"><strong>Privacy:</strong> If you share a browser with other users, use the factory reset buttons to clear information you don't want to share after your session. This includes recent file lists, paste buffer contents, and menu settings that may reveal your activity.</div>
 
     <h3 id="chapter-8-guide">8.3 App Ring: Guide</h3>
 
@@ -2182,7 +2182,6 @@ function closeVideo(event, container) {
         <dt>Review</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Roman numerals</dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
         <dt>Rotating rings</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
-        <dt>Running Podium</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
     </dl>
     <div class="idx-letter">S</div>
     <dl>
