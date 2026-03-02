@@ -101,6 +101,9 @@
             border-radius: 8px;
             margin: 2em 0;
         }
+        .overture h2 {
+            margin-top: 0;
+        }
 
         .overture ul {
             list-style: none;
@@ -492,15 +495,15 @@ function closeVideo(event, container) {
     <p><strong>Podium is:</strong></p>
     <ul>
         <li>An e-reader for music scores.</li>
-        <li>100% browser-based, 100% open-source, 100% free!</li>
+        <li>100% browser-based, 100% open-source, 100% free.</li>
         <li>No login, no onboarding, no file importing, just use it! No installation required.</li>
         <li>Unique UI featuring a circular menu and multiple layouts.</li>
-        <li>Not a music library: works with PDF files stored locally or in the cloud. Users are responsible for ensuring they have the right to use any score files opened in Podium.</li>
+        <li>Not a music library: works with PDF files stored locally or in the cloud.</li>
         <li>Extensive annotation support.</li>
     </ul>
     <p><strong>...that runs on:</strong></p>
     <ul>
-        <li>Laptops, Chromebooks, tablets, smartphones: anything with a browser!</li>
+        <li>Desktops, Laptops, Chromebooks, tablets, smartphones: anything with a browser!</li>
     </ul>
     <p><strong>...with input devices:</strong></p>
     <ul>
@@ -512,6 +515,7 @@ function closeVideo(event, container) {
         <li>Metronome with animated conducting baton.</li>
         <li>Piano keyboard with integrated tuner.</li>
         <li>Audio/video recorder with instant replay.</li>
+        <li>Realistic stopwatch and clock.</li>
     </ul>
     <p><strong>...url:</strong><br>
     <a href="https://studiop5.org/podium" target="_blank">https://studiop5.org/podium</a></p>
@@ -726,17 +730,21 @@ function closeVideo(event, container) {
 
     <p>However, installation may be desirable in certain situations, especially when using Podium in performance where internet connectivity cannot be assumed.</p>
 
+    <p><strong>Offline use.</strong> After your first visit, Podium stores itself on your device automatically, so it can open and run without an internet connection, even without explicit installation. However, if you plan to use Podium offline, for example in performance, <strong>installing it is strongly recommended</strong>. Without explicit installation, the browser may quietly discard the stored copy when it needs space or when you clear your browsing history, leaving you without Podium when you need it most.</p>
+
+    <p>Installing as a <strong>browser extension</strong> or <strong>PWA</strong> makes Podium a permanent resident on your device. The extension, being fully self-contained, is the most robust option for offline use on desktop. A PWA install is equally reliable on Android, desktop, and Chromebook. The one exception is iPhone and iPad: even as an installed PWA, the system may occasionally require an internet connection after a long period of inactivity — simply open Podium every now and then to keep it fresh.</p>
+
+    <p>Keep in mind that only scores you have stored locally will be available offline; scores in cloud storage require an internet connection to open. Podium is remarkably compact: the storage it uses on your device is roughly equivalent to two photos from a typical smartphone camera.</p>
+
     <h3>Browser Extension</h3>
 
-    <p>Podium can be installed as a browser extension in supported desktop browsers (Chrome, Edge, and similar browsers). Once installed, tap the Podium extension icon and tap "Launch Podium" to open the app directly. Scores can then be loaded in the usual way. The extension also provides additional ways to open scores:</p>
+    <p>Podium can be installed as a browser extension in supported desktop browsers (Chrome, Edge, and similar browsers). After installation, the Podium icon will be available under the browser's extensions menu — the puzzle piece icon in the toolbar. We recommend pinning it straight away for easy access: tap the puzzle piece, find Podium in the list, and tap the pin icon next to it. Once pinned, tap the Podium icon in the toolbar and tap "Launch Podium" to open the app directly. Scores can then be loaded in the usual way. The extension also provides additional ways to open scores:</p>
 
     <p><strong>Context Menu.</strong> Right-click any PDF link on a web page and select "Open with Podium" or "Open with Podium (New Tab)." This works immediately for most PDF links. For IMSLP scores, it works seamlessly if you are logged in to your IMSLP account. If you are not logged in, the link opens normally so you can complete IMSLP's disclaimer, login, or wait process in the browser.</p>
 
-    <p><strong>Import Current Tab.</strong> If your browser is displaying a PDF&mdash;whether from IMSLP, Musopen, or any other source&mdash;tap the Podium extension icon. If a PDF is detected, an "Open in Podium" button appears at the top of the popup. Tap it to import the score into Podium. The first time you use this feature, the browser will ask you to grant URL access permission so that the extension can fetch the PDF on your behalf. This permission is retained and not requested again.</p>
+    <p><strong>Import Current Tab.</strong> If your browser is displaying a PDF&mdash;whether from IMSLP, Musopen, or any other source&mdash;tap the Podium icon in the toolbar. If a PDF is detected, an "Open in Podium" button appears at the top of the popup. Tap it to import the score into Podium. The first time you use this feature, the browser will ask you to grant URL access permission so that the extension can fetch the PDF on your behalf. This permission is retained and not requested again.</p>
 
     <p>Since the extension works both online and offline, it's ideal for performance situations where you can't rely on an internet connection. The extension maintains its own recent list of scores opened via "Open with Podium", allowing you to reopen them with a single tap.</p>
-
-    <div class="note">Pin the Podium extension to your browser toolbar for easier access. In Chrome, tap the puzzle piece icon in the toolbar and pin Podium.</div>
 
     <p>The extension provides direct integration with online score libraries, including <a href="https://www.musopen.org">Musopen</a> and <a href="https://imslp.org">IMSLP</a>. For IMSLP, logging in to your account provides the best experience&mdash;scores open instantly in Podium with no intermediate pages. Please support this invaluable resource for musicians by becoming an IMSLP member. Musopen works without a subscription, but consider supporting their mission to provide free music resources.</p>
 
@@ -758,9 +766,11 @@ function closeVideo(event, container) {
         <figcaption>Chrome address bar showing Podium icon and "Open in app" prompt (Linux)</figcaption>
     </figure>
 
-    <p><strong>Android (Chrome):</strong> Chrome may display an install banner at the bottom of the screen. If not, tap the browser menu (three dots) and select "Add to Home Screen" or "Install App".</p>
+    <p><strong>Android (Chrome):</strong> Tap the browser menu (three dots) and select <strong>Add to Home Screen</strong>. A popup will offer two options: choose <strong>Install</strong> (not "Create shortcut") for the full PWA experience with the correct icon and offline support. Podium will appear in your apps drawer, where you can add it to your home screen in the usual way.</p>
 
-    <p><strong>iPhone/iPad (Safari only):</strong> Apple does not display install prompts for PWAs. Instead, open Podium in Safari, tap the Share button (square with arrow), then tap "Add to Home Screen". Note: Chrome and other browsers on iPhone/iPad cannot install PWAs due to platform restrictions. Also note that if the PWA is not used for an extended period, iPhone/iPad may require an internet connection on next launch and settings such as menu preferences may be reset. To prevent this, simply open Podium occasionally.</p>
+    <p><strong>iPhone/iPad (Safari only):</strong> Apple does not display install prompts for PWAs, and only Safari supports PWA installation — Chrome and other browsers on iPhone/iPad cannot install PWAs. Open Podium in Safari, tap the <strong>Share button</strong> (box with arrow, at the bottom of the screen), scroll down in the share sheet and tap <strong>"Add to Home Screen"</strong>, then tap <strong>"Add"</strong>. Also note that if the PWA is not used for an extended period, iPhone/iPad may require an internet connection on next launch and settings such as menu preferences may be reset. To prevent this, simply open Podium occasionally.</p>
+
+    <div class="note">A significant advantage of the PWA over running Podium in a browser tab is that it always occupies the full screen with no browser toolbar, address bar, or other distractions — a clean, app-like experience unique to the PWA. As a result, the Screen button and the full-screen swipe gesture have no effect when running as a PWA, since Podium is already in full screen.</div>
 
     <div class="note">Naturally, when offline, only locally stored scores can be accessed.</div>
 
@@ -807,7 +817,7 @@ function closeVideo(event, container) {
             <td>PWA install</td>
             <td class="yes">Full</td>
             <td class="no">N/A</td>
-            <td class="yes">Full</td>
+            <td class="partial">iOS: Full. macOS Sonoma or later only.</td>
         </tr>
         <tr>
             <td>Cloud storage</td>
@@ -817,9 +827,9 @@ function closeVideo(event, container) {
         </tr>
         <tr>
             <td>Offline use</td>
-            <td class="yes">Full</td>
-            <td class="yes">Full</td>
-            <td class="partial">iPhone/iPad: may need internet after long inactivity</td>
+            <td class="yes">Works in browser tab; PWA install recommended for reliability</td>
+            <td class="yes">Works in browser tab; PWA install recommended for reliability</td>
+            <td class="partial">Works in browser tab; PWA install recommended. iPhone/iPad: cache may expire after long inactivity.</td>
         </tr>
     </table>
     <p>For the best experience, <strong>Chrome, Edge, or similar browsers</strong> are recommended.</p>
@@ -2244,6 +2254,7 @@ function closeVideo(event, container) {
 <footer style="margin-top:3em;padding:2em 1em;border-top:1px solid #ccc;font-size:.75em;color:#888;text-align:center;">
     <p>Copyright &copy; 2025 Glendon Diener. This document is part of the Podium project, licensed under the <a href="https://www.gnu.org/licenses/agpl-3.0-standalone.html" target="_blank">GNU Affero General Public License v3</a>.</p>
     <p>All product names, logos, and brands mentioned in this document are property of their respective owners and are used for identification purposes only.</p>
+    <p>Users are responsible for ensuring they have the right to use any score files opened in Podium.</p>
 </footer>
 
 </body>
