@@ -425,15 +425,15 @@ if args.podium:
     if args.verbose: print('Generating PWA icons...')
     os.makedirs('build/icons', exist_ok=True)
 
-    # Use the same SVG as the extension, but with white background and 20% safe zone padding for maskable icons.
+    # Use the same SVG as the extension, but with solid background and 20% safe zone padding for maskable icons.
     # the piano_glyph is the stylized music symbol "p": 
     piano_glyph_path = "M274 274C243 274 221 264 203 248C189 236 186 228 182 228C177 228 180 235 171 252C164 264 149 273 123 273C64 273 32 231 1 174C-4 165 -6 160 -6 155C-6 148 -1 144 5 144C12 144 16 150 21 159C50 209 70 235 88 235C96 235 99 230 99 223C99 215 96 205 93 198L-30 -107C-33 -115 -35 -117 -45 -117H-76C-85 -117 -89 -121 -89 -130C-89 -138 -85 -142 -77 -142H116C125 -142 129 -138 129 -129C129 -121 125 -117 117 -117H77C71 -117 68 -117 68 -114C68 -113 69 -110 70 -107L115 5C117 10 119 17 124 17C129 17 132 7 148 -1C162 -8 175 -10 192 -10C288 -10 366 90 366 185C366 243 330 274 274 274ZM247 237C264 237 270 222 270 200C270 151 217 24 169 24C152 24 144 35 144 56C144 77 152 97 163 125L183 174C197 208 223 237 247 237Z"
 
     # PWA icon with maskable safe zone (80% size centered = 20% padding)
     podium_icon_svg = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="{size}" height="{size}">
-  <rect width="24" height="24" fill="#ffffff"/>
+  <rect width="24" height="24" fill="#2d3748"/>
   <g transform="translate(2.4, 2.4) scale(0.8)">
-    <path fill="#aaaaaa" stroke="#000" stroke-width=".6" stroke-linejoin="round"
+    <path fill="#aaaaaa" stroke="#fff" stroke-width=".6" stroke-linejoin="round"
       d="M4 23v-3h16v3h1.5h-19Z M7 20v-14h10v14 M7 12h-2l-3 -10 h20l-3 10h-2"/>
     <path fill="#000" transform="translate(9.8, 13.5) scale(0.015, -0.015)" d="''' + piano_glyph_path + '''"/>
   </g>
@@ -458,7 +458,7 @@ if args.podium:
                 svg_file = f'build/icons/icon{size}.svg'
                 with open(svg_file, 'w') as f:
                     f.write(svg_content)
-                os.system(f'convert -background white {svg_file} -resize {size}x{size} -type TrueColor build/icons/icon{size}.png 2>/dev/null')
+                os.system(f'convert -background "#2d3748" {svg_file} -resize {size}x{size} -depth 8 -type TrueColor build/icons/icon{size}.png 2>/dev/null')
                 os.remove(svg_file)
             pwa_icons_generated = True
             if args.verbose: print('  Generated PWA icons using ImageMagick')

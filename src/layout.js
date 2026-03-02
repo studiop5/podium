@@ -1511,8 +1511,9 @@ class ScrollLayout extends Layout {
         }
         // Determine direction from last movement, or from tap position
         let dir;
-        if (eup.timeStamp - e.timeStamp < 500 && buf.length == 0) {
-          // Tap with no drag — direction based on which half was tapped
+        let totalTravel = buf.length > 0 ? Math.abs(buf[buf.length - 1].x - buf[0].x) : 0;
+        if (eup.timeStamp - e.timeStamp < 500 && totalTravel < 10) {
+          // Tap (or mobile micro-movement tap) — direction based on which half was tapped
           dir = eup[CLIENTX] > frameBox[X] + frameBox[WIDTH] / 2 ? "left" : "right";
           // Nudge sash off the exact boundary so pgSnapTo's ceil/floor will advance
           this.sashStart += (dir == "left" ? -1 : 1);

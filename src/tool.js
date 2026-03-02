@@ -265,7 +265,7 @@ class Piano {
       `<div class="Piano__button-holder" style="right: calc(50% + 6em)">
         ${iconSvg("Pedal", { tag: "pedal", class: "Piano__button" })}</div>`);
     let pedalUpButton = helm(
-      `<div class="Piano__button-holder" style="right: calc(50% + 9em)">
+      `<div class="Piano__button-holder" style="right: calc(50% + 6em)">
         ${iconSvg("Pedal Up", {tag: "pedalup", class: "Piano__button" })}</div>`);
 
     this.panel.header.append(pedalDownButton);
@@ -462,7 +462,7 @@ class Piano {
       if(note && (force || !(this.sustaining || this.tuning)))  {
         note.envelope.gain.setTargetAtTime(0, actx.currentTime, 0.015);
         this.activeNotes.delete(tag);
-        schedule(15, () => note.source.stop());
+        schedule(100, () => note.source.stop());
       }
     }
 
@@ -513,10 +513,13 @@ class Piano {
         // dampen the note just before it repeats
         this.damper.run(piano ? 2200:7500, () => envelope.gain.setTargetAtTime(0.0, now, 0.015));
       }
-      else envelope.gain.setTargetAtTime(1.0, now,  0.015); 
+      else {
+        if (!piano) envelope.gain.setValueAtTime(0, now);
+        envelope.gain.setTargetAtTime(1.0, now, 0.005);
+      }
 
       // Don't allow same note to sound more than once
-      if(this.activeNotes.has(midiOffset)) 
+      if(this.activeNotes.has(midiOffset))
         noteOff(midiOffset, true);
       // Trim activeNotes to current "voices" setting
       while(this.activeNotes.size > this.cell.stash["voices"] - 1) noteOff(this.activeNotes.keys().next().value, true);

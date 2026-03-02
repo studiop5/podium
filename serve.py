@@ -13,6 +13,7 @@ MIME_MAP = {
    ".png": "image/png",
    ".jpg": "image/jpeg",
    ".webm": "video/webm",
+   ".webmanifest": "application/manifest+json",
 }
 
 logger = logging.getLogger(__name__)
