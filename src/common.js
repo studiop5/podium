@@ -1168,7 +1168,7 @@ class Shade {
       align-items: center;
       justify-content: center;
       position: absolute;
-      z-index: 100000;
+      z-index: 999999999;
       }
       .Shade__body {
        font-family: Bravura;
@@ -2197,7 +2197,7 @@ function toast(innerHtml) {
   // @param innerHtml the html content of the toast.
   let elm = helm(
     `<div style="position:absolute;display:flex;justify-content:center;align-items: center;height: 100vh;width:100vw;">
-       <div class="floatingMsg" style="z-index:1000;position:absolute;width:fit-content;height:fit-content;opacity:0;transition:opacity ${_gs_}ms ease-in">${innerHtml}</div>
+       <div class="floatingMsg" style="z-index:999999998;position:absolute;width:fit-content;height:fit-content;opacity:0;transition:opacity ${_gs_}ms ease-in">${innerHtml}</div>
      </div>`
   );
   _body_.append(elm);

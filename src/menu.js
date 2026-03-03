@@ -24,7 +24,7 @@ import { animate, clamp, css, dataIndex, delay, delayMs, flung, fontMap, getBox,
 import { checkUnsaved, FileSrc } from "./file.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
-import { panels } from "./panel.js";
+import { Panel, panels } from "./panel.js";
 import { Grid, Score } from "./score.js";
 
 export { Menu };
@@ -784,6 +784,7 @@ class Menu {
 
   opDown(e) {
     if (e.ctrlKey || e.shiftKey) return;
+    this.elm.style.zIndex = ++Panel._zTop;
     let op = this.op;
     op.schedule.cancel();
     let keys = e.target.dataset.key || "grip";
