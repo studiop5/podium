@@ -52,7 +52,7 @@ import { Layout } from "./layout.js";
 import { Pg, Score } from "./score.js";
 import { smuflTable } from "./smufl.js";
 import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
-export { panels };
+export { Panel, panels };
 
 // -skip
 
@@ -301,6 +301,7 @@ class Panel {
     reflow();
     elm.style.fontSize = fontSize;
     _pzTarget_ = elm;
+    elm.style.zIndex = ++Panel._zTop;
     return this;
   }
 
