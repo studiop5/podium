@@ -2121,7 +2121,7 @@ class PrintPanel extends Panel {
     // its opened on a new score.  BUG, todo: should also reset when
     // pg's are added or removed
     let scoreLength = _score_.pgs.length;
-    let props = { first: 1, last: scoreLength };
+    let props = { first:pnToString(1), last: pnToString(_score_.pgs.length)};
 
     cell = _menu_.rings.page.cells.numbers; // for pnToString
     let buttons = new ButtonGroup(
@@ -2130,39 +2130,19 @@ class PrintPanel extends Panel {
         Ink: { svg: "Ink" },
         "No Ink": { svg: "No Ink" },
       },
-      async (e, prop, tag) => {
-        let printWin = null;
-        let dataUrl = null;
+      async (e, tag, value) => {
+        // Open window now, before any awaits, while transient activation is live (iOS Safari)
+        let printWin = window.open('about:blank');
         try {
           _shade_.show("Preparing to print");
           let pns = [];
           for(let i = props.first; i <= props.last; i++)
             pns.push(i);
-
-          let data = await _score_.toPdf(tag == "Ink" ? "pdf" : "none", false, pns);
-          if (!data || data.byteLength == 0) throw new Error("PDF data empty");
-
-          dataUrl = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
-
-          // Try to open the print window automatically. This usually works on
-          // desktop if the PDF generation was fast enough.
-          printWin = window.open(dataUrl, "_blank");
-          
-          if (!printWin || printWin.closed || typeof printWin.closed == 'undefined') {
-            // Popup blocked (standard for iOS Safari after an await).
-            // Show a dialog to provide a fresh user gesture.
-            _shade_.hide();
-            dialog("Your PDF is ready to print.", { "Open PDF": { svg: "Ink" } }, (e, prop, tag, args) => {
-               window.open(dataUrl, "_blank");
-               args.close();
-            });
-          } else {
-            // Success! PDF opened in new tab. Hide shade and try to trigger print.
-            _shade_.hide();
-            setTimeout(() => {
-                try { if (!printWin.closed) printWin.print(); } catch(err) {}
-            }, 1000);
-          }
+          let data = await _score_.toPdf(value == "Ink" ? "pdf" : "none", false, pns);
+          if (!printWin || printWin.closed) throw new Error("popup blocked");
+          let dataUrl = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
+          printWin.location.href = dataUrl;
+          printWin.print();
         }
         catch(error) { printWin?.close(); toast("Print cancelled");}
         finally {
