@@ -1384,6 +1384,7 @@ class MetronomePanel extends Panel {
     cell.stash.state = "Pause";
     this.patterns.value = cell.stash.pattern;
     let metronome = (this.metronome = new Metronome(this));
+    Object.assign(metronome, this.cell.stash);
     delay(2, () => (metronome.bpm.textContent = this.cell.stash.tempo));
 
     listen(this.patterns, ["input", "change"], (e) => {
@@ -1413,6 +1414,7 @@ class MetronomePanel extends Panel {
           max: 220,
           step: 1,
           msg: "Tempo: {value} bpm",
+          value: 60,
           throttle: 200,
         },
       },
@@ -2129,17 +2131,21 @@ class PrintPanel extends Panel {
         "No Ink": { svg: "No Ink" },
       },
       async (e, tag, value) => {
+        // Open window now, before any awaits, while transient activation is live (iOS Safari)
+        let printWin = window.open('about:blank');
         try {
           _shade_.show("Preparing to print");
           let pns = [];
           for(let i = props.first; i <= props.last; i++)
             pns.push(i);
           let data = await _score_.toPdf(value == "Ink" ? "pdf" : "none", false, pns);
+          if (!printWin || printWin.closed) throw new Error("popup blocked");
           let dataUrl = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
-          window.open(dataUrl).print();
+          printWin.onload = () => printWin.print();
+          printWin.location.href = dataUrl;
         }
-        catch(error) { toast("Print cancelled");}
-        finally { 
+        catch(error) { printWin?.close(); toast("Print cancelled");}
+        finally {
           _shade_.onCancel = null;
           _shade_.hide();
           this.close();

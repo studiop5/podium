@@ -1378,7 +1378,6 @@ class Metronome extends Surface {
     let tickPattern = this.beatPattern.ticks;
     let time = this.tickTime;
     time += 0.3; // adjust for skim
-    if(this.oscillator) this.oscillator.stop();
     this.oscillator = new OscillatorNode(this.actx, { frequency: tickPattern[tickCount % tickPattern.length] });
     // Note: gain value must not be 0
     this.gainNode.gain.exponentialRampToValueAtTime(Math.max(this.volumeStash.volume, 0.0000001), time + 0.001);
