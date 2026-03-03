@@ -221,7 +221,8 @@ css( // common css declarations.
     --slider-knob-bg: #b8b8b8;
     --slider-knob-selected-bg: #b0b0b0;
     --slider-knob-shadow: -0.1em -0.1em 0.2em #fff2 inset,
-                          0.1em 0.1em 0.2em #0001 inset;
+                          0.1em 0.1em 0.2em #0001 inset,
+                          0.1em 0.125em 0.2em #6668;
 
     /* Select dropdown colors */
     --select-option-bg: #fff;
@@ -346,7 +347,8 @@ css( // common css declarations.
     --slider-knob-bg: #2c2c2c;
     --slider-knob-selected-bg: #404040;
     --slider-knob-shadow: -0.1em -0.1em 0.2em #fff1 inset,
-                          0.1em 0.1em 0.2em #0003 inset;
+                          0.1em 0.1em 0.2em #0003 inset,
+                          0.1em 0.125em 0.2em #000a;
 
     /* Select dropdown colors - dark theme */
     --select-option-bg: #1a1a1a;
@@ -909,6 +911,7 @@ class PodiumSlider extends HTMLElement {
        background: var(--slider-knob-bg);
        background-image: var(--panTexture);
        box-shadow: var(--slider-knob-shadow);
+       filter: none; /* iOS: suppress raisedEdge filter; drop shadow is in box-shadow instead */
      }
      .Slider__knob-selected {
        background: var(--slider-knob-selected-bg);
@@ -1004,10 +1007,11 @@ class PodiumSlider extends HTMLElement {
         this.dispatchEvent(ein);
       });
 
-      listen(
+      let done = listen(
         this.knob,
-        "pointerup",
+        ["pointerup", "pointercancel"],
         (eup) => {
+          unlisten(done);
           e.stopImmediatePropagation();
           unlisten(mv);
           this.adjusting = false;
@@ -1016,9 +1020,8 @@ class PodiumSlider extends HTMLElement {
           this.knob.classList.remove("Slider__knob-selected");
           this.indicator.classList.remove("Slider__knob__indicator-active");
           // notify listeners that slider is finished
-          this.dispatchEvent(new Event("change", { bubbles: true }));
-        },
-        { once: true }
+          this.dispatchEvent(new Event("change", { bubbles: true })); 
+        }
       );
     });
   }
@@ -2068,6 +2071,7 @@ css(
       position: absolute;
       width: fit-content;
       height: fit-content;
+      pointer-events: none;
       transition: opacity ease-out ${_gsgs_}ms;
       z-index: var(--z-topmost);
       background-color: var(--bodyColor);
@@ -2129,16 +2133,16 @@ function ptrMsg(e, msgFunc, styles) {
 
   let mv = listen(_body_, "pointermove", (emv) => put(emv));
 
-  listen(
+  let done = listen(
     _body_,
     ["pointerup", "pointercancel"],
     (eup) => {
+      unlisten(done);
       put(eup);
       div.style.opacity = 0;
       delay(_gsgs_, () => div.remove());
       unlisten(mv);
-    },
-    { once: true }
+    }
   );
   return div;
 }

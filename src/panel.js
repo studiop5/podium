@@ -2282,8 +2282,10 @@ class PastePanel extends Panel {
         buttons.defs.Clear.disabled = false;
       }
       else {
-        _menu_.enableCells("page/paste",false)
-        buttons.defs.Undo.disabled = true ;
+        _menu_.enableCells("page/paste", false);
+        if (_menu_.activeRing?.activeCell === _menu_.rings.page.cells.paste)
+          _menu_.activateCell(null);
+        buttons.defs.Undo.disabled = true;
         buttons.defs.Clear.disabled = true;
       }
       buttons.refresh() ;
