@@ -480,7 +480,8 @@ class CachedSrc extends FileSrc {
         if (i == -1) return null;
         let value = url.substring(i + key.length);
         i = value.indexOf("&");
-        return i == -1 ? value : value.substring(0, i);
+        value = i == -1 ? value : value.substring(0, i);
+        try { return decodeURIComponent(value); } catch(e) { return value; }
     }
 
     /**
@@ -550,12 +551,27 @@ class CachedSrc extends FileSrc {
             }
         }
 
+        // Sync check: if access token is still valid, nothing to do
         if(this.tokens) {
             let now = performance.now() / 1000;
             if(this.tokens.expiry > now) return Promise.resolve();
-            if(this.tokens.refresh_token && this.tokens.refresh_expiry > now) {
+        }
+
+        // Detect extension context (uses launchWebAuthFlow, not window.open)
+        let isExtension = window.chrome && chrome.identity && chrome.runtime?.id;
+
+        // Non-extension only: open popup NOW before any awaits.
+        // iOS Safari requires window.open() to be called with transient activation
+        // (synchronously from a user event); any await beforehand will block it.
+        let popup = isExtension ? null : this.authPopupOpen('about:blank');
+
+        // Try refresh token if available; close popup if it succeeds
+        if(this.tokens?.refresh_token) {
+            let now = performance.now() / 1000;
+            if(this.tokens.refresh_expiry > now) {
                 try {
                     await refreshAccessToken();
+                    popup?.close();
                     return Promise.resolve();
                 } catch(error) {
                     console.warn("Token refresh failed, using full auth.");
@@ -572,10 +588,11 @@ class CachedSrc extends FileSrc {
         let plainChallenge = getPlainChallenge();
         let challenge = base64UrlEncode(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(plainChallenge)));
         let state = getPlainChallenge();
-        let timeout = (performance.now() / 1000) + this.authTimeout; 
+        let timeout = (performance.now() / 1000) + this.authTimeout;
 
         _shade_.show("Authorizing");
         let fullUrl = `${this.authUrl}?client_id=${this.clientId}&scope=${encodeURIComponent(this.scopes)}&response_type=code&redirect_uri=${encodeURIComponent(this.redirectUri)}&code_challenge_method=S256&code_challenge=${challenge}&state=${state}${this.extraAuthParams}`;
+        if (popup) popup.location.href = fullUrl;
 
         // Return a promise...it runs the "oauth2 PKCE flow for single page web apps":
         return new Promise((resolve, reject) => {
@@ -601,11 +618,11 @@ class CachedSrc extends FileSrc {
             };
 
             // Extension-specific authentication using launchWebAuthFlow
-            if (window.chrome && chrome.identity && chrome.runtime?.id) {
+            if (isExtension) {
                 const extRedirectUri = chrome.identity.getRedirectURL();
-                fullUrl = fullUrl.replace(encodeURIComponent(this.redirectUri), encodeURIComponent(extRedirectUri));
+                const extFullUrl = fullUrl.replace(encodeURIComponent(this.redirectUri), encodeURIComponent(extRedirectUri));
 
-                chrome.identity.launchWebAuthFlow({ url: fullUrl, interactive: true }, async (responseUrl) => {
+                chrome.identity.launchWebAuthFlow({ url: extFullUrl, interactive: true }, async (responseUrl) => {
                     _shade_.pop();
                     if (chrome.runtime.lastError || !responseUrl) {
                         return reject(new Error(chrome.runtime.lastError?.message || "Authentication failed or was cancelled.", { cause: "cancelled" }));
@@ -630,9 +647,8 @@ class CachedSrc extends FileSrc {
                 return;
             }
 
-            let popup = this.authPopupOpen(fullUrl);
-
             // poll for code
+            let exchanging = false; // guard against concurrent exchange attempts
             let poll = async () => {
                 try {
                     if (popup.closed) throw new Error("Authentication aborted");
@@ -644,6 +660,8 @@ class CachedSrc extends FileSrc {
                     }
                     let code = this.getQuery(href, "code=");
                     if (code) {
+                        if (exchanging) return; // another poll already handling this code
+                        exchanging = true;
                         if(this.getQuery(href, "state=") != state)
                             throw new Error("Possible <i>Cross Site Request Forgery</i> attempt blocked.", {cause:"security"});
                         this.tokens = await exchange(code, this.redirectUri);
