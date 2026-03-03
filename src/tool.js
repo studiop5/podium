@@ -246,6 +246,7 @@ class Piano {
   constructor(panel, cell) {
     this.panel = panel;
     this.cell = cell;
+    this.userWidth = null;
     Object.assign(this, dataIndex("tag", this.elm));
     this.c4Elm = dataIndex("sample", this.elm)["60/0"];
 
@@ -321,6 +322,7 @@ class Piano {
           let minWidth = this.c4Elm.offsetWidth * 8.75; // minimum display - reduced for mobile
           let newWidth = clamp(e.offWidth + delta + delta, minWidth, this.keyboard.offsetWidth);
           this.panel.panel.style.width = pxToEm(newWidth, this.panel.elm);
+          this.userWidth = newWidth;
         });
 
         listen(
@@ -798,8 +800,9 @@ class Piano {
       let minWidth = keyWidth * minKeyCount;
       let maxWidth = this.keyboard.offsetWidth; // full keyboard
 
-      // Start with minimum width, let user expand with stretcher if they want more keys
-      let panelWidth = Math.min(minWidth, maxWidth);
+      // Use user-adjusted width if set (preserved across fling-hide/reopen),
+      // otherwise start with minimum width
+      let panelWidth = this.userWidth !== null ? this.userWidth : Math.min(minWidth, maxWidth);
 
       this.panel.panel.style.width = pxToEm(panelWidth, this.panel.elm);
     });
@@ -1835,8 +1838,12 @@ class Review {
     // Build widgets for Options Panel
     let mediaDevicesSpec = this.mediaDevicesSpec;
 
+    // Set stash defaults for first-time open (ButtonGroup.refresh() reads these)
+    this.stash.mirror ??= "Mirror";
+    this.stash.replay ??= 15;
+
     // Build ButtonGroup to choose mirrored vs unmirrored video:
-    this.videoMirrorGroup = new ButtonGroup(this.stash, 
+    this.videoMirrorGroup = new ButtonGroup(this.stash,
       { Front: { svg: "Flute Flipped", radio: "mirror" },
         Mirror: { svg: "Flute Mirrored", radio: "mirror" },
       }, (e, prop, tag) => {
@@ -1876,6 +1883,9 @@ class Review {
           toggle: "videoSrc",
         });
     });
+
+    this.stash.audioSrc ??= "Audio 1";
+    this.stash.videoSrc ??= "Video 1";
 
     this.mediaDevicesGroup = new ButtonGroup(this.stash, mediaDevicesSpec, async (e, prop, tag) => {
       let index = parseInt(tag.split(" ")[1]) + 1;

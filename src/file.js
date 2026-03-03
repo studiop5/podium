@@ -1631,7 +1631,6 @@ class LocalFileView {
 
     this.elm = helm(`
      <div data-tag="local" class="Local" >
-        <input type="file" data-tag="dialog" draggable="true" accept=".pdf, application/pdf" style="visibility:hidden;"/>
         <div class="Local__line"> ${iconSvg("Open", { style: "width:3em;height:3em;" })}</div>
         <div  class="Local__line"><b>Click to Show Open File Picker</b></div>
         <div class="Local__line">${_mobile_ ? "" : "<b>&mdash; or &mdash;<b>"}</div>
@@ -1645,7 +1644,7 @@ class LocalFileView {
     inputElm.draggable = true;
     inputElm.style.visibility = 'hidden';
     // the input element's "accept" attribute is different for "copy" and "open" modes.
-    inputElm.accept = this.mode == "copy" ? ".jpeg, .jpg, .JPG, image/jpeg, .png, image/png" :".pdf, application/pdf";
+    inputElm.accept = this.mode == "copy" ? "image/jpeg, image/png" : ".pdf, application/pdf";
     this.elm.appendChild(inputElm);
 
 

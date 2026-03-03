@@ -40,12 +40,10 @@ function initFabric() {
   fabric.Object.prototype.transparentCorners = false;
   fabric.Object.prototype.cornerSize = _mobile_ ? 32:16; // Large touch target
   fabric.Object.prototype.cornerStyle = "circle";
-  fabric.Object.prototype.minScaleLimit = 0.1; // Prevent flipping/inverting
+  fabric.Object.prototype.lockScalingFlip = true; // Prevent flipping/inverting
   fabric.Object.prototype.cornerColor = "#00f8";
   fabric.Object.prototype.controls.mtr.offsetY = -80;
 
-  fabric.Text.prototype.lockScalingFlip = true;
-  fabric.Textbox.prototype.lockScalingFlip = true;
 
   // Customize appearance/behavior of controls:
   fabric.ActiveSelection.prototype.controls.groupToggle = 
@@ -121,7 +119,7 @@ function initFabric() {
       }
   
       let show = true;
-      if(["text", "textbox"].includes(fabricObject.type) && ["mt","mb"].includes(key)) show = false;
+      if(["text", "textbox", "image"].includes(fabricObject.type) && ["mt","mb"].includes(key)) show = false;
       if( "text" == fabricObject.type && ["ml","mr"].includes(key)) show = false;
       if(show) {
         ctx.save();
@@ -215,15 +213,15 @@ function initFabric() {
       let { canvas, color, gap, lines, width, bars, barWidth, origin, ptr, style } = this;
       if(this.path) this.canvas.remove(this.path); // might be "re" drawing...remove any prev path
       // interpret "Auto"  (encoded as 0) to refer to Bravura engravingDefault values (in staff space, i.e. gap)
-      if (width == 0) width = .13 * gap ; 
+      if (width == 0) width = .13 * gap ; // .13 and .16 are from bravura docs
       if (barWidth == 0) barWidth = .16 * gap ; 
       // Draw the staff lines
       // Note: need to subtract width/2 from left and top because
       // the fabric path interprets line width differently than
       // html canvas
       let d = "";
-      let dX = ptr.x - origin.x;
-      let dY = ptr.y - origin.y;
+      let dX = Math.abs(ptr.x - origin.x) ;
+      let dY = Math.abs(ptr.y - origin.y) ;
       for (let y = 0, n = gap * lines; y < n; y += gap)
         if (style == "L-R") d += `M0 ${y}h${dX}v${width}h${-dX}Z`;
         else d += `M${y} 0v${dY}h${width}v${-dY} Z`;

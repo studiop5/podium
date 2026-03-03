@@ -669,7 +669,7 @@ class Menu {
             audioSrc: "Audio 1",
             videoSrc: "Video 1",
             mode: "Mirror",
-            mirror: "Reflect",
+            mirror: "Mirror",
             replay: 15,  // mimimum replay time in seconds
           },
         },
@@ -1555,6 +1555,7 @@ class Menu {
             let { maxWidth, maxHeight } = _score_;
             if (img.width > img.height && img.width > maxWidth) img.scaleToWidth(maxWidth);
             else if (img.height > maxHeight) img.scaleToHeight(maxHeight);
+            img.set({ minScaleLimit: 1 / Math.min(img.width, img.height) });
             this.pasteObj = img;
             this.enableCells("ink/paste", true);
           },

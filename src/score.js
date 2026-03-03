@@ -471,14 +471,15 @@ class Pg {
     let toPDFColor = (fabricColor) => {
       // PDFLib doesn't have rgba: instead, it uses rgb  and a
       // separate vor opacity. Here, we convert "rgba(0,127.5,255,xxx)" -> "rgb(0,.5,1)"
-      let c = new fabric.Color(fabricColor).split("(")[1].split(")")[0].split(",");
+      let c = new fabric.Color(fabricColor).toRgba().split("(")[1].split(")")[0].split(",");
       return PDFLib.rgb(c[0] / 255, c[1] / 255, c[2] / 255);
     };
 
     let toPDFOpacity = (fabricColor) => {
       // return alpha component from "rgba(0,127.5,255,.612), or 1 if not available
-      if (fabricColor.startsWith("rgb(")) return 1;
-      let c = fabricColor.split("(")[1].split(")")[0].split(",");
+      let rgba = new fabric.Color(fabricColor).toRgba();
+      if (rgba.startsWith("rgb(")) return 1;
+      let c = rgba.split("(")[1].split(")")[0].split(",");
       return parseFloat(c[3]);
     };
 
@@ -602,8 +603,10 @@ class Pg {
         case "image": {
           // the fabricjs image is assumed to have a src property that
           // must be a dataURL starting with "data:image/jpeg; or "data:image/png;"
-          let res = await fetch(obj.src);
-          let bytes = new Uint8Array(await res.arrayBuffer());
+          // Decode via atob rather than fetch(): iOS Safari has issues fetching large data URLs.
+          let binary = atob(obj.src.split(",")[1]);
+          let bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
           let image = obj.src.startsWith("data:image/jpeg;") ? await pLibPg.doc.embedJpg(bytes) : 
               obj.src.startsWith("data:image/png;") ? await pLibPg.doc.embedPng(bytes): null;
           if(!image) throw new Error("Unknown image type in data url:" + obj.src.substring(20) + "...");
