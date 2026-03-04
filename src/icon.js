@@ -40,6 +40,8 @@ let circlePath = (r, cx, cy) =>
         a ${r},${r} 0 1,0 ${r * 2},0 
         a ${r},${r} 0 1,0 ${-r * 2},0 `;
 
+let scissorsD = "M244 518Q244 499 236.5 479.5Q229 460 229 457Q229 439 267 439Q288 439 335.5 424.5Q383 410 421 393L733 511Q793 533 834 533Q861 533 880.0 524.5Q899 516 926 492L549 348L927 206Q888 166 832 166Q787 166 730 187L421 301Q321 262 251 251Q240 249 236.5 248.0Q233 247 231.5 244.5Q230 242 230.0 236.0Q230 230 238.0 212.5Q246 195 246 175Q246 135 216.0 108.0Q186 81 141.0 81.0Q96 81 67.0 107.5Q38 134 38 175Q38 222 73.5 251.5Q109 281 165 281L233 280Q277 280 310.0 298.5Q343 317 354 348Q325 413 230 413L160 411Q105 411 70.0 439.5Q35 468 35.0 512.0Q35 556 64.0 583.5Q93 611 139 611Q183 611 213.5 584.0Q244 557 244 518ZM146 443Q174 443 192.5 462.0Q211 481 211.0 510.0Q211 539 190.0 559.0Q169 579 138.0 579.0Q107 579 87.5 561.0Q68 543 68.0 514.0Q68 485 91.0 464.0Q114 443 146 443ZM148 249Q117 249 94.0 226.5Q71 204 71 175Q71 148 90.0 130.5Q109 113 138 113Q172 113 192.5 132.5Q213 152 213 185Q213 213 194.5 231.0Q176 249 148 249Z";
+
 const iconPaths = {
 
 Alpha:
@@ -104,13 +106,15 @@ Close:
 
 "Export Page":
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
-  <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
-  <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 18v-9M9 12l3-3 3 3"/>`,
+  <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+  <rect x="7" y="9" width="9" height="6.5" fill="#aaa" stroke="none"/>
+  <text style="fill:currentColor;font-family:Bravura;transform:translate(9.5px,15.5px);font-size:22">\uEB78</text>`,
 
 "Import Page":
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
-  <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
-  <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 9v9M9 15l3 3 3-3"/>`,
+  <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+  <rect x="7" y="9" width="9" height="6.5" fill="#aaa" stroke="none"/>
+  <text style="fill:currentColor;font-family:Bravura;transform:translate(9.5px,15.5px);font-size:22">\uEB7c</text>`,
 
 "Copy Page":
   `<g style="transform:scale(.85)">
@@ -121,12 +125,13 @@ Close:
    </g>`,
 
 "Cut":
-  `<path fill="currentColor" transform="translate(3,17) scale(0.02,-0.02) translate(-35,-81)" d="M244 518Q244 499 236.5 479.5Q229 460 229 457Q229 439 267 439Q288 439 335.5 424.5Q383 410 421 393L733 511Q793 533 834 533Q861 533 880.0 524.5Q899 516 926 492L549 348L927 206Q888 166 832 166Q787 166 730 187L421 301Q321 262 251 251Q240 249 236.5 248.0Q233 247 231.5 244.5Q230 242 230.0 236.0Q230 230 238.0 212.5Q246 195 246 175Q246 135 216.0 108.0Q186 81 141.0 81.0Q96 81 67.0 107.5Q38 134 38 175Q38 222 73.5 251.5Q109 281 165 281L233 280Q277 280 310.0 298.5Q343 317 354 348Q325 413 230 413L160 411Q105 411 70.0 439.5Q35 468 35.0 512.0Q35 556 64.0 583.5Q93 611 139 611Q183 611 213.5 584.0Q244 557 244 518ZM146 443Q174 443 192.5 462.0Q211 481 211.0 510.0Q211 539 190.0 559.0Q169 579 138.0 579.0Q107 579 87.5 561.0Q68 543 68.0 514.0Q68 485 91.0 464.0Q114 443 146 443ZM148 249Q117 249 94.0 226.5Q71 204 71 175Q71 148 90.0 130.5Q109 113 138 113Q172 113 192.5 132.5Q213 152 213 185Q213 213 194.5 231.0Q176 249 148 249Z"/>`,
+  `<path fill="currentColor" transform="translate(3,17) scale(0.02,-0.02) translate(-35,-81)" d="${scissorsD}"/>`,
 
+//  <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
 "Cut Page":
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
-  <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
-  <text y=20 x=3.5 font-size=20>\u2702</text>`,
+  <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 17h12M5.5 20h12"/>
+  <path fill="currentColor" transform="translate(5.5,16) scale(0.013,-0.013) translate(-35,-81)" d="${scissorsD}"/>`,
 
 "Copy":
   `<text y="12" x="4" font-size="11px" font-family="Bravura" fill="#888">\ue050</text>
@@ -339,12 +344,16 @@ Paste:
   <path style="fill:#aaa;stroke:currentColor;stroke-width:.6;"
   d="m 10.5,10.2 h 3.2 v 4.9 H 10.5 Z M 11,8.62 C 10.5,8.75 9.93,8.6 9.56,9.22 V 16.4 H 14.6 V 9.24 C 14.3,8.66 13.7,8.69 13.1,8.61 Z M 11,7.4 h 2.1 V 8.63 H 11 Z m 1.1,-2.22 c 0.3,-0.1 0.7,2.11 0.6,2.22 H 11.5 C 11.4,7.24 11.8,5.07 12.1,5.18 Z" /></g>`,
 
+
 "Paste Page":
-  `<g style="transform:translate(-3px,-3px) scale(1.2,1.2);">
-  <path style="fill:#aaa;stroke:currentColor;stroke-width:.6;fill-rule:evenodd;"
-  d="m 14.6,16 h 2.3 M 7.15,16 H 9.5 m 5,-4 H 17 M 6.95,12 H 9.57 M 13.1,8.02 h 3.8 m -9.94,0 H 11 m 1.5,-2 H 17 M 7.01,18 H 17 M 14.6,14 H 17 M 14.6,10 H 17 M 4.9,2.97 H 19 V 21 H 4.96 Z M 6.98,6 H 11.6 M 7.03,14 H 9.46 M 6.99,10 h 2.58" />
+  `
+  <path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+  <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+  <rect x="7" y="7" width="9" height="12.5" fill="#aaa" stroke="none"/>
+  <g style="transform:translate(-2px,.5px) scale(1.1,1.1);">
   <path style="fill:#bbb;stroke:currentColor;stroke-width:.6;"
   d="m 10.5,10.2 h 3.2 v 4.9 H 10.5 Z M 11,8.62 C 10.5,8.75 9.93,8.6 9.56,9.22 V 16.4 H 14.6 V 9.24 C 14.3,8.66 13.7,8.69 13.1,8.61 Z M 11,7.4 h 2.1 V 8.63 H 11 Z m 1.1,-2.22 c 0.3,-0.1 0.7,2.11 0.6,2.22 H 11.5 C 11.4,7.24 11.8,5.07 12.1,5.18 Z" /></g>`,
+
 
 Pause:
   `<path fill="currentColor" d="M14,19H18V5H14M6,19H10V5H6V19Z" />`,

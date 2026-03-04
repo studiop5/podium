@@ -347,7 +347,7 @@ class Layout {
       pg = e.target.pg || e.target.closest(".canvas-container")?.pg;
       if (!pg) return true;
       pn = score.pnOf(pg);
-      if (pageKey == "add" || pageKey == "paste") {
+      if (pageKey == "add" || pageKey == "paste" || pageKey == "import") {
         let box = getBox(e.target);
         if (layoutKey == "vertical" && e.clientY - box.top > box.height / 2) pn++;
         else if (e.clientX - box.x > box.width / 2) pn++;
@@ -413,7 +413,8 @@ class Layout {
           _menu_.activateCell(null); 
           await _podPb_.pgPaste(pn);
           _shade_.hide();
-          _menu_.activateCell(_menu_.rings.page.cells.paste);
+          _menu_.activateRing(_menu_.rings.page);
+          _menu_.activateCell(_menu_.rings.page.cells.import);
           break;
         }
 
