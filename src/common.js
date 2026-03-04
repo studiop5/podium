@@ -783,9 +783,9 @@ class ColorPicker {
       background: #c8c8c8;
       border-radius: var(--borderRadius);
       padding: var(--spacing-md);
-      filter: var(--panelShadow);
+/*      filter: var(--panelShadow); 
       box-shadow: -0.15em -0.15em 0.3em #fff3 inset,
-                  0.15em 0.15em 0.3em #0002 inset;
+                  0.15em 0.15em 0.3em #0002 inset; */
       position: absolute;
       left: -2.7em;
       width: 80%;
