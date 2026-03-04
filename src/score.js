@@ -34,12 +34,14 @@ export { Grid, Pg, Score };
   // setTimeout to throw an exception when window.pdf == "cancel".
   // This allows us to interrupt the save, allowing users
   // to "cancel" a long-running save operation.
+  // NOTE: this is potentially dangerous because of other uses
+  // of settimeout (rare in this codebase, and carefully reviewed).
   let sto = window.setTimeout;
   window.cancelPdf = false;
   window.setTimeout = function(callback, delay, ...args) { 
     if(window.cancelPdf) {
       window.cancelPdf = false;
-      throw new Error("PDF save cancelled by user");
+      throw new Error("PDF save cancelled by user", { cause: "cancelled"});
     }
     return sto(callback, delay, ...args);
   }
@@ -115,7 +117,7 @@ class Pg {
    if (this.mozCanvas) this.mozCanvas.replaceWith(mozCanvas);
     else canvas.wrapperEl.append(mozCanvas);
     this.mozCanvas = mozCanvas;
-    let ctx = mozCanvas.getContext("2d");
+    let ctx = mozCanvas.getContext("2d", { willReadFrequently: true });
     await mozPg.render({
       // render *without* annotations
       annotationMode: pdfjsLib.AnnotationMode.DISABLE,
@@ -546,6 +548,10 @@ class Pg {
         }
 
         case "path": {
+          if (!obj.path || obj.path.length == 0) {
+            console.warn("Path object has empty path, skipping", obj);
+            break;
+          }
           let pathStr = "";
           // Create an svg-style path string, where every point is scaled and
           // rotated by (obj.scaleX, obj.scaleY), and obj.angle
@@ -1159,7 +1165,7 @@ class Score {
       }
       if (doc) return dstPLibDoc;
       _shade_.update("Generating Pdf document");
-      let bytes = await dstPLibDoc.save({objectsPerTick: 1000});
+      let bytes = await dstPLibDoc.save({objectsPerTick: 250});
       _shade_.update("PDF Generated");
       return bytes;   
     } 

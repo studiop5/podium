@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PODIUM: Sheet Music Studio Guidebook</title>
+    <title>PODIUM Guidebook v2</title>
     <style>
         * {
             margin: 0;
@@ -408,13 +408,12 @@ function closeVideo(event, container) {
 }
 </script>
 
-<h1>PODIUM: Sheet Music Studio</h1>
+<h1>PODIUM Guidebook</h1>
 
 <div class="header-icon">
     <img src="assets/podium-icon.jpg" alt="Podium icon">
 </div>
 
-<div style="font-size:2em;font-weight:600;text-align:center;margin:.25em 0;">Guidebook</div>
 <div class="version">Version 2.0</div>
 
 <p style="text-align: center;"><a href="Guidebook.html" target="_blank">Open in new window</a> for convenient side-by-side reading with Podium. | <a href="javascript:window.print()">Print me</a></p>
@@ -495,7 +494,7 @@ function closeVideo(event, container) {
     <h2>Overture</h2>
     <p><strong>Podium is:</strong></p>
     <ul>
-        <li>An e-reader for sheet music</li>
+        <li>An e-reader for music scores</li>
         <li>100% browser-based, 100% open-source, 100% free</li>
         <li>No login, no onboarding, no file importing, just use it! No installation required</li>
         <li>Unique UI featuring a circular menu and multiple layouts</li>
@@ -1102,9 +1101,9 @@ function closeVideo(event, container) {
         <li><strong>Page Range:</strong> Specify the start and end pages to print a subset of the score</li>
     </ul>
 
-    <div class="note"><strong>iPhone/iPad:</strong> Safari does not support automatic print dialogs from web apps. After tapping Ink or No Ink, your PDF will open in a new tab. From there, tap the Share button <span style="display:inline-block;position:relative;width:.7em;height:1em;vertical-align:-.15em;">&#x2610;<span style="position:absolute;left:.1em;top:-.55em;font-size:1.2em;">&#x2191;</span></span> in the toolbar (iPhone: bottom centre; iPad: beside the address bar) and choose <strong>Print</strong>.</div>
-
     <div class="note">Large scores or scores with particularly dense or poorly encoded, unoptimized PDF content can fail while printing. If you encounter printing failures, try printing the score in several smaller sections by specifying different page ranges.</div>
+
+    <div class="note"><strong>iPhone/iPad:</strong> Safari does not support automatic print dialogs from web apps. After tapping Ink or No Ink, your PDF will open in a new tab. From there, tap the Share button <span style="display:inline-block;position:relative;width:.7em;height:1em;vertical-align:-.15em;">&#x2610;<span style="position:absolute;left:.1em;top:-.55em;font-size:1.2em;">&#x2191;</span></span> in the toolbar (iPhone: bottom centre; iPad: beside the address bar) and choose <strong>Print</strong>.</div>
 
     <h3 id="chapter-4-details">4.4 Score Ring: Details</h3>
 
