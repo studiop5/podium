@@ -29,6 +29,7 @@ import {
   css,
   delay,
   delayMs,
+  dialog,
   flung,
   fontMap,
   getBox,
@@ -862,7 +863,7 @@ for more details.</p>
   aboutFace = helm(
     `<div style="position:relative;width:100%;height:100%;box-sizing:border-box;">
         <div style="position:absolute;top:35%;left:50%;transform:translate(-50%,-50%);text-align:center;font-size:1.5em;">
-          <div>Podium</div>
+          <div>PODIUM: Sheet Music Studio</div>
           ${iconSvg("Podium", { style: "width:8em;" })}
           <div>Version ${_podiumVersion_}</div>
           <div style="font-size:.6em;color:#888;">${typeof chrome !== "undefined" && chrome.runtime?.id ? "Browser Extension" : window.matchMedia("(display-mode: standalone)").matches ? "Progressive Web App" : location.protocol + "//" + location.host}</div>
@@ -2136,7 +2137,7 @@ class PrintPanel extends Panel {
         try {
           _shade_.show("Preparing to print");
           let pns = [];
-          for(let i = props.first; i <= props.last; i++)
+          for (let i = props.first; i <= props.last; i++)
             pns.push(i);
 
           let data = await _score_.toPdf(tag == "Ink" ? "pdf" : "none", false, pns);
@@ -2144,27 +2145,36 @@ class PrintPanel extends Panel {
 
           dataUrl = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
 
-          // Try to open the print window automatically. This usually works on
+          // Try to open the print window automatically. This usually works on 
           // desktop if the PDF generation was fast enough.
-          printWin = window.open(dataUrl, "_blank");
-          
+          try {
+            printWin = window.open(dataUrl, "_blank");
+          } catch (e) {
+            console.warn("window.open blocked/failed:", e);
+          }
+
           if (!printWin || printWin.closed || typeof printWin.closed == 'undefined') {
-            // Popup blocked (standard for iOS Safari after an await).
+            // Popup blocked (especially possible on iOS Safari after await).
             // Show a dialog to provide a fresh user gesture.
             _shade_.hide();
             dialog("Your PDF is ready to print.", { "Open PDF": { svg: "Ink" } }, (e, prop, tag, args) => {
-               window.open(dataUrl, "_blank");
-               args.close();
+              window.open(dataUrl, "_blank");
+              args.close();
             });
           } else {
-            // Success! PDF opened in new tab. Hide shade and try to trigger print.
-            _shade_.hide();
-            setTimeout(() => {
-                try { if (!printWin.closed) printWin.print(); } catch(err) {}
-            }, 1000);
+            // Success! PDF opened in new tab, attempt to trigger print.
+            // Note: iOS Safari ignores window.print(); users must print via the share button.
+            delayMs(1000, () => { if (!printWin.closed) printWin.print(); });
           }
         }
-        catch(error) { printWin?.close(); toast("Print cancelled");}
+        catch (error) {
+          printWin?.close();
+          if (window.cancelPdf) toast("Print cancelled");
+          else {
+            console.error("Print failed:", error);
+            dialog(`<em>Print Failed</em><br><br><strong>${error.message}</strong>`);
+          }
+        }
         finally {
           _shade_.onCancel = null;
           _shade_.hide();
@@ -2575,7 +2585,7 @@ class MagnifyPanel extends Panel {
     let zoom = _menu_.magnifier.zoom;
     let destW = 300, destH = 300;
 
-    let ctx = this.magCanvas.getContext("2d");
+    let ctx = this.magCanvas.getContext("2d", { willReadFrequently: true });
     ctx.clearRect(0, 0, destW, destH);
 
     // Draw from mozCanvas (PDF rendering) first as background
