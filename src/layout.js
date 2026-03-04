@@ -2023,7 +2023,7 @@ class TableLayout extends Layout {
         let active = this.active;
         score.pgUnuse(active.pg);
         score.pgCut(active.pn);
-        this.layout.animateToCell(active.pg, false, _menu_.rings.page.cells.delete, "table",
+        this.layout.animateToCell(active.pg, false, _menu_.rings.page.cells.cut, "table",
               () => this.layout.build(false));
         return;
       }        
