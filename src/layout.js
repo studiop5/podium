@@ -370,39 +370,52 @@ class Layout {
           break;
         }
 
-        case "delete": {
+        case "cut": {
           if(this.score.pgs.length == 1) break; // no deleting last pg
           score.pgCut(pn);
           if(pn == _score_.numbers.pn) // deleting active pg?
             _score_.numbers.pn = Math.max(1, _score_.numbers.pn - 1) // choose different one
           else if(pn < _score_.numbers.pn) // active pg must decrement
             --_score_.numbers.pn;
-          await this.animateToCell(pg, false, _menu_.rings.page.cells.delete, layoutKey, 
+        }
+
+        case "copy": {
+          if (pasteCell.pg) pasteCell.pg.deflate(true);
+          pasteCell.pg = await pg.clone(true);
+          await this.animateToCell(pg, false, _menu_.rings.page.cells.paste, layoutKey, 
             () => this.build(false));
           break;
         }
 
-        // case "undo" note: handled entirely in menu.js
+        case "paste": {
+          let pastePg = score.pgAdd(pasteCell.pg, pn);
+          Object.assign(pastePg.thumbElm?.style || pastePg.elm.style, { opacity: 0 });
+          pasteCell.pg = await pastePg.clone(true); // clone pg for any subsequent paste
+          animate(pastePg.thumbElm || pastePg.elm, null, { opacity: 1 }, 
+            `opacity cubic-bezier( 0.99, 0.05, 0.82, 0.35 ) ${_gs_}s`);
+          await this.build(false); 
+          await this.pgGoTo(pn);;
+          break;
+        }
 
-        case "copy": { 
+        case "export": { 
           // copy to _podPb_
           _shade_.show("Copying...", 250);
           await _podPb_.pgCopy(pn);
           _shade_.hide();
-          await this.animateToCell(pg, true, _menu_.rings.page.cells.paste,layoutKey); 
+          await this.animateToCell(pg, true, _menu_.rings.page.cells.import,layoutKey); 
           break;
         }
 
-        case "paste": { 
+        case "import": { 
           // paste from  _podPb_
-          _shade_.show("Pasting...", 50);
+          _shade_.show("Importing...", 50);
           _menu_.activateCell(null); 
           await _podPb_.pgPaste(pn);
           _shade_.hide();
           _menu_.activateCell(_menu_.rings.page.cells.paste);
           break;
         }
-
 
         case "merge": {
           dialog(`Confirm: Merge all annotations on this page?<br>(cannot be undone)`, 
@@ -415,10 +428,13 @@ class Layout {
         }
       }
 
+      // case "undo" note: handled entirely in menu.js
+      // case "numbers" note: handled entirely in menu.js
+
       if (score.pgs.length == 1) {
-        // Don't allow cut/delete when only 1 pg left
+        // Don't allow cut when only 1 pg left
         _menu_.activateCell(null);
-        _menu_.enableCells("page/delete", false);
+        _menu_.enableCells("page/cut", false);
       }
 
       return true;

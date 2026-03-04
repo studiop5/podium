@@ -448,9 +448,9 @@ function closeVideo(event, container) {
                 <li><a href="#chapter-6-rastrum">6.2 Rastrum</a> — <span style="color:#777">Draw music staves</span></li>
                 <li><a href="#chapter-6-text">6.3 Text</a> — <span style="color:#777">Add text boxes to a page</span></li>
                 <li><a href="#chapter-6-symbols">6.4 Symbols</a> — <span style="color:#777">Add music symbols to a page</span></li>
-                <li><a href="#chapter-6-undo">6.5 Undo</a> — <span style="color:#777">Undo the last Ink Ring action</span></li>
-                <li><a href="#chapter-6-grid">6.6 Grid</a> — <span style="color:#777">Guide grid for measuring and layout</span></li>
-                <li><a href="#chapter-6-cut-copy-paste">6.7 Cut, Copy, Paste</a> — <span style="color:#777">Manage annotation objects</span></li>
+                <li><a href="#chapter-6-cut-copy-paste">6.5 Cut, Copy, Paste</a> — <span style="color:#777">Manage annotation objects</span></li>
+                <li><a href="#chapter-6-undo">6.6 Undo</a> — <span style="color:#777">Undo the last Ink Ring action</span></li>
+                <li><a href="#chapter-6-grid">6.7 Grid</a> — <span style="color:#777">Guide grid for measuring and layout</span></li>
                 <li><a href="#chapter-6-edit">6.8 Edit</a> — <span style="color:#777">Move, resize, rotate annotations</span></li>
             </ul>
         </li>
@@ -458,12 +458,11 @@ function closeVideo(event, container) {
             <ul>
                 <li><a href="#chapter-7-numbers">7.1 Numbers</a> — <span style="color:#777">Configure page numbering</span></li>
                 <li><a href="#chapter-7-add">7.2 Add</a> — <span style="color:#777">Configure appearance of new pages</span></li>
-                <li><a href="#chapter-7-delete">7.3 Delete</a> — <span style="color:#777">Remove pages from the score</span></li>
+                <li><a href="#chapter-7-cut-copy-paste">7.3 Cut, Copy, Paste</a> — <span style="color:#777">Duplicate, rearrange, or delete pages within the score</span></li>
                 <li><a href="#chapter-7-undo">7.4 Undo</a> — <span style="color:#777">Undo the last page operation</span></li>
-                <li><a href="#chapter-7-copy">7.5 Copy</a> — <span style="color:#777">Copy a page to the paste buffer</span></li>
-                <li><a href="#chapter-7-paste">7.6 Paste</a> — <span style="color:#777">Insert pages from the paste buffer</span></li>
-                <li><a href="#chapter-7-merge">7.7 Merge</a> — <span style="color:#777">Merge Ink annotations into the PDF</span></li>
-                <li><a href="#chapter-7-magnify">7.8 Magnify</a> — <span style="color:#777">Magnify a portion of a page</span></li>
+                <li><a href="#chapter-7-export-import">7.5 Export, Import</a> — <span style="color:#777">Share pages via the cross-tab shared buffer</span></li>
+                <li><a href="#chapter-7-merge">7.6 Merge</a> — <span style="color:#777">Merge Ink annotations into the PDF</span></li>
+                <li><a href="#chapter-7-magnify">7.7 Magnify</a> — <span style="color:#777">Magnify a portion of a page</span></li>
             </ul>
         </li>
         <li><a href="#chapter-8">Chapter 8: App Ring</a> — <span style="color:#777">Application information and display settings</span>
@@ -666,21 +665,21 @@ function closeVideo(event, container) {
     <h3>Managing Pages</h3>
     <p>To add, remove, or rearrange pages, tap the inner ring's Page cell. The outer ring provides:</p>
     <ul>
-        <li><strong>Add:</strong>Insert blank pages</li>
-        <li><strong>Delete:</strong>Remove pages from the score</li>
+        <li><strong>Numbers:</strong> Configure page numbering and page-turning keyboard shortcuts (including foot pedals)</li>
+        <li><strong>Add:</strong> Insert blank pages</li>
+        <li><strong>Cut/Copy/Paste:</strong> Rearrange, duplicate, or delete pages within the current score</li>
         <li><strong>Undo:</strong> Undo the last page operation</li>
-        <li><strong>Copy/Paste:</strong> Rearrange or duplicate pages</li>
-        <li><strong>Numbers:</strong> Configure page numbering and keyboard shortcuts</li>
+        <li><strong>Export/Import:</strong> Share pages with other Podium tabs via the shared buffer</li>
         <li><strong>Merge:</strong> Convert annotations into permanent PDF content</li>
         <li><strong>Magnify:</strong> Zoom in on page details</li>
     </ul>
     <p><strong>Note:</strong> Like Ink tools, Page tools auto-deactivate after a few seconds of inactivity.</p>
 
-    <p>The page paste buffer is shared across all Podium tabs and windows, and persists across sessions. This lets you copy pages from one score and paste them into another, making it easy to assemble custom practice scores. Note that tabs of the web app (studiop5.org) share one paste buffer, and tabs of the browser extension share another — copying across these boundaries is not possible.</p>
+    <p>The shared buffer lets you transfer pages between Podium tabs: use Export to send a page to the buffer, and Import to insert it into another score. The buffer is shared across all web app tabs and windows, and persists across sessions. Tabs of the web app (studiop5.org) share one buffer, and tabs of the browser extension share another — transferring across these boundaries is not possible.</p>
 
     <figure>
         <div class="video-container" onclick="playVideo(this)">
-            <img src="assets/quickpage.jpg" alt="Page Ring with horizontal layout and persistent cross-tab paste buffer">
+            <img src="assets/quickpage.jpg" alt="Page Ring with horizontal layout">
             <div class="play-overlay"></div>
             <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
             <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
@@ -688,7 +687,7 @@ function closeVideo(event, container) {
                 Your browser does not support the video tag.
             </video>
         </div>
-        <figcaption>Horizontal layout with Page Ring active showing persistent cross-tab paste buffer for page management</figcaption>
+        <figcaption>Horizontal layout with Page Ring active</figcaption>
     </figure>
 
     <div class="note"><strong>Quick tip:</strong> In Table layout, you can reorder pages by simply dragging them to a new location—other pages will split apart to show where the page will be inserted. You can also delete pages by dragging them completely out of the layout. This direct manipulation is often faster than using Page Ring tools!</div>
@@ -957,7 +956,7 @@ function closeVideo(event, container) {
     </figure>
     <h3>Browser Tab Naming</h3>
 
-    <p>Podium can run in multiple browser tabs simultaneously, sharing a common <a href="#chapter-7-paste">page paste buffer</a> between them. Tabs of the web app (studiop5.org) share one paste buffer, and tabs of the browser extension share another — copying across these boundaries is not possible. To distinguish tabs, each is assigned a short musical identifier drawn from dynamics and solfege: <em>do, re, mi, fa, so, la, ti, ff, mf, mp, pp, sf</em>. When a score is loaded, the browser tab displays the score's file name; otherwise it shows <em>Podium</em> followed by the tab's identifier in parentheses — for example, <em>Podium (do)</em>. Extension tabs use square brackets instead — <em>Podium [do]</em> — so you can tell at a glance whether a tab is running the web app or the browser extension. In theory, up to 12 Podium tabs can be open at the same time. Keep in mind that each tab consumes additional browser memory and processing resources, so opening more than two or three can be impractical.</p>
+    <p>Podium can run in multiple browser tabs simultaneously, sharing a common <a href="#chapter-7-export-import">shared buffer</a> between them. Tabs of the web app (studiop5.org) share one buffer, and tabs of the browser extension share another — transferring across these boundaries is not possible. To distinguish tabs, each is assigned a short musical identifier drawn from dynamics and solfege: <em>do, re, mi, fa, so, la, ti, ff, mf, mp, pp, sf</em>. When a score is loaded, the browser tab displays the score's file name; otherwise it shows <em>Podium</em> followed by the tab's identifier in parentheses — for example, <em>Podium (do)</em>. Extension tabs use square brackets instead — <em>Podium [do]</em> — so you can tell at a glance whether a tab is running the web app or the browser extension. In theory, up to 12 Podium tabs can be open at the same time. Keep in mind that each tab consumes additional browser memory and processing resources, so opening more than two or three can be impractical.</p>
 
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
@@ -1314,11 +1313,11 @@ function closeVideo(event, container) {
 
     <p><strong>Symbols:</strong> adds individual music symbols. The Symbol cell's panel provides access to the several thousand music glyphs contained in the included Bravura music font.</p>
 
+    <p><strong>Cut, Copy, Paste:</strong> Each annotation is an independent object that can be cut, copied, pasted, or transformed. To cut or copy an object, tap the Cut or Copy cell, then tap the target object on the score page. Then, if desired, tap the Paste cell, then tap the score page where you want to paste the previously Cut/Copied object.</p>
+
     <p><strong>Undo:</strong> Undo the last Ink Ring action. To undo an action, activate the undo cell, then tap the page to revert it to its state before the last action. To conserve memory, only the most recent 10 actions per page can be undone.</p>
 
     <p><strong>Grid:</strong> Displays a configurable drawing grid over the page.</p>
-
-    <p><strong>Cut, Copy, Paste:</strong> Each annotation is an independent object that can be cut, copied, pasted, or transformed. To cut or copy an object, tap the Cut or Copy cell, then tap the target object on the score page. Then, if desired, tap the Paste cell, then tap the score page where you want to paste the previously Cut/Copied object.</p>
 
     <div class="note">The Copy cell has an associated Open Panel that can be used to select an external PNG or JPEG image file from digital storage. Select the desired image file, then use the Paste cell to convert that image into an annotation object that can be pasted into a score page.</div>
 
@@ -1404,7 +1403,21 @@ function closeVideo(event, container) {
 
     <p>After placing a symbol, use the <a href="#chapter-6-edit" class="chapter-link">Edit tool</a> to precisely position, resize, or rotate it.</p>
 
-    <h3 id="chapter-6-undo">6.5 Ink Ring: Undo</h3>
+    <h3 id="chapter-6-cut-copy-paste">6.5 Ink Ring: Cut, Copy, Paste</h3>
+
+    <p>Manage annotation objects.</p>
+
+    <p>Each annotation is an independent object that can be cut, copied, pasted, or transformed. To cut or copy an object, tap the Cut or Copy cell, then tap the target object on the score page. The object is placed in a paste buffer associated with the score, allowing annotation objects to be moved or copied between pages.</p>
+
+    <p>To paste an object from the paste buffer, tap the Paste cell, then tap any score page where you want to paste that object.</p>
+
+    <p><strong>Images:</strong> The Copy cell has an associated Open Panel where you can choose PNG or JPEG images from digital storage and put them into the paste buffer. These images can then be pasted into any score page and positioned or resized as desired using the Edit tool.</p>
+
+    <div class="note">If you have a PNG or JPEG of a score page — for example, a photo you've taken with your camera — you can incorporate it into your score as a permanent PDF page: open the image from the Copy cell's Open Panel, then use the Page Ring's Add cell to add a blank page. Paste the image onto that page using the Ink Ring's Paste cell, and resize or reposition it as needed using the Edit tool. Finally, use the Page Ring's Merge command to bake the image into the PDF — giving you a new score page with your image embedded.</div>
+
+    <p><strong>Deleting annotations:</strong> To delete an annotation object, activate the Cut cell and tap the object. If you don't subsequently paste the object elsewhere, it is effectively deleted from the score.</p>
+
+    <h3 id="chapter-6-undo">6.6 Ink Ring: Undo</h3>
 
     <p>Undo the last Ink Ring action.</p>
 
@@ -1412,7 +1425,7 @@ function closeVideo(event, container) {
 
     <p>You can undo any Ink Ring action including paste, delete, and transform operations. The only exception is the Copy action itself, which cannot be undone (though you can undo the subsequent paste).</p>
 
-    <h3 id="chapter-6-grid">6.6 Ink Ring: Grid</h3>
+    <h3 id="chapter-6-grid">6.7 Ink Ring: Grid</h3>
 
     <p>Draw a 2-d guide grid for measuring and layout.</p>
 
@@ -1440,18 +1453,6 @@ function closeVideo(event, container) {
     <p>The Grid is not itself an annotation object: it does not interfere with any other Ink actions and is not present when a score is saved or printed.</p>
 
     <p>The Grid helps in aligning and precisely positioning ink elements. It can also be used to measure distance between elements or score features: when activating the grid, set the 0 point to the start of the measurement and then read off the length. Grid measurements represent Podium's best guess at the size of the corresponding printed representation of the score, regardless of zoom level or monitor resolution.</p>
-
-    <h3 id="chapter-6-cut-copy-paste">6.7 Ink Ring: Cut, Copy, Paste</h3>
-
-    <p>Manage annotation objects.</p>
-
-    <p>Each annotation is an independent object that can be cut, copied, pasted, or transformed. To cut or copy an object, tap the Cut or Copy cell, then tap the target object on the score page. The object is placed in a paste buffer associated with the score, allowing annotation objects to be moved or copied between pages.</p>
-
-    <p>To paste an object from the paste buffer, tap the Paste cell, then tap any score page where you want to paste that object.</p>
-
-    <p><strong>Deleting annotations:</strong> To delete an annotation object, activate the Cut cell and tap the object. If you don't subsequently paste the object elsewhere, it is effectively deleted from the score.</p>
-
-    <p>The Copy cell has an associated Open Panel where you can choose PNG or JPEG images from digital storage and put them into the paste buffer. These images can then be pasted into any score page and positioned or resized as desired using the Edit tool.</p>
 
     <h3 id="chapter-6-edit">6.8 Ink Ring: Edit</h3>
 
@@ -1525,13 +1526,17 @@ function closeVideo(event, container) {
 
     <p><strong>Add:</strong> Insert a new, empty page into the score, as configured by the Add Panel.</p>
 
-    <p><strong>Delete:</strong> Remove a page from the score by tapping it with the Delete cell active.</p>
+    <p><strong>Cut:</strong> Remove a page from the score and hold it in a local clipboard for pasting elsewhere in the same score.</p>
 
-    <p><strong>Undo:</strong> Undo the last page operation (delete, copy, or paste).</p>
+    <p><strong>Copy:</strong> Copy a page to a local clipboard for duplication within the current score.</p>
 
-    <p><strong>Copy:</strong> Copy a page to the paste buffer for duplication within the score or to another score.</p>
+    <p><strong>Paste:</strong> Insert the page from the local clipboard at a new location in the current score.</p>
 
-    <p><strong>Paste:</strong> Insert previously copied pages at a new location in the score, including pages copied from other Podium instances running in different tabs or windows.</p>
+    <p><strong>Undo:</strong> Undo the last page operation (cut, copy, or paste).</p>
+
+    <p><strong>Export:</strong> Copy a page to the shared buffer, making it available to other Podium tabs.</p>
+
+    <p><strong>Import:</strong> Insert pages from the shared buffer into the current score.</p>
 
     <p><strong>Merge:</strong> Merge all Ink objects on a page into the page itself, converting annotations into permanent PDF content.</p>
 
@@ -1609,63 +1614,63 @@ function closeVideo(event, container) {
         <li><strong>Custom Size:</strong> Specify custom dimensions for added pages.</li>
     </ul>
 
-    <h3 id="chapter-7-delete">7.3 Page Ring: Delete</h3>
-
-    <p>Remove pages from the score.</p>
-
-    <p>To delete a page, activate the Delete cell, then tap the page you wish to remove from the score. The page is immediately deleted.</p>
-
-    <p>In <a href="#chapter-5-table" class="chapter-link">Table Layout</a>, you can also delete pages by dragging them out of the table, which provides a quick visual method for removing unwanted pages.</p>
-
-    <div class="note">Page deletion can be undone using the Undo cell, which allows you to recover recently deleted pages.</div>
-
     <h3 id="chapter-7-undo">7.4 Page Ring: Undo</h3>
 
     <p>Undo the last page operation.</p>
 
-    <p>To undo a page operation (delete or paste), activate the Undo cell. The most recent operation will be immediately reversed. The Page Ring maintains an undo history of the last 10 operations.</p>
+    <p>To undo a page operation (cut, paste, or import), activate the Undo cell. The most recent operation will be immediately reversed. The Page Ring maintains an undo history of the last 10 operations.</p>
 
-    <div class="note">Copy operations cannot be undone. Undo does not modify the paste buffer—if you undo a paste operation, the pasted page remains available in the buffer for pasting again.</div>
+    <div class="note">Undo does not modify the shared buffer — if you undo an import operation, the imported pages are removed from the score but remain available in the buffer for importing again. To undo an export, use the Import panel's Undo or Clear buttons.</div>
 
     <div class="note">Unlike the Ink Ring's per-page undo stack, the Page Ring undo operates on page-level operations across the entire score.</div>
 
-    <h3 id="chapter-7-copy">7.5 Page Ring: Copy</h3>
+    <h3 id="chapter-7-cut-copy-paste">7.3 Page Ring: Cut, Copy, Paste</h3>
 
-    <p>Copy a page to the paste buffer.</p>
+    <p>Cut, copy, and paste pages within the current score.</p>
 
-    <p>To copy a page, activate the Copy cell, then tap the page you wish to copy. The page is placed in a paste buffer where it can be pasted into the current score or into a different score opened in another browser window or tab. Tabs of the web app (studiop5.org) share one paste buffer, and tabs of the browser extension share another — copying across these boundaries is not possible.</p>
+    <p>These three cells operate on a local clipboard that exists only within the current tab and session — they do not interact with the shared buffer or other Podium tabs.</p>
 
-    <p>You can copy multiple pages sequentially—each copied page is added to the paste buffer in the order you copy them. The paste buffer preserves both the page content and all annotations, allowing you to duplicate complex pages with all their markup intact.</p>
+    <p><strong>Cut:</strong> Activate the Cut cell, then tap a page. The page is removed from the score and placed in the local clipboard.</p>
 
-    <p>See <a href="#chapter-7-paste">Page Ring: Paste</a> for complete details about the paste buffer's capabilities and management.</p>
+    <p><strong>Copy:</strong> Activate the Copy cell, then tap a page. The page is placed in the local clipboard. The original page remains in the score.</p>
 
-    <h3 id="chapter-7-paste">7.6 Page Ring: Paste</h3>
+    <p><strong>Paste:</strong> Activate the Paste cell, then tap a page in the score. The clipboard page is inserted before or after the tapped page (tap left/top half to insert before, right/bottom half to insert after). The clipboard is preserved after pasting, so you can paste the same page multiple times.</p>
 
-    <p>Insert pages from the paste buffer into the current score.</p>
+    <p><strong>Deleting pages:</strong> To delete a page, activate the Cut cell and tap the page. If you don't subsequently paste it elsewhere, it is effectively deleted from the score. In <a href="#chapter-5-table" class="chapter-link">Table Layout</a>, you can also delete pages by dragging them out of the table.</p>
+
+    <div class="note">Cut and Paste operations can be undone using the Undo cell. Copy cannot be undone.</div>
+
+    <h3 id="chapter-7-export-import">7.5 Page Ring: Export, Import</h3>
+
+    <p>Share pages between Podium tabs via the shared buffer.</p>
 
     <figure>
-        <img src="assets/pagepaste.jpg" alt="Paste Panel">
-        <figcaption>Paste panel showing paste buffer with multiple pages</figcaption>
+        <img src="assets/pagepaste.jpg" alt="Import Panel">
+        <figcaption>Import panel showing shared buffer with multiple pages</figcaption>
     </figure>
 
-    <p>The page paste buffer has superpowers! Behind the scenes, it's actually a separate PDF file consisting of all the pages you've copied, in the order you copied them. When you activate the Paste cell and touch a page, this PDF file is merged into the current score—before the page if you tap on the left half (top half for Vertical Layout), or after the page if you tap on the right half (bottom half for Vertical Layout).</p>
+    <p>The shared buffer has superpowers! Behind the scenes, it's actually a separate PDF file consisting of all the pages you've exported, in the order you exported them.</p>
 
-    <p>The Paste Panel shows you a horizontally draggable view of thumbnails of this separate PDF file, along with two management buttons:</p>
+    <p><strong>Export:</strong> Activate the Export cell, then tap a page. The page is appended to the shared buffer. The original page remains in the score.</p>
+
+    <p><strong>Import:</strong> Activate the Import cell, then tap a page in the score. All pages in the shared buffer are inserted at that position — before the page if you tap on the left half (top half for Vertical Layout), or after the page if you tap on the right half (bottom half for Vertical Layout).</p>
+
+    <p>The Import Panel shows you a horizontally draggable view of thumbnails of the shared buffer, along with two management buttons:</p>
 
     <ul>
-        <li><strong>Undo:</strong> Removes the most recently copied page from the paste buffer. This does not affect the current score—use the Delete cell if you want to remove pages from the score itself.</li>
-        <li><strong>Clear:</strong> Completely empties the paste buffer, removing all pages at once.</li>
+        <li><strong>Undo:</strong> Removes the most recently exported page from the shared buffer. This does not affect the current score.</li>
+        <li><strong>Clear:</strong> Completely empties the shared buffer, removing all pages at once.</li>
     </ul>
 
-    <div class="note"><strong>Cross-Instance Sharing and Privacy:</strong> The paste buffer is shared by all instances of Podium running within the same browser origin. This means that all browser tabs and the installed Progressive Web App (PWA) share a single buffer, while the browser extension maintains its own separate one — copying across these boundaries is not possible. The buffer persists even if you close your score or restart the browser. <strong>If you share a browser with others</strong> and are concerned with privacy, you should clear the paste buffer after your session. Note that if you use both the web app and the extension, you must clear each buffer separately.</div>
+    <div class="note"><strong>Cross-Instance Sharing and Privacy:</strong> The shared buffer is shared by all instances of Podium running within the same browser origin. This means that all browser tabs and the installed Progressive Web App (PWA) share a single buffer, while the browser extension maintains its own separate one — transferring across these boundaries is not possible. The buffer persists even if you close your score or restart the browser. <strong>If you share a browser with others</strong> and are concerned with privacy, you should clear the shared buffer after your session. Note that if you use both the web app and the extension, you must clear each buffer separately.</div>
 
     <h4>Primary Use Case: Practice Scores</h4>
 
     <p>Create your own custom practice scores by extracting pages from all the scores you're currently practicing into one combined score. This reduces the chore of opening and closing multiple files during practice sessions.</p>
 
-    <div class="note"><strong>Performance Note:</strong> Copying pages between PDFs is very compute intensive, as the PDF format was not designed for this type of operation. It's best not to fill the paste buffer with too many pages at once, or the system will become very slow.</div>
+    <div class="note"><strong>Performance Note:</strong> Copying pages between PDFs is very compute intensive, as the PDF format was not designed for this type of operation. It's best not to fill the shared buffer with too many pages at once, or the system will become very slow.</div>
 
-    <h3 id="chapter-7-merge">7.7 Page Ring: Merge</h3>
+    <h3 id="chapter-7-merge">7.6 Page Ring: Merge</h3>
 
     <p>Merge a score page's Ink annotations into the PDF.</p>
 
@@ -1685,7 +1690,7 @@ function closeVideo(event, container) {
 
     <div class="note">Because a merge operation cannot be undone, you'll be prompted to confirm before the operation is performed.</div>
 
-    <h3 id="chapter-7-magnify">7.8 Page Ring: Magnify</h3>
+    <h3 id="chapter-7-magnify">7.7 Page Ring: Magnify</h3>
 
     <p>Magnify a portion of a page.</p>
 
@@ -1779,12 +1784,12 @@ function closeVideo(event, container) {
     <ul>
         <li><strong>Menu:</strong> Clears stored values of many menu settings. Tapping this will reset the menu to its defaults.</li>
         <li><strong>Recent:</strong> Clears the recently visited list displayed in the Open, Save, and Copy panels.</li>
-        <li><strong>Buffer:</strong> Clears the distributed paste buffer contents (see <a href="#chapter-7-paste">Page Ring: Paste</a> for details).</li>
+        <li><strong>Buffer:</strong> Clears the shared buffer contents (see <a href="#chapter-7-export-import">Page Ring: Export, Import</a> for details).</li>
     </ul>
 
     <p>Where available, the panel also displays a refreshable set of storage statistics useful for developers.</p>
 
-    <div class="note"><strong>Privacy:</strong> If you share a browser with other users, use the factory reset buttons to clear information you don't want to share after your session. This includes recent file lists, paste buffer contents, and menu settings. Note that the web app and the browser extension maintain separate storage; if you use both, you must use these reset buttons in both environments to clear all your data.</div>
+    <div class="note"><strong>Privacy:</strong> If you share a browser with other users, use the factory reset buttons to clear information you don't want to share after your session. This includes recent file lists, shared buffer contents, and menu settings. Note that the web app and the browser extension maintain separate storage; if you use both, you must use these reset buttons in both environments to clear all your data.</div>
 
     <h3 id="chapter-8-guide">8.3 App Ring: Guide</h3>
 
@@ -2066,15 +2071,14 @@ function closeVideo(event, container) {
         <dt>Cloud storage</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
         <dt>Color chooser</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a>, <a href="#chapter-7-add">7.2</a></dd>
         <dt>Conducting patterns</dt><dd> &mdash; <a href="#chapter-9-metronome">9.2</a></dd>
-        <dt>Copy</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.7</a>, <a href="#chapter-7-copy">7.5</a></dd>
-        <dt>Cross-instance sharing</dt><dd> &mdash; <a href="#chapter-7-paste">7.6</a></dd>
+        <dt>Copy</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a>, <a href="#chapter-7-cut-copy-paste">7.3</a></dd>
+        <dt>Cross-instance sharing</dt><dd> &mdash; <a href="#chapter-7-paste">chapter-7-paste</a></dd>
         <dt>CSS pixels</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-5-horizontal">5.2</a></dd>
-        <dt>Cut</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.7</a></dd>
+        <dt>Cut</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a>, <a href="#chapter-7-cut-copy-paste">7.3</a></dd>
     </dl>
     <div class="idx-letter">D</div>
     <dl>
         <dt>Dark theme</dt><dd> &mdash; <a href="#chapter-8-theme">8.4</a></dd>
-        <dt>Delete</dt><dd> &mdash; <a href="#chapter-7-delete">7.3</a></dd>
         <dt>Detached Panels</dt><dd> &mdash; <a href="#chapter-9-detached">9.1</a></dd>
         <dt>Details</dt><dd> &mdash; <a href="#chapter-4-details">4.4</a></dd>
         <dt>Display quality</dt><dd> &mdash; <a href="#chapter-4-details">4.4</a></dd>
@@ -2087,6 +2091,7 @@ function closeVideo(event, container) {
         <dt>Edit</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
         <dt>Equal temperament</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
         <dt>Expand mode</dt><dd> &mdash; <a href="#chapter-4-details">4.4</a></dd>
+        <dt>Export</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
     </dl>
     <div class="idx-letter">F</div>
     <dl>
@@ -2100,7 +2105,7 @@ function closeVideo(event, container) {
     <dl>
         <dt>Gestures</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
         <dt>Google Drive</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Grid</dt><dd> &mdash; <a href="#chapter-6-grid">6.6</a></dd>
+        <dt>Grid</dt><dd> &mdash; <a href="#chapter-6-grid">6.7</a></dd>
         <dt>Grip</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
         <dt>Group selection</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
         <dt>Guide</dt><dd> &mdash; <a href="#chapter-8-guide">8.3</a></dd>
@@ -2111,7 +2116,8 @@ function closeVideo(event, container) {
     </dl>
     <div class="idx-letter">I</div>
     <dl>
-        <dt>Images, importing</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.7</a></dd>
+        <dt>Images, importing</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a></dd>
+        <dt>Import</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
         <dt>IMSLP</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
         <dt>Ink Ring</dt><dd> &mdash; <a href="#chapter-6">Ch.6</a></dd>
         <dt>Inner ring</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
@@ -2133,9 +2139,9 @@ function closeVideo(event, container) {
     </dl>
     <div class="idx-letter">M</div>
     <dl>
-        <dt>Magnify</dt><dd> &mdash; <a href="#chapter-7-magnify">7.8</a></dd>
-        <dt>Manuscript paper</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a>, <a href="#chapter-7-merge">7.7</a></dd>
-        <dt>Merge</dt><dd> &mdash; <a href="#chapter-7-merge">7.7</a></dd>
+        <dt>Magnify</dt><dd> &mdash; <a href="#chapter-7-magnify">7.7</a></dd>
+        <dt>Manuscript paper</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a>, <a href="#chapter-7-merge">7.6</a></dd>
+        <dt>Merge</dt><dd> &mdash; <a href="#chapter-7-merge">7.6</a></dd>
         <dt>Metadata</dt><dd> &mdash; <a href="#chapter-4-details">4.4</a></dd>
         <dt>Metronome</dt><dd> &mdash; <a href="#chapter-9-metronome">9.2</a></dd>
         <dt>Microphone</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a>, <a href="#chapter-9-review">9.6</a></dd>
@@ -2167,8 +2173,8 @@ function closeVideo(event, container) {
         <dt>Page sizing</dt><dd> &mdash; <a href="#chapter-4-details">4.4</a></dd>
         <dt>Page turn</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a></dd>
         <dt>Password-protected PDF</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Paste</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.7</a>, <a href="#chapter-7-paste">7.6</a></dd>
-        <dt>Paste buffer</dt><dd> &mdash; <a href="#chapter-7-copy">7.5</a>, <a href="#chapter-7-paste">7.6</a></dd>
+        <dt>Paste</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a>, <a href="#chapter-7-cut-copy-paste">7.3</a></dd>
+        <dt>Paste buffer</dt><dd> &mdash; <a href="#chapter-7-copy">chapter-7-copy</a>, <a href="#chapter-7-paste">chapter-7-paste</a></dd>
         <dt>PDF files</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a>, <a href="#overture">Overture</a></dd>
         <dt>Pen</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a></dd>
         <dt>Pencil</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a></dd>
@@ -2176,10 +2182,10 @@ function closeVideo(event, container) {
         <dt>Pinch-zoom</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-3">Ch.3</a></dd>
         <dt>Pitch detector</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
         <dt>Playback</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
-        <dt>Practice scores</dt><dd> &mdash; <a href="#chapter-7-paste">7.6</a></dd>
+        <dt>Practice scores</dt><dd> &mdash; <a href="#chapter-7-paste">chapter-7-paste</a></dd>
         <dt>Precision sliders</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
         <dt>Print</dt><dd> &mdash; <a href="#chapter-4-print">4.3</a></dd>
-        <dt>Privacy</dt><dd> &mdash; <a href="#chapter-7-paste">7.6</a>, <a href="#chapter-8-storage">8.2</a></dd>
+        <dt>Privacy</dt><dd> &mdash; <a href="#chapter-8-storage">8.2</a>, <a href="#chapter-7-paste">chapter-7-paste</a></dd>
         <dt>Progressive Web App</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
     </dl>
     <div class="idx-letter">Q</div>
@@ -2232,8 +2238,8 @@ function closeVideo(event, container) {
     </dl>
     <div class="idx-letter">U</div>
     <dl>
-        <dt>Undo</dt><dd> &mdash; <a href="#chapter-6-undo">6.5</a>, <a href="#chapter-7-undo">7.4</a></dd>
-        <dt>Undo history</dt><dd> &mdash; <a href="#chapter-6-undo">6.5</a>, <a href="#chapter-7-undo">7.4</a></dd>
+        <dt>Undo</dt><dd> &mdash; <a href="#chapter-6-undo">6.6</a>, <a href="#chapter-7-undo">7.4</a></dd>
+        <dt>Undo history</dt><dd> &mdash; <a href="#chapter-6-undo">6.6</a>, <a href="#chapter-7-undo">7.4</a></dd>
     </dl>
     <div class="idx-letter">V</div>
     <dl>
@@ -2250,7 +2256,7 @@ function closeVideo(event, container) {
     </dl>
     <div class="idx-letter">Z</div>
     <dl>
-        <dt>Zoom</dt><dd> &mdash; <a href="#chapter-7-magnify">7.8</a>, <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Zoom</dt><dd> &mdash; <a href="#chapter-7-magnify">7.7</a>, <a href="#chapter-3">Ch.3</a></dd>
     </dl>
     <a href="#toc" class="back-to-toc">&uarr; Back to Table of Contents</a>
 </nav>

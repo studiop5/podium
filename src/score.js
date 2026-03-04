@@ -1303,7 +1303,7 @@ class Score {
     // looks like were calling this for score in pgbuffer....
     if(Score.activeScore === this) {
       _menu_.enableCells("page/undo", this.undoStack.length > 0);
-      _menu_.enableCells("page/delete", this.pgs.length > 1); // forbid deleting last pg, otherwise allow
+      _menu_.enableCells("page/cut", this.pgs.length > 1); // forbid cutting last pg, otherwise allow
       let detailsCell = _menu_.rings.score?.cells.details;
       if (detailsCell && panels[detailsCell.key]) panels[detailsCell.key].refresh();
     }

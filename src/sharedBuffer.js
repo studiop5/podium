@@ -24,11 +24,11 @@
 import { delay, dialog, listen, sleep, toast } from "./common.js";
 import { Layout } from "./layout.js";
 import { Score } from "./score.js";
-export { PasteBuffer }
+export { SharedBuffer }
 
 // -skip
 
-class PasteBuffer {
+class SharedBuffer {
 
   // List of podium tab ids, assigned starting from the end (popped off as tabs open).
   // Tab titles use these ids to distinguish multiple open tabs: "Podium (do)", "Podium (re)", etc.
@@ -91,7 +91,7 @@ class PasteBuffer {
               }
               break;
 
-            case "pod-pgs-changed": // Another tab has modified the pastebuffer
+            case "pod-pgs-changed": // Another tab has modified the shared buffer
               this.score = null;
               this.announce();
               break;
@@ -114,15 +114,15 @@ class PasteBuffer {
         // check for _podId_ in use
         this.signal("pod-id-check");
         document.title = podTitle(_podId_);
-        _menu_.enableCells("page/paste", (await this.getScore()).pgs.length > 0);
+        _menu_.enableCells("page/import", (await this.getScore()).pgs.length > 0);
         resolve(_podId_);
       }
     });
   }
 
   announce() {
-   // Create and send a PASTEBUFFER event
-   _body_.dispatchEvent(new CustomEvent("PASTEBUFFER"));
+   // Create and send a SHAREDBUFFER event
+   _body_.dispatchEvent(new CustomEvent("SHAREDBUFFER"));
   }
 
   signal(msg, data={}) {
@@ -132,7 +132,7 @@ class PasteBuffer {
   }
 
   async getScore() { 
-    // @return Score constructed from pastebuffer pdf (if available, else new, empty Score)
+    // @return Score constructed from shared buffer pdf (if available, else new, empty Score)
     if(this.score) return this.score; // cached
     let pdfData = (await this.get(this.dbKey))?.data;
     if(pdfData) this.score = await new Score().init("podPb",_podId_,_podId_,pdfData, false);
@@ -155,7 +155,7 @@ class PasteBuffer {
       await this.put(this.dbKey, await this.score.toPdf());
       this.signal("pod-pgs-changed");
       this.announce();
-      _menu_.enableCells("page/paste", true);
+      _menu_.enableCells("page/import", true);
     } catch (err) {
       if (err.cause === 'fileSrc' || err.message?.includes('catalog') || err.message?.includes('Invalid object')) {
         dialog("Unable to copy page:<br>" + err.message);

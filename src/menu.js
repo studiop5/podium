@@ -291,7 +291,7 @@ class Menu {
     }
 
     // set initial cell state
-    this.enableCells(["layout", "ink", "ink/paste", "page", "score/close", "score/save", "score/details", "score/print", "page/paste"], false);
+    this.enableCells(["layout", "ink", "ink/paste", "page", "score/close", "score/save", "score/details", "score/print", "page/import"], false);
 
     this.stashDefaults = this.stashToJson();
     // load menu stash from localStorage
@@ -517,6 +517,18 @@ class Menu {
           svgPath: iconPaths["Symbols"],
           stash: {alpha:"1", rgb:"#000000", font: "Bravura", size: 5, group: "4.5. Clefs", codePoint: "\ue050"},
         },
+        cut: {
+          name: "Cut",
+          svgPath: iconPaths["Cut"],
+        },
+        copy: {
+          name: "Copy",
+          svgPath: iconPaths["Copy"],
+        },
+        paste: {
+          name: "Paste",
+          svgPath: iconPaths["Paste"],
+        },
         undo: {
           name: "Undo",
           svgPath: iconPaths["Undo"],
@@ -530,19 +542,6 @@ class Menu {
           // or 4em, 2cm, 1cm 1/2cm [units == Metric]
           stash: {units:"Inch", xStep: 2, yStep:2, snap:"Snap", numbers:"On"},
         },
-        cut: {
-          name: "Cut",
-          svgPath: iconPaths["Cut"],
-        },
-        copy: {
-          name: "Copy",
-          svgPath: iconPaths["Copy"],
-        },
-        paste: {
-          name: "Paste",
-          svgPath: iconPaths["Paste"],
-        },
-        
       },
       name: "Ink",
       stash: { active: "pencil", 
@@ -573,10 +572,13 @@ class Menu {
           svgPath: iconPaths["New Page"],
           stash: { rgb: "#ffffff", alpha: 1.0, Width: 612, Height: 792, size: "Match Score" },
         },
-        delete: { name: "Delete", svgPath: iconPaths["Delete Page"] },
-        undo: { name: "Undo", svgPath: iconPaths["Undo"] },
+        cut: { name: "Cut", svgPath: iconPaths["Cut Page"] },
         copy: { name: "Copy", svgPath: iconPaths["Copy Page"] },
         paste: { name: "Paste", svgPath: iconPaths["Paste Page"] },
+
+        undo: { name: "Undo", svgPath: iconPaths["Undo"] },
+        export: { name: "Export", svgPath: iconPaths["Export Page"] },
+        import: { name: "Import", svgPath: iconPaths["Import Page"] },
         merge: { name: "Merge", svgPath: iconPaths["Merge"] },
         magnify: { name: "Magnify", svgPath: iconPaths["Magnify"], stash: { zoom: 1 } },
       },
@@ -591,7 +593,7 @@ class Menu {
     paths = Object.keys(rings.page.cells).map((path) => `page/${path}/`);
     this.listen(paths.map((path) => path + "up"), (cell) => this.activateCell(rings.page.activeCell === cell ? null :cell));
     this.listen(paths.map((path) => path + "long"), (cell) => this.toggleLock(cell));
-    this.listen(["page/numbers/","page/paste/","page/add/","page/magnify/"].map((path) => path + "out"), (cell) =>  this.openPanel(cell));
+    this.listen(["page/numbers/","page/import/","page/add/","page/magnify/"].map((path) => path + "out"), (cell) =>  this.openPanel(cell));
 
     this.listen("page/undo/up", async () => {
        _score_.pgUndo();

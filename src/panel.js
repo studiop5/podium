@@ -667,7 +667,7 @@ class OpenPanel extends FilePanel {
   }
 }
 
-class CopyPanel extends OpenPanel {
+class ExportPanel extends OpenPanel {
   constructor(cell) {
     super(cell);
     this.mode = "copy";
@@ -811,8 +811,8 @@ class AboutPanel extends Panel {
   );
 
   licenseFace = helm(`<p style="padding:2em;overflow:auto;text-align:center;">
-  <br><b>Podium</b><br><br>
-  Copyright 2025 Glendon Diener<br><br>
+  <br><b>PODIUM: Sheet Music Studio</b><br><br>
+  Copyright 2026 Glendon Diener<br><br>
 
   Podium is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br><br>
 
@@ -1005,7 +1005,7 @@ class StoragePanel extends Panel {
     buttons.replaceWith(
       new ButtonGroup(
         cell,
-        { Menu: { svg: "Menu" }, Recent: { svg: "Score" }, Buffer: { svg: "Paste Page" } },
+        { Menu: { svg: "Menu" }, Recent: { svg: "Score" }, Import: { svg: "Import Page" } },
         (e, prop, tag) => {
           if (tag == "Menu") {
             _menu_.stashFromJson(_menu_.stashDefaults);
@@ -1016,9 +1016,9 @@ class StoragePanel extends Panel {
             for (let src of Object.values(Score.sources))
               localStorage.setItem(src, "");
             toast("Recent list cleared");
-          } else if (tag == "Buffer") {
+          } else if (tag == "Import") {
             _podPb_.clear();
-            toast("Paste buffer cleared");
+            toast("Import buffer cleared");
           }
           this.updateStats(); // refresh after reset
         }
@@ -2219,11 +2219,11 @@ class PrintPanel extends Panel {
 }
 
 
-class PastePanel extends Panel {
+class ImportPanel extends Panel {
 
   static css = css(
-    "PastePanel", 
-     `.PastePanel__frame {
+    "ImportPanel", 
+     `.ImportPanel__frame {
         background-image: var(--panTexture);
         height: 6em;
         width: 100%;
@@ -2234,7 +2234,7 @@ class PastePanel extends Panel {
         border-radius: var(--borderRadius);
       }
       
-      .PastePanel__sash {
+      .ImportPanel__sash {
         position: relative;
         height:100%;
         width: max-content;
@@ -2249,8 +2249,8 @@ class PastePanel extends Panel {
 
   content = helm(`
      <div data-tag="body" class="Panel__body">
-       <div class="PastePanel__frame" data-tag="frame">
-         <div class="PastePanel__sash" data-tag="sash"></div>
+       <div class="ImportPanel__frame" data-tag="frame">
+         <div class="ImportPanel__sash" data-tag="sash"></div>
        </div>
        <div data-tag="buttons" style="border-top: 1px solid var(--color-border);"></div>
      </div>
@@ -2295,7 +2295,7 @@ class PastePanel extends Panel {
     buttons.elm.style.borderTop = ".02em solid var(--color-border)";   
     this.buttons.replaceWith(buttons.elm);
 
-    listen(_body_, "PASTEBUFFER", async (e) => {
+    listen(_body_, "SHAREDBUFFER", async (e) => {
       _shade_.show("Building...");
       let score = await _podPb_.getScore();
       let thumbs = [];
@@ -2303,7 +2303,7 @@ class PastePanel extends Panel {
       _shade_.hide();
       clearChildren(this.sash);
       if(thumbs.length > 0) { 
-        _menu_.enableCells("page/paste",true) ;
+        _menu_.enableCells("page/import",true) ;
         this.sash.style.fontSize = "1em"; // reset to known "baseline"
         reflow();
         thumbs.forEach((thumb) => this.sash.append(thumb));
@@ -2319,7 +2319,7 @@ class PastePanel extends Panel {
         buttons.defs.Clear.disabled = false;
       }
       else {
-        _menu_.enableCells("page/paste", false);
+        _menu_.enableCells("page/import", false);
         if (_menu_.activeRing?.activeCell === _menu_.rings.page.cells.paste)
           _menu_.activateCell(null);
         buttons.defs.Undo.disabled = true;
@@ -2646,7 +2646,7 @@ let panels = {
   AddPanel,
   BookPanel,
   ClockPanel,
-  CopyPanel,
+  ExportPanel,
   GuidePanel,
   DetailsPanel,
   GridPanel,
@@ -2657,7 +2657,7 @@ let panels = {
   NewPanel,
   NumbersPanel,
   OpenPanel,
-  PastePanel,
+  ImportPanel,
   PencilPanel,
   PenPanel,
   PianoPanel,
