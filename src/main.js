@@ -35,7 +35,7 @@ import { Menu } from "./menu.js";
 import { Layout } from "./layout.js";
 import { Score } from "./score.js";
 import { initFabric } from "./canvas.js";
-import { PasteBuffer } from "./pasteBuffer.js";
+import { SharedBuffer } from "./sharedBuffer.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
 // -skip
@@ -59,7 +59,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
 // #include src/file.js minified
 // #include src/yin.js minified
 // #include src/tool.js minified
-// #include src/pasteBuffer.js minified
+// #include src/sharedBuffer.js minified
 async function main() {
 
   // Initialize theme from localStorage
@@ -83,7 +83,7 @@ async function main() {
     animate(_menu_.menuHolder, { transform: "rotate(-1turn)" },
       { transform: "rotate(0)" }, `transform ${1000000 / _gs_}ms`);
     animate(_menu_.disk, { transform: "rotate(2turn)" }, { transform: "rotate(0)" }, `transform ${1000000 / _gs_}ms`);
-    await new PasteBuffer().init() ;
+    await new SharedBuffer().init() ;
     // Extension-specific code: load PDF from URL parameter if present
     if (typeof chrome !== "undefined" && chrome.runtime?.id) {
       let { loadPdfFromUrl } = await import("./ext.js");

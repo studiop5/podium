@@ -61,7 +61,6 @@ Storage:
 Refresh:
   `<path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" fill="currentColor"/>`,
 
-///
 Magnify:
   `<defs><mask id="glass">
     <rect x="0" y="0" width="24" height="24" fill="white"/>
@@ -103,6 +102,16 @@ Close:
 "Close Panel":
   `<path fill="currentColor" d="M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z" />`,
 
+"Export Page":
+  `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+  <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+  <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 18v-9M9 12l3-3 3 3"/>`,
+
+"Import Page":
+  `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+  <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+  <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 9v9M9 15l3 3 3-3"/>`,
+
 "Copy Page":
   `<g style="transform:scale(.85)">
      <path style="transform:translate(-2.5,-2.5);fill:#aaa;stroke:currentColor;stroke-width:.3" d="M3 2h17v20.5h-17Z"/>
@@ -120,8 +129,8 @@ Close:
   <text y=20 x=3.5 font-size=20>\u2702</text>`,
 
 "Copy":
-  `<g style="transform:scale(.6,.6);"><path style="translate(-2px,-2px);fill:none;stroke:currentColor;stroke-width:.3" d="M3 2h17v20.5h-17Z"/>
-  <path transform=translate(4,4) style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/></g>`,
+  `<text y="12" x="4" font-size="11px" font-family="Bravura" fill="#888">\ue050</text>
+   <text y="16" x="8" font-size="11px" font-family="Bravura" fill="#currentColor">\ue050</text>`,
 
  "Delete Page":
     `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
