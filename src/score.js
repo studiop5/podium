@@ -1026,6 +1026,9 @@ class Score {
     _menu_.closePanels();
     document.dispatchEvent(new CustomEvent("scoreOpened"));
     _menu_.enableCells("page/undo", this.undoStack.length > 0);
+    // clear any pg from paste cell...could be left over from previous score, if any
+    _menu_.rings.page.cells.paste.pg = null ;
+    _menu_.enableCells("page/paste", false) ;
     this.pgRefresh();
     // Sync quality to stash so InfoPanel slider shows correct value
     _menu_.rings.score.cells.details.stash.quality = this.quality;
