@@ -371,7 +371,7 @@ class Layout {
         }
 
         case "cut": {
-          if(this.score.pgs.length == 1) break; // no deleting last pg
+          if(this.score.pgs.length == 1) break; // no cutting last pg
           score.pgCut(pn);
           if(pn == _score_.numbers.pn) // deleting active pg?
             _score_.numbers.pn = Math.max(1, _score_.numbers.pn - 1) // choose different one
@@ -384,6 +384,7 @@ class Layout {
           pasteCell.pg = await pg.clone(true);
           await this.animateToCell(pg, false, _menu_.rings.page.cells.paste, layoutKey, 
             () => this.build(false));
+          _menu_.enableCells("page/paste") ;
           break;
         }
 
@@ -1950,7 +1951,7 @@ class TableLayout extends Layout {
   }
 
 
-  Cursor = class {
+  Organizer = class {
     // This embedded class manages dragging to reorder pgs
 
     // Here, we slide the active thumbnail elm. As we do, up to
@@ -2020,11 +2021,15 @@ class TableLayout extends Layout {
       this.splits.forEach((elm, i) => elm && (elm.style.cssText = this.splitsStyle[i]));
       let score = this.layout.score;
       if(this.toPn == null) {
+        // Then this is a cut operation
         let active = this.active;
-        score.pgUnuse(active.pg);
         score.pgCut(active.pn);
+        let pasteCell = _menu_.rings.page.cells.paste ;
+        if (pasteCell.pg) pasteCell.pg.deflate(true);
+          pasteCell.pg = await active.pg.clone(true);
         this.layout.animateToCell(active.pg, false, _menu_.rings.page.cells.cut, "table",
               () => this.layout.build(false));
+        _menu_.enableCells("page/paste") ;
         return;
       }        
       if(this.active.pn > this.toPn) this.toPn++;
@@ -2101,24 +2106,13 @@ class TableLayout extends Layout {
        mvmt(e, emv);
        if(e.moved) {
          this.bMarkTimer.cancel();
-         if(!cursor) cursor = new this.Cursor(e, this);
+         if(!cursor) cursor = new this.Organizer(e, this);
          cursor.mv(emv);
        }
     });
   }
 
   async pgGoTo(pn) {
-    /* rem grd... need to use a listener for this!!!
-   ...but we already have one....it calls pgGoTo. we should
-    be checking
-    if (this.pnOffset != _score_.numbers.first) {
-      // Front Matter count has changed: re-number pages
-      this.pnOffset = _score_.numbers.pnOffset;
-      for (let pnElm of [...document.getElementsByClassName("TableLayout__pn")])
-         pnToDiv(pnElm.pn, pnElm, false);
-    }
-*/
-
     if (this.active?.pn == pn) return pn; // active page was reselected, noop
     this.inOp = true;
     this.pnPost(pn);
