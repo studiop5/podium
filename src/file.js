@@ -651,7 +651,7 @@ class CachedSrc extends FileSrc {
             let exchanging = false; // guard against concurrent exchange attempts
             let poll = async () => {
                 try {
-                    if (popup.closed) throw new Error("Authentication aborted");
+                    if (popup.closed) throw new Error("Authentication aborted", { cause: "cancelled" });
                     let href = popup.location.href;
                     let error = this.getQuery(href, "error=");
                     if (error) {
