@@ -424,7 +424,13 @@ function closeVideo(event, container) {
     <ul>
         <li><a href="#overture">Overture</a></li>
         <li><a href="#chapter-1">Chapter 1: Quick Start</a> — <span style="color:#777">Up and running in minutes</span></li>
-        <li><a href="#chapter-2">Chapter 2: Running Podium</a> — <span style="color:#777">Launch from URL or install</span></li>
+        <li><a href="#chapter-2">Chapter 2: Running Podium</a> — <span style="color:#777">Launch from URL or install</span>
+            <ul>
+                <li><a href="#chapter-2-extension">2.1 Browser Extension</a> — <span style="color:#777">Install as a browser extension on desktop</span></li>
+                <li><a href="#chapter-2-pwa">2.2 Progressive Web App (PWA)</a> — <span style="color:#777">Install as a standalone app on any device</span></li>
+                <li><a href="#chapter-2-compat">2.3 Browser Compatibility</a> — <span style="color:#777">Supported browsers and platforms</span></li>
+            </ul>
+        </li>
         <li><a href="#chapter-3">Chapter 3: Interface Basics</a> — <span style="color:#777">Menu, panels, gestures, background</span></li>
         <li><a href="#chapter-4">Chapter 4: Score Ring</a> — <span style="color:#777">Manage scores stored as PDF files</span>
             <ul>
@@ -730,13 +736,13 @@ function closeVideo(event, container) {
 
     <p>However, installation may be desirable in certain situations, especially when using Podium in performance where internet connectivity cannot be assumed.</p>
 
-    <p><strong>Offline use.</strong> After your first visit, Podium stores itself on your device automatically, so it can open and run without an internet connection, even without explicit installation. However, if you plan to use Podium offline, for example in performance, <strong>installing it is strongly recommended</strong>. Without explicit installation, the browser may quietly discard the stored copy when it needs space or when you clear your browsing history, leaving you without Podium when you need it most.</p>
+    <p><strong>Offline use.</strong> After your first visit, Podium stores itself on your device automatically, so it can open and run without an internet connection, even without explicit installation. However, if you plan to use Podium offline, for example in performance, <strong>installing it is strongly recommended</strong>. Without explicit installation, the browser may quietly discard the stored copy when it needs space or when you clear your browsing history, leaving you without Podium when you need it most.  Fortunately, Podium is remarkably compact: the storage it uses on your device is roughly equivalent to two photos from a typical smartphone camera.</p>
 
     <p>Installing as a <strong>browser extension</strong> or <strong>PWA</strong> makes Podium a permanent resident on your device. The extension, being fully self-contained, is the most robust option for offline use on desktop. A PWA install is equally reliable on Android, desktop, and Chromebook. The one exception is iPhone and iPad: even as an installed PWA, the system may occasionally require an internet connection after a long period of inactivity; simply open Podium every now and then to keep it fresh.</p>
 
-    <p>Keep in mind that only scores you have stored locally will be available offline; scores in cloud storage require an internet connection to open. Podium is remarkably compact: the storage it uses on your device is roughly equivalent to two photos from a typical smartphone camera.</p>
+    <p>Keep in mind that only scores you have stored locally will be available offline; scores in cloud storage require an internet connection to open.</p>
 
-    <h3>Browser Extension</h3>
+    <h3 id="chapter-2-extension">2.1 Browser Extension</h3>
 
     <p>Podium can be installed as a browser extension in supported desktop browsers (Chrome, Edge, and similar browsers). After installation, the Podium icon will be available under the browser's extensions menu (the puzzle piece icon in the toolbar). We recommend pinning it straight away for easy access: tap the puzzle piece, find Podium in the list, and tap the pin icon next to it. Once pinned, tap the Podium icon in the toolbar and tap "Launch Podium" to open the app directly. Scores can then be loaded in the usual way. The extension also provides additional ways to open scores:</p>
 
@@ -755,7 +761,7 @@ function closeVideo(event, container) {
 
     <div class="note">Podium's extension is not available on iPhone or iPad, but can be installed as a progressive web app, see below. On Android, Chrome does not support extensions, but Edge for Android has Beta support for extensions as of this writing.</div>
 
-    <h3>Progressive Web App (PWA)</h3>
+    <h3 id="chapter-2-pwa">2.2 Progressive Web App (PWA)</h3>
 
     <p>Podium can also be installed as a Progressive Web App. Once installed, Podium appears as a standalone application on your device and works offline.</p>
 
@@ -768,13 +774,13 @@ function closeVideo(event, container) {
 
     <p><strong>Android (Chrome):</strong> Tap the browser menu (three dots) and select <strong>Add to Home Screen</strong>. A popup will offer two options: choose <strong>Install</strong> (not "Create shortcut") for the full PWA experience with the correct icon and offline support. Podium will appear in your apps drawer, where you can add it to your home screen in the usual way.</p>
 
-    <p><strong>iPhone/iPad (Safari only):</strong> Apple does not display install prompts for PWAs, and only Safari supports PWA installation. Chrome and other browsers on iPhone/iPad cannot install PWAs. Open Podium in Safari, tap the <strong>Share button</strong> (box with arrow, at the bottom of the screen), scroll down in the share sheet and tap <strong>"Add to Home Screen"</strong>, then tap <strong>"Add"</strong>. Also note that if the PWA is not used for several weeks, the iPhone/iPad system may offload the app's data. This can cause settings to reset or require an internet connection to re-verify the app on its next launch. To prevent this, simply open Podium occasionally.</p>
+    <p><strong>iPhone/iPad (Safari only):</strong> Apple does not display install prompts for PWAs, and only Safari supports PWA installation. Chrome and other browsers on iPhone/iPad cannot install PWAs. Open Podium in Safari, tap the <strong>Share button</strong> <span style="display:inline-block;position:relative;width:.7em;height:1em;vertical-align:-.15em;">&#x2610;<span style="position:absolute;left:.1em;top:-.55em;font-size:1.2em;">&#x2191;</span></span> in the toolbar (iPhone: bottom centre; iPad: beside the address bar), scroll down in the share sheet and tap <strong>"Add to Home Screen"</strong>, then tap <strong>"Add"</strong>. Once installed, the Podium icon appears on your home screen; if you long-press it, iOS/iPadOS refers to it as a <strong>bookmark</strong> — this is normal Apple terminology for home screen web apps. Also note that if the PWA is not used for several weeks, the iPhone/iPad system may offload the app's data. This can cause settings to reset or require an internet connection to re-verify the app on its next launch. To prevent this, simply open Podium occasionally.</p>
 
     <div class="note">A significant advantage of the PWA over running Podium in a browser tab is that it always occupies the full screen with no browser toolbar, address bar, or other distractions: a clean, app-like experience unique to the PWA. As a result, the Screen button and the full-screen swipe gesture have no effect when running as a PWA, since Podium is already in full screen.</div>
 
     <div class="note">Naturally, when offline, only locally stored scores can be accessed.</div>
 
-    <h3>Browser Compatibility</h3>
+    <h3 id="chapter-2-compat">2.3 Browser Compatibility</h3>
     <p>Podium works in all modern browsers. The table below summarizes feature availability:</p>
     <table class="compat">
         <tr>
