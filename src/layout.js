@@ -1532,7 +1532,16 @@ class ScrollLayout extends Layout {
         let totalTravel = buf.length > 0 ? Math.abs(buf[buf.length - 1].x - buf[0].x) : 0;
         if (eup.timeStamp - e.timeStamp < 500 && totalTravel < 10) {
           // Tap (or mobile micro-movement tap) — direction based on which half was tapped
-          dir = eup[CLIENTX] > frameBox[X] + frameBox[WIDTH] / 2 ? "left" : "right";
+          let mid;
+          if (this.cell.geo.pgSnap) {
+            mid = frameBox[X] + frameBox[WIDTH] / 2;
+          } else {
+            // pgSnap=0: use viewport-visible portion of frame to find midpoint
+            let visStart = Math.max(frameBox[X], 0);
+            let visEnd = Math.min(frameBox[X] + frameBox[WIDTH], window[this.props.INNERWIDTH]);
+            mid = (visStart + visEnd) / 2;
+          }
+          dir = eup[CLIENTX] > mid ? "left" : "right";
           // Nudge sash off the exact boundary so pgSnapTo's ceil/floor will advance
           this.sashStart += (dir == "left" ? -1 : 1);
         } else {
@@ -1553,6 +1562,7 @@ class ScrollLayout extends Layout {
     let sashOrigin = this.sashStart;
     this.sashStart = -(pg[WIDTH] + gap) * (pn - 1);
     this.sashStart = clamp(this.sashStart, sashLimit, 0);
+    pn = Math.round(-this.sashStart / (pg[WIDTH] + gap)) + 1;
     await this.pgMount(pn);
     animate(this.sash, { [LEFT]: toEm(sashOrigin) }, { [LEFT]: toEm(this.sashStart) }, `${LEFT} cubic-bezier( 0, 1.01, 0.04, 1 ) ${_gs_}ms`);
     this.spinRollers(_gs_);
@@ -1656,14 +1666,24 @@ class ScrollLayout extends Layout {
         this.sashStart = (dX < 0.5 ? Math.ceil(travel) : Math.floor(travel)) * snapWidth;
       }
     }
-    else if(dir != "none") this.sashStart -= vel * pgShow * (pgWidth + gap);
+    else if(dir != "none") {
+      // Use the visible (viewport-clipped) frame extent as step — the full frame may extend offscreen
+      let { X, INNERWIDTH } = this.props;
+      let frameBox = getBox(this.frame);
+      let visSize = Math.min(frameBox[X] + frameBox[WIDTH], window[INNERWIDTH]) - Math.max(frameBox[X], 0);
+      if (Math.abs(vel) > 0.07)
+        this.sashStart -= vel * visSize; // fling: sign of vel encodes direction
+      else
+        this.sashStart += dir == "left" ? -visSize : visSize; // tap: advance/retreat by visible amount
+    }
     this.sashStart = clamp(this.sashStart, sashLimit, 0);
     // what will be the new page number?
     let pn = Math.round((-this.sashStart) / (pgWidth + gap) + 1);
     pn = clamp(pn, 1, pgCount);
 
     // after the snap, the page number is taken as the left[top]most visible page
-    if (pgSnap > 0) pn = Math.floor((pn - 1) / pgSnap) * pgSnap + 1;
+    // skip snap-alignment when clamped to limit — position won't be on a snap boundary
+    if (pgSnap > 0 && this.sashStart > sashLimit) pn = Math.floor((pn - 1) / pgSnap) * pgSnap + 1;
     this.pnPost(pn);
     this.pgMount(pn, dir);
 
