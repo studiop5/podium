@@ -667,7 +667,7 @@ class OpenPanel extends FilePanel {
   }
 }
 
-class ExportPanel extends OpenPanel {
+class CopyPanel extends OpenPanel {
   constructor(cell) {
     super(cell);
     this.mode = "copy";
@@ -2646,7 +2646,7 @@ let panels = {
   AddPanel,
   BookPanel,
   ClockPanel,
-  ExportPanel,
+  CopyPanel,
   GuidePanel,
   DetailsPanel,
   GridPanel,

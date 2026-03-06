@@ -36,6 +36,15 @@ Fabric.js customizations
 **/
 
 function initFabric() {
+  // Suppress "willReadFrequently" warning: Fabric's hit-test cache canvas calls
+  // getImageData frequently, so opt in to the GPU-bypass hint.
+  fabric.Canvas.prototype._createCacheCanvas = function() {
+    this.cacheCanvasEl = this._createCanvasElement();
+    this.cacheCanvasEl.setAttribute("width", this.width);
+    this.cacheCanvasEl.setAttribute("height", this.height);
+    this.contextCache = this.cacheCanvasEl.getContext("2d", { willReadFrequently: true });
+  };
+
   fabric.Object.NUM_FRACTION_DIGITS = 2;
   fabric.Object.prototype.transparentCorners = false;
   fabric.Object.prototype.cornerSize = _mobile_ ? 32:16; // Large touch target

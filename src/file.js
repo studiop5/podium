@@ -309,11 +309,12 @@ class FileSrc {
 class LocalSrc extends FileSrc {
   source = Score.sources.local;
 
-  async getFile(path, name) {
+  async getFile(path, name, mode) {
     if (window.showOpenFilePicker) {
-      let [handle] = await showOpenFilePicker({
-        types: [{ description: "PDF Files", accept: { "application/pdf": [".pdf"] } }],
-      });
+      let types = mode == "copy"
+        ? [{ description: "Image Files", accept: { "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"] } }]
+        : [{ description: "PDF Files", accept: { "application/pdf": [".pdf"] } }];
+      let [handle] = await showOpenFilePicker({ types });
       let file = await handle.getFile();
       await checkFileSize(file.name, file.size);
       let data = await file.arrayBuffer();
@@ -321,6 +322,7 @@ class LocalSrc extends FileSrc {
     }
     return new Promise((accept, reject) => {
       let input = helm('<input type="file" style="display:hidden;"></input>');
+      input.accept = mode == "copy" ? "image/jpeg, image/png" : ".pdf, application/pdf";
       _body_.append(input);
       listen(
         input,
@@ -2074,7 +2076,7 @@ class FileListView {
     return new Promise(async (accept, reject) => {
       try {
         let src = FileSrc.get(source);
-        let { path, name, data, size, created, modified, fileHandle } = await src.getFile(requestedPath, requestedName);
+        let { path, name, data, size, created, modified, fileHandle } = await src.getFile(requestedPath, requestedName, this.panel.mode);
         let visitUpdate = { path, size, created, modified };
         if (this.panel.mode == "copy") {
           let ext = this.acceptExt(requestedName);
