@@ -96,6 +96,7 @@ class Yin {
       this.currentSource.disconnect();
       this.currentSource = null;
     }
+    this.audioContext.resume();
   }
 
   setA4Frequency(freq) {
