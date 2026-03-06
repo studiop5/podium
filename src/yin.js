@@ -81,6 +81,10 @@ class Yin {
   async start() {
     if (this.audioContext.state === 'suspended') await this.audioContext.resume();
     if (this.currentStream) this.stop();
+    if (this._keepaliveStream) {
+      this._keepaliveStream.getTracks().forEach(t => t.stop());
+      this._keepaliveStream = null;
+    }
     this.currentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     this.currentSource = this.audioContext.createMediaStreamSource(this.currentStream);
     this.currentSource.connect(this.highPassFilter);
@@ -88,15 +92,28 @@ class Yin {
   }
 
   stop() {
-    if (this.currentStream) {
-      this.currentStream.getTracks().forEach(track => track.stop());
-      this.currentStream = null;
-    }
     if (this.currentSource) {
       this.currentSource.disconnect();
       this.currentSource = null;
     }
-    this.audioContext.resume();
+    if (this.currentStream) {
+      if (/AppleWebKit/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent) && navigator.maxTouchPoints > 1) {
+        // iOS: stopping mic tracks resets the audio session, suspending AudioContext.
+        // Keep the stream alive to hold the session open; release() stops it when Piano closes.
+        this._keepaliveStream = this.currentStream;
+      } else {
+        this.currentStream.getTracks().forEach(track => track.stop());
+      }
+      this.currentStream = null;
+    }
+  }
+
+  release() {
+    this.stop();
+    if (this._keepaliveStream) {
+      this._keepaliveStream.getTracks().forEach(t => t.stop());
+      this._keepaliveStream = null;
+    }
   }
 
   setA4Frequency(freq) {

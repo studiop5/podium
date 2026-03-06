@@ -443,12 +443,14 @@ class Piano {
     this.repeater.cancel();
     this.damper.cancel();
     this.looper.cancel();
+    if (this.yin) this.yin.release();
   }
 
   // Build the web audio pipeline for the keyboard
   async buildAudio() {
     this.activeNotes = new Map();
     let [actx, bus] = Actx.get();
+    if (actx.state === 'suspended') actx.resume().catch(() => {});
 
     // decode audio samples, if not already decoded: we check only middle C
     if(!(pianoSamples[60] instanceof AudioBuffer)) Object.keys(pianoSamples).forEach(async (key) => {
@@ -532,7 +534,7 @@ class Piano {
 
     // piano key press handler
     this.panel.listeners.push(listen(this.keyboard, "pointerdown", (e) => {
-      e.target.setPointerCapture(e.pointerId); 
+      e.target.setPointerCapture(e.pointerId);
       let midiOffset = e.target.dataset.sample;
       noteOn(midiOffset);
       listen(e.target, "pointerup", (e) => {
