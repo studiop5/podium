@@ -528,7 +528,7 @@ class DetailsPanel extends Panel {
       let score = _score_;
 
       let nameInput = helm(
-        `<input type="text" style="font-size:1.5em;text-align:center;margin-bottom:.5em;width:100%;border:none;border-radius:var(--borderRadius);background:white;">`
+        `<input type="text" style="font-size:1.5em;text-align:center;margin-bottom:.5em;width:100%;box-sizing:border-box;border:none;border-radius:var(--borderRadius);background:white;">`
       );
       nameInput.value = score.name.replace(/\.pdf$/i, "");
       nameInput.addEventListener("change", () => {
@@ -899,6 +899,9 @@ for more details.</p>
   </li><br>
   <li><b>Cell Locking</b><br>
   Long-press supported ink and page ring cells to lock them on, preventing auto-deactivation. Useful for extended annotation or page editing sessions.
+  </li><br>
+  <li><b>Edit Panel (Ink ring &rarr; Edit)</b><br>
+  Precisely adjust the position, size, and rotation of selected annotations by entering exact values for X, Y, width, height, and rotation angle.
   </li><br>
   <li><b>Cut, Copy &amp; Paste (Page ring)</b><br>
   New local cut, copy, and paste cells for moving and duplicating pages within a score. The previous Copy and Paste cells, which share pages between Podium instances, are renamed Export and Import.
