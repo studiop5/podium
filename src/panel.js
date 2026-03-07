@@ -880,7 +880,7 @@ for more details.</p>
 
   releaseNotesFace = helm(
     `<div class="AboutPanel__scroll" style="padding:2em;text-align:left;font-size:.8em;">
-      <h2>V2.0 February 2026</h2>
+      <h2>V2.0 March 2026</h2>
   <ul>
   <li><b>Browser Extension (Chrome, Edge)</b><br>
   Right-click any PDF link and open it directly in Podium. Includes IMSLP integration for seamless access to the world's largest public domain music library.
@@ -899,6 +899,9 @@ for more details.</p>
   </li><br>
   <li><b>Cell Locking</b><br>
   Long-press supported ink and page ring cells to lock them on, preventing auto-deactivation. Useful for extended annotation or page editing sessions.
+  </li><br>
+  <li><b>Cut, Copy &amp; Paste (Page ring)</b><br>
+  New local cut, copy, and paste cells for moving and duplicating pages within a score. The previous Copy and Paste cells, which share pages between Podium instances, are renamed Export and Import.
   </li><br>
   <li><b>Tap to Turn Pages</b><br>
   In Book, Horizontal, and Vertical layouts, a tap is equivalent to a quick fling.
