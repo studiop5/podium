@@ -232,11 +232,14 @@ class Layout {
 
   destructor() {
     // Called when layout is about to be replaced by another. Subclasses should call super().
-    // We need to remember user's pz changes, if any:
-    if (this.elm.classList.contains("pz-set")) {
-      let styles = getComputedStyle(this.elm);
-      this.cell.pz = { left: styles.left, top: styles.top, fontSize: (parseFloat(styles.fontSize) / _pxPerEm_) + "em" };
+    if(this.score == _score_) { // When changing layouts for same score, remember user's pz changes, if any:
+      if (this.elm.classList.contains("pz-set")) {
+        let styles = getComputedStyle(this.elm);
+        this.cell.pz = { left: styles.left, top: styles.top, fontSize: (parseFloat(styles.fontSize) / _pxPerEm_) + "em" };
+      }
     }
+    else // layout for new score: clear any user pz changes
+      for(let cell of Object.values(_menu_.rings.layout.cells)) cell.pz = null ;
     for(let pg of this.score.pgs) pg.deflate(); 
     unlisten(this.pnListener);
     this.elm.remove();
@@ -329,7 +332,7 @@ class Layout {
       return true;
     }
     // When there is an active cell in the ink ring, then we're editing a page,
-    // So don't allow the layout code to run:
+    // so don't allow the layout code to run:
     if (_menu_.activeRing?.key == "ink" && _menu_.activeRing?.activeCell) return true;
 
     if (_menu_.activeRing?.key == "page") { // Execute page ring's active cell action
@@ -366,6 +369,12 @@ class Layout {
           await score.pgAdd(pg, pn);
           _score_.numbers.pn = pn; 
           _body_.dispatchEvent(new CustomEvent("NUMBERS", { detail: {sender:this} }));
+          if(layoutKey == "table") {
+            // for table layout, inflate and generate thumbnail. This will prevent
+            // the "Build page:" dialog from appearing, which is too brief to read.
+            await pg.inflate() ; 
+            await pg.getThumbElm() ;
+          }
           await this.build(false);
           break;
         }
@@ -1866,9 +1875,7 @@ class TableLayout extends Layout {
         }
         else {
           dialogElm.buttonsElm.self.fire("Cancel");
-          if(this.cell.pz) return (this.elm.style.cssText = this.cell.pz);// custom user-set pan/zoom
-          if(this.fit == "Height") this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / table.offsetHeight  + "em";
-          animate(this.elm, null, this.centerLT(), `left, top ${_gs_}ms`);
+          this.buildAux();
         }
       }
       await gen(0);
@@ -1882,19 +1889,25 @@ class TableLayout extends Layout {
         if (nextTop < Layout.margin) this.toXY(Layout.margin, nextTop);
         grid.append(await this.buildPg(pn));
       }
-      let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
-      if(this.cell.pz)
+      this.buildAux() ;
+    }
+  }
+
+  buildAux() {
+    // set layout's final position/size, based on this.fit (or this.cell.pz, if set). Called after
+    // build one of 2 locations: 1. all thumbnails 2. user cancelled in-flight thumbnail build
+    let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
+    if(this.cell.pz)
+      animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
+        this.cell.pz, `left, top, font-size ${_gs_}ms`);
+    else { 
+      if(this.fit == "Height") // reduce fontSize so layout fits window's height
+        this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / this.table.offsetHeight  + "em";
+      if(this.animated)
         animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
-          this.cell.pz, `left, top, font-size ${_gs_}ms`);
-      else { 
-        if(this.fit == "Height") // reduce fontSize so layout fits window's height
-          this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / table.offsetHeight  + "em";
-        if(this.animated)
-          animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
-            this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}ms`);
-        else 
-          this.centerLT({ fontSize: this.elm.style.fontSize}); 
-      }
+          this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}ms`);
+      else 
+        this.centerLT({ fontSize: this.elm.style.fontSize}); 
     }
   }
 
