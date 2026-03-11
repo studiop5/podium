@@ -44,7 +44,6 @@ A Chrome/Edge browser extension is available for opening PDF scores directly fro
 - Python 3.x
 - openssl (for SSL certificate generation)
 - ffmpeg (optional, for audio sample processing)
-- rsync (for `--www` deployment)
 
 ### Development Server
 
@@ -70,15 +69,13 @@ This project uses a custom Python-based build system.
 
 | Command | Description |
 |---------|-------------|
-| `python3 build.py` | Full build (font, sample, yin, podium, ext, guide) |
+| `python3 build.py` | Full build (font, sample, yin, podium, guide) |
 | `python3 build.py --podium` | Build single-file app (`build/podium.html`) |
-| `python3 build.py --ext` | Build browser extension in `ext/` |
 | `python3 build.py --guide` | Build Guidebook keyword index |
 | `python3 build.py --font` | Build font assets (embeds Bravura.otf as base64) |
 | `python3 build.py --sample` | Build piano samples (requires ffmpeg) |
 | `python3 build.py --yin` | Build pitch detection worklet |
 | `python3 build.py --cert` | Generate SSL certificate (requires openssl) |
-| `python3 build.py --www` | Deploy to `../www` (requires rsync) |
 | `python3 build.py --clean` | Clean build artifacts |
 
 The build system creates a single-file distribution at `build/podium.html` that includes all dependencies, assets, and source code inline.
