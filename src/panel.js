@@ -52,7 +52,7 @@ import { escapeHtml, FileSrc, FileListView, FileSystemView, LocalFileView } from
 import { Layout } from "./layout.js";
 import { Pg, Score } from "./score.js";
 import { smuflTable } from "./smufl.js";
-import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
+import { Clock, Metronome, Piano, Review, Stopwatch, Volume, Pz } from "./tool.js";
 export { Panel, panels };
 
 // -skip
@@ -1353,6 +1353,33 @@ class VolumePanel extends Panel {
     this.volume.hide();
   }
 }
+
+
+class ScreenPanel extends Panel {
+  constructor(cell) {
+    super(cell);
+    this.pz = new Pz(this);
+  }
+
+  destructor() {
+    super.destructor();
+    this.pz.destructor();
+  }
+
+  show() {
+    super.show();
+    this.pz.show();
+    return this;
+  }
+
+  hide() {
+    super.hide();
+    this.pz.hide();
+  }
+}
+
+
+
 
 class MetronomePanel extends Panel {
   static css = css(
@@ -2671,6 +2698,7 @@ let panels = {
   RastrumPanel,
   ReviewPanel,
   SavePanel,
+  ScreenPanel,
   StoragePanel,
   StopwatchPanel,
   TextPanel,

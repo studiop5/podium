@@ -618,6 +618,7 @@ class Menu {
     this.listen("app/up", () => this.activateRing(rings.app));
 
     this.listen("app/about/out", (cell) => this.openPanel(cell));
+    this.listen("app/screen/out", (cell) => this.openPanel(cell));
     this.listen("app/storage/out", (cell) => this.openPanel(cell));
     this.listen("app/guide/out", (cell) => this.openPanel(cell));
 

@@ -135,6 +135,7 @@ async function main() {
     { passive: false }
     );
 
+
     listen(_body_, "pointerdown", (e) => {
         if (e.isPrimary) {
           if(e.target == _body_) {
@@ -260,6 +261,7 @@ async function main() {
         );
 
         listen(_body_, ["pointerup", "pointercancel"], (eup) => {
+          eup.stopImmediatePropagation();
              unlisten(mv);
              tr1 = tr2 = null ;
           },
