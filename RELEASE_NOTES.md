@@ -2,7 +2,7 @@
 
 ---
 
-## v2.0 — February 2026
+## v2.0 — March 2026
 
 ### New Features
 
