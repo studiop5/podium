@@ -24,7 +24,7 @@ import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dial
 import { pianoSamples } from "./sample.js";
 import { panels } from "./panel.js"; 
 import { Yin } from "./yin.js";
-export { Review, Metronome, Clock, Stopwatch, Pz, Piano, Volume };
+export { Review, Metronome, Clock, Stopwatch, Pz, Pzr, Piano, Volume };
 
 // -skip
 
@@ -1444,14 +1444,14 @@ class Pz extends Surface {
     `
     .PZ_button {
         padding: 0;
-        width: 1.4em;
-        height: 1.4em;
+        width: 0.9em;
+        height: 0.9em;
         cursor: pointer;
         background-color: transparent;
         border: none;
         border-radius: 100%;
-        font-family: Bravura;
-        font-size: 1.6em;
+        font-size: 1.8em;
+        font-weight: bold;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1460,15 +1460,12 @@ class Pz extends Surface {
         text-shadow: 0 0 .1em #fff, 0 0 .2em #fff;
         color: #333;
         box-sizing: border-box;
-        transform: translate(-.5em, -.35em);
+        transform: translate(-.18em, -.1em);
     }
     .PZ_zoom {
-        border: .05em solid #aaa;
-        background-color: #fff4;
-        transform: translate(-.3em, -.2em);
     }
     .PZ_move {
-        font-size: 3em;
+        font-size: 2.2em;
     }
     .PZ_button:active {
         color: #000;
@@ -1481,89 +1478,170 @@ class Pz extends Surface {
 
   constructor(panel) {
     super(panel);
+    this.surface.style.width = "9em";
     this.surface.style.height = "9em";
-    this.surface.style.marginLeft = "2em";
 
-    let ui = helm(`
-      <div style="display:grid;grid-template-columns:repeat(7, 1.28em);grid-template-rows:repeat(7, 1.28em);width:9em;height:9em;background:#8883;box-shadow:var(--bodyShadow);box-sizing:border-box;overflow:visible;border-radius:100%;" data-tag="ui">
-          <button data-tag="up"    class="PZ_button PZ_move" style="grid-column:4;grid-row:1;">\uEB80</button>
-          <button data-tag="left"  class="PZ_button PZ_move" style="grid-column:1;grid-row:4;">\uEB86</button>
-          <button data-tag="out"   class="PZ_button PZ_zoom" style="grid-column:3;grid-row:4;">\uE090</button>
-          <button data-tag="in"    class="PZ_button PZ_zoom" style="grid-column:5;grid-row:4;">\uE08C</button>
-          <button data-tag="right" class="PZ_button PZ_move" style="grid-column:7;grid-row:4;">\uEB82</button>
-          <button data-tag="down"  class="PZ_button PZ_move" style="grid-column:4;grid-row:7;">\uEB84</button>
-      </div>
-    `);
+    this.buildUI();
     
-    let repeater = new Schedule();
-    listen(ui, "pointerdown", (e) => {
+    this.repeater = new Schedule();
+    listen(this.ui, "pointerdown", (e) => {
       let tag = e.target.dataset.tag;
       if (!tag || tag == "ui") return; // Bubble to surface for dragging
       
       e.stopPropagation();
       e.target.setPointerCapture(e.pointerId);
       
-      let startTime = performance.now();
-      let startSizes = this.targets.map(item => item[1]);
+      this.opStartTime = performance.now();
+      this.opStartValues = this.targets.map(item => item[1]);
 
-      let stepFunc = () => {
-        let elapsed = performance.now() - startTime;
-        if (tag == "in" || tag == "out") {
-          let progress = Math.min(1, elapsed / 2000);
-          let zoomFactor = 0.25 * (progress * progress);
-          if (elapsed < 50) zoomFactor = 0.005;
-          let multiplier = (tag == "in") ? (1 + zoomFactor) : (1 - zoomFactor);
-          this.targets.forEach((item, i) => {
-            let [target] = item;
-            let startSize = startSizes[i];
-            let newSize = Math.max(0.1, startSize * multiplier);
-            target.style.fontSize = newSize + "em";
-            item[1] = newSize; 
-          });
-        } else {
-          let dx = 0, dy = 0;
-          let step = (elapsed < 250) ? 1 : Math.min(1 + ((elapsed - 250) / 2000) * 19, 20);
-          if (tag == "up") dy = -step;
-          if (tag == "down") dy = step;
-          if (tag == "left") dx = -step;
-          if (tag == "right") dx = step;
-          for (let [target] of this.targets) {
-            if (target && target != this.panel.elm && target != this.surface) {
-              target.style.left = clamp(target.offsetLeft + dx, 0, window.innerWidth) + "px";
-              target.style.top = clamp(target.offsetTop + dy, 0, window.innerHeight) + "px";
-            }
-          }
-        }
-      };
-
-      stepFunc();
-      repeater.run(250, () => {
+      this.doStep(tag);
+      this.repeater.run(250, () => {
         let loop = () => {
-          stepFunc();
-          repeater.run(50, loop);
+          this.doStep(tag);
+          this.repeater.run(50, loop);
         };
         loop();
       });
 
-      listen(e.target, ["pointerup", "pointercancel"], () => repeater.cancel(), { once: true });
+      listen(e.target, ["pointerup", "pointercancel"], () => this.repeater.cancel(), { once: true });
     });
 
-    this.surfaceDragElm = ui;
-    this.surface.append(ui);
+    this.surfaceDragElm = this.ui;
+    this.surface.append(this.ui);
 
-    listen(_body_, "pointerdown", (e) => {
-      if (e.target.closest(".pz") == this.surface) return;
-      this.targets.length = 0 ;
-      let selected = (e.target == _body_) ? document.getElementsByClassName("pz") : [e.target.closest(".pz")];
-      for(let target of selected) {
-         if(target && target != this.surface && target != this.panel.elm) {
-           let fs = target.style.fontSize;
-           let emSize = (fs && fs.includes("em")) ? parseFloat(fs) : parseFloat(getComputedStyle(target).fontSize) / _pxPerEm_;
-           this.targets.push([target, emSize]) ;
-         }
+    listen(_body_, "pointerdown", (e) => this.onSelect(e)) ;
+  }
+
+  buildUI() {
+    this.ui = helm(`
+      <div style="display:grid;grid-template-columns:repeat(9, 1fr);grid-template-rows:repeat(9, 1fr);justify-items:center;align-items:center;width:100%;height:100%;box-shadow:var(--bodyShadow);box-sizing:border-box;overflow:visible;border-radius:100%;border:.1em solid #ccc;background:#eee6;padding-left:.35em;" data-tag="ui">
+          ${iconSvg("Full Screen", { style: "width:2.2em;height:2.2em;grid-column:5;grid-row:5;pointer-events:none;opacity:0.4;transform:translateX(-.35em);" })}
+          <button data-tag="up"    class="PZ_button PZ_move" style="grid-column:5;grid-row:1;">\u25B4</button>
+          <button data-tag="left"  class="PZ_button PZ_move" style="grid-column:1;grid-row:5;">\u25C2</button>
+          <button data-tag="out"   class="PZ_button PZ_zoom" style="grid-column:3;grid-row:5;">\uFF0D</button>
+          <button data-tag="in"    class="PZ_button PZ_zoom" style="grid-column:7;grid-row:5;">\uFF0B</button>
+          <button data-tag="right" class="PZ_button PZ_move" style="grid-column:9;grid-row:5;">\u25B8</button>
+          <button data-tag="down"  class="PZ_button PZ_move" style="grid-column:5;grid-row:9;">\u25BE</button>
+      </div>
+    `);
+  }
+
+  onSelect(e) {
+    if (e.target.closest(".pz") == this.surface) return;
+    this.targets.length = 0 ;
+    let selected = (e.target == _body_) ? document.getElementsByClassName("pz") : [e.target.closest(".pz")];
+    for(let target of selected) {
+       if(target && target != this.surface && target != this.panel.elm) {
+         let fs = target.style.fontSize;
+         let emSize = (fs && fs.includes("em")) ? parseFloat(fs) : parseFloat(getComputedStyle(target).fontSize) / _pxPerEm_;
+         this.targets.push([target, emSize]) ;
+       }
+    }
+  }
+
+  doStep(tag) {
+    let elapsed = performance.now() - this.opStartTime;
+    if (tag == "in" || tag == "out") {
+      let progress = Math.min(1, elapsed / 2000);
+      let zoomFactor = 0.25 * (progress * progress);
+      if (elapsed < 50) zoomFactor = 0.005;
+      let multiplier = (tag == "in") ? (1 + zoomFactor) : (1 - zoomFactor);
+      this.targets.forEach((item, i) => {
+        let [target] = item;
+        let startSize = this.opStartValues[i];
+        let newSize = Math.max(0.1, startSize * multiplier);
+        target.style.fontSize = newSize + "em";
+        item[1] = newSize; 
+      });
+    } else {
+      let dx = 0, dy = 0;
+      let step = (elapsed < 250) ? 1 : Math.min(1 + ((elapsed - 250) / 2000) * 19, 20);
+      if (tag == "up") dy = -step;
+      if (tag == "down") dy = step;
+      if (tag == "left") dx = -step;
+      if (tag == "right") dx = step;
+      for (let [target] of this.targets) {
+        if (target && target != this.panel.elm && target != this.surface) {
+          target.style.left = clamp(target.offsetLeft + dx, 0, window.innerWidth) + "px";
+          target.style.top = clamp(target.offsetTop + dy, 0, window.innerHeight) + "px";
+        }
       }
-    }) ;
+    }
+  }
+}
 
+/**
+class Pzr
+  Subclass of Pz that adds rotation buttons and is specialized for editing
+  Fabric.js objects with locked aspect ratio.
+*/
+class Pzr extends Pz {
+  buildUI() {
+    this.ui = helm(`
+      <div style="display:grid;grid-template-columns:repeat(9, 1fr);grid-template-rows:repeat(9, 1fr);justify-items:center;align-items:center;width:100%;height:100%;box-shadow:var(--bodyShadow);box-sizing:border-box;overflow:visible;border-radius:100%;border:.1em solid #ccc;background:#eee6;padding-left:.2em;" data-tag="ui">
+          ${iconSvg("Edit", { style: "width:2.2em;height:2.2em;grid-column:5;grid-row:5;pointer-events:none;opacity:0.4;transform:translate(-.35em,-.2em);" })}
+          <button data-tag="up"    class="PZ_button PZ_move" style="grid-column:5;grid-row:1;">\u25B4</button>
+          <button data-tag="left"  class="PZ_button PZ_move" style="grid-column:1;grid-row:5;">\u25C2</button>
+          <button data-tag="ccw"   class="PZ_button PZ_zoom" style="grid-column:5;grid-row:4;">\u21BA</button>
+          <button data-tag="out"   class="PZ_button PZ_zoom" style="grid-column:3;grid-row:5;">\uFF0D</button>
+          <button data-tag="in"    class="PZ_button PZ_zoom" style="grid-column:7;grid-row:5;">\uFF0B</button>
+          <button data-tag="cw"    class="PZ_button PZ_zoom" style="grid-column:5;grid-row:6;">\u21BB</button>
+          <button data-tag="right" class="PZ_button PZ_move" style="grid-column:9;grid-row:5;">\u25B8</button>
+          <button data-tag="down"  class="PZ_button PZ_move" style="grid-column:5;grid-row:9;">\u25BE</button>
+      </div>
+    `);
+  }
+
+  onSelect(e) {
+    if (e.target.closest(".pz") == this.surface) return;
+    let obj = _score_?.getActiveObject();
+    this.targets.length = 0;
+    if (obj) {
+      this.targets.push([obj, {
+        left: obj.left,
+        top: obj.top,
+        scaleX: obj.scaleX,
+        scaleY: obj.scaleY,
+        angle: obj.angle
+      }]);
+    }
+  }
+
+  doStep(tag) {
+    let elapsed = performance.now() - this.opStartTime;
+    let item = this.targets[0];
+    if (!item) return;
+    let [obj] = item;
+    let startVals = this.opStartValues[0];
+    if (!startVals) return;
+
+    if (tag == "in" || tag == "out") {
+      let progress = Math.min(1, elapsed / 2000);
+      let zoomFactor = 0.25 * (progress * progress);
+      if (elapsed < 50) zoomFactor = 0.005;
+      let multiplier = (tag == "in") ? (1 + zoomFactor) : (1 - zoomFactor);
+      obj.set({
+        scaleX: Math.max(0.01, startVals.scaleX * multiplier),
+        scaleY: Math.max(0.01, startVals.scaleY * multiplier)
+      });
+    } else if (tag == "ccw" || tag == "cw") {
+      let step = (elapsed < 250) ? 1 : Math.min(1 + ((elapsed - 250) / 2000) * 19, 20);
+      let delta = (tag == "cw") ? step : -step;
+      obj.set("angle", (startVals.angle + delta) % 360);
+    } else {
+      let dx = 0, dy = 0;
+      let step = (elapsed < 250) ? 1 : Math.min(1 + ((elapsed - 250) / 2000) * 19, 20);
+      if (tag == "up") dy = -step;
+      if (tag == "down") dy = step;
+      if (tag == "left") dx = -step;
+      if (tag == "right") dx = step;
+      obj.set({
+        left: startVals.left + dx,
+        top: startVals.top + dy
+      });
+    }
+    obj.setCoords();
+    obj.canvas?.requestRenderAll();
   }
 }
 

@@ -52,7 +52,7 @@ import { escapeHtml, FileSrc, FileListView, FileSystemView, LocalFileView } from
 import { Layout } from "./layout.js";
 import { Pg, Score } from "./score.js";
 import { smuflTable } from "./smufl.js";
-import { Clock, Metronome, Piano, Review, Stopwatch, Volume, Pz } from "./tool.js";
+import { Clock, Metronome, Piano, Review, Stopwatch, Volume, Pz, Pzr } from "./tool.js";
 export { Panel, panels };
 
 // -skip
@@ -2436,52 +2436,23 @@ class StopwatchPanel extends Panel {
 class EditPanel extends Panel {
 
   content = helm(`
-    <div data-tag="body" class="Panel__body" style="min-width: 15em;">
+    <div data-tag="body" class="Panel__body">
       <div data-tag="noSelection" style="padding: 1em; text-align: center; color: #888;">
         No object selected
       </div>
-      <div data-tag="slidersContainer" style="display: none;">
+      <div data-tag="controlsContainer" style="display: none;">
         <div data-tag="objectType" style="text-align: center; font-weight: bold; margin-bottom: 0.5em;"></div>
+        <div data-tag="surfaceContainer" style="height: 10em; display: flex; align-items: center; justify-content: center;"></div>
       </div>
     </div>`);
-
-  // Props object that syncs with the active fabric object
-  editProps = { x: 0, y: 0, width: 100, height: 100, angle: 0 };
-
-  slidersDef = {
-    x: { min: 0, max: 1000, step: .1, value: 0, msg: "X: {value} px" },
-    y: { min: 0, max: 1000, step: .1, value: 0, msg: "Y: {value} px" },
-    width: { min: 1, max: 1000, step: .1, value: 100, msg: "Width: {value} px" },
-    height: { min: 1, max: 1000, step: .1, value: 100, msg: "Height: {value} px" },
-    angle: { min: 0, max: 360, step: .1, value: 0, msg: "Angle: {value}°" },
-  };
 
   constructor(cell) {
     super(cell);
     this.body.replaceWith(this.content);
     Object.assign(this, dataIndex("tag", this.content));
 
-    this.sliderGroup = new SliderGroup(
-      this.editProps,
-      this.slidersDef,
-      (e, tag, value) => this.handleSliderChange(tag, Number(value))
-    );
-    this.slidersContainer.append(this.sliderGroup.elm);
-  }
-
-  handleSliderChange(tag, value) {
-    let obj = this.getActiveObject();
-    if (!obj) return;
-
-    switch (tag) {
-      case 'x': obj.set('left', value); break;
-      case 'y': obj.set('top', value); break;
-      case 'width': obj.set('scaleX', value / obj.width); break;
-      case 'height': obj.set('scaleY', value / obj.height); break;
-      case 'angle': obj.set('angle', value); break;
-    }
-    obj.setCoords();
-    obj.canvas?.requestRenderAll();
+    this.pzr = new Pzr(this);
+    this.surfaceContainer.append(this.pzr.surface);
   }
 
   getActiveObject() {
@@ -2507,6 +2478,7 @@ class EditPanel extends Panel {
   show() {
     super.show();
     this.refresh();
+    this.pzr.onSelect({ target: _body_ });
     // Poll for selection changes while panel is visible
     this.pollInterval = setInterval(() => {
       if (this.elm.style.visibility !== 'visible') {
@@ -2528,30 +2500,14 @@ class EditPanel extends Panel {
     let obj = this.getActiveObject();
     if (!obj) {
       this.noSelection.style.display = 'block';
-      this.slidersContainer.style.display = 'none';
+      this.controlsContainer.style.display = 'none';
       return;
     }
     this.noSelection.style.display = 'none';
-    this.slidersContainer.style.display = 'block';
+    this.controlsContainer.style.display = 'block';
 
     // Display object type
     this.objectType.textContent = this.getObjectTypeName(obj);
-
-    let canvas = obj.canvas;
-    // Update slider ranges based on canvas size
-    this.slidersDef.x.max = canvas.width;
-    this.slidersDef.y.max = canvas.height;
-    this.slidersDef.width.max = canvas.width;
-    this.slidersDef.height.max = canvas.height;
-
-    // Update props from fabric object
-    this.editProps.x = Math.round(obj.left);
-    this.editProps.y = Math.round(obj.top);
-    this.editProps.width = Math.round(obj.getScaledWidth());
-    this.editProps.height = Math.round(obj.getScaledHeight());
-    this.editProps.angle = Math.round(obj.angle);
-
-    this.sliderGroup.refresh();
   }
 }
 
