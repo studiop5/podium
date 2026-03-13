@@ -1593,7 +1593,6 @@ class Pzr extends Pz {
   }
 
   onSelect(e) {
-    if (e.target.closest(".pz") == this.surface) return;
     let obj = _score_?.getActiveObject();
     this.targets.length = 0;
     if (obj) {
@@ -1602,7 +1601,9 @@ class Pzr extends Pz {
         top: obj.top,
         scaleX: obj.scaleX,
         scaleY: obj.scaleY,
-        angle: obj.angle
+        angle: obj.angle,
+        originX: obj.originX,
+        originY: obj.originY
       }]);
     }
   }
@@ -1612,34 +1613,61 @@ class Pzr extends Pz {
     let item = this.targets[0];
     if (!item) return;
     let [obj] = item;
-    let startVals = this.opStartValues[0];
-    if (!startVals) return;
+
+    // Calculate incremental step (velocity)
+    let step = (elapsed < 250) ? 1 : Math.min(1 + ((elapsed - 250) / 2000) * 19, 20);
 
     if (tag == "in" || tag == "out") {
-      let progress = Math.min(1, elapsed / 2000);
-      let zoomFactor = 0.25 * (progress * progress);
-      if (elapsed < 50) zoomFactor = 0.005;
-      let multiplier = (tag == "in") ? (1 + zoomFactor) : (1 - zoomFactor);
+      let multiplier = (tag == "in") ? 1.01 : 0.99;
+      let center = obj.getCenterPoint();
       obj.set({
-        scaleX: Math.max(0.01, startVals.scaleX * multiplier),
-        scaleY: Math.max(0.01, startVals.scaleY * multiplier)
+        originX: "center", originY: "center",
+        left: center.x, top: center.y,
+        scaleX: Math.max(0.01, obj.scaleX * multiplier),
+        scaleY: Math.max(0.01, obj.scaleY * multiplier)
       });
     } else if (tag == "ccw" || tag == "cw") {
-      let step = (elapsed < 250) ? 1 : Math.min(1 + ((elapsed - 250) / 2000) * 19, 20);
       let delta = (tag == "cw") ? step : -step;
-      obj.set("angle", (startVals.angle + delta) % 360);
+      let center = obj.getCenterPoint();
+      obj.set({
+        originX: "center", originY: "center",
+        left: center.x, top: center.y,
+        angle: (obj.angle + delta) % 360
+      });
     } else {
       let dx = 0, dy = 0;
-      let step = (elapsed < 250) ? 1 : Math.min(1 + ((elapsed - 250) / 2000) * 19, 20);
       if (tag == "up") dy = -step;
       if (tag == "down") dy = step;
       if (tag == "left") dx = -step;
       if (tag == "right") dx = step;
+
+      let newLeft = obj.left + dx;
+      let newTop = obj.top + dy;
+
+      if (obj.canvas) {
+        // Ensure the object's center point remains within the canvas bounds
+        let center = obj.getCenterPoint();
+        let centerDx = center.x - obj.left;
+        let centerDy = center.y - obj.top;
+
+        newLeft = clamp(newLeft + centerDx, 0, obj.canvas.width) - centerDx;
+        newTop = clamp(newTop + centerDy, 0, obj.canvas.height) - centerDy;
+      }
+
       obj.set({
-        left: startVals.left + dx,
-        top: startVals.top + dy
+        left: newLeft,
+        top: newTop
       });
     }
+
+    // Sync current values back to item[1] so the next step/operation is correct
+    item[1] = {
+      left: obj.left, top: obj.top,
+      scaleX: obj.scaleX, scaleY: obj.scaleY,
+      angle: obj.angle,
+      originX: obj.originX, originY: obj.originY
+    };
+
     obj.setCoords();
     obj.canvas?.requestRenderAll();
   }

@@ -2434,80 +2434,30 @@ class StopwatchPanel extends Panel {
 }
 
 class EditPanel extends Panel {
-
-  content = helm(`
-    <div data-tag="body" class="Panel__body">
-      <div data-tag="noSelection" style="padding: 1em; text-align: center; color: #888;">
-        No object selected
-      </div>
-      <div data-tag="controlsContainer" style="display: none;">
-        <div data-tag="objectType" style="text-align: center; font-weight: bold; margin-bottom: 0.5em;"></div>
-        <div data-tag="surfaceContainer" style="height: 10em; display: flex; align-items: center; justify-content: center;"></div>
-      </div>
-    </div>`);
-
   constructor(cell) {
     super(cell);
-    this.body.replaceWith(this.content);
-    Object.assign(this, dataIndex("tag", this.content));
-
+    this.body.classList.add("centerChild");
     this.pzr = new Pzr(this);
-    this.surfaceContainer.append(this.pzr.surface);
+    this.body.append(this.pzr.surface);
+    this.listeners.push(listen(_body_,"OBJTOUCHED", (e) => this.pzr.onSelect(e.detail))) ;
   }
 
-  getActiveObject() {
-    return _score_?.getActiveObject();
-  }
-
-  getObjectTypeName(obj) {
-    if (!obj) return "";
-    if (obj.type == "activeSelection") {
-      let types = obj.getObjects().map(o => this.getObjectTypeName(o));
-      let unique = [...new Set(types)];
-      return unique.length == 1 ? `${unique[0]}s (${types.length})` : `Mixed (${types.length})`;
-    }
-    if (obj.podiumType == "text") return "Text";
-    if (obj.podiumType == "symbols") return "Symbol";
-    if (obj.podiumType == "podPath") return "Path";
-    if (obj.type == "group") return "Rastrum";
-    if (obj.type == "path") return "Path";
-    if (obj.type == "image") return "Image";
-    return obj.type || "Object";
+  destructor() {
+    super.destructor();
+    this.pzr.destructor();
   }
 
   show() {
     super.show();
-    this.refresh();
+    this.pzr.show();
     this.pzr.onSelect({ target: _body_ });
-    // Poll for selection changes while panel is visible
-    this.pollInterval = setInterval(() => {
-      if (this.elm.style.visibility !== 'visible') {
-        clearInterval(this.pollInterval);
-        return;
-      }
-      this.refresh();
-    }, 200);
     return this;
   }
 
   hide() {
-    if (this.pollInterval) clearInterval(this.pollInterval);
     super.hide();
+    this.pzr.hide();
     return this;
-  }
-
-  refresh() {
-    let obj = this.getActiveObject();
-    if (!obj) {
-      this.noSelection.style.display = 'block';
-      this.controlsContainer.style.display = 'none';
-      return;
-    }
-    this.noSelection.style.display = 'none';
-    this.controlsContainer.style.display = 'block';
-
-    // Display object type
-    this.objectType.textContent = this.getObjectTypeName(obj);
   }
 }
 

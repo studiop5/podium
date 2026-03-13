@@ -1090,7 +1090,6 @@ class Menu {
       // Score is editable iff ink is activeRing, and it has an activeCell
       _score_.setEditable(ring.activeCell);
       // Score is selectable iff ink is activeRing, and edit cell is active
-///
     if(editToggle && cell && (cell.key == "cut" || cell.key == "copy"))
     { // check for active selection
       for(let pg of _score_.pgs) {

@@ -248,7 +248,7 @@ class Pg {
         if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) _menu_.pgUpEvent(opts, this); 
       });
   
-      canvas.on("selection:created", opts => {
+      let onSelection = opts => {
         // Allow dragging selection by clicking anywhere in bounding box, not just pixels
         canvas.perPixelTargetFind = false;
 
@@ -262,10 +262,18 @@ class Pg {
 
         if (_menu_.activeRing.key == "ink" && ["cut","copy","edit"].includes(_menu_.activeRing.activeCell.key))
          _menu_.pgEvent(opts, this);
-      });
+         // This dispatch must be delayed so that any  OBJTOUCHED dispatch event arising from a cleared
+         // active object is processed before this one.
+         delay(3, () => _body_.dispatchEvent(new CustomEvent("OBJTOUCHED",
+           { detail: { target: canvas.getActiveObject()}}))) ;
+      };
+
+      canvas.on("selection:created", onSelection);
+      canvas.on("selection:updated", onSelection);
 
       canvas.on("selection:cleared", () => {
         canvas.perPixelTargetFind = true;
+        _body_.dispatchEvent(new CustomEvent("OBJTOUCHED", { detail: { target: null } }));
       });
 
 
@@ -283,9 +291,26 @@ class Pg {
         _menu_.enableCells("ink/undo");
       };
   
-      canvas.on("object:added", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
-      canvas.on("object:removed", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
-      canvas.on("object:modified", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
+      canvas.on("object:added", (opts) => { 
+        if(!this.suppressStateChange) {
+           stateChanged = true;
+           let target = opts.target || opts;
+           _body_.dispatchEvent(new CustomEvent("OBJTOUCHED", { detail: { target } }));
+        }
+      });
+      canvas.on("object:removed", (opts) => { 
+        if(!this.suppressStateChange) {
+           stateChanged = true;
+           _body_.dispatchEvent(new CustomEvent("OBJTOUCHED", { detail: { target: null } }));
+        }
+      });
+      canvas.on("object:modified", (opts) => { 
+        if(!this.suppressStateChange) {
+           stateChanged = true;
+           let target = opts.target || opts;
+           _body_.dispatchEvent(new CustomEvent("OBJTOUCHED", { detail: { target } }));
+        }
+      });
   
       this.inflated = true;
       this.setEditable(this.editable); // indicate pg is editable. note: called AFTER setting this.inflated
