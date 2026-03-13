@@ -47,12 +47,13 @@ import {
   TabView,
   toast,
   unlisten,
+  Surface,
 } from "./common.js";
 import { escapeHtml, FileSrc, FileListView, FileSystemView, LocalFileView } from "./file.js";
 import { Layout } from "./layout.js";
 import { Pg, Score } from "./score.js";
 import { smuflTable } from "./smufl.js";
-import { Clock, Metronome, Piano, Review, Stopwatch, Volume, Pz, Pzr } from "./tool.js";
+import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
 export { Panel, panels };
 
 // -skip
@@ -340,434 +341,6 @@ class Panel {
 
 }
 
-class AddPanel extends Panel {
-  content = helm(`
-    <div data-tag="options" class="Panel__body">
-      <div data-tag="picker"></div>
-      <div style="margin-top: var(--spacing-md); margin-bottom: 0.1em">Size</div>
-      ${PAGE_SIZE_SELECT}
-      <div data-tag="custom"></div>
-    </div>
-  `);
-
-  constructor(cell) {
-    super(cell);
-    Object.assign(this, dataIndex("tag", this.content));
-    this.body.append(this.content);
-    let stash = cell.stash;
-     // Color picker
-    let picker = new ColorPicker(
-      "Color",
-      stash.rgb,
-      stash.alpha,
-      (rgb, alpha) => {
-        stash.rgb = rgb;
-        stash.alpha = alpha;
-      }
-    );
-    this.picker.replaceWith(picker.elm);
-    this.setupSizeSelection(stash);
-  }
-
-  setupSizeSelection(stash) {
-    // Extract the size selection logic into a method
-    let sizeMsg = (tag, val) => {
-      let pt = val.toFixed(0);
-      let mm = (val * (1 / 2.8346456693)).toFixed(0);
-      let inch = (val * (1 / 72)).toFixed(2);
-      return `${tag}: ${pt} pt, ${mm} mm, ${inch} in`;
-    };
-    let disable = stash.size != "Custom";
-
-    this.customGroup = new SliderGroup(stash,
-      { Width: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
-        Height: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
-      }, null);
-    this.custom.replaceWith(this.customGroup.elm);
-
-    listen(this.presets, ["input", "change"], (e) => {
-      stash.size = e.target.selectedOptions[0].textContent;
-      if (e.target.value == "score") { // Match current score dimensions
-        let score = _score_;
-        stash.Width = score.maxWidth;
-        stash.Height = score.maxHeight;
-        this.customGroup.defs.Height.disabled = true;
-        this.customGroup.defs.Width.disabled = true;
-      }
-      else if (e.target.value == "custom") {
-        this.customGroup.defs.Height.disabled = false;
-        this.customGroup.defs.Width.disabled = false;
-      } else {
-        let [unit, width, height] = e.target.value.split("/");
-        let toPts = unit == "in" ? 72 : unit == "mm" ? 2.8346456693 : 1;
-        stash.Width = width * toPts;
-        stash.Height = height * toPts;
-        this.customGroup.defs.Height.disabled = true;
-        this.customGroup.defs.Width.disabled = true;
-      }
-      this.customGroup.refresh();
-    });
-
-    this.customGroup.refresh();
-    let size = [...this.presets.children].find(
-      (option) => option.textContent == stash.size
-    );
-    if (size) size.selected = true;
-  }
-}
-
-
-class DetailsPanel extends Panel {
-  content = helm(`<div style="margin:1em;width:20em;"></div>`);
-
-  constructor(cell) {
-    super(cell);
-    Object.assign(this, dataIndex("tag", this.content));
-
-    this.body.replaceWith(this.content);
-
-    this.fitGroup = new ButtonGroup(
-      this.cell.stash, {
-        Expand: { svg: "Expand", radio: "pgFit" },
-        Center: { svg: "Center", radio: "pgFit" }, 
-      },
-      async (e,tag,value) => {
-         let score = _score_;
-         score.pgFit = value;
-         await Layout.open(_menu_.rings.layout.activeCell);
-      }
-    );
-    
-    this.qualityGroup = new SliderGroup(
-      this.cell.stash,
-      {
-        quality: {
-          min: 0.5,
-          max: 6,
-          step: 0.1,
-          value: 2,
-          throttle: 750,
-          msg: () => {
-            let q = cell.stash.quality;
-            let desc =
-              q < 1.1
-                ? "Low"
-                : q < 2.1
-                ? "Medium"
-                : q < 3.1
-                ? "High"
-                : q < 4.1
-                ? "Very High"
-                : "Extreme";
-            return "Display Quality: " + desc + ` (${parseInt(q * 100)}%)`;
-          },
-        },
-      },
-      async (e, tag, value) => {
-        this.cell.stash.tag = value;
-        let score = _score_;
-        if (score) {
-          score.quality = value;
-          for (let pg of score.pgs)
-            // rerender un-rendered pg's iff they are backed by pdf:
-            if (pg.inflated && pg.mozPn) await pg.renderPdf();
-        }
-      }
-    );
-
-    this.refresh();
-  }
-
-  parseTs(ts) {
-    // Convert a pdf "internal" date string to a timestamp
-    try {
-      let l = ts.length;
-      let j = "";
-      if (l > 5) j += ts.substring(2, 6);
-      if (l > 7) j += "-" + ts.substring(6, 8);
-      if (l > 9) j += "-" + ts.substring(8, 10);
-      if (l > 11) j += "T" + ts.substring(10, 12);
-      if (l > 13) j += ":" + ts.substring(12, 14);
-      if (l > 15) j += ":" + ts.substring(14, 16);
-      if (l > 16) j += ".000" + ts.substring(16, 17);
-      if (l > 18) j += ts.substring(17, 19);
-      if (l > 21) j += ":" + ts.substring(20, 22);
-      return Date.parse(j);
-    } catch (error) {
-      return null;
-    }
-  }
-
-  refresh() {
-    this.qualityGroup.refresh();
-    clearChildren(this.content);
-    if (_score_) {
-      let score = _score_;
-
-      let nameInput = helm(
-        `<input type="text" style="font-size:1.5em;text-align:center;margin-bottom:.5em;width:100%;box-sizing:border-box;border:none;border-radius:var(--borderRadius);background:white;">`
-      );
-      nameInput.value = score.name.replace(/\.pdf$/i, "");
-      nameInput.addEventListener("change", () => {
-        let newName = nameInput.value.trim();
-        if (!newName.toLowerCase().endsWith(".pdf")) newName += ".pdf";
-        score.name = newName;
-        let title = newName.replace(/\.pdf$/i, "");
-        const maxLen = 30;
-        if (title.length > maxLen) {
-          let half = (maxLen - 1) >> 1;
-          title = title.slice(0, half) + "\u2026" + title.slice(-half);
-        }
-        document.title = title;
-      });
-      this.content.append(nameInput);
-      let source = score.source
-        ? `<div style="text-align:right;">Source:&nbsp;</div><div>${score.source}</div>`
-        : "";
-      let path = score.path
-        ? `<div style="text-align:right;">Path:&nbsp;</div><div>${score.path} </div>`
-        : "";
-      let size = score.size
-        ? `<div style="text-align:right;">Size:&nbsp;</div><div>${Number(
-            score.size
-          ).toLocaleString()} B</div>`
-        : "";
-      this.content.append(
-        helm(`<div style="display:grid;grid-template-columns:40% 60%;font-size:.8em;">
-          ${source} ${path} ${size}
-          <div style="text-align:right;">Pages:&nbsp;</div><div>${
-            score.pgs.length
-          }</div>
-          <div style="text-align:right;">Created:&nbsp;</div><div>${
-            score.created ? new Date(score.created).toLocaleString() : "?"
-          }</div>
-          <div style="text-align:right;">Modified:&nbsp;</div><div>${
-            score.modified ? new Date(score.modified).toLocaleString() : "?"
-          }</div>
-          <div style="text-align:right;">Width:&nbsp;</div><div>${score.maxWidth.toFixed(0)} pt, ${(score.maxWidth / 2.8346456693).toFixed(0)} mm, ${(score.maxWidth / 72).toFixed(2)} in</div>
-          <div style="text-align:right;">Height:&nbsp;</div><div>${score.maxHeight.toFixed(0)} pt, ${(score.maxHeight / 2.8346456693).toFixed(0)} mm, ${(score.maxHeight / 72).toFixed(2)} in</div>
-          </div>`)
-      );
-
-      this.content.append(helm(`<div style="text-align:center;"><br>Page Fit</div>`));
-      this.content.append(this.fitGroup.elm);
-      this.content.append(this.qualityGroup.elm);
-
-      if (score.pdfInfo) {
-        this.content.append(
-          helm(
-            `<div style="font-size:1em;text-align:center;padding:.5em;">PDF Metadata:</div>`
-          )
-        );
-        let detailsHtml = "";
-        for (let [k, v] of Object.entries(score.pdfInfo)) {
-          if (!k) continue;
-          // Filter out technical fields
-          if (k == "PDFFormatVersion" || k == "Language" || k == "EncryptFilterType" || k == "EncryptFilterName") continue;
-          if (k.startsWith("Is") || k.startsWith("is")) continue; // Skip isLinearized, isPureXfa, etc.
-
-          // For date fields, show only the decoded date
-          if (typeof v == "string" && v.startsWith("D:")) {
-            v = new Date(this.parseTs(v)).toLocaleString();
-          }
-          detailsHtml += `<div style="text-align:right">${escapeHtml(k)}:&nbsp;&nbsp;</div><div>${escapeHtml(String(v))}</div>`;
-        }
-        this.content.append(
-          helm(
-            `<div style="display:grid;grid-template-columns:40% 60%;font-size:.8em;">${detailsHtml}</div>`
-          )
-        );
-      }
-    }
-  }
-
-  show() {
-    super.show();
-    this.refresh();
-    return this;
-  }
-}
-
-
-
-class FilePanel extends Panel {
-  // superclass of OpenPanel and SavePanel
-  tabView = null;
-  //  mode = "open"; // subclasses redefine: one of "save" or "open"
-
-  constructor(cell) {
-    super(cell);
-    Object.assign(this.body.style, {
-      margin: 0,
-      width: "90vw",
-      maxWidth: "30em",
-      height: "90vh",
-      maxHeight: "30em",
-    });
-  }
-
-  show() {
-    super.show();
-    if (this.tabView.selectedTab) this.tabView.selectedTab.select();
-    return this;
-  }
-}
-
-class OpenPanel extends FilePanel {
-  constructor(cell) {
-    super(cell);
-    this.mode = "open";
-    // Filter out WWW - it's a source type but not a file browser tab
-    const fileSources = Object.entries(Score.sources).filter(([key]) => key !== "url").map(([, value]) => value);
-    this.tabView = new TabView(this, "Recent", ...fileSources);
-    this.body.append(this.tabView.elm);
-    for (let title in this.tabView.tabs) {
-      let tab = this.tabView.tabs[title];
-      tab.onSelect = async (tab) => {
-        if (!tab.view) {
-          try {
-            if (title == "Recent") tab.view = new FileListView(this);
-            else if (title == "Local") tab.view = new LocalFileView(this);
-            else
-              tab.view = new FileSystemView(
-                title,
-                await FileSrc.get(title),
-                this
-              );
-            tab.face.append(tab.view.elm);
-          } catch (err) {
-            tab.view = null;
-            return;
-          }
-        }
-        tab.view.select(this.tabView, tab);
-      };
-    }
-  }
-}
-
-class CopyPanel extends OpenPanel {
-  constructor(cell) {
-    super(cell);
-    this.mode = "copy";
-  }
-}
-
-class SavePanel extends FilePanel {
-  mode = "save";
-
-  constructor(cell) {
-    // code identical to OpenPanel constructor except that a SavePanel
-    // doesn't have a "Recent" tab
-    super(cell);
-    this.mode = "save";
-    // Filter out WWW (url source)
-    const fileSources = Object.entries(Score.sources)
-      .filter(([key]) => key !== "url")
-      .map(([, value]) => value);
-    this.tabView = new TabView(this, ...fileSources);
-    this.body.append(this.tabView.elm);
-    // Source tabs
-    for (let title in this.tabView.tabs) {
-      let tab = this.tabView.tabs[title];
-      tab.onSelect = async (tab) => {
-        if (!tab.view) {
-          try {
-            if (title == "Local") tab.view = new LocalFileView(this);
-            else
-              tab.view = new FileSystemView(
-                title,
-                await FileSrc.get(title),
-                this
-              );
-            tab.face.append(tab.view.elm);
-          } catch (err) {
-            tab.view = null;
-            return;
-          }
-        }
-        tab.view.select(this.tabView, tab);
-      };
-    }
-  }
-}
-
-class GridPanel extends Panel {
-  content = helm(`
-    <div class="Panel__body">
-      <div data-tag="options"></div>
-      <div data-tag="sliders"></div>
-      Numbers<br>
-      <div data-tag="numbers"></div>
-    </div>`);
-
-  constructor(cell) {
-    super(cell);
-    this.body.replaceWith(this.content);
-    Object.assign(this, dataIndex("tag", this.content));
-
-    let setUnits = (units) => {
-      let currentSliders = this.sliders;
-      this.sliders = {
-        Inch: this.inchSliders.elm,
-        Metric: this.metricSliders.elm,
-      }[units];
-      currentSliders.replaceWith(this.sliders);
-    };
-
-    let options = new ButtonGroup(
-      this.cell.stash,
-      {
-        Inch: { svg: "Inch", radio: "units" },
-        Metric: { svg: "Metric", radio: "units" },
-      },
-      (e, tag, value) => (tag == "units" ? setUnits(value) : null)
-    );
-    this.options.replaceWith(options.elm);
-
-    {
-      // inches
-      let steps = ["1", "1/2", "1/4", "1/8", "1/16"];
-      let xStepMsg = (tag, value) => "X Step: " + steps[value] + " inch";
-      let yStepMsg = (tab, value) => "Y Step: " + steps[value] + " inch";
-      this.inchSliders = new SliderGroup(
-        this.cell.stash,
-        {
-          xStep: { min: 0, max: 4, step: 1, value: 0, msg: xStepMsg },
-          yStep: { min: 0, max: 4, step: 1, value: 0, msg: yStepMsg },
-        },
-        () => {}
-      );
-      this.inchSliders.elm.classList.add("GridPanel__sliders");
-    }
-
-    {
-      // metric
-      let steps = [4, 2, 1, 0.5, 0.25];
-      let xStepMsg = (tag, value) => "X Step: " + steps[value] + " cm";
-      let yStepMsg = (tab, value) => "Y Step: " + steps[value] + " cm";
-
-      this.metricSliders = new SliderGroup(
-        this.cell.stash,
-        {
-          xStep: { min: 0, max: 4, step: 1, value: 0, msg: xStepMsg },
-          yStep: { min: 0, max: 4, step: 1, value: 0, msg: yStepMsg },
-        },
-        () => {}
-      );
-      this.metricSliders.elm.classList.add("GridPanel__sliders");
-    }
-
-    let numbers = new ButtonGroup(this.cell.stash, {
-      On: { svg: "Numbers", radio: "numbers" },
-      Off: { svg: "Close", radio: "numbers" },
-    });
-    this.numbers.replaceWith(numbers.elm);
-
-    setUnits(this.cell.stash.units); // current units from prefs
-  }
-}
-
 class AboutPanel extends Panel {
   static css = css(
     "AboutPanel",
@@ -961,119 +534,442 @@ for more details.</p>
   }
 }
 
+class AddPanel extends Panel {
+  content = helm(`
+    <div data-tag="options" class="Panel__body">
+      <div data-tag="picker"></div>
+      <div style="margin-top: var(--spacing-md); margin-bottom: 0.1em">Size</div>
+      ${PAGE_SIZE_SELECT}
+      <div data-tag="custom"></div>
+    </div>
+  `);
 
-
-class StoragePanel extends Panel {
   constructor(cell) {
     super(cell);
-    Object.assign(this.body.style, {
-      margin: 0,
-      padding: "1em",
-      minWidth: "20em",
+    Object.assign(this, dataIndex("tag", this.content));
+    this.body.append(this.content);
+    let stash = cell.stash;
+     // Color picker
+    let picker = new ColorPicker(
+      "Color",
+      stash.rgb,
+      stash.alpha,
+      (rgb, alpha) => {
+        stash.rgb = rgb;
+        stash.alpha = alpha;
+      }
+    );
+    this.picker.replaceWith(picker.elm);
+    this.setupSizeSelection(stash);
+  }
+
+  setupSizeSelection(stash) {
+    // Extract the size selection logic into a method
+    let sizeMsg = (tag, val) => {
+      let pt = val.toFixed(0);
+      let mm = (val * (1 / 2.8346456693)).toFixed(0);
+      let inch = (val * (1 / 72)).toFixed(2);
+      return `${tag}: ${pt} pt, ${mm} mm, ${inch} in`;
+    };
+    let disable = stash.size != "Custom";
+
+    this.customGroup = new SliderGroup(stash,
+      { Width: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
+        Height: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
+      }, null);
+    this.custom.replaceWith(this.customGroup.elm);
+
+    listen(this.presets, ["input", "change"], (e) => {
+      stash.size = e.target.selectedOptions[0].textContent;
+      if (e.target.value == "score") { // Match current score dimensions
+        let score = _score_;
+        stash.Width = score.maxWidth;
+        stash.Height = score.maxHeight;
+        this.customGroup.defs.Height.disabled = true;
+        this.customGroup.defs.Width.disabled = true;
+      }
+      else if (e.target.value == "custom") {
+        this.customGroup.defs.Height.disabled = false;
+        this.customGroup.defs.Width.disabled = false;
+      } else {
+        let [unit, width, height] = e.target.value.split("/");
+        let toPts = unit == "in" ? 72 : unit == "mm" ? 2.8346456693 : 1;
+        stash.Width = width * toPts;
+        stash.Height = height * toPts;
+        this.customGroup.defs.Height.disabled = true;
+        this.customGroup.defs.Width.disabled = true;
+      }
+      this.customGroup.refresh();
     });
 
-    let content = helm(`
-      <div style="text-align:center;">
-        <div style="margin-bottom:1.5em;">
-          <div style="font-size:1.2em;margin-bottom:0.5em;">Factory Reset</div>
-          <div data-tag="buttons"></div>
-        </div>
-        <div>
-          <div style="font-size:1.2em;margin-bottom:0.5em;">Storage</div>
-          <div data-tag="stats" style="display:grid;grid-template-columns:auto auto;font-size:.8em;text-align:left;width:fit-content;margin:0 auto;"></div>
-          <div data-tag="refresh" style="margin-top:0.5em;"></div>
-        </div>
-      </div>
-    `);
+    this.customGroup.refresh();
+    let size = [...this.presets.children].find(
+      (option) => option.textContent == stash.size
+    );
+    if (size) size.selected = true;
+  }
+}
 
-    let { buttons, stats, refresh } = dataIndex("tag", content);
+class NewPanel extends AddPanel {
 
-    // Factory reset buttons
-    buttons.replaceWith(
-      new ButtonGroup(
-        cell,
-        { Menu: { svg: "Menu" }, Recent: { svg: "Score" }, Import: { svg: "Import Page" } },
-        (e, prop, tag) => {
-          if (tag == "Menu") {
-            _menu_.stashFromJson(_menu_.stashDefaults);
-            localStorage.setItem("menu", _menu_.stashToJson());
-            toast("Menu reset");
-          } else if (tag == "Recent") {
-            localStorage.setItem("recent", []);
-            for (let src of Object.values(Score.sources))
-              localStorage.setItem(src, "");
-            toast("Recent list cleared");
-          } else if (tag == "Import") {
-            _podPb_.clear();
-            toast("Import buffer cleared");
-          }
-          this.updateStats(); // refresh after reset
+  constructor(cell) {
+    super(cell); 
+    let matchScoreOption = [...this.presets.children].find(opt => opt.value == "score");
+    if (matchScoreOption) matchScoreOption.remove();
+    this.pagesGroup = new SliderGroup( cell.stash,
+      {  pages: { min: 1, max: 100, value: 5, 
+         msg: (tag, val) => `${val.toFixed(0)} page${val > 1 ? "s":""}`, step: 1 }, }, null );
+     this.body.prepend(this.pagesGroup.elm);    
+    this.pagesGroup.refresh();
+  }
+}
+
+class DetailsPanel extends Panel {
+  content = helm(`<div style="margin:1em;width:20em;"></div>`);
+
+  constructor(cell) {
+    super(cell);
+    Object.assign(this, dataIndex("tag", this.content));
+
+    this.body.replaceWith(this.content);
+
+    this.fitGroup = new ButtonGroup(
+      this.cell.stash, {
+        Expand: { svg: "Expand", radio: "pgFit" },
+        Center: { svg: "Center", radio: "pgFit" }, 
+      },
+      async (e,tag,value) => {
+         let score = _score_;
+         score.pgFit = value;
+         await Layout.open(_menu_.rings.layout.activeCell);
+      }
+    );
+    
+    this.qualityGroup = new SliderGroup(
+      this.cell.stash,
+      {
+        quality: {
+          min: 0.5,
+          max: 6,
+          step: 0.1,
+          value: 2,
+          throttle: 750,
+          msg: () => {
+            let q = cell.stash.quality;
+            let desc =
+              q < 1.1
+                ? "Low"
+                : q < 2.1
+                ? "Medium"
+                : q < 3.1
+                ? "High"
+                : q < 4.1
+                ? "Very High"
+                : "Extreme";
+            return "Display Quality: " + desc + ` (${parseInt(q * 100)}%)`;
+          },
+        },
+      },
+      async (e, tag, value) => {
+        this.cell.stash.tag = value;
+        let score = _score_;
+        if (score) {
+          score.quality = value;
+          for (let pg of score.pgs)
+            // rerender un-rendered pg's iff they are backed by pdf:
+            if (pg.inflated && pg.mozPn) await pg.renderPdf();
         }
-      ).elm
+      }
     );
 
-    // Refresh button
-    refresh.replaceWith(
-      new ButtonGroup(
-        cell,
-        { Refresh: { svg: "Refresh" } },
-        () => this.updateStats()
-      ).elm
-    );
+    this.refresh();
+  }
 
-    // Refresh on score open/close
-    this.listeners.push(listen(document, "scoreOpened", () => this.updateStats()));
-    this.listeners.push(listen(document, "scoreClosed", () => this.updateStats()));
+  parseTs(ts) {
+    // Convert a pdf "internal" date string to a timestamp
+    try {
+      let l = ts.length;
+      let j = "";
+      if (l > 5) j += ts.substring(2, 6);
+      if (l > 7) j += "-" + ts.substring(6, 8);
+      if (l > 9) j += "-" + ts.substring(8, 10);
+      if (l > 11) j += "T" + ts.substring(10, 12);
+      if (l > 13) j += ":" + ts.substring(12, 14);
+      if (l > 15) j += ":" + ts.substring(14, 16);
+      if (l > 16) j += ".000" + ts.substring(16, 17);
+      if (l > 18) j += ts.substring(17, 19);
+      if (l > 21) j += ":" + ts.substring(20, 22);
+      return Date.parse(j);
+    } catch (error) {
+      return null;
+    }
+  }
 
-    this.statsElm = stats;
-    this.body.append(content);
+  refresh() {
+    this.qualityGroup.refresh();
+    clearChildren(this.content);
+    if (_score_) {
+      let score = _score_;
+
+      let nameInput = helm(
+        `<input type="text" style="font-size:1.5em;text-align:center;margin-bottom:.5em;width:100%;box-sizing:border-box;border:none;border-radius:var(--borderRadius);background:white;">`
+      );
+      nameInput.value = score.name.replace(/\.pdf$/i, "");
+      nameInput.addEventListener("change", () => {
+        let newName = nameInput.value.trim();
+        if (!newName.toLowerCase().endsWith(".pdf")) newName += ".pdf";
+        score.name = newName;
+        let title = newName.replace(/\.pdf$/i, "");
+        const maxLen = 30;
+        if (title.length > maxLen) {
+          let half = (maxLen - 1) >> 1;
+          title = title.slice(0, half) + "\u2026" + title.slice(-half);
+        }
+        document.title = title;
+      });
+      this.content.append(nameInput);
+      let source = score.source
+        ? `<div style="text-align:right;">Source:&nbsp;</div><div>${score.source}</div>`
+        : "";
+      let path = score.path
+        ? `<div style="text-align:right;">Path:&nbsp;</div><div>${score.path} </div>`
+        : "";
+      let size = score.size
+        ? `<div style="text-align:right;">Size:&nbsp;</div><div>${Number(
+            score.size
+          ).toLocaleString()} B</div>`
+        : "";
+      this.content.append(
+        helm(`<div style="display:grid;grid-template-columns:40% 60%;font-size:.8em;">
+          ${source} ${path} ${size}
+          <div style="text-align:right;">Pages:&nbsp;</div><div>${
+            score.pgs.length
+          }</div>
+          <div style="text-align:right;">Created:&nbsp;</div><div>${
+            score.created ? new Date(score.created).toLocaleString() : "?"
+          }</div>
+          <div style="text-align:right;">Modified:&nbsp;</div><div>${
+            score.modified ? new Date(score.modified).toLocaleString() : "?"
+          }</div>
+          <div style="text-align:right;">Width:&nbsp;</div><div>${score.maxWidth.toFixed(0)} pt, ${(score.maxWidth / 2.8346456693).toFixed(0)} mm, ${(score.maxWidth / 72).toFixed(2)} in</div>
+          <div style="text-align:right;">Height:&nbsp;</div><div>${score.maxHeight.toFixed(0)} pt, ${(score.maxHeight / 2.8346456693).toFixed(0)} mm, ${(score.maxHeight / 72).toFixed(2)} in</div>
+          </div>`)
+      );
+
+      this.content.append(helm(`<div style="text-align:center;"><br>Page Fit</div>`));
+      this.content.append(this.fitGroup.elm);
+      this.content.append(this.qualityGroup.elm);
+
+      if (score.pdfInfo) {
+        this.content.append(
+          helm(
+            `<div style="font-size:1em;text-align:center;padding:.5em;">PDF Metadata:</div>`
+          )
+        );
+        let detailsHtml = "";
+        for (let [k, v] of Object.entries(score.pdfInfo)) {
+          if (!k) continue;
+          // Filter out technical fields
+          if (k == "PDFFormatVersion" || k == "Language" || k == "EncryptFilterType" || k == "EncryptFilterName") continue;
+          if (k.startsWith("Is") || k.startsWith("is")) continue; // Skip isLinearized, isPureXfa, etc.
+
+          // For date fields, show only the decoded date
+          if (typeof v == "string" && v.startsWith("D:")) {
+            v = new Date(this.parseTs(v)).toLocaleString();
+          }
+          detailsHtml += `<div style="text-align:right">${escapeHtml(k)}:&nbsp;&nbsp;</div><div>${escapeHtml(String(v))}</div>`;
+        }
+        this.content.append(
+          helm(
+            `<div style="display:grid;grid-template-columns:40% 60%;font-size:.8em;">${detailsHtml}</div>`
+          )
+        );
+      }
+    }
   }
 
   show() {
     super.show();
-    this.updateStats(); // refresh on show
+    this.refresh();
     return this;
   }
+}
 
-  async updateStats() {
-    let statsElm = this.statsElm;
-    let rows = [];
+class FilePanel extends Panel {
+  // superclass of OpenPanel and SavePanel
+  tabView = null;
+  //  mode = "open"; // subclasses redefine: one of "save" or "open"
 
-    // localStorage size
-    let localStorageSize = 0;
-    for (let key in localStorage) {
-      if (localStorage.hasOwnProperty(key)) {
-        localStorageSize += localStorage[key].length * 2; // UTF-16 = 2 bytes per char
-      }
-    }
-    rows.push(`<div style="text-align:right;">localStorage:&nbsp;</div><div>${this.formatBytes(localStorageSize)}</div>`);
-
-    // IndexedDB size (estimate via Storage API if available)
-    if (navigator.storage && navigator.storage.estimate) {
-      try {
-        let estimate = await navigator.storage.estimate();
-        rows.push(`<div style="text-align:right;">IndexedDB:&nbsp;</div><div>${this.formatBytes(estimate.usage || 0)}</div>`);
-        rows.push(`<div style="text-align:right;">Quota:&nbsp;</div><div>${this.formatBytes(estimate.quota || 0)}</div>`);
-      } catch (e) {
-        rows.push(`<div style="text-align:right;">IndexedDB:&nbsp;</div><div>unavailable</div>`);
-      }
-    }
-
-    // Memory usage (Chrome only)
-    if (performance.memory) {
-      rows.push(`<div style="text-align:right;">JS Heap:&nbsp;</div><div>${this.formatBytes(performance.memory.usedJSHeapSize)}</div>`);
-      rows.push(`<div style="text-align:right;">Heap Limit:&nbsp;</div><div>${this.formatBytes(performance.memory.jsHeapSizeLimit)}</div>`);
-    }
-
-    statsElm.innerHTML = rows.join("");
+  constructor(cell) {
+    super(cell);
+    Object.assign(this.body.style, {
+      margin: 0,
+      width: "90vw",
+      maxWidth: "30em",
+      height: "90vh",
+      maxHeight: "30em",
+    });
   }
 
-  formatBytes(bytes) {
-    if (bytes === 0) return "0 B";
-    let k = 1024;
-    let sizes = ["B", "KB", "MB", "GB"];
-    let i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
+  show() {
+    super.show();
+    if (this.tabView.selectedTab) this.tabView.selectedTab.select();
+    return this;
+  }
+}
+
+class OpenPanel extends FilePanel {
+  constructor(cell) {
+    super(cell);
+    this.mode = "open";
+    // Filter out WWW - it's a source type but not a file browser tab
+    const fileSources = Object.entries(Score.sources).filter(([key]) => key !== "url").map(([, value]) => value);
+    this.tabView = new TabView(this, "Recent", ...fileSources);
+    this.body.append(this.tabView.elm);
+    for (let title in this.tabView.tabs) {
+      let tab = this.tabView.tabs[title];
+      tab.onSelect = async (tab) => {
+        if (!tab.view) {
+          try {
+            if (title == "Recent") tab.view = new FileListView(this);
+            else if (title == "Local") tab.view = new LocalFileView(this);
+            else
+              tab.view = new FileSystemView(
+                title,
+                await FileSrc.get(title),
+                this
+              );
+            tab.face.append(tab.view.elm);
+          } catch (err) {
+            tab.view = null;
+            return;
+          }
+        }
+        tab.view.select(this.tabView, tab);
+      };
+    }
+  }
+}
+
+class CopyPanel extends OpenPanel {
+  constructor(cell) {
+    super(cell);
+    this.mode = "copy";
+  }
+}
+
+class SavePanel extends FilePanel {
+  mode = "save";
+
+  constructor(cell) {
+    // code identical to OpenPanel constructor except that a SavePanel
+    // doesn't have a "Recent" tab
+    super(cell);
+    this.mode = "save";
+    // Filter out WWW (url source)
+    const fileSources = Object.entries(Score.sources)
+      .filter(([key]) => key !== "url")
+      .map(([, value]) => value);
+    this.tabView = new TabView(this, ...fileSources);
+    this.body.append(this.tabView.elm);
+    // Source tabs
+    for (let title in this.tabView.tabs) {
+      let tab = this.tabView.tabs[title];
+      tab.onSelect = async (tab) => {
+        if (!tab.view) {
+          try {
+            if (title == "Local") tab.view = new LocalFileView(this);
+            else
+              tab.view = new FileSystemView(
+                title,
+                await FileSrc.get(title),
+                this
+              );
+            tab.face.append(tab.view.elm);
+          } catch (err) {
+            tab.view = null;
+            return;
+          }
+        }
+        tab.view.select(this.tabView, tab);
+      };
+    }
+  }
+}
+
+class GridPanel extends Panel {
+  content = helm(`
+    <div class="Panel__body">
+      <div data-tag="options"></div>
+      <div data-tag="sliders"></div>
+      Numbers<br>
+      <div data-tag="numbers"></div>
+    </div>`);
+
+  constructor(cell) {
+    super(cell);
+    this.body.replaceWith(this.content);
+    Object.assign(this, dataIndex("tag", this.content));
+
+    let setUnits = (units) => {
+      let currentSliders = this.sliders;
+      this.sliders = {
+        Inch: this.inchSliders.elm,
+        Metric: this.metricSliders.elm,
+      }[units];
+      currentSliders.replaceWith(this.sliders);
+    };
+
+    let options = new ButtonGroup(
+      this.cell.stash,
+      {
+        Inch: { svg: "Inch", radio: "units" },
+        Metric: { svg: "Metric", radio: "units" },
+      },
+      (e, tag, value) => (tag == "units" ? setUnits(value) : null)
+    );
+    this.options.replaceWith(options.elm);
+
+    {
+      // inches
+      let steps = ["1", "1/2", "1/4", "1/8", "1/16"];
+      let xStepMsg = (tag, value) => "X Step: " + steps[value] + " inch";
+      let yStepMsg = (tab, value) => "Y Step: " + steps[value] + " inch";
+      this.inchSliders = new SliderGroup(
+        this.cell.stash,
+        {
+          xStep: { min: 0, max: 4, step: 1, value: 0, msg: xStepMsg },
+          yStep: { min: 0, max: 4, step: 1, value: 0, msg: yStepMsg },
+        },
+        () => {}
+      );
+      this.inchSliders.elm.classList.add("GridPanel__sliders");
+    }
+
+    {
+      // metric
+      let steps = [4, 2, 1, 0.5, 0.25];
+      let xStepMsg = (tag, value) => "X Step: " + steps[value] + " cm";
+      let yStepMsg = (tab, value) => "Y Step: " + steps[value] + " cm";
+
+      this.metricSliders = new SliderGroup(
+        this.cell.stash,
+        {
+          xStep: { min: 0, max: 4, step: 1, value: 0, msg: xStepMsg },
+          yStep: { min: 0, max: 4, step: 1, value: 0, msg: yStepMsg },
+        },
+        () => {}
+      );
+      this.metricSliders.elm.classList.add("GridPanel__sliders");
+    }
+
+    let numbers = new ButtonGroup(this.cell.stash, {
+      On: { svg: "Numbers", radio: "numbers" },
+      Off: { svg: "Close", radio: "numbers" },
+    });
+    this.numbers.replaceWith(numbers.elm);
+
+    setUnits(this.cell.stash.units); // current units from prefs
   }
 }
 
@@ -1127,6 +1023,123 @@ class GuidePanel extends Panel {
     }
     return this;
   }
+}
+
+class ImportPanel extends Panel {
+
+  static css = css(
+    "ImportPanel", 
+     `.ImportPanel__frame {
+        background-image: var(--panTexture);
+        height: 6em;
+        width: 100%;
+        padding:.8em 0;
+        box-sizing: border-box;
+        margin-bottom: 0.2em;
+        overflow: hidden;
+        border-radius: var(--borderRadius);
+      }
+      
+      .ImportPanel__sash {
+        position: relative;
+        height:100%;
+        width: max-content;
+        min-width: 100%;
+        padding: 0 0.8em;
+        box-sizing: border-box;
+        display: flex;
+        gap: 0.8em;
+        align-items: flex-start;
+      }
+   `);
+
+  content = helm(`
+     <div data-tag="body" class="Panel__body">
+       <div class="ImportPanel__frame" data-tag="frame">
+         <div class="ImportPanel__sash" data-tag="sash"></div>
+       </div>
+       <div data-tag="buttons" style="border-top: 1px solid var(--color-border);"></div>
+     </div>
+   `);
+
+  constructor(cell) {
+    super(cell);
+
+    this.body.replaceWith(this.content);
+    Object.assign(this, dataIndex("tag", this.content));
+
+    listen(this.sash, "pointerdown", (e) => { 
+      this.sash.setPointerCapture(e.pointerId);
+      let fs = parseFloat(getComputedStyle(this.sash).fontSize);
+      let offsetX = e.clientX - this.sash.offsetLeft;
+      let limit = this.sash.offsetWidth - this.frame.offsetWidth;
+      let mv = listen(this.sash, "pointermove", (emv) => {
+        let leftPx = clamp(emv.clientX - offsetX, -limit, 0);
+        this.sash.style.left = leftPx / fs + "em";
+      });
+      listen(this.sash, "pointerup", (eup) => {
+        unlisten(mv);
+      }, { once: true });
+    });
+
+    let buttons = new ButtonGroup({}, {
+        Clear: { svg: "Cancel" },
+        Undo: { svg: "Undo" },
+      },
+      async (e, tag, value) => {
+        if(value == "Clear") await _podPb_.pgClear();
+        else if(value == "Undo") await _podPb_.pgPop();
+        delay(10, () => {
+          // We don't have a button type for "one shot" (button causes
+          // handler to run, but immediately goes back to initial state),
+          // can easily simulate it:
+          delete buttons.props[value]; 
+          buttons.refresh();
+        });
+      }
+    );
+    buttons.elm.style.borderTop = ".02em solid var(--color-border)";   
+    this.buttons.replaceWith(buttons.elm);
+
+    listen(_body_, "SHAREDBUFFER", async (e) => {
+      _shade_.show("Building...");
+      let score = await _podPb_.getScore();
+      let thumbs = [];
+      for(let pg of score.pgs) thumbs.push(await pg.getThumbElm(true));
+      _shade_.hide();
+      clearChildren(this.sash);
+      if(thumbs.length > 0) { 
+        _menu_.enableCells("page/import",true) ;
+        this.sash.style.fontSize = "1em"; // reset to known "baseline"
+        reflow();
+        thumbs.forEach((thumb) => this.sash.append(thumb));
+        this.sash.style.fontSize = this.sash.offsetHeight / thumbs[0].offsetHeight   + "em";
+        let frameWidth = pxToEm(this.frame.offsetWidth, this.sash);
+        let sashWidth = pxToEm(this.sash.offsetWidth, this.sash);
+        this.sash.style.left = frameWidth;
+        reflow();
+        this.sash.style.transition = `left ${_gs_}ms`;
+        this.sash.style.left = parseFloat(frameWidth) - parseFloat(sashWidth) - .8 + "em";
+        delayMs(_gs_, () => this.sash.style.transition = "unset");
+        buttons.defs.Undo.disabled = false;
+        buttons.defs.Clear.disabled = false;
+      }
+      else {
+        _menu_.enableCells("page/import", false);
+        if (_menu_.activeRing?.activeCell === _menu_.rings.page.cells.paste)
+          _menu_.activateCell(null);
+        buttons.defs.Undo.disabled = true;
+        buttons.defs.Clear.disabled = true;
+      }
+      buttons.refresh() ;
+    })
+  }
+
+  show() {
+    super.show(() => _podPb_.announce());
+    return this;
+  }
+
 }
 
 class LayoutPanel extends Panel {
@@ -1312,32 +1325,119 @@ class VerticalPanel extends LayoutPanel {}
 
 class TablePanel extends LayoutPanel {}
 
-class VolumePanel extends Panel {
+class StoragePanel extends Panel {
   constructor(cell) {
     super(cell);
-    this.volume = new Volume(this);
-  }
+    Object.assign(this.body.style, {
+      margin: 0,
+      padding: "1em",
+      minWidth: "20em",
+    });
 
-  destructor() {
-    super.destructor();
-    this.volume.destructor();
+    let content = helm(`
+      <div style="text-align:center;">
+        <div style="margin-bottom:1.5em;">
+          <div style="font-size:1.2em;margin-bottom:0.5em;">Factory Reset</div>
+          <div data-tag="buttons"></div>
+        </div>
+        <div>
+          <div style="font-size:1.2em;margin-bottom:0.5em;">Storage</div>
+          <div data-tag="stats" style="display:grid;grid-template-columns:auto auto;font-size:.8em;text-align:left;width:fit-content;margin:0 auto;"></div>
+          <div data-tag="refresh" style="margin-top:0.5em;"></div>
+        </div>
+      </div>
+    `);
+
+    let { buttons, stats, refresh } = dataIndex("tag", content);
+
+    // Factory reset buttons
+    buttons.replaceWith(
+      new ButtonGroup(
+        cell,
+        { Menu: { svg: "Menu" }, Recent: { svg: "Score" }, Import: { svg: "Import Page" } },
+        (e, prop, tag) => {
+          if (tag == "Menu") {
+            _menu_.stashFromJson(_menu_.stashDefaults);
+            localStorage.setItem("menu", _menu_.stashToJson());
+            toast("Menu reset");
+          } else if (tag == "Recent") {
+            localStorage.setItem("recent", []);
+            for (let src of Object.values(Score.sources))
+              localStorage.setItem(src, "");
+            toast("Recent list cleared");
+          } else if (tag == "Import") {
+            _podPb_.clear();
+            toast("Import buffer cleared");
+          }
+          this.updateStats(); // refresh after reset
+        }
+      ).elm
+    );
+
+    // Refresh button
+    refresh.replaceWith(
+      new ButtonGroup(
+        cell,
+        { Refresh: { svg: "Refresh" } },
+        () => this.updateStats()
+      ).elm
+    );
+
+    // Refresh on score open/close
+    this.listeners.push(listen(document, "scoreOpened", () => this.updateStats()));
+    this.listeners.push(listen(document, "scoreClosed", () => this.updateStats()));
+
+    this.statsElm = stats;
+    this.body.append(content);
   }
 
   show() {
     super.show();
-    this.volume.show();
+    this.updateStats(); // refresh on show
     return this;
   }
 
-  hide() {
-    super.hide();
-    this.volume.hide();
+  async updateStats() {
+    let statsElm = this.statsElm;
+    let rows = [];
+
+    // localStorage size
+    let localStorageSize = 0;
+    for (let key in localStorage) {
+      if (localStorage.hasOwnProperty(key)) {
+        localStorageSize += localStorage[key].length * 2; // UTF-16 = 2 bytes per char
+      }
+    }
+    rows.push(`<div style="text-align:right;">localStorage:&nbsp;</div><div>${this.formatBytes(localStorageSize)}</div>`);
+
+    // IndexedDB size (estimate via Storage API if available)
+    if (navigator.storage && navigator.storage.estimate) {
+      try {
+        let estimate = await navigator.storage.estimate();
+        rows.push(`<div style="text-align:right;">IndexedDB:&nbsp;</div><div>${this.formatBytes(estimate.usage || 0)}</div>`);
+        rows.push(`<div style="text-align:right;">Quota:&nbsp;</div><div>${this.formatBytes(estimate.quota || 0)}</div>`);
+      } catch (e) {
+        rows.push(`<div style="text-align:right;">IndexedDB:&nbsp;</div><div>unavailable</div>`);
+      }
+    }
+
+    // Memory usage (Chrome only)
+    if (performance.memory) {
+      rows.push(`<div style="text-align:right;">JS Heap:&nbsp;</div><div>${this.formatBytes(performance.memory.usedJSHeapSize)}</div>`);
+      rows.push(`<div style="text-align:right;">Heap Limit:&nbsp;</div><div>${this.formatBytes(performance.memory.jsHeapSizeLimit)}</div>`);
+    }
+
+    statsElm.innerHTML = rows.join("");
+  }
+
+  formatBytes(bytes) {
+    if (bytes === 0) return "0 B";
+    let k = 1024;
+    let sizes = ["B", "KB", "MB", "GB"];
+    let i = Math.floor(Math.log(bytes) / Math.log(k));
+    return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
   }
 }
-
-
-
-
 
 class MetronomePanel extends Panel {
   static css = css(
@@ -1435,22 +1535,6 @@ class MetronomePanel extends Panel {
     return this;
   }
 }
-
-
-class NewPanel extends AddPanel {
-
-  constructor(cell) {
-    super(cell); 
-    let matchScoreOption = [...this.presets.children].find(opt => opt.value == "score");
-    if (matchScoreOption) matchScoreOption.remove();
-    this.pagesGroup = new SliderGroup( cell.stash,
-      {  pages: { min: 1, max: 100, value: 5, 
-         msg: (tag, val) => `${val.toFixed(0)} page${val > 1 ? "s":""}`, step: 1 }, }, null );
-     this.body.prepend(this.pagesGroup.elm);    
-    this.pagesGroup.refresh();
-  }
-}
-
 
 class NumbersPanel extends Panel {
   content = helm(`
@@ -1693,74 +1777,6 @@ class PencilPanel extends Panel {
 
 class PenPanel extends PencilPanel {}
 
-class TextPanel extends PencilPanel {
-  slidersDef = {
-    size: { min: 1, max: 100, step: 1, value: 1, msg: "Font Size: {value} px" },
-    height: { min: 1, max: 100, step: 1, value: 1, msg: "Line Height: {value} px" },
-  };
-
-  buttonsDef = null;
-
-  fonts = helm(`
-      <select data-tag="font">
-        <option selected>Courier</option>
-        <option>Courier-Bold</option>
-        <option>Courier-Oblique</option>
-        <option>Courier-BoldOblique</option>
-        <option>Helvetica</option>
-        <option>Helvetica-Bold</option>
-        <option>Helvetica-Oblique</option>
-        <option>Helvetica-BoldOblique</option>
-        <option>Times-Roman</option>
-        <option>Times-Bold</option>
-        <option>Times-Italic</option>
-        <option>Times-BoldItalic</option>
-        <option>Bravura</option>
-        <option>Vercetti</option>
-        <option>Patrick Hand</option>
-      </select>`);
-
-  text = helm(`<div>Abc<br>123<br></div>`);
-
-  constructor(cell) {
-    super(cell);
-    let fontLabel = helm(`<div style="font-size:.8em; margin-top: var(--spacing-md); margin-bottom: 0.1em">Font</div>`);
-    this.picker.after(fontLabel);
-    fontLabel.after(this.fonts);
-    this.preview.append(this.text);
-    this.listeners.push(listen(this.fonts, "change", () => this.update()));
-    this.preview.append(this.text);
-    this.fonts.value = cell.stash.font ;
-    this.update();
-  }
-
-  update() {
-    this.cell.stash.font = this.fonts.value;
-    let { font, size, height, rgb, alpha } = this.cell.stash;
-    this.text.style.fontSize = size / _pxPerEm_ + "em";
-    this.text.style.lineHeight = height / _pxPerEm_ + "em";
-    this.text.style.color = rgb + Math.round(alpha * 255).toString(16);
-    Object.assign(this.preview.style, fontMap[font]);
-    let active = _score_.getActiveObject();
-    if (active && active.type == "textbox") {
-      let color = fabric.Color.fromHex(rgb);
-      color.setAlpha(alpha);
-      active.canvas.requestRenderAll();
-      active.fill = color.toRgba();
-      active.fontSize = size - 1;
-      active.lineHeight = height / size;
-      Object.assign(active, fontMap[font]);
-      active.canvas.requestRenderAll();
-      delay(1, () => {
-        // work around as fabricjs bug...fill doesn't change
-        // unless/until fontsize changes, (or some such breakage)
-        active.fontSize = size;
-        active.canvas.requestRenderAll();
-      });
-    }
-  }
-}
-
 class RastrumPanel extends PencilPanel {
   slidersDef = {
     gap: {
@@ -1891,6 +1907,74 @@ class RastrumPanel extends PencilPanel {
   }
 }
 
+class TextPanel extends PencilPanel {
+  slidersDef = {
+    size: { min: 1, max: 100, step: 1, value: 1, msg: "Font Size: {value} px" },
+    height: { min: 1, max: 100, step: 1, value: 1, msg: "Line Height: {value} px" },
+  };
+
+  buttonsDef = null;
+
+  fonts = helm(`
+      <select data-tag="font">
+        <option selected>Courier</option>
+        <option>Courier-Bold</option>
+        <option>Courier-Oblique</option>
+        <option>Courier-BoldOblique</option>
+        <option>Helvetica</option>
+        <option>Helvetica-Bold</option>
+        <option>Helvetica-Oblique</option>
+        <option>Helvetica-BoldOblique</option>
+        <option>Times-Roman</option>
+        <option>Times-Bold</option>
+        <option>Times-Italic</option>
+        <option>Times-BoldItalic</option>
+        <option>Bravura</option>
+        <option>Vercetti</option>
+        <option>Patrick Hand</option>
+      </select>`);
+
+  text = helm(`<div>Abc<br>123<br></div>`);
+
+  constructor(cell) {
+    super(cell);
+    let fontLabel = helm(`<div style="font-size:.8em; margin-top: var(--spacing-md); margin-bottom: 0.1em">Font</div>`);
+    this.picker.after(fontLabel);
+    fontLabel.after(this.fonts);
+    this.preview.append(this.text);
+    this.listeners.push(listen(this.fonts, "change", () => this.update()));
+    this.preview.append(this.text);
+    this.fonts.value = cell.stash.font ;
+    this.update();
+  }
+
+  update() {
+    this.cell.stash.font = this.fonts.value;
+    let { font, size, height, rgb, alpha } = this.cell.stash;
+    this.text.style.fontSize = size / _pxPerEm_ + "em";
+    this.text.style.lineHeight = height / _pxPerEm_ + "em";
+    this.text.style.color = rgb + Math.round(alpha * 255).toString(16);
+    Object.assign(this.preview.style, fontMap[font]);
+    let active = _score_.getActiveObject();
+    if (active && active.type == "textbox") {
+      let color = fabric.Color.fromHex(rgb);
+      color.setAlpha(alpha);
+      active.canvas.requestRenderAll();
+      active.fill = color.toRgba();
+      active.fontSize = size - 1;
+      active.lineHeight = height / size;
+      Object.assign(active, fontMap[font]);
+      active.canvas.requestRenderAll();
+      delay(1, () => {
+        // work around as fabricjs bug...fill doesn't change
+        // unless/until fontsize changes, (or some such breakage)
+        active.fontSize = size;
+        active.canvas.requestRenderAll();
+      });
+    }
+  }
+}
+
 class ReviewPanel extends Panel {
   constructor(cell) {
     super(cell);
@@ -1907,6 +1991,277 @@ class ReviewPanel extends Panel {
   hide() {
     super.hide();
     this.av.hide();
+  }
+}
+
+class VolumePanel extends Panel {
+  constructor(cell) {
+    super(cell);
+    this.volume = new Volume(this);
+  }
+
+  destructor() {
+    super.destructor();
+    this.volume.destructor();
+  }
+
+  show() {
+    super.show();
+    this.volume.show();
+    return this;
+  }
+
+  hide() {
+    super.hide();
+    this.volume.hide();
+  }
+}
+
+
+/**
+class Pz
+
+  Implements a detachable widget that allows fine-tuning the location and size
+  of Podium widgets. Same functionality as pinch-zoom, but offers finer grain control.
+*/
+class Pz extends Surface {
+  static css = css(
+    "PZ",
+    `
+    .PZ_button {
+        padding: 0;
+        width: 0.9em;
+        height: 0.9em;
+        cursor: pointer;
+        background-color: transparent;
+        border: none;
+        border-radius: 100%;
+        font-size: 1.8em;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+        touch-action: none;
+        text-shadow: 0 0 .1em #fff, 0 0 .2em #fff;
+        color: #333;
+        box-sizing: border-box;
+        transform: translate(-.18em, -.1em);
+    }
+    .PZ_zoom {
+    }
+    .PZ_move {
+        font-size: 2.2em;
+    }
+    .PZ_button:active {
+        color: #000;
+        text-shadow: 0 0 .1em #fff, 0 0 .3em var(--color-accent);
+        background-color: #3332;
+    }
+  `) ;
+
+  targets = [] ;
+
+  constructor(panel) {
+    super(panel);
+    this.surface.style.width = "9em";
+    this.surface.style.height = "9em";
+
+    this.buildUI();
+    
+    this.repeater = new Schedule();
+    listen(this.ui, "pointerdown", (e) => {
+      let tag = e.target.dataset.tag;
+      if (!tag || tag == "ui") return; // Bubble to surface for dragging
+      
+      e.stopPropagation();
+      e.target.setPointerCapture(e.pointerId);
+      
+      this.opStartTime = performance.now();
+      this.opStartValues = this.targets.map(item => item[1]);
+
+      this.doStep(tag);
+      this.repeater.run(250, () => {
+        let loop = () => {
+          this.doStep(tag);
+          this.repeater.run(50, loop);
+        };
+        loop();
+      });
+
+      listen(e.target, ["pointerup", "pointercancel"], () => this.repeater.cancel(), { once: true });
+    });
+
+    this.surfaceDragElm = this.ui;
+    this.surface.append(this.ui);
+
+    listen(_body_, "pointerdown", (e) => this.onSelect(e)) ;
+  }
+
+  buildUI() {
+    this.ui = helm(`
+      <div style="display:grid;grid-template-columns:repeat(9, 1fr);grid-template-rows:repeat(9, 1fr);justify-items:center;align-items:center;width:100%;height:100%;box-shadow:var(--bodyShadow);box-sizing:border-box;overflow:visible;border-radius:100%;border:.1em solid #ccc;background:#eee6;padding-left:.1em;" data-tag="ui">
+          ${iconSvg("Full Screen", { style: "width:2.2em;height:2.2em;grid-column:5;grid-row:5;pointer-events:none;opacity:0.4;transform:translateX(-.35em);" })}
+          <button data-tag="up"    class="PZ_button PZ_move" style="grid-column:5;grid-row:1;">\u25B4</button>
+          <button data-tag="left"  class="PZ_button PZ_move" style="grid-column:1;grid-row:5;">\u25C2</button>
+          <button data-tag="out"   class="PZ_button PZ_zoom" style="grid-column:3;grid-row:5;">\uFF0D</button>
+          <button data-tag="in"    class="PZ_button PZ_zoom" style="grid-column:7;grid-row:5;">\uFF0B</button>
+          <button data-tag="right" class="PZ_button PZ_move" style="grid-column:9;grid-row:5;">\u25B8</button>
+          <button data-tag="down"  class="PZ_button PZ_move" style="grid-column:5;grid-row:9;">\u25BE</button>
+      </div>
+    `);
+  }
+
+  onSelect(e) {
+    if (e.target.closest(".pz") == this.surface) return;
+    this.targets.length = 0 ;
+    let selected = (e.target == _body_) ? document.getElementsByClassName("pz") : [e.target.closest(".pz")];
+    for(let target of selected) {
+       if(target && target != this.surface && target != this.panel.elm) {
+         let fs = target.style.fontSize;
+         let emSize = (fs && fs.includes("em")) ? parseFloat(fs) : parseFloat(getComputedStyle(target).fontSize) / _pxPerEm_;
+         this.targets.push([target, emSize]) ;
+       }
+    }
+  }
+
+  doStep(tag) {
+    let elapsed = performance.now() - this.opStartTime;
+    if (tag == "in" || tag == "out") {
+      let progress = Math.min(1, elapsed / 2000);
+      let zoomFactor = 0.25 * (progress * progress);
+      if (elapsed < 50) zoomFactor = 0.005;
+      let multiplier = (tag == "in") ? (1 + zoomFactor) : (1 - zoomFactor);
+      this.targets.forEach((item, i) => {
+        let [target] = item;
+        let startSize = this.opStartValues[i];
+        let newSize = Math.max(0.1, startSize * multiplier);
+        target.style.fontSize = newSize + "em";
+        item[1] = newSize; 
+      });
+    } else {
+      let dx = 0, dy = 0;
+      let step = (elapsed < 250) ? 1 : Math.min(1 + ((elapsed - 250) / 2000) * 19, 20);
+      if (tag == "up") dy = -step;
+      if (tag == "down") dy = step;
+      if (tag == "left") dx = -step;
+      if (tag == "right") dx = step;
+      for (let [target] of this.targets) {
+        if (target && target != this.panel.elm && target != this.surface) {
+          target.style.left = clamp(target.offsetLeft + dx, 0, window.innerWidth) + "px";
+          target.style.top = clamp(target.offsetTop + dy, 0, window.innerHeight) + "px";
+        }
+      }
+    }
+  }
+}
+
+/**
+class Pzr
+  Subclass of Pz that adds rotation buttons and is specialized for editing
+  Fabric.js objects with locked aspect ratio.
+*/
+class Pzr extends Pz {
+  buildUI() {
+    this.ui = helm(`
+      <div style="display:grid;grid-template-columns:repeat(9, 1fr);grid-template-rows:repeat(9, 1fr);justify-items:center;align-items:center;width:100%;height:100%;box-shadow:var(--bodyShadow);box-sizing:border-box;overflow:visible;border-radius:100%;border:.1em solid #ccc;background:#eee6;padding-left:.1em;" data-tag="ui">
+          ${iconSvg("Edit", { style: "width:2.2em;height:2.2em;grid-column:5;grid-row:5;pointer-events:none;opacity:0.4;transform:translate(-.35em,-.2em);" })}
+          <button data-tag="up"    class="PZ_button PZ_move" style="grid-column:5;grid-row:1;">\u25B4</button>
+          <button data-tag="left"  class="PZ_button PZ_move" style="grid-column:1;grid-row:5;">\u25C2</button>
+          <button data-tag="cw"    class="PZ_button PZ_zoom" style="grid-column:5;grid-row:4;">\u21BB</button>
+          <button data-tag="out"   class="PZ_button PZ_zoom" style="grid-column:3;grid-row:5;">\uFF0D</button>
+          <button data-tag="in"    class="PZ_button PZ_zoom" style="grid-column:7;grid-row:5;">\uFF0B</button>
+          <button data-tag="ccw"   class="PZ_button PZ_zoom" style="grid-column:5;grid-row:6;">\u21BA</button>
+          <button data-tag="right" class="PZ_button PZ_move" style="grid-column:9;grid-row:5;">\u25B8</button>
+          <button data-tag="down"  class="PZ_button PZ_move" style="grid-column:5;grid-row:9;">\u25BE</button>
+      </div>
+    `);
+  }
+
+  show() {
+    super.show();
+    this.onSelect({ target: _body_ });
+  }
+
+  onSelect(e) {
+    let obj = _score_?.getActiveObject();
+    this.targets.length = 0;
+    if (obj) {
+      this.targets.push([obj, {
+        left: obj.left,
+        top: obj.top,
+        scaleX: obj.scaleX,
+        scaleY: obj.scaleY,
+        angle: obj.angle,
+        originX: obj.originX,
+        originY: obj.originY
+      }]);
+    }
+  }
+
+  doStep(tag) {
+    let elapsed = performance.now() - this.opStartTime;
+    let item = this.targets[0];
+    if (!item) return;
+    let [obj] = item;
+
+    // Calculate incremental step (velocity)
+    let step = (elapsed < 250) ? 0.2 : Math.min(0.2 + ((elapsed - 250) / 2000) * 19.8, 20);
+
+    if (tag == "in" || tag == "out") {
+      let zoomFactor = step / 100;
+      let multiplier = (tag == "in") ? (1 + zoomFactor) : (1 - zoomFactor);
+      let center = obj.getCenterPoint();
+      obj.set({
+        originX: "center", originY: "center",
+        left: center.x, top: center.y,
+        scaleX: Math.max(0.01, obj.scaleX * multiplier),
+        scaleY: Math.max(0.01, obj.scaleY * multiplier)
+      });
+    } else if (tag == "ccw" || tag == "cw") {
+      let delta = (tag == "cw") ? step : -step;
+      let center = obj.getCenterPoint();
+      obj.set({
+        originX: "center", originY: "center",
+        left: center.x, top: center.y,
+        angle: (obj.angle + delta) % 360
+      });
+    } else {
+      let dx = 0, dy = 0;
+      if (tag == "up") dy = -step;
+      if (tag == "down") dy = step;
+      if (tag == "left") dx = -step;
+      if (tag == "right") dx = step;
+
+      let newLeft = obj.left + dx;
+      let newTop = obj.top + dy;
+
+      if (obj.canvas) {
+        // Ensure the object's center point remains within the canvas bounds
+        let center = obj.getCenterPoint();
+        let centerDx = center.x - obj.left;
+        let centerDy = center.y - obj.top;
+
+        newLeft = clamp(newLeft + centerDx, 0, obj.canvas.width) - centerDx;
+        newTop = clamp(newTop + centerDy, 0, obj.canvas.height) - centerDy;
+      }
+
+      obj.set({
+        left: newLeft,
+        top: newTop
+      });
+    }
+
+    // Sync current values back to item[1] so the next step/operation is correct
+    item[1] = {
+      left: obj.left, top: obj.top,
+      scaleX: obj.scaleX, scaleY: obj.scaleY,
+      angle: obj.angle,
+      originX: obj.originX, originY: obj.originY
+    };
+
+    obj.setCoords();
+    obj.canvas?.requestRenderAll();
   }
 }
 
@@ -2252,123 +2607,6 @@ class PrintPanel extends Panel {
 }
 
 
-class ImportPanel extends Panel {
-
-  static css = css(
-    "ImportPanel", 
-     `.ImportPanel__frame {
-        background-image: var(--panTexture);
-        height: 6em;
-        width: 100%;
-        padding:.8em 0;
-        box-sizing: border-box;
-        margin-bottom: 0.2em;
-        overflow: hidden;
-        border-radius: var(--borderRadius);
-      }
-      
-      .ImportPanel__sash {
-        position: relative;
-        height:100%;
-        width: max-content;
-        min-width: 100%;
-        padding: 0 0.8em;
-        box-sizing: border-box;
-        display: flex;
-        gap: 0.8em;
-        align-items: flex-start;
-      }
-   `);
-
-  content = helm(`
-     <div data-tag="body" class="Panel__body">
-       <div class="ImportPanel__frame" data-tag="frame">
-         <div class="ImportPanel__sash" data-tag="sash"></div>
-       </div>
-       <div data-tag="buttons" style="border-top: 1px solid var(--color-border);"></div>
-     </div>
-   `);
-
-  constructor(cell) {
-    super(cell);
-
-    this.body.replaceWith(this.content);
-    Object.assign(this, dataIndex("tag", this.content));
-
-    listen(this.sash, "pointerdown", (e) => { 
-      this.sash.setPointerCapture(e.pointerId);
-      let fs = parseFloat(getComputedStyle(this.sash).fontSize);
-      let offsetX = e.clientX - this.sash.offsetLeft;
-      let limit = this.sash.offsetWidth - this.frame.offsetWidth;
-      let mv = listen(this.sash, "pointermove", (emv) => {
-        let leftPx = clamp(emv.clientX - offsetX, -limit, 0);
-        this.sash.style.left = leftPx / fs + "em";
-      });
-      listen(this.sash, "pointerup", (eup) => {
-        unlisten(mv);
-      }, { once: true });
-    });
-
-    let buttons = new ButtonGroup({}, {
-        Clear: { svg: "Cancel" },
-        Undo: { svg: "Undo" },
-      },
-      async (e, tag, value) => {
-        if(value == "Clear") await _podPb_.pgClear();
-        else if(value == "Undo") await _podPb_.pgPop();
-        delay(10, () => {
-          // We don't have a button type for "one shot" (button causes
-          // handler to run, but immediately goes back to initial state),
-          // can easily simulate it:
-          delete buttons.props[value]; 
-          buttons.refresh();
-        });
-      }
-    );
-    buttons.elm.style.borderTop = ".02em solid var(--color-border)";   
-    this.buttons.replaceWith(buttons.elm);
-
-    listen(_body_, "SHAREDBUFFER", async (e) => {
-      _shade_.show("Building...");
-      let score = await _podPb_.getScore();
-      let thumbs = [];
-      for(let pg of score.pgs) thumbs.push(await pg.getThumbElm(true));
-      _shade_.hide();
-      clearChildren(this.sash);
-      if(thumbs.length > 0) { 
-        _menu_.enableCells("page/import",true) ;
-        this.sash.style.fontSize = "1em"; // reset to known "baseline"
-        reflow();
-        thumbs.forEach((thumb) => this.sash.append(thumb));
-        this.sash.style.fontSize = this.sash.offsetHeight / thumbs[0].offsetHeight   + "em";
-        let frameWidth = pxToEm(this.frame.offsetWidth, this.sash);
-        let sashWidth = pxToEm(this.sash.offsetWidth, this.sash);
-        this.sash.style.left = frameWidth;
-        reflow();
-        this.sash.style.transition = `left ${_gs_}ms`;
-        this.sash.style.left = parseFloat(frameWidth) - parseFloat(sashWidth) - .8 + "em";
-        delayMs(_gs_, () => this.sash.style.transition = "unset");
-        buttons.defs.Undo.disabled = false;
-        buttons.defs.Clear.disabled = false;
-      }
-      else {
-        _menu_.enableCells("page/import", false);
-        if (_menu_.activeRing?.activeCell === _menu_.rings.page.cells.paste)
-          _menu_.activateCell(null);
-        buttons.defs.Undo.disabled = true;
-        buttons.defs.Clear.disabled = true;
-      }
-      buttons.refresh() ;
-    })
-  }
-
-  show() {
-    super.show(() => _podPb_.announce());
-    return this;
-  }
-
-}
-
 class StopwatchPanel extends Panel {
   static css = css(
     "StopwatchPanel",
@@ -2432,8 +2670,6 @@ class StopwatchPanel extends Panel {
     return this;
   }
 }
-
-
 
 class MagnifyPanel extends Panel {
   content = helm(`
@@ -2539,7 +2775,7 @@ class MagnifyPanel extends Panel {
       0, 0, destW, destH
     );
   }
-9
+
   destructor() {
     super.destructor();
     // Release magnifier hold on the page

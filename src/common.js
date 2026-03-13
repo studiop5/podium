@@ -58,6 +58,7 @@ export {
   TabView,
   Timer,
   ColorPicker,
+  Surface,
 };
 import { iconPaths } from "./icon.js";
 // -skip
@@ -510,6 +511,90 @@ document.addEventListener("click", (e) => {
     window.open(anchor.href, "_blank");
   }
 });
+
+/**
+class Surface
+  Base class for widgets that can be attached to a panel or
+  detached and moved/zoomed independently.
+**/
+
+class Surface {
+  static css = css(
+    "Surface",
+    `
+    .Surface {
+      font-size:1em;
+      position:absolute;
+      width:8em;
+      height:8em;
+      z-index:100;
+    }`
+  );
+
+  surface = helm(`<div data-tag="surface" class="Surface"></div>`);
+  surfaceDragElm = null; // subclasses must define
+
+  constructor(panel) {
+    this.panel = panel;
+    let surface = this.surface;
+    let longPresser = new Schedule();
+
+    panel.listeners.push(listen(surface, "pointerdown", (e) => {
+      // Ignore pointerdown outside of circular area enclosed by this.surfaceDragElm
+      let box = getBox(this.surfaceDragElm);
+      if(Math.hypot(e.clientX - box.x - box.width / 2, e.clientY - box.y - box.height /2) > box.width / 2) return;
+      _body_.setPointerCapture(e.pointerId);
+      longPresser.run(_longPressMs_,() => this.onSurfaceEvent("press"));
+      let dX = e.offsetX, dY = e.offsetY; // warning: e can be gc'ed before mv references it.
+      let mv = listen(_body_, "pointermove", (emv) => {
+        flung(emv); // store event for fling detection
+        if(surface.parentElement == _body_) {
+          surface.style.left = emv.clientX - dX + "px";
+          surface.style.top = emv.clientY - dY + "px";
+          mvmt(e,emv);
+        }
+        else if(mvmt(e,emv)) {
+          // attach surface to document body
+          longPresser.cancel();
+          surface.style.fontSize = panel.elm.style.fontSize;
+          surface.style.position = "absolute";
+          surface.classList.add("pz"); // this makes it pan-zoomable 
+          _body_.append(surface);
+          _pzTarget_ = surface; // this allows pan-zooming without having to reselect
+          hide(this.panel.elm, dataIndex("tag", this.panel.cell.elm).cellIcon);
+          surface.style.left = emv.clientX - dX + "px";
+          surface.style.top = emv.clientY - dY  + "px";
+
+        }
+      });
+
+      listen(_body_, ["pointerup", "pointercancel"],(eup) => {
+          longPresser.cancel();
+          unlisten(mv);
+          let downTime = eup.timeStamp - e.timeStamp;
+          if (flung(null, eup))  // fling detected
+             hide(surface, dataIndex("tag", this.panel.cell.elm).cellIcon);
+          else if(downTime < _longPressMs_) this.onSurfaceEvent("click");
+        },  { once: true });
+    }));
+    delay(2, () => this.build());
+  }
+
+  destructor() {}
+
+  build() {}
+
+  onSurfaceEvent(e, eup, type) {}
+
+  show() {
+    let surface = this.surface;
+    surface.style.position = "static";
+    surface.style.fontSize = "1em";
+    surface.classList.remove("pz");
+    surface.style.visibility = "unset"; // *not* visible: want to inherit
+    this.panel.body.prepend(surface);
+  }
+}
 
 /**
 class ButtonGroup
