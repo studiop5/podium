@@ -61,6 +61,8 @@ function initFabric() {
     y: -0.5,
     offsetX: 40,
     offsetY: -70,
+    sizeX: 64,
+    sizeY: 64,
     cursorStyle: 'pointer',
     mouseDownHandler: function(eventData, transform) {
       let target = transform.target;
@@ -97,7 +99,7 @@ function initFabric() {
         // draw a lock icon with two states for converting multiple selections to/from groups
         let locked = true;
         if (fabricObject.type == "activeSelection" && fabricObject.size() > 1)  locked = false;
-        else if(fabricObject.type != "group") return;
+        else if(fabricObject.type != "group" || fabricObject.podiumType == "rastrum") return;
         ctx.save();
         ctx.translate(left-24, top-24);
         ctx.lineWidth = 2;
@@ -264,7 +266,10 @@ function initFabric() {
       });
 
       canvas.clearContext(canvas.contextTop);
-      canvas.add(new fabric.Group([staffPath,barPath]));
+      canvas.add(new fabric.Group([staffPath,barPath], {
+        hasControls: false,
+        podiumType: "rastrum"
+      }));
      }
   });
   

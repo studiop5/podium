@@ -1582,14 +1582,19 @@ class Pzr extends Pz {
           ${iconSvg("Edit", { style: "width:2.2em;height:2.2em;grid-column:5;grid-row:5;pointer-events:none;opacity:0.4;transform:translate(-.35em,-.2em);" })}
           <button data-tag="up"    class="PZ_button PZ_move" style="grid-column:5;grid-row:1;">\u25B4</button>
           <button data-tag="left"  class="PZ_button PZ_move" style="grid-column:1;grid-row:5;">\u25C2</button>
-          <button data-tag="ccw"   class="PZ_button PZ_zoom" style="grid-column:5;grid-row:4;">\u21BA</button>
+          <button data-tag="cw"    class="PZ_button PZ_zoom" style="grid-column:5;grid-row:4;">\u21BB</button>
           <button data-tag="out"   class="PZ_button PZ_zoom" style="grid-column:3;grid-row:5;">\uFF0D</button>
           <button data-tag="in"    class="PZ_button PZ_zoom" style="grid-column:7;grid-row:5;">\uFF0B</button>
-          <button data-tag="cw"    class="PZ_button PZ_zoom" style="grid-column:5;grid-row:6;">\u21BB</button>
+          <button data-tag="ccw"   class="PZ_button PZ_zoom" style="grid-column:5;grid-row:6;">\u21BA</button>
           <button data-tag="right" class="PZ_button PZ_move" style="grid-column:9;grid-row:5;">\u25B8</button>
           <button data-tag="down"  class="PZ_button PZ_move" style="grid-column:5;grid-row:9;">\u25BE</button>
       </div>
     `);
+  }
+
+  show() {
+    super.show();
+    this.onSelect({ target: _body_ });
   }
 
   onSelect(e) {
@@ -1615,10 +1620,11 @@ class Pzr extends Pz {
     let [obj] = item;
 
     // Calculate incremental step (velocity)
-    let step = (elapsed < 250) ? 1 : Math.min(1 + ((elapsed - 250) / 2000) * 19, 20);
+    let step = (elapsed < 250) ? 0.2 : Math.min(0.2 + ((elapsed - 250) / 2000) * 19.8, 20);
 
     if (tag == "in" || tag == "out") {
-      let multiplier = (tag == "in") ? 1.01 : 0.99;
+      let zoomFactor = step / 100;
+      let multiplier = (tag == "in") ? (1 + zoomFactor) : (1 - zoomFactor);
       let center = obj.getCenterPoint();
       obj.set({
         originX: "center", originY: "center",

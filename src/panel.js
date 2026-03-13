@@ -416,29 +416,6 @@ class AddPanel extends Panel {
   }
 }
 
-class ClockPanel extends Panel {
-  constructor(cell) {
-    super(cell);
-    this.clock = new Clock(this);
-    this.body.classList.add("centerChild");
-  }
-
-  destructor() {
-    super.destructor();
-    this.clock.destructor();
-  }
-
-  show() {
-    super.show();
-    this.clock.show();
-    return this;
-  }
-
-  hide() {
-    super.hide();
-    this.clock.hide();
-  }
-}
 
 class DetailsPanel extends Panel {
   content = helm(`<div style="margin:1em;width:20em;"></div>`);
@@ -610,6 +587,8 @@ class DetailsPanel extends Panel {
     return this;
   }
 }
+
+
 
 class FilePanel extends Panel {
   // superclass of OpenPanel and SavePanel
@@ -981,6 +960,8 @@ for more details.</p>
     tabView.tabs["Version"].select();
   }
 }
+
+
 
 class StoragePanel extends Panel {
   constructor(cell) {
@@ -1354,29 +1335,6 @@ class VolumePanel extends Panel {
   }
 }
 
-
-class ScreenPanel extends Panel {
-  constructor(cell) {
-    super(cell);
-    this.pz = new Pz(this);
-  }
-
-  destructor() {
-    super.destructor();
-    this.pz.destructor();
-  }
-
-  show() {
-    super.show();
-    this.pz.show();
-    return this;
-  }
-
-  hide() {
-    super.hide();
-    this.pz.hide();
-  }
-}
 
 
 
@@ -1952,6 +1910,48 @@ class ReviewPanel extends Panel {
   }
 }
 
+class SurfacePanel extends Panel {
+  constructor(cell) {
+    super(cell);
+    this.body.classList.add("centerChild");
+  }
+
+  destructor() {
+    super.destructor();
+    this.surface?.destructor();
+  }
+
+  show() {
+    super.show();
+    this.surface?.show();
+    return this;
+  }
+
+  hide() {
+    super.hide();
+    this.surface?.hide();
+    return this;
+  }
+}
+
+class ClockPanel extends SurfacePanel {
+  surface = new Clock(this);
+}
+
+class EditPanel extends SurfacePanel {
+  surface = new Pzr(this);
+
+  constructor(cell) {
+    super(cell);
+    this.listeners.push(listen(_body_, "OBJTOUCHED", (e) => this.surface.onSelect(e.detail)));
+  }
+}
+
+class ScreenPanel extends SurfacePanel {
+  surface = new Pz(this);
+}
+
+
 class SymbolsPanel extends Panel {
 
   static css = css(
@@ -2433,33 +2433,7 @@ class StopwatchPanel extends Panel {
   }
 }
 
-class EditPanel extends Panel {
-  constructor(cell) {
-    super(cell);
-    this.body.classList.add("centerChild");
-    this.pzr = new Pzr(this);
-    this.body.append(this.pzr.surface);
-    this.listeners.push(listen(_body_,"OBJTOUCHED", (e) => this.pzr.onSelect(e.detail))) ;
-  }
 
-  destructor() {
-    super.destructor();
-    this.pzr.destructor();
-  }
-
-  show() {
-    super.show();
-    this.pzr.show();
-    this.pzr.onSelect({ target: _body_ });
-    return this;
-  }
-
-  hide() {
-    super.hide();
-    this.pzr.hide();
-    return this;
-  }
-}
 
 class MagnifyPanel extends Panel {
   content = helm(`

@@ -243,6 +243,7 @@ class Pg {
       });
   
       canvas.on("mouse:up", opts => {
+
         if(stateChanged) pushState();
         stateChanged = false;
         if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) _menu_.pgUpEvent(opts, this); 
