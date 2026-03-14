@@ -2098,16 +2098,28 @@ class Pz extends Surface {
     listen(_body_, "pointerdown", (e) => this.onSelect(e)) ;
   }
 
-  buildUI() {
-    this.ui = helm(`
-      <div style="display:grid;grid-template-columns:repeat(9, 1fr);grid-template-rows:repeat(9, 1fr);justify-items:center;align-items:center;width:100%;height:100%;box-shadow:var(--bodyShadow);box-sizing:border-box;overflow:visible;border-radius:100%;border:.1em solid #ccc;background:#eee6;padding-left:.1em;" data-tag="ui">
-          ${iconSvg("Full Screen", { style: "width:2.2em;height:2.2em;grid-column:5;grid-row:5;pointer-events:none;opacity:0.4;transform:translateX(-.35em);" })}
+
+/*
           <button data-tag="up"    class="PZ_button PZ_move" style="grid-column:5;grid-row:1;">\u25B4</button>
-          <button data-tag="left"  class="PZ_button PZ_move" style="grid-column:1;grid-row:5;">\u25C2</button>
-          <button data-tag="out"   class="PZ_button PZ_zoom" style="grid-column:3;grid-row:5;">\uFF0D</button>
-          <button data-tag="in"    class="PZ_button PZ_zoom" style="grid-column:7;grid-row:5;">\uFF0B</button>
+          <button data-tag="left"  class="PZ_button PZ_move" style="grid-column:1;grid-row:5;">\u25c2</button>
+          <button data-tag="out"   class="PZ_button PZ_zoom" style="grid-column:7;grid-row:5;">\u2299</button>
+          <button data-tag="in"    class="PZ_button PZ_zoom" style="grid-column:3;grid-row:5;">\u25cE</button>
           <button data-tag="right" class="PZ_button PZ_move" style="grid-column:9;grid-row:5;">\u25B8</button>
           <button data-tag="down"  class="PZ_button PZ_move" style="grid-column:5;grid-row:9;">\u25BE</button>
+*/
+
+  buildUI() {
+    this.ui = helm(`
+      <div style="border-radius:100%;border:1px solid #ccc;background:#eee6;width:100%;height:100%;">
+        <div style="display:grid;grid-template-columns:repeat(9, 1fr);grid-template-rows:repeat(9, 1fr);justify-items:center;align-items:center;width:100%;height:100%;transform:translate(.2em,.1em)scale(1.2);" data-tag="ui">
+          ${iconSvg("Full Screen", { style: "width:2.2em;height:2.2em;grid-column:5;grid-row:5;pointer-events:none;opacity:0.4;transform:translateX(-.35em);" })}
+          <button data-tag="up"    class="PZ_button PZ_move" style="grid-column:5;grid-row:1;">\u25B4</button>
+          <button data-tag="left"  class="PZ_button PZ_move" style="grid-column:1;grid-row:5;">\u25c2</button>
+          <button data-tag="out"   class="PZ_button PZ_zoom" style="grid-column:3;grid-row:5;">\u2299</button>
+          <button data-tag="in"    class="PZ_button PZ_zoom" style="grid-column:7;grid-row:5;">\u25cE</button>
+          <button data-tag="right" class="PZ_button PZ_move" style="grid-column:9;grid-row:5;">\u25B8</button>
+          <button data-tag="down"  class="PZ_button PZ_move" style="grid-column:5;grid-row:9;">\u25BE</button>
+        </div>
       </div>
     `);
   }
@@ -2128,20 +2140,26 @@ class Pz extends Surface {
   doStep(tag) {
     let elapsed = performance.now() - this.opStartTime;
     if (tag == "in" || tag == "out") {
-      let progress = Math.min(1, elapsed / 2000);
-      let zoomFactor = 0.25 * (progress * progress);
-      if (elapsed < 50) zoomFactor = 0.005;
+      let zoomFactor = 0.01;
+      if (elapsed > 2000) zoomFactor = 0.10;
+      else if (elapsed > 1200) zoomFactor = 0.05;
+      else if (elapsed > 400) zoomFactor = 0.02;
+
       let multiplier = (tag == "in") ? (1 + zoomFactor) : (1 - zoomFactor);
-      this.targets.forEach((item, i) => {
+      this.targets.forEach((item) => {
         let [target] = item;
-        let startSize = this.opStartValues[i];
-        let newSize = Math.max(0.1, startSize * multiplier);
+        let currentSize = parseFloat(target.style.fontSize) || 1;
+        let newSize = Math.max(0.1, currentSize * multiplier);
         target.style.fontSize = newSize + "em";
         item[1] = newSize; 
       });
     } else {
       let dx = 0, dy = 0;
-      let step = (elapsed < 250) ? 1 : Math.min(1 + ((elapsed - 250) / 2000) * 19, 20);
+      let step = 1;
+      if (elapsed > 2000) step = 50;
+      else if (elapsed > 1200) step = 20;
+      else if (elapsed > 400) step = 5;
+
       if (tag == "up") dy = -step;
       if (tag == "down") dy = step;
       if (tag == "left") dx = -step;
@@ -2164,16 +2182,18 @@ class Pzr
 class Pzr extends Pz {
   buildUI() {
     this.ui = helm(`
-      <div style="display:grid;grid-template-columns:repeat(9, 1fr);grid-template-rows:repeat(9, 1fr);justify-items:center;align-items:center;width:100%;height:100%;box-shadow:var(--bodyShadow);box-sizing:border-box;overflow:visible;border-radius:100%;border:.1em solid #ccc;background:#eee6;padding-left:.1em;" data-tag="ui">
+      <div style="border-radius:100%;border:1px solid #ccc;background:#eee6;width:100%;height:100%;">
+        <div style="display:grid;grid-template-columns:repeat(9, 1fr);grid-template-rows:repeat(9, 1fr);justify-items:center;align-items:center;width:100%;height:100%;transform:translate(.2em,.1em)scale(1.2);" data-tag="ui">
           ${iconSvg("Edit", { style: "width:2.2em;height:2.2em;grid-column:5;grid-row:5;pointer-events:none;opacity:0.4;transform:translate(-.35em,-.2em);" })}
           <button data-tag="up"    class="PZ_button PZ_move" style="grid-column:5;grid-row:1;">\u25B4</button>
-          <button data-tag="left"  class="PZ_button PZ_move" style="grid-column:1;grid-row:5;">\u25C2</button>
+          <button data-tag="left"  class="PZ_button PZ_move" style="grid-column:1;grid-row:5;">\u25c2</button>
           <button data-tag="cw"    class="PZ_button PZ_zoom" style="grid-column:5;grid-row:4;">\u21BB</button>
-          <button data-tag="out"   class="PZ_button PZ_zoom" style="grid-column:3;grid-row:5;">\uFF0D</button>
-          <button data-tag="in"    class="PZ_button PZ_zoom" style="grid-column:7;grid-row:5;">\uFF0B</button>
+          <button data-tag="out"   class="PZ_button PZ_zoom" style="grid-column:3;grid-row:5;">\u2299</button>
+          <button data-tag="in"    class="PZ_button PZ_zoom" style="grid-column:7;grid-row:5;">\u25CE</button>
           <button data-tag="ccw"   class="PZ_button PZ_zoom" style="grid-column:5;grid-row:6;">\u21BA</button>
           <button data-tag="right" class="PZ_button PZ_move" style="grid-column:9;grid-row:5;">\u25B8</button>
           <button data-tag="down"  class="PZ_button PZ_move" style="grid-column:5;grid-row:9;">\u25BE</button>
+        </div>
       </div>
     `);
   }
@@ -2205,11 +2225,16 @@ class Pzr extends Pz {
     if (!item) return;
     let [obj] = item;
 
-    // Calculate incremental step (velocity)
-    let step = (elapsed < 250) ? 0.2 : Math.min(0.2 + ((elapsed - 250) / 2000) * 19.8, 20);
+    // Progressive step/acceleration
+    let step = 1;
+    let zoomFactor = 0.01;
+    let rotStep = 0.2;
+
+    if (elapsed > 2000) { step = 50; zoomFactor = 0.10; rotStep = 20; }
+    else if (elapsed > 1200) { step = 20; zoomFactor = 0.05; rotStep = 5; }
+    else if (elapsed > 400) { step = 5; zoomFactor = 0.02; rotStep = 1; }
 
     if (tag == "in" || tag == "out") {
-      let zoomFactor = step / 100;
       let multiplier = (tag == "in") ? (1 + zoomFactor) : (1 - zoomFactor);
       let center = obj.getCenterPoint();
       obj.set({
@@ -2219,7 +2244,7 @@ class Pzr extends Pz {
         scaleY: Math.max(0.01, obj.scaleY * multiplier)
       });
     } else if (tag == "ccw" || tag == "cw") {
-      let delta = (tag == "cw") ? step : -step;
+      let delta = (tag == "cw") ? rotStep : -rotStep;
       let center = obj.getCenterPoint();
       obj.set({
         originX: "center", originY: "center",
@@ -2262,6 +2287,7 @@ class Pzr extends Pz {
 
     obj.setCoords();
     obj.canvas?.requestRenderAll();
+    _menu_.magnifier?.panel?.updateMagnifier() ;
   }
 }
 
@@ -2269,6 +2295,7 @@ class SurfacePanel extends Panel {
   constructor(cell) {
     super(cell);
     this.body.classList.add("centerChild");
+    this.body.style.padding = "1em";
   }
 
   destructor() {
@@ -2688,8 +2715,7 @@ class MagnifyPanel extends Panel {
 
     this.sliderGroup = new SliderGroup(
       cell.stash,
-      {
-        zoom: { throttle: 100, min: 0.25, max: 5, step: 0.05, value: 1, msg: "Zoom: {value}x" },
+      { zoom: { throttle: 100, min: 0.25, max: 5, step: 0.05, value: 1, msg: "Zoom: {value}x" },
       },
       (e, tag, value) => {
         _menu_.magnifier.zoom = Number(value);
