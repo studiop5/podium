@@ -2028,35 +2028,8 @@ class Pz extends Surface {
   static css = css(
     "PZ",
     `
-    .PZ_button {
-        padding: 0;
-        width: 0.9em;
-        height: 0.9em;
-        cursor: pointer;
-        background-color: transparent;
-        border: none;
-        border-radius: 100%;
-        font-size: 1.8em;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        user-select: none;
-        touch-action: none;
-        text-shadow: 0 0 .1em #fff, 0 0 .2em #fff;
-        color: #333;
-        box-sizing: border-box;
-        transform: translate(-.18em, -.1em);
-    }
-    .PZ_zoom {
-    }
-    .PZ_move {
-        font-size: 2.2em;
-    }
-    .PZ_button:active {
-        color: #000;
-        text-shadow: 0 0 .1em #fff, 0 0 .3em var(--color-accent);
-        background-color: #3332;
+    .PZ_button-active {
+       transform: scale(1.5) ;
     }
   `) ;
 
@@ -2064,63 +2037,57 @@ class Pz extends Surface {
 
   constructor(panel) {
     super(panel);
-    this.surface.style.width = "9em";
-    this.surface.style.height = "9em";
-
     this.buildUI();
-    
+    this.surface.append(this.ui) ;
+    this.surfaceDragElm = this.ui ;
+
     this.repeater = new Schedule();
+
     listen(this.ui, "pointerdown", (e) => {
-      let tag = e.target.dataset.tag;
-      if (!tag || tag == "ui") return; // Bubble to surface for dragging
+    let box  = getBox(this.surface) ;
+    let row = parseInt((e.clientY - box.y) / box.height * 5) ;
+    let col = parseInt((e.clientX - box.x) / box.width * 5) ;
+    let pos = row * 5 + col ;
+    if(![2,10,11,13,14,22].includes(pos)) return ; // no control at these location
+    // add active marker. Note: can't add marker to <path.../>, must be parent <svg.../>
+    let target = e.target.tagName == "path"? e.target.parentElement:e.target ;
+    target.classList.add("PZ_button-active") ;
+    e.stopPropagation();
+    e.target.setPointerCapture(e.pointerId);
       
-      e.stopPropagation();
-      e.target.setPointerCapture(e.pointerId);
-      
-      this.opStartTime = performance.now();
-      this.opStartValues = this.targets.map(item => item[1]);
+    this.opStartTime = performance.now();
+    this.opStartValues = this.targets.map(item => item[1]);
 
-      this.doStep(tag);
-      this.repeater.run(250, () => {
-        let loop = () => {
-          this.doStep(tag);
-          this.repeater.run(50, loop);
-        };
-        loop();
-      });
-
-      listen(e.target, ["pointerup", "pointercancel"], () => this.repeater.cancel(), { once: true });
+    this.doStep(pos);
+    this.repeater.run(250, () => {
+      let loop = () => {
+        this.doStep(pos);
+        this.repeater.run(50, loop);
+      };
+      loop();
     });
 
-    this.surfaceDragElm = this.ui;
-    this.surface.append(this.ui);
+    listen(e.target, ["pointerup", "pointercancel"], () => {
+      target.classList.remove("PZ_button-active") ;
+      this.repeater.cancel();
+      }, { once: true });
+    });
+
 
     listen(_body_, "pointerdown", (e) => this.onSelect(e)) ;
   }
 
-
-/*
-          <button data-tag="up"    class="PZ_button PZ_move" style="grid-column:5;grid-row:1;">\u25B4</button>
-          <button data-tag="left"  class="PZ_button PZ_move" style="grid-column:1;grid-row:5;">\u25c2</button>
-          <button data-tag="out"   class="PZ_button PZ_zoom" style="grid-column:7;grid-row:5;">\u2299</button>
-          <button data-tag="in"    class="PZ_button PZ_zoom" style="grid-column:3;grid-row:5;">\u25cE</button>
-          <button data-tag="right" class="PZ_button PZ_move" style="grid-column:9;grid-row:5;">\u25B8</button>
-          <button data-tag="down"  class="PZ_button PZ_move" style="grid-column:5;grid-row:9;">\u25BE</button>
-*/
-
   buildUI() {
     this.ui = helm(`
-      <div style="border-radius:100%;border:1px solid #ccc;background:#eee6;width:100%;height:100%;">
-        <div style="display:grid;grid-template-columns:repeat(9, 1fr);grid-template-rows:repeat(9, 1fr);justify-items:center;align-items:center;width:100%;height:100%;transform:translate(.2em,.1em)scale(1.2);" data-tag="ui">
-          ${iconSvg("Full Screen", { style: "width:2.2em;height:2.2em;grid-column:5;grid-row:5;pointer-events:none;opacity:0.4;transform:translateX(-.35em);" })}
-          <button data-tag="up"    class="PZ_button PZ_move" style="grid-column:5;grid-row:1;">\u25B4</button>
-          <button data-tag="left"  class="PZ_button PZ_move" style="grid-column:1;grid-row:5;">\u25c2</button>
-          <button data-tag="out"   class="PZ_button PZ_zoom" style="grid-column:3;grid-row:5;">\u2299</button>
-          <button data-tag="in"    class="PZ_button PZ_zoom" style="grid-column:7;grid-row:5;">\u25cE</button>
-          <button data-tag="right" class="PZ_button PZ_move" style="grid-column:9;grid-row:5;">\u25B8</button>
-          <button data-tag="down"  class="PZ_button PZ_move" style="grid-column:5;grid-row:9;">\u25BE</button>
+        <div style="display:grid;grid-template-columns:repeat(5, 1.6em);grid-template-rows:repeat(5, 1.6em);justify-items:center;align-items:center;border-radius:100%;border:.2em solid #8888;background:#eee6;width:100%;height:100%;">
+          <svg style="grid-column:3;grid-row:1;" viewBox="0 0 1 1"><path d="M.1 .9L.5 .1L.9 .9"/></svg>
+          <svg style="grid-column:1;grid-row:3;" viewBox="0 0 1 1"><path d="M.9 .1L.1 .5L.9 .9"/></svg>
+          <svg style="grid-column:2;grid-row:3;" viewBox="0 0 1 1"><path d="M.1 .5L.9 .1M.1 .5L.9 .9" fill="#fff" stroke="currentColor" stroke-width="0.1" stroke-linejoin="round"/></svg>
+          ${iconSvg("Full Screen", {style:"grid-column:3;grid-row:3;pointer-events:none;opacity:0.5;transform:scale(1.5);"})}
+          <svg style="grid-column:4;grid-row:3;" viewBox="0 0 1 1"><path d="M.9 .5L.1 .1M.9 .5L.1 .9" fill="none" stroke="currentColor" stroke-width="0.1" stroke-linejoin="round"/></svg>
+          <svg style="grid-column:5;grid-row:3;" viewBox="0 0 1 1"><path d="M.1 .1L.9 .5L.1 .9"/></svg>
+          <svg style="grid-column:3;grid-row:5;" viewBox="0 0 1 1"><path d="M.1 .1L.5 .9L.9 .1"/></div>
         </div>
-      </div>
     `);
   }
 
@@ -2137,15 +2104,15 @@ class Pz extends Surface {
     }
   }
 
-  doStep(tag) {
+  doStep(pos) {
     let elapsed = performance.now() - this.opStartTime;
-    if (tag == "in" || tag == "out") {
+    if (pos == 11 || pos == 13) {
       let zoomFactor = 0.01;
       if (elapsed > 2000) zoomFactor = 0.10;
       else if (elapsed > 1200) zoomFactor = 0.05;
       else if (elapsed > 400) zoomFactor = 0.02;
 
-      let multiplier = (tag == "in") ? (1 + zoomFactor) : (1 - zoomFactor);
+      let multiplier = (pos == 11) ? (1 + zoomFactor) : (1 - zoomFactor);
       this.targets.forEach((item) => {
         let [target] = item;
         let currentSize = parseFloat(target.style.fontSize) || 1;
@@ -2160,10 +2127,10 @@ class Pz extends Surface {
       else if (elapsed > 1200) step = 20;
       else if (elapsed > 400) step = 5;
 
-      if (tag == "up") dy = -step;
-      if (tag == "down") dy = step;
-      if (tag == "left") dx = -step;
-      if (tag == "right") dx = step;
+      if (pos == 2) dy = -step;
+      if (pos == 22) dy = step;
+      if (pos == 10) dx = -step;
+      if (pos == 14) dx = step;
       for (let [target] of this.targets) {
         if (target && target != this.panel.elm && target != this.surface) {
           target.style.left = clamp(target.offsetLeft + dx, 0, window.innerWidth) + "px";
@@ -2302,7 +2269,7 @@ class SurfacePanel extends Panel {
     super.destructor();
     this.surface?.destructor();
   }
-
+ 
   show() {
     super.show();
     this.surface?.show();
