@@ -1916,6 +1916,7 @@ class TableLayout extends Layout {
     let {left, top} = this.gridCoords[pn-1];
     let pg = this.score.pgs[pn - 1];
     let elm = await pg.getThumbElm();
+    elm.classList.remove("TableLayout__pg-active");
     elm.pn = pn;
     elm.pg = pg;
     Object.assign(elm.style,{
