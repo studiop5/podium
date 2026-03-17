@@ -2019,174 +2019,107 @@ class VolumePanel extends Panel {
 
 
 /**
-class Pz
-
-  Implements a detachable widget that allows fine-tuning the location and size
-  of Podium widgets. Same functionality as pinch-zoom, but offers finer grain control.
+class Pzr
+  This is the "body" of the EditPanel.
+  Implements a detachable widget that allows fine-tuning the location, size, and rotation
+  of fabridjs objects.  Essentially an alternative to using fabric's "controls" on the
+  the active selection.
 */
-class Pz extends Surface {
+class Pzr extends Surface {
   static css = css(
     "PZ",
     `
+    .PZ_button {
+      fill: none; 
+      stroke: currentColor;
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
     .PZ_button-active {
-       transform: scale(1.5) ;
+       color: #6c6;
+       transform: scale(1.2);
     }
   `) ;
+
+
+  // Positions in the 5x5 ui grid that have svg elements:
+  // (positions are0-based index starting in upper left, l-r t-b).
+  // The last 2 positions are only used in class Pzr
+  slots = [2,7,10,11,13,14,17,22] ;
 
   targets = [] ;
 
   constructor(panel) {
     super(panel);
     this.buildUI();
+    Object.assign(this, dataIndex("tag", this.ui)) ;
     this.surface.append(this.ui) ;
     this.surfaceDragElm = this.ui ;
 
     this.repeater = new Schedule();
 
     listen(this.ui, "pointerdown", (e) => {
-    let box  = getBox(this.surface) ;
-    let row = parseInt((e.clientY - box.y) / box.height * 5) ;
-    let col = parseInt((e.clientX - box.x) / box.width * 5) ;
-    let pos = row * 5 + col ;
-    if(![2,10,11,13,14,22].includes(pos)) return ; // no control at these location
-    // add active marker. Note: can't add marker to <path.../>, must be parent <svg.../>
-    let target = e.target.tagName == "path"? e.target.parentElement:e.target ;
-    target.classList.add("PZ_button-active") ;
-    e.stopPropagation();
-    e.target.setPointerCapture(e.pointerId);
-      
-    this.opStartTime = performance.now();
-    this.opStartValues = this.targets.map(item => item[1]);
+      _menu_.busy = true ;
+      let box  = getBox(this.surface) ;
+      let row = parseInt((e.clientY - box.y) / box.height * 5) ;
+      let col = parseInt((e.clientX - box.x) / box.width * 5) ;
+      let pos = row * 5 + col ;
+      if(!this.slots.includes(pos)) return ; // no control at these location
+      // add active marker. Note: can't add marker to <path.../>, must be parent <svg.../>
+      let target = e.target.tagName == "path"? e.target.parentElement:e.target ;
+      target.classList.add("PZ_button-active") ;
+      e.stopPropagation();
+      e.target.setPointerCapture(e.pointerId);
+        
+      this.opStartTime = performance.now();
+      this.opStartValues = this.targets.map(item => item[1]);
+  
+      this.doStep(pos);
+      this.repeater.run(250, () => {
+        let loop = () => {
+          this.doStep(pos);
+          this.repeater.run(50, loop);
+        };
+        loop();
+      });
 
-    this.doStep(pos);
-    this.repeater.run(250, () => {
-      let loop = () => {
-        this.doStep(pos);
-        this.repeater.run(50, loop);
-      };
-      loop();
-    });
-
-    listen(e.target, ["pointerup", "pointercancel"], () => {
-      target.classList.remove("PZ_button-active") ;
-      this.repeater.cancel();
+      listen(e.target, ["pointerup", "pointercancel"], () => {
+        target.classList.remove("PZ_button-active") ;
+        this.repeater.cancel();
+        _menu_.busy = false;
+        _menu_.autoOff.run();
       }, { once: true });
     });
-
 
     listen(_body_, "pointerdown", (e) => this.onSelect(e)) ;
   }
 
+
   buildUI() {
+    // This is the ui for  both class Pz and class Pzr. Class Pz's constructor will remove the clockwise and counterclockwise svg's, 
+    // class Pzr's constructor will replace the iconSvg.
     this.ui = helm(`
-        <div style="display:grid;grid-template-columns:repeat(5, 1.6em);grid-template-rows:repeat(5, 1.6em);justify-items:center;align-items:center;border-radius:100%;border:.2em solid #8888;background:#eee6;width:100%;height:100%;">
-          <svg style="grid-column:3;grid-row:1;" viewBox="0 0 1 1"><path d="M.1 .9L.5 .1L.9 .9"/></svg>
-          <svg style="grid-column:1;grid-row:3;" viewBox="0 0 1 1"><path d="M.9 .1L.1 .5L.9 .9"/></svg>
-          <svg style="grid-column:2;grid-row:3;" viewBox="0 0 1 1"><path d="M.1 .5L.9 .1M.1 .5L.9 .9" fill="#fff" stroke="currentColor" stroke-width="0.1" stroke-linejoin="round"/></svg>
-          ${iconSvg("Full Screen", {style:"grid-column:3;grid-row:3;pointer-events:none;opacity:0.5;transform:scale(1.5);"})}
-          <svg style="grid-column:4;grid-row:3;" viewBox="0 0 1 1"><path d="M.9 .5L.1 .1M.9 .5L.1 .9" fill="none" stroke="currentColor" stroke-width="0.1" stroke-linejoin="round"/></svg>
-          <svg style="grid-column:5;grid-row:3;" viewBox="0 0 1 1"><path d="M.1 .1L.9 .5L.1 .9"/></svg>
-          <svg style="grid-column:3;grid-row:5;" viewBox="0 0 1 1"><path d="M.1 .1L.5 .9L.9 .1"/></div>
+        <div style="display:grid;grid-template-columns:repeat(5, 1.6em);grid-template-rows:repeat(5, 1.6em);justify-items:center;align-items:center;border-radius:100%;border:.2em solid #8888;background:#eee6;width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:8;stroke-linecap:round;stroke-linejoin:round;">
+
+          <svg style="grid-row:1;grid-column:3;" viewBox="0 0 100 100"><path d="M10 90L50 10L90 90" fill="currentColor"/></svg>
+          <svg style="grid-row:2;grid-column:3;" data-tag="cw"  viewBox="0 0 100 100">
+            <path d="M50 15 A35 35 0 1 1 25.25 25.25 M50 5 L50 25 L30 15 Z" transform="translate(100, 0) scale(-1, 1)"/>
+          </svg>
+          <svg style="grid-row:3;grid-column:1;" viewBox="0 0 100 100"><path d="M90 10L10 50L90 90" fill="currentColor"/></svg>
+          <svg style="grid-row:3;grid-column:2;" viewBox="0 0 100 100"><path d="M90 10L10 50L90 90"/></svg>
+          ${iconSvg("Edit", {style:"grid-row:3;grid-column:3;pointer-events:none;opacity:0.5;"})}
+          <svg style="grid-row:3;grid-column:4;" viewBox="0 0 100 100"><path d="M10 10L90 50L10 90"/></svg>
+          <svg style="grid-row:3;grid-column:5;" viewBox="0 0 100 100"><path d="M10 10L90 50L10 90" fill="currentColor"/></svg>
+          <svg style="grid-row:4;grid-column:3;"data-tag="ccw"  viewBox="0 0 100 100">
+            <path d="M50 15 A35 35 0 1 1 25.25 25.25 M50 5 L50 25 L30 15 Z"/>
+          </svg>
+          <svg style="grid-row:5;grid-column:3;" viewBox="0 0 100 100"><path d="M10 10L50 90L90 10" fill="currentColor"/></svg> 
         </div>
     `);
-  }
-
-  onSelect(e) {
-    if (e.target.closest(".pz") == this.surface) return;
-    this.targets.length = 0 ;
-    let selected = (e.target == _body_) ? document.getElementsByClassName("pz") : [e.target.closest(".pz")];
-    for(let target of selected) {
-       if(target && target != this.surface && target != this.panel.elm) {
-         let fs = target.style.fontSize;
-         let emSize = (fs && fs.includes("em")) ? parseFloat(fs) : parseFloat(getComputedStyle(target).fontSize) / _pxPerEm_;
-         this.targets.push([target, emSize]) ;
-       }
-    }
   }
 
   doStep(pos) {
-    let elapsed = performance.now() - this.opStartTime;
-    if (pos == 11 || pos == 13) {
-      let zoomFactor = 0.01;
-      if (elapsed > 2000) zoomFactor = 0.10;
-      else if (elapsed > 1200) zoomFactor = 0.05;
-      else if (elapsed > 400) zoomFactor = 0.02;
-
-      let multiplier = (pos == 11) ? (1 + zoomFactor) : (1 - zoomFactor);
-      this.targets.forEach((item) => {
-        let [target] = item;
-        let currentSize = parseFloat(target.style.fontSize) || 1;
-        let newSize = Math.max(0.1, currentSize * multiplier);
-        target.style.fontSize = newSize + "em";
-        item[1] = newSize; 
-      });
-    } else {
-      let dx = 0, dy = 0;
-      let step = 1;
-      if (elapsed > 2000) step = 50;
-      else if (elapsed > 1200) step = 20;
-      else if (elapsed > 400) step = 5;
-
-      if (pos == 2) dy = -step;
-      if (pos == 22) dy = step;
-      if (pos == 10) dx = -step;
-      if (pos == 14) dx = step;
-      for (let [target] of this.targets) {
-        if (target && target != this.panel.elm && target != this.surface) {
-          target.style.left = clamp(target.offsetLeft + dx, 0, window.innerWidth) + "px";
-          target.style.top = clamp(target.offsetTop + dy, 0, window.innerHeight) + "px";
-        }
-      }
-    }
-  }
-}
-
-/**
-class Pzr
-  Subclass of Pz that adds rotation buttons and is specialized for editing
-  Fabric.js objects with locked aspect ratio.
-*/
-class Pzr extends Pz {
-  buildUI() {
-    this.ui = helm(`
-      <div style="border-radius:100%;border:1px solid #ccc;background:#eee6;width:100%;height:100%;">
-        <div style="display:grid;grid-template-columns:repeat(9, 1fr);grid-template-rows:repeat(9, 1fr);justify-items:center;align-items:center;width:100%;height:100%;transform:translate(.2em,.1em)scale(1.2);" data-tag="ui">
-          ${iconSvg("Edit", { style: "width:2.2em;height:2.2em;grid-column:5;grid-row:5;pointer-events:none;opacity:0.4;transform:translate(-.35em,-.2em);" })}
-          <button data-tag="up"    class="PZ_button PZ_move" style="grid-column:5;grid-row:1;">\u25B4</button>
-          <button data-tag="left"  class="PZ_button PZ_move" style="grid-column:1;grid-row:5;">\u25c2</button>
-          <button data-tag="cw"    class="PZ_button PZ_zoom" style="grid-column:5;grid-row:4;">\u21BB</button>
-          <button data-tag="out"   class="PZ_button PZ_zoom" style="grid-column:3;grid-row:5;">\u2299</button>
-          <button data-tag="in"    class="PZ_button PZ_zoom" style="grid-column:7;grid-row:5;">\u25CE</button>
-          <button data-tag="ccw"   class="PZ_button PZ_zoom" style="grid-column:5;grid-row:6;">\u21BA</button>
-          <button data-tag="right" class="PZ_button PZ_move" style="grid-column:9;grid-row:5;">\u25B8</button>
-          <button data-tag="down"  class="PZ_button PZ_move" style="grid-column:5;grid-row:9;">\u25BE</button>
-        </div>
-      </div>
-    `);
-  }
-
-  show() {
-    super.show();
-    this.onSelect({ target: _body_ });
-  }
-
-  onSelect(e) {
-    let obj = _score_?.getActiveObject();
-    this.targets.length = 0;
-    if (obj) {
-      this.targets.push([obj, {
-        left: obj.left,
-        top: obj.top,
-        scaleX: obj.scaleX,
-        scaleY: obj.scaleY,
-        angle: obj.angle,
-        originX: obj.originX,
-        originY: obj.originY
-      }]);
-    }
-  }
-
-  doStep(tag) {
     let elapsed = performance.now() - this.opStartTime;
     let item = this.targets[0];
     if (!item) return;
@@ -2201,8 +2134,8 @@ class Pzr extends Pz {
     else if (elapsed > 1200) { step = 20; zoomFactor = 0.05; rotStep = 5; }
     else if (elapsed > 400) { step = 5; zoomFactor = 0.02; rotStep = 1; }
 
-    if (tag == "in" || tag == "out") {
-      let multiplier = (tag == "in") ? (1 + zoomFactor) : (1 - zoomFactor);
+    if (pos == 11 || pos == 13) { // scale
+      let multiplier = (pos == 11) ? (1 + zoomFactor) : (1 - zoomFactor);
       let center = obj.getCenterPoint();
       obj.set({
         originX: "center", originY: "center",
@@ -2210,21 +2143,20 @@ class Pzr extends Pz {
         scaleX: Math.max(0.01, obj.scaleX * multiplier),
         scaleY: Math.max(0.01, obj.scaleY * multiplier)
       });
-    } else if (tag == "ccw" || tag == "cw") {
-      let delta = (tag == "cw") ? rotStep : -rotStep;
+    } else if (pos == 7 || pos == 17) { // rotate
+      let delta = pos == 7 ? rotStep : -rotStep;
       let center = obj.getCenterPoint();
       obj.set({
         originX: "center", originY: "center",
         left: center.x, top: center.y,
         angle: (obj.angle + delta) % 360
       });
-    } else {
+    } else { // translate
       let dx = 0, dy = 0;
-      if (tag == "up") dy = -step;
-      if (tag == "down") dy = step;
-      if (tag == "left") dx = -step;
-      if (tag == "right") dx = step;
-
+      if (pos == 2) dy = -step; // up
+      if (pos == 10) dx = -step; // left
+      if (pos == 14) dx = step; // right
+      if (pos == 22) dy = step; // down
       let newLeft = obj.left + dx;
       let newTop = obj.top + dy;
 
@@ -2256,6 +2188,98 @@ class Pzr extends Pz {
     obj.canvas?.requestRenderAll();
     _menu_.magnifier?.panel?.updateMagnifier() ;
   }
+
+  onSelect(e) {
+    let obj = _score_?.getActiveObject();
+    this.targets.length = 0;
+    if (obj) {
+      this.targets.push([obj, {
+        left: obj.left,
+        top: obj.top,
+        scaleX: obj.scaleX,
+        scaleY: obj.scaleY,
+        angle: obj.angle,
+        originX: obj.originX,
+        originY: obj.originY
+      }]);
+    }
+  }
+
+}
+
+/**
+class Pz
+  This is the "body" of the ScreenPanel.
+  Subclass of Pz that removes rotation buttons and is specialized for editing
+  Fabric.js objects with locked aspect ratio.
+*/
+class Pz extends Pzr {
+
+  slots = [2,10,11,13,14,22,7,17] ;
+
+  constructor(panel) {
+    super(panel) ;
+    // modify the grid, replacing the central icon and removing clockwise and counter-clockwise svg's
+    this.iconSvg.replaceWith(helm(`
+      ${iconSvg("Full Screen", {style:"grid-column:3;grid-row:3;pointer-events:none;opacity:0.5;transform:scale(1.4) translateX(.05em)"})}`));
+    this.cw.remove() ;
+    this.ccw.remove() ;
+  }
+
+  doStep(pos) {
+    let elapsed = performance.now() - this.opStartTime;
+    if (pos == 11 || pos == 13) { // scale
+      let zoomFactor = 0.01;
+      if (elapsed > 2000) zoomFactor = 0.10;
+      else if (elapsed > 1200) zoomFactor = 0.05;
+      else if (elapsed > 400) zoomFactor = 0.02;
+
+      let multiplier = (pos == 11) ? (1 + zoomFactor) : (1 - zoomFactor);
+      this.targets.forEach((item) => {
+        let [target] = item;
+        let currentSize = parseFloat(target.style.fontSize) || 1;
+        let newSize = Math.max(0.1, currentSize * multiplier);
+        target.style.fontSize = newSize + "em";
+        item[1] = newSize; 
+      });
+    } else {
+      let dx = 0, dy = 0;
+      let step = 1;
+      if (elapsed > 2000) step = 50;
+      else if (elapsed > 1200) step = 20;
+      else if (elapsed > 400) step = 5;
+
+      if (pos == 2) dy = -step; // up
+      if (pos == 10) dx = -step; // left
+      if (pos == 14) dx = step; //right
+      if (pos == 22) dy = step; // down
+      for (let [target] of this.targets) {
+        if (target && target != this.panel.elm && target != this.surface) {
+          target.style.left = clamp(target.offsetLeft + dx, 0, window.innerWidth) + "px";
+          target.style.top = clamp(target.offsetTop + dy, 0, window.innerHeight) + "px";
+        }
+      }
+    }
+  }
+
+  onSelect(e) {
+    if (e.target.closest(".pz") == this.surface) return;
+    this.targets.length = 0 ;
+    let selected = (e.target == _body_) ? document.getElementsByClassName("pz") : [e.target.closest(".pz")];
+    for(let target of selected) {
+       if(target && target != this.surface && target != this.panel.elm) {
+         let fs = target.style.fontSize;
+         let emSize = (fs && fs.includes("em")) ? parseFloat(fs) : parseFloat(getComputedStyle(target).fontSize) / _pxPerEm_;
+         this.targets.push([target, emSize]) ;
+       }
+    }
+  }
+
+  show() {
+    super.show();
+    this.onSelect({ target: _body_ });
+  }
+
 }
 
 class SurfacePanel extends Panel {
@@ -2292,6 +2316,7 @@ class EditPanel extends SurfacePanel {
 
   constructor(cell) {
     super(cell);
+    this.surface.onSelect() ;
     this.listeners.push(listen(_body_, "OBJTOUCHED", (e) => this.surface.onSelect(e.detail)));
   }
 }
