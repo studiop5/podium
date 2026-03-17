@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { clamp, delay, dialog, fontUnmap, helm, inflate, rotatePoint } from "./common.js";
+import { clamp, clearChildren, delay, dialog, fontUnmap, helm, inflate, rotatePoint } from "./common.js";
 import { Grid } from "./canvas.js";
 import { Layout } from "./layout.js";
 import { panels } from "./panel.js";
@@ -114,7 +114,7 @@ class Pg {
     let h = viewport.height / this.score.quality;
     let mozCanvas = helm(`<canvas width="${viewport.width}" height="${viewport.height}"
       style="width:${w / _pxPerEm_}em;height:${h / _pxPerEm_}em;font-size:1em"></canvas>`);
-   if (this.mozCanvas) this.mozCanvas.replaceWith(mozCanvas);
+    if (this.mozCanvas) this.mozCanvas.replaceWith(mozCanvas);
     else canvas.wrapperEl.append(mozCanvas);
     this.mozCanvas = mozCanvas;
     let ctx = mozCanvas.getContext("2d", { willReadFrequently: true });
@@ -281,6 +281,7 @@ class Pg {
         stack.push(this.canvas.toDatalessObject());
         while (stack.length > 10) stack.shift(); // prune
         _menu_.enableCells("ink/undo");
+        this.thumbDirty = true;
       };
   
       canvas.on("object:added", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
@@ -317,6 +318,7 @@ class Pg {
       } else this.json = this.toJson();
       this.canvas.clear();
       this.canvas.dispose();
+      if(this.thumbElm) clearChildren(this.thumbElm);
       this.canvas = null;
       this.mozCanvas?.remove();
       this.mozCanvas = null;
@@ -327,7 +329,7 @@ class Pg {
     return this;
   }
 
-  async getThumbElm(force) {
+  async getThumbElm(force = false) {
     // @return thumbnail elm for this pg. It is created on first call,
     // then stored: subsequent calls returned the stored value, unless
     // @force is true: in this case, the thumbnail is always (re) calculated.
@@ -341,7 +343,8 @@ class Pg {
     // -  this result is blob-ized, then wrapped into an object URL.
     // -  the 2 object URLs are set as the background image of this.thumbElm
     // -  the two object URLs are revoked after a delay of 10 animation frames
-    if (!this.thumbElm || force) {
+    if (!this.thumbElm || force || this.thumbDirty) {
+      this.thumbDirty = false;
       let deflated = !this.inflated;
       let score = this.score;
       if (deflated) await this.inflate(true, false);
