@@ -542,6 +542,8 @@ class Surface {
     panel.listeners.push(listen(surface, "pointerdown", (e) => {
       // Ignore pointerdown outside of circular area enclosed by this.surfaceDragElm
       let box = getBox(this.surfaceDragElm);
+      let maxLeft = window.innerWidth - box.width;
+      let maxTop = window.innerHeight - box.height;
       if(Math.hypot(e.clientX - box.x - box.width / 2, e.clientY - box.y - box.height /2) > box.width / 2) return;
       _body_.setPointerCapture(e.pointerId);
       longPresser.run(_longPressMs_,() => this.onSurfaceEvent("press"));
@@ -549,8 +551,9 @@ class Surface {
       let mv = listen(_body_, "pointermove", (emv) => {
         flung(emv); // store event for fling detection
         if(surface.parentElement == _body_) {
-          surface.style.left = emv.clientX - dX + "px";
-          surface.style.top = emv.clientY - dY + "px";
+          surface.style.left = clamp(emv.clientX - dX, 0, maxLeft) + "px";
+          surface.style.top = clamp(emv.clientY - dY, 0, maxTop) + "px";
+
           mvmt(e,emv);
         }
         else if(mvmt(e,emv)) {
@@ -561,6 +564,8 @@ class Surface {
           surface.classList.add("pz"); // this makes it pan-zoomable 
           _body_.append(surface);
           _pzTarget_ = surface; // this allows pan-zooming without having to reselect
+          // if ScreenPanel is launched, and surface is not its surface, update it: (note the .surface.surface...its correct!
+          if(_panels_.screen && surface != _panels_.screen.surface.surface) _panels_.screen.surface.pzTarget = surface ; 
           hide(this.panel.elm, dataIndex("tag", this.panel.cell.elm).cellIcon);
           surface.style.left = emv.clientX - dX + "px";
           surface.style.top = emv.clientY - dY  + "px";
@@ -577,6 +582,7 @@ class Surface {
           else if(downTime < _longPressMs_) this.onSurfaceEvent("click");
         },  { once: true });
     }));
+
     delay(2, () => this.build());
   }
 

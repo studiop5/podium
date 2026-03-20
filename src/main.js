@@ -327,7 +327,7 @@ async function main() {
       let iW = innerWidth ;
       let iH = innerHeight ;
       for(let child of _body_.children) {
-        if(child.classList.contains("Menu") || child.classList.contains("Panel")) {
+        if(child.classList.contains("pz")) {
           child.style.left = (parseFloat(child.style.left) / window.iW) * iW + "px" ;
           child.style.top = (parseFloat(child.style.top) / window.iH) * iH + "px" ;
         }

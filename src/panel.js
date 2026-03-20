@@ -262,12 +262,8 @@ class Panel {
       let newLeft = clamp(this.elm.offsetLeft, 0, innerWidth);
       let newTop = clamp(this.elm.offsetTop, this.panel.offsetHeight/2,
         innerHeight - this.header.offsetHeight + this.panel.offsetHeight / 2);
-      if (this.elm.offsetLeft != newLeft) {
-        this.elm.style.left = newLeft + "px";
-      }
-      if (this.elm.offsetTop != newTop) {
-        this.elm.style.top = newTop + "px";
-      }
+      if (this.elm.offsetLeft != newLeft) this.elm.style.left = newLeft + "px";
+      if (this.elm.offsetTop != newTop) this.elm.style.top = newTop + "px";
     });
   }
 
@@ -303,6 +299,7 @@ class Panel {
     reflow();
     elm.style.fontSize = fontSize;
     _pzTarget_ = elm;
+    if(_panels_.screen && this != _panels_.screen) _panels_.screen.surface.pzTarget = elm ;
     elm.style.zIndex = ++Panel._zTop;
     return this;
   }
@@ -2020,7 +2017,7 @@ class VolumePanel extends Panel {
 
 /**
 class Pzr
-  This is the "body" of the EditPanel.
+  This is the detachable body of the EditPanel.
   Implements a detachable widget that allows fine-tuning the location, size, and rotation
   of fabridjs objects.  Essentially an alternative to using fabric's "controls" on the
   the active selection.
@@ -2029,6 +2026,9 @@ class Pzr extends Surface {
   static css = css(
     "PZ",
     `
+    .PZ_noTarget {
+      border: .2em solid red !important; 
+    }
     .PZ_button {
       fill: none; 
       stroke: currentColor;
@@ -2047,7 +2047,7 @@ class Pzr extends Surface {
   // (positions are0-based index starting in upper left, l-r t-b).
   // The last 2 positions are only used in class Pzr
   slots = [2,7,10,11,13,14,17,22] ;
-
+ 
   targets = [] ;
 
   constructor(panel) {
@@ -2059,15 +2059,16 @@ class Pzr extends Surface {
 
     this.repeater = new Schedule();
 
-    listen(this.ui, "pointerdown", (e) => {
-      _menu_.busy = true ;
+    this.panel.listeners.push(listen(this.ui, "pointerdown", (e) => {
       let box  = getBox(this.surface) ;
       let row = parseInt((e.clientY - box.y) / box.height * 5) ;
       let col = parseInt((e.clientX - box.x) / box.width * 5) ;
       let pos = row * 5 + col ;
-      if(!this.slots.includes(pos)) return ; // no control at these location
-      // add active marker. Note: can't add marker to <path.../>, must be parent <svg.../>
+      if(!this.slots.includes(pos)) return ; // no button at this location
+      _menu_.busy = true ;
+      // add active marker. Note: can't add style to <path.../>, must be parent <svg.../>
       let target = e.target.tagName == "path"? e.target.parentElement:e.target ;
+      if(this.getTargets()) {
       target.classList.add("PZ_button-active") ;
       e.stopPropagation();
       e.target.setPointerCapture(e.pointerId);
@@ -2084,15 +2085,16 @@ class Pzr extends Surface {
         loop();
       });
 
-      listen(e.target, ["pointerup", "pointercancel"], () => {
+      }
+      listen(this.ui, ["pointerup", "pointercancel"], () => {
+        this.ui.classList.remove("PZ_noTarget") ;
         target.classList.remove("PZ_button-active") ;
         this.repeater.cancel();
         _menu_.busy = false;
         _menu_.autoOff.run();
       }, { once: true });
-    });
 
-    listen(_body_, "pointerdown", (e) => this.onSelect(e)) ;
+    }));
   }
 
 
@@ -2100,7 +2102,7 @@ class Pzr extends Surface {
     // This is the ui for  both class Pz and class Pzr. Class Pz's constructor will remove the clockwise and counterclockwise svg's, 
     // class Pzr's constructor will replace the iconSvg.
     this.ui = helm(`
-        <div style="display:grid;grid-template-columns:repeat(5, 1.6em);grid-template-rows:repeat(5, 1.6em);justify-items:center;align-items:center;border-radius:100%;border:.2em solid #8888;background:#eee6;width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:8;stroke-linecap:round;stroke-linejoin:round;">
+        <div style="display:grid;grid-template-columns:repeat(5, 1.6em);grid-template-rows:repeat(5, 1.6em);justify-items:center;align-items:center;border-radius:100%;border:.2em solid #aaa;background:#eee6;width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:8;stroke-linecap:round;stroke-linejoin:round;">
 
           <svg style="grid-row:1;grid-column:3;" viewBox="0 0 100 100"><path d="M10 90L50 10L90 90" fill="currentColor"/></svg>
           <svg style="grid-row:2;grid-column:3;" data-tag="cw"  viewBox="0 0 100 100">
@@ -2189,11 +2191,12 @@ class Pzr extends Surface {
     _menu_.magnifier?.panel?.updateMagnifier() ;
   }
 
-  onSelect(e) {
-    let obj = _score_?.getActiveObject();
-    this.targets.length = 0;
+  getTargets() 
+  { // For class Pzr, always 0 or 1 targets, but for subclass Pz there can be
+    // many, so this.targets is always a set.
+    let obj = _score_.getActiveObject() ;
     if (obj) {
-      this.targets.push([obj, {
+      this.targets[0] = [obj, {
         left: obj.left,
         top: obj.top,
         scaleX: obj.scaleX,
@@ -2201,21 +2204,24 @@ class Pzr extends Surface {
         angle: obj.angle,
         originX: obj.originX,
         originY: obj.originY
-      }]);
+      }];
+      return true ;
     }
+    this.ui.classList.add("PZ_noTarget") ;
+    return false ;
   }
-
 }
 
 /**
 class Pz
-  This is the "body" of the ScreenPanel.
+  This is the detachable body of the ScreenPanel.
   Subclass of Pz that removes rotation buttons and is specialized for editing
   Fabric.js objects with locked aspect ratio.
 */
 class Pz extends Pzr {
 
-  slots = [2,10,11,13,14,22,7,17] ;
+  slots = [2,10,11,13,14,22] ;
+  pzTarget = null ;
 
   constructor(panel) {
     super(panel) ;
@@ -2224,6 +2230,13 @@ class Pz extends Pzr {
       ${iconSvg("Full Screen", {style:"grid-column:3;grid-row:3;pointer-events:none;opacity:0.5;transform:scale(1.4) translateX(.05em)"})}`));
     this.cw.remove() ;
     this.ccw.remove() ;
+    this.panel.listeners.push(listen(_body_,"pointerdown", (e) => {
+      listen(_body_, "pointerup", (e) => {
+        this.ui.classList.remove("PZ_noTarget")}, { once: true}) ;
+        let closest = e.target.closest(".pz") ;
+        if(closest == this.panel.elm || closest === this.surface) return ; // ignore self-clicks
+        this.pzTarget = e.target ;
+    })) ;
   }
 
   doStep(pos) {
@@ -2235,7 +2248,7 @@ class Pz extends Pzr {
       else if (elapsed > 400) zoomFactor = 0.02;
 
       let multiplier = (pos == 11) ? (1 + zoomFactor) : (1 - zoomFactor);
-      this.targets.forEach((item) => {
+      this.targets.forEach((item) => { // resize
         let [target] = item;
         let currentSize = parseFloat(target.style.fontSize) || 1;
         let newSize = Math.max(0.1, currentSize * multiplier);
@@ -2253,31 +2266,36 @@ class Pz extends Pzr {
       if (pos == 10) dx = -step; // left
       if (pos == 14) dx = step; //right
       if (pos == 22) dy = step; // down
-      for (let [target] of this.targets) {
+      for (let [target, size, box] of this.targets) {
         if (target && target != this.panel.elm && target != this.surface) {
-          target.style.left = clamp(target.offsetLeft + dx, 0, window.innerWidth) + "px";
-          target.style.top = clamp(target.offsetTop + dy, 0, window.innerHeight) + "px";
+          target.style.left = clamp(target.offsetLeft + dx, 0, window.innerWidth - box.width) + "px";
+          target.style.top = clamp(target.offsetTop + dy, 0, window.innerHeight - box.height) + "px";
         }
       }
     }
   }
 
-  onSelect(e) {
-    if (e.target.closest(".pz") == this.surface) return;
-    this.targets.length = 0 ;
-    let selected = (e.target == _body_) ? document.getElementsByClassName("pz") : [e.target.closest(".pz")];
-    for(let target of selected) {
-       if(target && target != this.surface && target != this.panel.elm) {
-         let fs = target.style.fontSize;
-         let emSize = (fs && fs.includes("em")) ? parseFloat(fs) : parseFloat(getComputedStyle(target).fontSize) / _pxPerEm_;
-         this.targets.push([target, emSize]) ;
-       }
+  getTargets() {
+    let pzTargets ;
+    if(!this.pzTarget) pzTargets = [] ;
+    else if(this.pzTarget == _body_) 
+      pzTargets = [...document.getElementsByClassName("pz")].filter((elm) => 
+       elm != this.surface && elm != this.panel.body && elm.isConnected && elm.style.visibility != "hidden") ;
+    else {
+      pzTargets = [this.pzTarget.closest(".pz")];
+      if(!pzTargets[0].isConnected || pzTargets[0].style.visibility == "hidden") pzTargets = [] ;
     }
-  }
-
-  show() {
-    super.show();
-    this.onSelect({ target: _body_ });
+    if(pzTargets.length == 0) {
+      this.ui.classList.add("PZ_noTarget") ;
+      return false ;
+    }
+    this.targets.length = 0 ;
+    for(let target of pzTargets) {
+      let fs = target.style.fontSize;
+      let emSize = (fs && fs.includes("em")) ? parseFloat(fs) : parseFloat(getComputedStyle(target).fontSize) / _pxPerEm_;
+      this.targets.push([target, emSize, getBox(target)]) ;
+    }
+    return true ;
   }
 
 }
@@ -2802,7 +2820,7 @@ class MagnifyPanel extends Panel {
   }
 }
 
-let panels = {
+let panels = window._panels_ = {
   // This structure maps every Panel to its class.
   // Panels are instantiated on demand, and the
   // singletons are stored here as well, keyed by
