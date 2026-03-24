@@ -101,8 +101,9 @@ Clone:
 Close:
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:0.6;transform:scale(1.25,1.25) translate(-3px,-3px);" d="M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z" />`,
 
+// The Close Panel should not respond to pointer events...this is so that its enclosing svg will be the target of pointerevents, not the enclosed path.
 "Close Panel":
-  `<path fill="currentColor" d="M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z" />`,
+  `<path style="pointer-events:none" fill="currentColor" d="M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z" />`,
 
 "Export Page":
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
@@ -495,7 +496,7 @@ Upload:
 
 
 Volume:
-   `<text y="13" x="6" font-size="20px" font-family="Bravura" fill="currentColor">\ue52d</text>`,
+   `<text y="13" x="6" font-size="20px" font-family="Bravura" fill="currentColor">\ue534</text>`,
 
 Vertical:
   `<path fill="currentColor" d="M17.45,17.55L12,23L6.55,17.55L7.96,16.14L11,19.17V4.83L7.96,7.86L6.55,6.45L12,1L17.45,6.45L16.04,7.86L13,4.83V19.17L16.04,16.14L17.45,17.55Z" />`,

@@ -47,14 +47,14 @@ import {
   TabView,
   toast,
   unlisten,
-  Surface,
 } from "./common.js";
+import { iconPaths } from "./icon.js";
 import { escapeHtml, FileSrc, FileListView, FileSystemView, LocalFileView } from "./file.js";
 import { Layout } from "./layout.js";
 import { Pg, Score } from "./score.js";
 import { smuflTable } from "./smufl.js";
-import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
-export { Panel, panels };
+import { Surface, Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
+export { Panel, panels, ScreenPanel };
 
 // -skip
 
@@ -169,7 +169,7 @@ class Panel {
             tag: "closer",
             class: "Panel__closer",
             viewBox: "-16 -12 48 48",
-            style: "width:3em;height:3em",
+            style: "width:3em;height:3em;",
           })}
         </div>
         <div data-tag="body" class="Panel__body">
@@ -185,6 +185,7 @@ class Panel {
     this.elm.style.fontSize = _menu_.elm.style.fontSize; // open at same zoom level as menu
     this.cell = cell;
     this.elm.dataset.tag = this.constructor.name;
+    this.elm.panel = this;
     this.setIcon(cell.svgPath);
     this.setTitle(cell.name);
     this.listeners.push(
@@ -218,6 +219,7 @@ class Panel {
             unlisten(mv);
             if (flung(null, eup)) { // fling detected
               hide(this.elm, dataIndex("tag", this.cell.elm).cellIcon);
+              if(this.elm.dataset.tag != "ScreenPanel") ScreenPanel.update(null) ;
               this.hidden() ;
             }
           },
@@ -242,7 +244,7 @@ class Panel {
     // When a panel is closed, its first hidden, then, removed from
     // the dom, and its singleton is deleted.
     hide(this.elm, dataIndex("tag", this.cell.elm).cellIcon);
-
+    if (this.elm.dataset.tag != "ScreenPanel" && ScreenPanel.pzTarget == this.elm) ScreenPanel.update(null) ;
     schedule(510, () => {
       this.elm.remove();
       this.destructor();
@@ -283,6 +285,7 @@ class Panel {
     // Bring the panel on screen (if it is not) .
     // @onShown, if supplied, is a function that is called
     //   when the standard show animation is completed.
+    ScreenPanel.update(this.elm) ;
     let elm = this.elm;
     this.setIcon(this.cell.svgPath);
     this.setTitle(this.cell.name);
@@ -299,7 +302,10 @@ class Panel {
     reflow();
     elm.style.fontSize = fontSize;
     _pzTarget_ = elm;
-    if(_panels_.screen && this != _panels_.screen) _panels_.screen.surface.pzTarget = elm ;
+    if (this != _panels_.screen && this.constructor.name != "ScreenPanel") {
+      _lastTarget_ = elm;
+      _panels_.screen?.surface.update();
+    }
     elm.style.zIndex = ++Panel._zTop;
     return this;
   }
@@ -2026,8 +2032,24 @@ class Pzr extends Surface {
   static css = css(
     "PZ",
     `
-    .PZ_noTarget {
-      border: .2em solid red !important; 
+     .PZ {
+       display:grid;
+       grid-template-columns:repeat(5, 1.6em);
+       grid-template-rows:repeat(5, 1.6em);
+       justify-items:center;
+       align-items:center;
+       border-radius:100%;
+       border:.2em solid #aaa;
+       background:#eee6;width:100%;
+       height:100%;
+       fill:none;
+       stroke:currentColor;
+       stroke-width:8;
+       stroke-linecap:round;
+       stroke-linejoin:round;
+      }
+     .PZ_noTarget {
+        stroke: #aaa;
     }
     .PZ_button {
       fill: none; 
@@ -2041,7 +2063,6 @@ class Pzr extends Surface {
        transform: scale(1.2);
     }
   `) ;
-
 
   // Positions in the 5x5 ui grid that have svg elements:
   // (positions are0-based index starting in upper left, l-r t-b).
@@ -2059,6 +2080,8 @@ class Pzr extends Surface {
 
     this.repeater = new Schedule();
 
+    this.update()
+
     this.panel.listeners.push(listen(this.ui, "pointerdown", (e) => {
       let box  = getBox(this.surface) ;
       let row = parseInt((e.clientY - box.y) / box.height * 5) ;
@@ -2069,22 +2092,21 @@ class Pzr extends Surface {
       // add active marker. Note: can't add style to <path.../>, must be parent <svg.../>
       let target = e.target.tagName == "path"? e.target.parentElement:e.target ;
       if(this.getTargets()) {
-      target.classList.add("PZ_button-active") ;
-      e.stopPropagation();
-      e.target.setPointerCapture(e.pointerId);
+        target.classList.add("PZ_button-active") ;
+        e.stopPropagation();
+        e.target.setPointerCapture(e.pointerId);
         
-      this.opStartTime = performance.now();
-      this.opStartValues = this.targets.map(item => item[1]);
+        this.opStartTime = performance.now();
+        this.opStartValues = this.targets.map(item => item[1]);
   
-      this.doStep(pos);
-      this.repeater.run(250, () => {
-        let loop = () => {
-          this.doStep(pos);
-          this.repeater.run(50, loop);
-        };
-        loop();
-      });
-
+        this.doStep(pos);
+        this.repeater.run(250, () => {
+          let loop = () => {
+            this.doStep(pos);
+            this.repeater.run(50, loop);
+          };
+          loop();
+        });
       }
       listen(this.ui, ["pointerup", "pointercancel"], () => {
         this.ui.classList.remove("PZ_noTarget") ;
@@ -2098,27 +2120,32 @@ class Pzr extends Surface {
   }
 
 
+  update() {
+     // rem grd...tbd
+     
+  }
+
   buildUI() {
-    // This is the ui for  both class Pz and class Pzr. Class Pz's constructor will remove the clockwise and counterclockwise svg's, 
+    // This is the ui for  both class Pz and class Pzr. Class Pz's constructor will remove the clockwise and counterclockwise svg's,
     // class Pzr's constructor will replace the iconSvg.
     this.ui = helm(`
-        <div style="display:grid;grid-template-columns:repeat(5, 1.6em);grid-template-rows:repeat(5, 1.6em);justify-items:center;align-items:center;border-radius:100%;border:.2em solid #aaa;background:#eee6;width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:8;stroke-linecap:round;stroke-linejoin:round;">
-
-          <svg style="grid-row:1;grid-column:3;" viewBox="0 0 100 100"><path d="M10 90L50 10L90 90" fill="currentColor"/></svg>
+        <div class="PZ">
+          <svg style="grid-row:1;grid-column:3;" viewBox="0 0 100 100"><path d="M10 60L50 10L90 60Z"/></svg>
           <svg style="grid-row:2;grid-column:3;" data-tag="cw"  viewBox="0 0 100 100">
             <path d="M50 15 A35 35 0 1 1 25.25 25.25 M50 5 L50 25 L30 15 Z" transform="translate(100, 0) scale(-1, 1)"/>
           </svg>
-          <svg style="grid-row:3;grid-column:1;" viewBox="0 0 100 100"><path d="M90 10L10 50L90 90" fill="currentColor"/></svg>
-          <svg style="grid-row:3;grid-column:2;" viewBox="0 0 100 100"><path d="M90 10L10 50L90 90"/></svg>
+          <svg style="grid-row:3;grid-column:1;" viewBox="0 0 100 100"><path d="M60 10L10 50L60 90Z"/></svg>
+          <svg style="grid-row:3;grid-column:2;" viewBox="0 0 100 100"><path d="M10 30L80 50L10 70"/></svg>
           ${iconSvg("Edit", {style:"grid-row:3;grid-column:3;pointer-events:none;opacity:0.5;"})}
-          <svg style="grid-row:3;grid-column:4;" viewBox="0 0 100 100"><path d="M10 10L90 50L10 90"/></svg>
-          <svg style="grid-row:3;grid-column:5;" viewBox="0 0 100 100"><path d="M10 10L90 50L10 90" fill="currentColor"/></svg>
+          <svg style="grid-row:3;grid-column:4;" viewBox="0 0 100 100"><path d="M90 30L20 50L90 70"/></svg>
+          <svg style="grid-row:3;grid-column:5;" viewBox="0 0 100 100"><path d="M40 10L90 50L40 90Z"/></svg>
           <svg style="grid-row:4;grid-column:3;"data-tag="ccw"  viewBox="0 0 100 100">
             <path d="M50 15 A35 35 0 1 1 25.25 25.25 M50 5 L50 25 L30 15 Z"/>
           </svg>
-          <svg style="grid-row:5;grid-column:3;" viewBox="0 0 100 100"><path d="M10 10L50 90L90 10" fill="currentColor"/></svg> 
+          <svg style="grid-row:5;grid-column:3;" viewBox="0 0 100 100"><path d="M10 40L50 90L90 40Z"/></svg> 
         </div>
     `);
+    Object.assign(this, dataIndex("tag", this.ui)) ;
   }
 
   doStep(pos) {
@@ -2221,22 +2248,39 @@ class Pz
 class Pz extends Pzr {
 
   slots = [2,10,11,13,14,22] ;
-  pzTarget = null ;
 
   constructor(panel) {
     super(panel) ;
     // modify the grid, replacing the central icon and removing clockwise and counter-clockwise svg's
-    this.iconSvg.replaceWith(helm(`
-      ${iconSvg("Full Screen", {style:"grid-column:3;grid-row:3;pointer-events:none;opacity:0.5;transform:scale(1.4) translateX(.05em)"})}`));
     this.cw.remove() ;
     this.ccw.remove() ;
-    this.panel.listeners.push(listen(_body_,"pointerdown", (e) => {
-      listen(_body_, "pointerup", (e) => {
-        this.ui.classList.remove("PZ_noTarget")}, { once: true}) ;
-        let closest = e.target.closest(".pz") ;
-        if(closest == this.panel.elm || closest === this.surface) return ; // ignore self-clicks
-        this.pzTarget = e.target ;
-    })) ;
+    this.update();
+  }
+
+  update() {
+    let getIconPath = () => {
+      let tag = ScreenPanel.pzTarget?.dataset.tag ;
+      this.ui.classList.remove("PZ_noTarget") ;
+      switch(tag) {
+        case undefined: 
+          this.ui.classList.add("PZ_noTarget") ;
+          return iconPaths["Close"];
+        case "BookLayout":
+        case "ScrollLayout":
+        case "TableLayout": return iconPaths["Layout"] ;
+        case "Menu": return iconPaths["Menu"] ;
+        case "body": return iconPaths["Full Screen"] ;
+        default: {
+          let key = tag[0].toLowerCase() + tag.slice(1).replace("Panel", "");
+          return _panels_[key]?.cell?.svgPath ?? null ;
+        }
+      }
+    }
+    let tmp = helm(`<svg viewBox="0 0 24 24"
+      style="grid-column:3;grid-row:3;pointer-events:none;stroke:none;fill:currentColor;">
+      ${getIconPath()}</svg>`) ;
+    this.iconSvg.replaceWith(tmp) ;
+    this.iconSvg = tmp ;
   }
 
   doStep(pos) {
@@ -2247,7 +2291,7 @@ class Pz extends Pzr {
       else if (elapsed > 1200) zoomFactor = 0.05;
       else if (elapsed > 400) zoomFactor = 0.02;
 
-      let multiplier = (pos == 11) ? (1 + zoomFactor) : (1 - zoomFactor);
+      let multiplier = (pos == 13) ? (1 + zoomFactor) : (1 - zoomFactor);
       this.targets.forEach((item) => { // resize
         let [target] = item;
         let currentSize = parseFloat(target.style.fontSize) || 1;
@@ -2276,14 +2320,15 @@ class Pz extends Pzr {
   }
 
   getTargets() {
+    let target = ScreenPanel.pzTarget ;
     let pzTargets ;
-    if(!this.pzTarget) pzTargets = [] ;
-    else if(this.pzTarget == _body_) 
-      pzTargets = [...document.getElementsByClassName("pz")].filter((elm) => 
+    if (!target) pzTargets = [] ;
+    else if (target == _body_)
+      pzTargets = [...document.getElementsByClassName("pz")].filter((elm) =>
        elm != this.surface && elm != this.panel.body && elm.isConnected && elm.style.visibility != "hidden") ;
     else {
-      pzTargets = [this.pzTarget.closest(".pz")];
-      if(!pzTargets[0].isConnected || pzTargets[0].style.visibility == "hidden") pzTargets = [] ;
+      if (target.isConnected || target.style.visibility != "hidden") pzTargets = [target] ;
+      else pzTargets = [] ;
     }
     if(pzTargets.length == 0) {
       this.ui.classList.add("PZ_noTarget") ;
@@ -2340,6 +2385,16 @@ class EditPanel extends SurfacePanel {
 }
 
 class ScreenPanel extends SurfacePanel {
+
+  static pzTarget ;
+
+  static update(target) {
+    // This sets the (static) target for ScreenPanel pan/zoom operations.
+    if(target && target.dataset.tag == "ScreenPanel") return ; // don't let ScreenPanel pan/zoom itself!
+    ScreenPanel.pzTarget = target;
+    _panels_.screen?.surface.update();
+  }
+
   surface = new Pz(this);
 }
 

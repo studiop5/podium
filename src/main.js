@@ -23,17 +23,18 @@
 
 
 
-// Podium usies in own build system that can package the entire application
+// Podium uses in own build system that can package the entire application
 // into a single file, build/podium.html. This file is built by running
 // python3 build.py --podium.  All text  between +/- skip fill be stripped out,
 // and all the following // #include files will be  textually included.
 
-import { animate, delay, dialog, helm, listen, reflow, schedule, Schedule, toast, unlisten } from "./common.js";
+import { animate, delay, delayMs, dialog, helm, listen, reflow, schedule, Schedule, toast, unlisten } from "./common.js";
 import "./font.js";
 import { escapeHtml } from "./file.js";
 import { Menu } from "./menu.js";
 import { Layout } from "./layout.js";
 import { Score } from "./score.js";
+import { ScreenPanel } from "./panel.js";
 import { initFabric } from "./canvas.js";
 import { SharedBuffer } from "./sharedBuffer.js";
 
@@ -185,6 +186,9 @@ async function main() {
           tr1.dX = e.clientX - tr1.pz.offsetLeft;
           tr1.dY = e.clientY - tr1.pz.offsetTop;
           _pzTarget_ = tr1.pz ?? _body_; // make target globally available
+          // Unless target is a panel's close button, 
+          // notify ScreenPanel: it implements an alternative to pan/zoom mechanism.
+          if(!e.target.classList.contains("Panel__closer")) ScreenPanel.update(tr1.pz) ;
           tr2 = null;
 
           // ctrl-mouse-down initiates pan (via mouse move)/ zoom (via mouse wheel)
@@ -399,6 +403,40 @@ async function main() {
   }
 }
 
+
+{ // pointer-event watchdog — prevents stuck pointers from freezing UI
+  let period = 7000; // watchdog interval: nothing magic here: just a heuristic
+  let activePointers = new Map();
+
+  let cancelAll = () => {
+    for (let [id, target] of activePointers) {
+      target.dispatchEvent(new PointerEvent("pointerup", {
+        pointerId: id,
+        bubbles: true,
+        cancelable: true
+      }));
+    }
+    activePointers.clear();
+  };
+
+  let lastMoveTime = 0;
+  listen(document, ["pointermove", "pointerdown"], () => lastMoveTime = performance.now(), { capture: true });
+  listen(document, "pointerdown",   (e) => activePointers.set(e.pointerId, e.target), { capture: true });
+  listen(document, "pointerup",     (e) => activePointers.delete(e.pointerId), { capture: true });
+  listen(document, "pointercancel", (e) => activePointers.delete(e.pointerId), { capture: true });
+
+  listen(document, "visibilitychange",   cancelAll, { capture: true });
+  listen(document, "lostpointercapture", cancelAll, { capture: true });
+  listen(window,   "blur", cancelAll);
+
+  let watchdogLoop = () => {
+    if (activePointers.size > 0 && performance.now() - lastMoveTime > period)
+      cancelAll();
+    delayMs(period, watchdogLoop);
+  };
+  delayMs(-1);
+  delayMs(period, watchdogLoop);
+}
 
 main();
 

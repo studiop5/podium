@@ -21,7 +21,7 @@
 **/
 
 import { Spot, animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, delayMs, dialog, getBox,   helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, unlisten,} from "./common.js";
-import { panels } from "./panel.js";
+import { panels, ScreenPanel } from "./panel.js";
 import { Pg, Score } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
 // -skip
@@ -207,6 +207,7 @@ class Layout {
     else if (cell.key == "table") await new TableLayout(score, cell).build();
     _menu_.rings.layout.stash.active = cell.key;
     _shade_.hide();
+    ScreenPanel.update(Layout.activeLayout.elm);
   }
 
   margin = 12; // in px: initial margin between layout and viewport
@@ -628,8 +629,8 @@ class BookLayout extends Layout {
   */
 
   elm = helm(`
-    <div class="pz">
-      <div data-tag="book" class="Layout" style="overflow:visible">
+    <div data-tag="BookLayout" class="pz">
+      <div data-tag="layout" class="Layout" style="overflow:visible">
         <div data-tag="binding" class="BookLayout__binding"></div>
         <div data-tag="spine" class="BookLayout__spine">
           <div data-slot="A" class="BookLayout__slot"></div>
@@ -668,7 +669,7 @@ class BookLayout extends Layout {
     // a page flips, we circularly rotate the slot divs
     // by assigning this.slot to one of the this.slots members.
     let s = {};
-    Object.assign(s, dataIndex("slot", this.book));
+    Object.assign(s, dataIndex("slot", this.layout));
     this.slotArrays = [
       [s.A, s.B, s.C, s.D, s.E, s.F], // unshifted
       [s.C, s.D, s.E, s.F, s.A, s.B], // left shifted by 2
@@ -685,7 +686,7 @@ class BookLayout extends Layout {
       else if (!adjusting && pn & 1) pn--;
       return pnToDiv(pn, cursor);
     });
-    this.book.append(this.pagerLeft.elm);
+    this.layout.append(this.pagerLeft.elm);
     this.pagerRight = new Pager("right", (stash, adjusting, cursor) => {
       let pn = stash.pn;
       let pgCount = this.score.pgs.length;
@@ -768,7 +769,7 @@ class BookLayout extends Layout {
     //
 
     // book
-    Object.assign(this.book.style, {
+    Object.assign(this.layout.style, {
       height: toEm(g.bookHeight),
       // Note that book's width is set by adding pagerWidth in px, then subtracting pagerWidth in em's.
       // Initially, they are equal, so contribute nothing, but if/when the book is resized through em change,
@@ -794,8 +795,8 @@ class BookLayout extends Layout {
 
     // pagers
     if(this.pnShow == "On") {
-      this.book.append(this.pagerLeft.elm);
-      this.book.append(this.pagerRight.elm);
+      this.layout.append(this.pagerLeft.elm);
+      this.layout.append(this.pagerRight.elm);
       this.pagerLeft.build();
       this.pagerRight.build();
     } else {
@@ -1274,8 +1275,8 @@ class ScrollLayout extends Layout {
    **/
 
   elm = helm(`
-    <div class="pz">
-      <div data-tag="scroll" class="Layout" style="border:none;">
+    <div data-tag="ScrollLayout" class="pz">
+      <div data-tag="layout" class="Layout" style="border:none;">
         <div data-tag="leftRoll" class="ScrollLayout__roll">
           <div data-tag="leftRollPattern" class="ScrollLayout-texture"></div>
           <div data-tag="leftRollShadow" class="ScrollLayout__roll-shadow"></div>
@@ -1401,7 +1402,7 @@ class ScrollLayout extends Layout {
     //
 
     // scroll
-    Object.assign(this.scroll.style, {
+    Object.assign(this.layout.style, {
       [HEIGHT]: toEm(g.scroll[HEIGHT]),
       // Not that scroll's WIDTH is set by adding rollGirth in px, then subtracting rollGirth in em's.
       // Initially, they are equal, so contribute nothing, but if/when the scroll is resized through em change,
@@ -1787,8 +1788,8 @@ class TableLayout extends Layout {
   active = null; // active pg
 
   elm = helm(`
-    <div class="pz">
-      <div data-tag="table" class="Layout TableLayout__table">
+    <div data-tag="TableLayout" class="pz">
+      <div data-tag="layout" class="Layout TableLayout__table">
         <div data-tag="grid" class="TableLayout__grid">
         </div>
       <div>
@@ -1799,7 +1800,7 @@ class TableLayout extends Layout {
     super(score, cell);
     Object.assign(this, dataIndex("tag", this.elm));
     _body_.append(this.elm);
-    this.pointerListener = listen(this.table, ["pointerdown"], this.onDown.bind(this));
+    this.pointerListener = listen(this.layout, ["pointerdown"], this.onDown.bind(this));
   }
 
   destructor() {
@@ -1820,7 +1821,7 @@ class TableLayout extends Layout {
     }
     Object.assign(this, this.cell.stash);
     // pages is from cell.stash: it determines the number of pages per row
-    let { grid, pages, score, table } = this;
+    let { grid, pages, score, layout } = this;
 
     // Compute layout at a 1em fontSize
     clearChildren(grid);
@@ -1833,7 +1834,7 @@ class TableLayout extends Layout {
     let pgWidth = gridWidth / ((pages - 1) * hStep + 1);
     let pgHeight = (score.maxHeight / score.maxWidth) * pgWidth;
 
-    table.style.width = toEm(tableWidth);
+    layout.style.width = toEm(tableWidth);
     grid.style.width = `calc(${toEm(tableWidth)} - ${gridMargin * 2}px)`;
     this.pgWidth = pgWidth;
     this.pgHeight = pgHeight;
@@ -1902,7 +1903,7 @@ class TableLayout extends Layout {
         this.cell.pz, `left, top, font-size ${_gs_}ms`);
     else { 
       if(this.fit == "Height") // reduce fontSize so layout fits window's height
-        this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / this.table.offsetHeight  + "em";
+        this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / this.layout.offsetHeight  + "em";
       if(this.animated)
         animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
           this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}ms`);
@@ -2092,7 +2093,7 @@ class TableLayout extends Layout {
 
   async onDown(e) {
     if (await super.onDown(e)) return;
-    this.table.setPointerCapture(e.pointerId);
+    this.layout.setPointerCapture(e.pointerId);
     let elm = e.target.closest(".TableLayout__pg");
     if(!elm) return;
     let {pg, pn} = elm;
@@ -2118,7 +2119,7 @@ class TableLayout extends Layout {
     let mv = null;
     let built = false;
 
-    listen(this.table, "pointerup", async (eup) => {
+    listen(this.layout, "pointerup", async (eup) => {
       this.bMarkTimer.cancel();
       let finale = () => {
         if(!built) delay(1, () => finale());
@@ -2135,7 +2136,7 @@ class TableLayout extends Layout {
     await this.pgGoTo(pn);
     built = true;
 
-    mv = listen(this.table, "pointermove", (emv) => {
+    mv = listen(this.layout, "pointermove", (emv) => {
       if(this.score.pgs.length == 1) return; // disallow action on last pg
        mvmt(e, emv);
        if(e.moved) {
