@@ -201,7 +201,7 @@ class Layout {
     if (!_score_) return;
     _shade_.show("Formatting");
     let score = _score_; // assumes there is an activeScore
-    if (Layout.activeLayout) Layout.activeLayout.destructor();
+    Layout.activeLayout?.destructor();
     if (cell.key == "book") await new BookLayout(score, cell).build();
     else if (cell.key == "horizontal" || cell.key == "vertical") await new ScrollLayout(score, cell).build();
     else if (cell.key == "table") await new TableLayout(score, cell).build();

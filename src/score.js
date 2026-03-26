@@ -23,7 +23,7 @@
 import { clamp, clearChildren, delay, dialog, fontUnmap, helm, inflate, rotatePoint } from "./common.js";
 import { Grid } from "./canvas.js";
 import { Layout } from "./layout.js";
-import { panels } from "./panel.js";
+import { panels, EditPanel } from "./panel.js";
 export { Grid, Pg, Score };
 
 // -skip
@@ -250,6 +250,7 @@ class Pg {
       });
   
       let onSelection = opts => {
+        EditPanel.update(this.canvas.getActiveObject()) ;
         // Allow dragging selection by clicking anywhere in bounding box, not just pixels
         canvas.perPixelTargetFind = false;
 
@@ -265,8 +266,6 @@ class Pg {
          _menu_.pgEvent(opts, this);
          // This dispatch must be delayed so that any  OBJTOUCHED dispatch event arising from a cleared
          // active object is processed before this one.
-         delay(3, () => _body_.dispatchEvent(new CustomEvent("OBJTOUCHED",
-           { detail: { target: canvas.getActiveObject()}}))) ;
       };
 
       canvas.on("selection:created", onSelection);
@@ -274,7 +273,7 @@ class Pg {
 
       canvas.on("selection:cleared", () => {
         canvas.perPixelTargetFind = true;
-        _body_.dispatchEvent(new CustomEvent("OBJTOUCHED", { detail: { target: null } }));
+        EditPanel.update(null) ;
       });
 
 
@@ -294,24 +293,15 @@ class Pg {
       };
   
       canvas.on("object:added", (opts) => { 
-        if(!this.suppressStateChange) {
+        if(!this.suppressStateChange) 
            stateChanged = true;
-           let target = opts.target || opts;
-           _body_.dispatchEvent(new CustomEvent("OBJTOUCHED", { detail: { target } }));
-        }
       });
-      canvas.on("object:removed", (opts) => { 
-        if(!this.suppressStateChange) {
-           stateChanged = true;
-           _body_.dispatchEvent(new CustomEvent("OBJTOUCHED", { detail: { target: null } }));
-        }
+      canvas.on("object:removed", (opts) => {
+        if(!this.suppressStateChange) stateChanged = true;
       });
+
       canvas.on("object:modified", (opts) => { 
-        if(!this.suppressStateChange) {
-           stateChanged = true;
-           let target = opts.target || opts;
-           _body_.dispatchEvent(new CustomEvent("OBJTOUCHED", { detail: { target } }));
-        }
+        if(!this.suppressStateChange)  stateChanged = true;
       });
   
       this.inflated = true;

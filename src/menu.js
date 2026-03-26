@@ -1339,8 +1339,9 @@ class Menu {
 
     this.newlyCreated = null;
     let target = opts.target;
+    let key = activeCell.key ;
 
-    switch (activeCell.key) {
+    switch (key) {
 
       case "edit":
         if(target && !target.hasControls) {
@@ -1360,10 +1361,12 @@ class Menu {
         let rgba = color.toRgba();
         let brush;
         if (style == "Free") {
-          brush = new fabric.PencilBrush(canvas);
+          // PencilBrush subclasses PencilBrush, adding a podiumType=pencil||pen  key to the created path.
+          // This allows us to determine whether a path was created from the Pencil tool or the Pen tool.
+          brush = new fabric.PodBrush(canvas, key); 
           brush.width = width;
           brush.color = rgba;
-        } else brush = new fabric.LineBrush(canvas, activeCell.stash, rgba);
+        } else brush = new fabric.LineBrush(canvas, activeCell.stash, rgba, key);
         canvas.freeDrawingBrush = brush;
         canvas.isDrawingMode = true;
         return;
@@ -1401,7 +1404,6 @@ class Menu {
           left: opts.absolutePointer.x,
           top: opts.absolutePointer.y,
           hasControls: false,
-          podiumType: "text", 
         };
         Object.assign(config, fontMap[font]);
         let textbox = addObj(new fabric.Textbox("Abc", config));
@@ -1426,7 +1428,6 @@ class Menu {
           left: opts.absolutePointer.x,
           top: opts.absolutePointer.y,
           hasControls: false,
-          podiumType: "symbols", 
         };
         Object.assign(config, fontMap["Bravura"]);
         return addObj(new fabric.Text(codePoint, config));

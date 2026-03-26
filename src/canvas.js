@@ -52,7 +52,8 @@ function initFabric() {
   fabric.Object.prototype.lockScalingFlip = true; // Prevent flipping/inverting
   fabric.Object.prototype.cornerColor = "#00f8";
   fabric.Object.prototype.controls.mtr.offsetY = -80;
-
+  fabric.Object.prototype.objectCaching = false;
+  fabric.Object.prototype.strokeWidth = 0;
 
   // Customize appearance/behavior of controls:
   fabric.ActiveSelection.prototype.controls.groupToggle = 
@@ -173,6 +174,28 @@ function initFabric() {
     },
   });
 
+  // Podium implements 2 Ink cells: Pencil and Pen. They are both
+  // PencilBrushes (or LineBrushes, see below). Idea is that user
+  // will have 2 differently-configured LineBrushes available at
+  // all times. But our EditPanel, when it selects a path, wants
+  // to know which cell was used to create the path. For this reason,
+  // we add a podiumType variable (value: ink || pencil) to the created path.
+  fabric.PodBrush = fabric.util.createClass(fabric.PencilBrush, {
+    type: "PodBrush",
+    podiumType: 'ink',
+
+    initialize: function(canvas, podiumType) {
+      this.callSuper('initialize', canvas);
+      this.podiumType = podiumType; 
+    },
+
+    createPath: function(pathData) {
+      let path = this.callSuper('createPath', pathData);
+      path.podiumType = this.podiumType; // add PodiumType to path *after* its created                     
+      return path;                      
+    }      
+  });
+
   fabric.RastrumBrush = fabric.util.createClass(fabric.BaseBrush, {
     type: "RastrumBrush",
   
@@ -276,9 +299,11 @@ function initFabric() {
   // LineBrush's lines are restricted to stright lines
   fabric.LineBrush = fabric.util.createClass(fabric.RastrumBrush, {
     type: "LineBrush",
+    podiumType: "ink",
   
-    initialize: function (canvas, options, color) {
+    initialize: function (canvas, options, color, podiumType) {
       this.callSuper("initialize", canvas, options, color);
+      this.podiumType = podiumType ;
     },
   
     onMouseMove: function (ptr) {
@@ -324,7 +349,7 @@ function initFabric() {
         strokeLineCap: "round",
         strokeWidth: width,
         hasControls: false,
-        podiumType: "podPath", // used by PencilPanel and PenPanel to identify 
+        podiumType: this.podiumType, 
       });
       canvas.clearContext(canvas.contextTop);
       canvas.fire("before:path:created", { path: this.path });
