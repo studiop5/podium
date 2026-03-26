@@ -89,7 +89,7 @@ class Surface {
         }
       });
 
-      listen(_body_, ["pointerup", "pointercancel"],(eup) => {
+      listen(_body_, "pointerup", (eup) => {
           longPresser.cancel();
           unlisten(mv);
           let downTime = eup.timeStamp - e.timeStamp;
@@ -417,9 +417,7 @@ class Piano {
           this.userWidth = newWidth;
         });
 
-        listen(
-          e.target,
-          ["pointerup", "pointercancel"],
+        listen(e.target, "pointerup",
           () => {
             unlisten(mv);
             stretcherButton.firstElementChild.classList.remove("Piano__button-active");
@@ -699,7 +697,7 @@ class Piano {
             e.emv = emv;
           }
         });
-        listen(optionsView.sash, ["pointerup", "pointercancel"], (eup) => {
+        listen(optionsView.sash, "pointerup", (eup) => {
           if(flung(null, eup)) {
             hide(elm, this.optionsButton);
             delay(10, () => this.optionsButton.firstElementChild.classList.remove("Piano__button-active"));

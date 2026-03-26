@@ -166,7 +166,7 @@ async function main() {
 
             let mv = listen(_body_, "pointermove", (emv) => Math.hypot(emv.movementX, emv.movementY) > cancelDelta ? timer.cancel() : null) ;
 
-            listen(_body_, ["pointerup", "pointercancel"], (eup) => {
+            listen(_body_, "pointerup", (eup) => {
               unlisten(mv) ;
               timer.cancel() ;
               if(e.timedOut) return ; // timer ran, so don't do anything else
@@ -211,8 +211,7 @@ async function main() {
             );
 
             listen(
-              _body_,
-              ["pointerup", "pointercancel"],
+              _body_,"pointerup",,
               (eup) => {
                 eup.captured = true;
                 unlisten(mv);
@@ -264,7 +263,7 @@ async function main() {
         { capture: true }
         );
 
-        listen(_body_, ["pointerup", "pointercancel"], (eup) => {
+        listen(_body_, "pointerup", (eup) => {
           eup.stopImmediatePropagation();
              unlisten(mv);
              tr1 = tr2 = null ;

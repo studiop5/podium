@@ -1004,8 +1004,7 @@ class PodiumSlider extends HTMLElement {
       });
 
       let done = listen(
-        this.knob,
-        ["pointerup", "pointercancel"],
+        this.knob, "pointerup",
         (eup) => {
           unlisten(done);
           e.stopImmediatePropagation();
@@ -1554,9 +1553,7 @@ class TabView {
                 clamp(emv.clientX - offsetX, -limit, 0) + "px";
               e.emv = emv;
             });
-            listen(
-              this.sash,
-              ["pointerup", "pointercancel"],
+            listen(this.sash,"pointerup",
               (eup) => {
                 unlisten(mv);
               },
@@ -2130,8 +2127,7 @@ function ptrMsg(e, msgFunc, styles) {
   let mv = listen(_body_, "pointermove", (emv) => put(emv));
 
   let done = listen(
-    _body_,
-    ["pointerup", "pointercancel"],
+    _body_, "pointerup",
     (eup) => {
       unlisten(done);
       put(eup);

@@ -192,7 +192,7 @@ class Layout {
     setPos(e);
     _body_.append(elm);
     let mv = listen(_body_, "pointermove", (emv) => setPos(emv));
-    listen(_body_, ["pointerup", "pointercancel"],() => {
+    listen(_body_, "pointerup", () => {
       unlisten(mv); elm.remove();},
       { once: true });
    }
@@ -325,7 +325,7 @@ class Layout {
         updateMag(e);
         // Track pointer movement for drag
         let moveListener = listen(this.elm, "pointermove", updateMag);
-        listen(this.elm, ["pointerup", "pointercancel"], () => {
+        listen(this.elm, "pointerup", () => {
           unlisten(moveListener);
           _menu_.autoOff.run();
         }, { once: true });

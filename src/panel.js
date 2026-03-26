@@ -211,9 +211,7 @@ class Panel {
           e.emv = emv;
         });
 
-        listen(
-          header,
-          ["pointerup", "pointercancel"],
+        listen(header,"pointerup",
           (eup) => {
             header.classList.remove("Panel__header-selected");
             unlisten(mv);
@@ -2127,7 +2125,7 @@ class Pzr extends Surface {
           loop();
         });
       }
-      listen(this.grid, ["pointerup", "pointercancel"], () => {
+      listen(this.grid, "pointerup", () => {
         this.grid.classList.remove("PZ_noTarget") ;
         target.classList.remove("PZ_button-active") ;
         this.repeater.cancel();
@@ -2500,7 +2498,7 @@ class SymbolsPanel extends Panel {
          mvmt(e, emv);
       });
 
-      listen(this.sash, ["pointerup", "pointercancel"], (eup) => {
+      listen(this.sash, "pointerup", (eup) => {
         unlisten(mv);
         if(!e.moved) {
           let target = document.elementFromPoint(e.clientX, e.clientY);
