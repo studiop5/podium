@@ -585,7 +585,7 @@ class Menu {
         numbers: {
           name: "Numbers",
           svgPath: iconPaths["Numbers"],
-          stash: { pn: 1, first: 1, prelim: 0, forward: "Pages", reverse: "Pages", pace: 0 }, // pace: animation speed in %, 0 means no animation
+          stash: { pn: 1, first: 1, prelim: 0, forward: "Pages", reverse: "Pages", pace: 85 }, // pace: animation speed in %, 0 means no animation
           storage: "score",
         },
         add: {
