@@ -26,15 +26,33 @@ import { Pg, Score } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
 // -skip
 
-let randomColor;
-{
-  let hexDigits = "0123456789ABCDEF";
-  randomColor = () => {
-    // Generate random 3-hex color string with fixed alpha used for styling bookmarks.
-    let color = "#";
-    for (let i = 0; i < 2; i++) color += hexDigits[Math.floor(Math.random() * 16)];
-    return color + "0";
-  };
+const bkColors = [
+  "#ffffff", "#163799", "#e5e522", "#1a1a1a",
+  "#22e5e5", "#991637", "#22e522", "#8322e5",
+  "#808080", "#379916", "#e522e5", "#167899",
+  "#e52222", "#83e522", "#371699", "#2283e5",
+];
+
+function nextBkColor() {
+  let stash = _menu_.rings.score.cells.details.stash;
+  let color = bkColors[stash.bkColorIdx % bkColors.length];
+  stash.bkColorIdx++;
+  return color;
+}
+
+function contrastColor(hex) {
+  // Return black or white for readable text on a hex background color (#RGB or #RRGGBB).
+  let r, g, b;
+  if (hex.length == 4) {
+    r = parseInt(hex[1], 16) * 17;
+    g = parseInt(hex[2], 16) * 17;
+    b = parseInt(hex[3], 16) * 17;
+  } else {
+    r = parseInt(hex.slice(1, 3), 16);
+    g = parseInt(hex.slice(3, 5), 16);
+    b = parseInt(hex.slice(5, 7), 16);
+  }
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.179 ? "#000" : "#fff";
 }
 
 // The classes Pager and ScrollLayout are used with both horizontal
@@ -345,13 +363,13 @@ class Layout {
       let pasteCell = _menu_.rings.page.cells.paste;
       let pg, pn;
       let score = this.score;
-      // The add/paste  ops insert before page when event is in left (or top) half of e.target,
+      // The add/paste/import/splice  ops insert before page when event is in left (or top) half of e.target,
       // and after page when clicked in right (or bottom) half. We use left/right for
       // for most layouts, but VerticalLayout uses top/bottom. 
       pg = e.target.pg || e.target.closest(".canvas-container")?.pg;
       if (!pg) return true;
       pn = score.pnOf(pg);
-      if (pageKey == "add" || pageKey == "paste" || pageKey == "import") {
+      if (["add", "paste", "import", "splice"].includes(pageKey)) {
         let box = getBox(e.target);
         if (layoutKey == "vertical" && e.clientY - box.top > box.height / 2) pn++;
         else if (e.clientX - box.x > box.width / 2) pn++;
@@ -418,14 +436,30 @@ class Layout {
           break;
         }
 
-        case "import": { 
+        case "import": {
           // paste from  _podPb_
           _shade_.show("Importing...", 50);
-          _menu_.activateCell(null); 
+          _menu_.activateCell(null);
           await _podPb_.pgPaste(pn);
           _shade_.hide();
           _menu_.activateRing(_menu_.rings.page);
           _menu_.activateCell(_menu_.rings.page.cells.import);
+          break;
+        }
+
+        case "splice": {
+          // splice an entire pdf directly into the current score at pn
+          let spliceCell = _menu_.rings.page.cells.splice;
+          if (!spliceCell.pdfData) break;
+          let pdfData = spliceCell.pdfData;
+          _shade_.show("Splicing...", 50);
+          _menu_.activateCell(null);
+          try {
+            let mergedScore = await _score_.bindScore(pdfData, pn);
+            await mergedScore.activate();
+          } finally {
+            _shade_.hide();
+          }
           break;
         }
 
@@ -454,6 +488,7 @@ class Layout {
     return false;
   }
 
+///
   async pgOpen(how,unused) {
     // Subclasses override with logic to open page, where @how is one
     // of "next","prev","first","last".
@@ -833,6 +868,7 @@ class BookLayout extends Layout {
         clientX: e.clientX,
         clientY: e.clientY,
         pointerId: e.pointerId,
+        timeStamp: performance.now(),
       });
     }
 
@@ -860,6 +896,7 @@ class BookLayout extends Layout {
     let xTravel = 0;
     let prevClientX = e.clientX;
     let prevTimeStamp = e.timeStamp;
+
     let mv = listen(this.elm, "pointermove", (emv) => {
       this.pgFlipAnimator.cancel();
       this.pgMove(emv.clientX - spineBox.x, emv.clientY - spineBox.y, advancing);
@@ -871,18 +908,23 @@ class BookLayout extends Layout {
     listen(
       this.elm,
       "pointerup",
-      (eup) => {
+      async (eup) =>  {
         unlisten(mv);
         let x = eup.clientX - spineBox.x;
         let y = eup.clientY - spineBox.y;
+        let dT = eup.timeStamp - e.timeStamp;
         // Determine if we're actually flipping a page (fromX moved past spine)
         // or letting page flop back to its original position.
         let flipping = (advancing && x <= 0) || (!advancing && x > 0);
         // Determine if page was "flung": if so, force flipping
         if (advancing) xTravel = -xTravel;
-        if (eup.timeStamp - prevTimeStamp < 250 && xTravel != 0) flipping = xTravel > 0;
-        // Tap (no drag, quick touch) = page turn
-        else if (xTravel == 0 && eup.timeStamp - e.timeStamp < 500) flipping = true;
+        // treat < 6px movement as no movement at all
+        if(dT < 150 && xTravel < 6) {
+          // quick press, no significant movement: no animation
+          await this.pgShift(advancing);
+          return this.pgFlipAnimator.cancel();
+        }
+        if (dT < 250 && xTravel > 5) flipping = true ; // flick
         // Determine x position of where to move page: flip fully to opposite side
         // of spine, or flop fully back to initial side.
         let toX = flipping ? (advancing ? -pgWidth : pgWidth) : advancing ? pgWidth : -pgWidth;
@@ -1296,6 +1338,8 @@ class ScrollLayout extends Layout {
   frameWidth = 0;
   currentX = 0;
   currentY = 0;
+  snapIndex = 0; // integer count of snap steps from origin
+  snapStep = 1;  // effective pgSnap after snapMap (fractional or integer; 0 = free scroll)
 
   constructor(score, cell) {
     super(score, cell);
@@ -1307,14 +1351,20 @@ class ScrollLayout extends Layout {
     this.props = cell.key == "horizontal" ? NORMAL_PROPS : ORTHO_PROPS;
 
     // Create left/right (top/bottom) pager instances:
-    this.pagerLeft = new Pager(this.props.LEFT, (stash, adjusting, cursor) => 
-       pnToDiv(stash.pn, cursor));
+    this.pagerLeft = new Pager(this.props.LEFT, (stash, adjusting, cursor) => {
+      if (adjusting) return pnToDiv(stash.pn, cursor);
+      let [left] = this.snapPns(this.cell.geo.pgShow, this.cell.geo.pgCount);
+      return pnToDiv(left, cursor);
+    });
     Object.assign(this.pagerLeft.elm.style, {
       left: 0,
       zIndex: 20,
     });
-    this.pagerRight = new Pager(this.props.RIGHT, (stash, adjusting, cursor) => 
-       pnToDiv(Math.min(stash.pn + this.cell.geo.pgShow - 1, this.cell.geo.pgCount), cursor));
+    this.pagerRight = new Pager(this.props.RIGHT, (stash, adjusting, cursor) => {
+      if (adjusting) return pnToDiv(Math.min(stash.pn + this.cell.geo.pgShow - 1, this.cell.geo.pgCount), cursor);
+      let [, right] = this.snapPns(this.cell.geo.pgShow, this.cell.geo.pgCount);
+      return pnToDiv(right, cursor);
+    });
     Object.assign(this.pagerRight.elm.style, {
       right: 0,
       zIndex: 20,
@@ -1517,49 +1567,34 @@ class ScrollLayout extends Layout {
       "pointerup",
       (async (eup) => {
         unlisten(mv);
-        // Calculate fling velocity from the event buffer
+        let dwellTime = eup.timeStamp - e.timeStamp;
+        let visStart = Math.max(frameBox[X], 0);
+        let visEnd = Math.min(frameBox[X] + frameBox[WIDTH], window[this.props.INNERWIDTH]);
+        let visSize = visEnd - visStart;
+        let mid = (visStart + visEnd) / 2;
+        if (dwellTime < 150 && Math.abs(eup[CLIENTX] - e[CLIENTX]) < 6) {
+          // quick touch
+          let dir = eup[CLIENTX] > mid ? "left" : "right";
+          return this.pgSnapTo(dir, -1);
+        }
+        // Calculate fling velocity from event buffer to determine animation speed
         let vel = 0;
-        let buf = e.mvBuffer;
-        if (buf.length >= 2) {
-          // Find the oldest event within the last ~100ms
-          let recent = buf[buf.length - 1];
-          let oldest = buf[0];
-          for (let i = buf.length - 2; i >= 0; i--) {
-            if (recent.t - buf[i].t > 100) break;
-            oldest = buf[i];
-          }
-          let dt = recent.t - oldest.t;
-          let dx = oldest.x - recent.x;
-          // Require reasonable time window AND meaningful movement for fling detection
-          if (dt > 10 && dt < 150 && Math.abs(dx) > 15) {
-            vel = dx / dt;
-            // Non-linear scaling: amplify fast flings more than slow ones
-            vel = Math.sign(vel) * Math.pow(Math.abs(vel), 1.3) / 2;
+        let termBuf = e.mvBuffer.filter(ev => eup.timeStamp - ev.t <= 150);
+        let velBuf = termBuf.length >= 2 ? termBuf : e.mvBuffer;
+        if (velBuf.length >= 2) {
+          let first = velBuf[0], last = velBuf[velBuf.length - 1];
+          let dt = last.t - first.t;
+          if (dt > 0) {
+            vel = (first.x - last.x) / dt;
+            let ref = visSize / 100;
+            vel = Math.sign(vel) * Math.pow(Math.abs(vel) / ref, 1.5) * ref;
           }
         }
-        // Determine direction from last movement, or from tap position
-        let dir;
-        let totalTravel = buf.length > 0 ? Math.abs(buf[buf.length - 1].x - buf[0].x) : 0;
-        if (eup.timeStamp - e.timeStamp < 500 && totalTravel < 10) {
-          // Tap (or mobile micro-movement tap) — direction based on which half was tapped
-          let mid;
-          if (this.cell.geo.pgSnap) {
-            mid = frameBox[X] + frameBox[WIDTH] / 2;
-          } else {
-            // pgSnap=0: use viewport-visible portion of frame to find midpoint
-            let visStart = Math.max(frameBox[X], 0);
-            let visEnd = Math.min(frameBox[X] + frameBox[WIDTH], window[this.props.INNERWIDTH]);
-            mid = (visStart + visEnd) / 2;
-          }
-          dir = eup[CLIENTX] > mid ? "left" : "right";
-          // Nudge sash off the exact boundary so pgSnapTo's ceil/floor will advance
-          this.sashStart += (dir == "left" ? -1 : 1);
-        } else {
-          dir = eup.timeStamp - e.timeStamp > 200 ? "none" :
-              e.mv0[CLIENTX] > e.mv1[CLIENTX] ? "right" :
-              e.mv0[CLIENTX] < e.mv1[CLIENTX] ? "left" : "none";
-        }
-        this.pgSnapTo(dir, vel);
+        // Determine direction from last movement
+        let dir = dwellTime > 200 ? "none" :
+          e.mv0[CLIENTX] > e.mv1[CLIENTX] ? "right" :
+          e.mv0[CLIENTX] < e.mv1[CLIENTX] ? "left" : "none";
+        this.pgSnapTo(dir, Math.abs(vel));
       }).bind(this),
       { once: true }
     );
@@ -1573,10 +1608,14 @@ class ScrollLayout extends Layout {
     this.sashStart = -(pg[WIDTH] + gap) * (pn - 1);
     this.sashStart = clamp(this.sashStart, sashLimit, 0);
     pn = Math.round(-this.sashStart / (pg[WIDTH] + gap)) + 1;
+    if (this.snapStep > 0)
+      this.snapIndex = Math.round((pn - 1) / this.snapStep);
     await this.pgMount(pn);
     animate(this.sash, { [LEFT]: toEm(sashOrigin) }, { [LEFT]: toEm(this.sashStart) }, `${LEFT} cubic-bezier( 0, 1.01, 0.04, 1 ) ${_gs_}ms`);
     this.spinRollers(_gs_);
     this.pnPost(pn, true);
+    this.pagerLeft.build();
+    this.pagerRight.build();
     return pn;
   }
 
@@ -1621,6 +1660,33 @@ class ScrollLayout extends Layout {
     let pn = parseInt(_score_.numbers.pn);
     let inc = Math.max(this.pgSnap, 1); // at least 1 page
     let pgCount = this.score.pgs.length;
+    let pace = _score_.numbers.pace == 100 ? 0: _score_.numbers.pace / 100 ;
+    switch (how) {
+      case "next":
+        return this.pgSnapTo("left", pace) ;
+      case "prev":
+        return this.pgSnapTo("right", pace) ;
+    case "first":
+        pn = 1;
+        break;
+      case "last":
+        pn = pgCount;
+        break;
+    }
+
+    // Clamp to valid range
+    pn = clamp(pn, 1, pgCount);
+    this.pnPost(await this.pgGoTo(pn));
+  }
+
+
+  async pgOpenOrig(how, bookMarks) {
+    if (bookMarks) return super.pgOpen(how);
+
+    // flip the page forward to next pair of pages
+    let pn = parseInt(_score_.numbers.pn);
+    let inc = Math.max(this.pgSnap, 1); // at least 1 page
+    let pgCount = this.score.pgs.length;
 
     switch (how) {
       case "next":
@@ -1652,39 +1718,62 @@ class ScrollLayout extends Layout {
     this.pnPost(await this.pgGoTo(pn));
   }
 
+
   /**
    * After user action scrolls the sash, the code can snap to a specific
    * page boundary (or partial page).
    */
-  async pgSnapTo(dir, vel) {
+
+  snapMap = {"-3":0, "-2":1/4, "-1":1/3, "0":1/2}; // partial page snaps
+
+  snapPns(pgShow, pgCount) {
+    // Returns [leftPn, rightPn] using integer arithmetic to avoid float accumulation error.
+    let ss = this.snapStep, si = this.snapIndex;
+    if (ss <= 0) {
+      // free scroll: no snap grid, derive from sashStart
+      let { gap } = this.cell.geo;
+      let pgWidth = this.cell.geo.pg[this.props.WIDTH];
+      let offset = (-this.sashStart) / (pgWidth + gap);
+      return [Math.floor(offset) + 1, Math.min(Math.ceil(offset + pgShow), pgCount)];
+    }
+    if (ss >= 1) {
+      // integer snap: each step is ss full pages, product is always exact
+      let left = si * ss + 1;
+      return [left, Math.min(left + pgShow - 1, pgCount)];
+    }
+    // fractional snap: each step is 1/q pages — use integer division throughout
+    let q = Math.round(1 / ss); // 2, 3, or 4
+    let left  = Math.min(Math.trunc(si / q) + 1, pgCount);
+    let right = Math.min(Math.trunc((si + q * pgShow - 1) / q) + 1, pgCount);
+    return [left, right];
+  }
+
+  async pgSnapTo(dir, pace) {
     // "snap" displayed pages so that they align with a page boundary.  @dir is "right" or "left" or none (i.e. nearest)
-    // @vel is "velocity". If pgSnap == 0, and dir != none, then vel is used to fling the sash left or right.
+    // @pace is "paceocity". If pgSnap == -3 (maps to 0...)0, and dir != none, then pace is used to fling the sash left or right.
+    //    In this case, if pace <= 0, then no animation, just snap.
+
     let { LEFT, WIDTH } = this.props;
     let { gap, pgCount, pgSnap, pgShow, sashLimit} = this.cell.geo;
     let pgWidth = this.cell.geo.pg[WIDTH];
-    // For snap animation speed, ignore negligible velocities to get consistent snap-back timing
-    let animVel = Math.abs(vel) > 0.07 ? vel : 0;
-    let snapDur = Math.min(animVel ? Math.abs(250 / animVel) : 250, 8500); // how long the snap takes, in ms
+    if(pgSnap < 1) pgSnap = this.snapMap[pgSnap] ;
+    this.snapStep = pgSnap;
     if (pgSnap > 0) {
       let snapWidth = (pgWidth + gap) * pgSnap;
-      let travel = this.sashStart / snapWidth;
-      if (dir == "right") this.sashStart = Math.ceil(travel) * snapWidth;
-      else if (dir == "left") this.sashStart = Math.floor(travel) * snapWidth;
-      else {
-        // dir = "nearest", i.e. snap to nearest page border that's a multiple of this.pgSnap
-        let dX = (-this.sashStart % snapWidth) / snapWidth;
-        this.sashStart = (dX < 0.5 ? Math.ceil(travel) : Math.floor(travel)) * snapWidth;
-      }
+      let snapIndex = Math.round(-this.sashStart / snapWidth) ;
+      if (dir == "right") snapIndex--;
+      else if (dir == "left") snapIndex++;
+      this.sashStart = -snapIndex * snapWidth;
+      this.snapIndex = snapIndex;
     }
     else if(dir != "none") {
       // Use the visible (viewport-clipped) frame extent as step — the full frame may extend offscreen
       let { X, INNERWIDTH } = this.props;
       let frameBox = getBox(this.frame);
       let visSize = Math.min(frameBox[X] + frameBox[WIDTH], window[INNERWIDTH]) - Math.max(frameBox[X], 0);
-      if (Math.abs(vel) > 0.07)
-        this.sashStart -= vel * visSize; // fling: sign of vel encodes direction
-      else
-        this.sashStart += dir == "left" ? -visSize : visSize; // tap: advance/retreat by visible amount
+      if (Math.abs(pace) > 0.07)
+        this.sashStart += dir == "left" ? -pace * visSize : pace * visSize; // fling
+      // else: low pace = finger lift, leave sash where drag left it
     }
     this.sashStart = clamp(this.sashStart, sashLimit, 0);
     // what will be the new page number?
@@ -1693,13 +1782,25 @@ class ScrollLayout extends Layout {
 
     // after the snap, the page number is taken as the left[top]most visible page
     // skip snap-alignment when clamped to limit — position won't be on a snap boundary
-    if (pgSnap > 0 && this.sashStart > sashLimit) pn = Math.floor((pn - 1) / pgSnap) * pgSnap + 1;
+    if (pgSnap >= 1 && this.sashStart > sashLimit) pn = Math.floor((pn - 1) / pgSnap) * pgSnap + 1;
     this.pnPost(pn);
+    this.pagerLeft.build();
+    this.pagerRight.build();
     this.pgMount(pn, dir);
 
-    // animate the snap, updating on every animation frame
-    animate(this.sash, null, { [LEFT]:this.sashStart / _pxPerEm_ + "em"}, `${LEFT} ${snapDur}ms ease-out`);
-    this.spinRollers(snapDur);
+    if(pace > 0) {
+      // animate the snap, updating on every animation frame
+      let maxDur = 2000 ; // per-page snap duration when pace = 0 (theoretical: when pace == 0, block not entered)
+      let minDur = 50 ;   // per-page snap duration when pace = 1
+      let snapDur = ((maxDur - minDur) * (1 - pace) + minDur) * (pgSnap || 1) ; // when pgSnap == 0, multiply by 1
+      animate(this.sash, null, { [LEFT]:this.sashStart / _pxPerEm_ + "em"}, `${LEFT} ${snapDur}ms ease-out`);
+      this.spinRollers(snapDur);
+    }
+    else {
+      this.spinRollers(1000);
+      this.sash.style[LEFT] = this.sashStart / _pxPerEm_ + "em" ; // maybe spinRollers?
+
+    }
   }
 
   spinRollers(dur = 0) {
@@ -2104,7 +2205,7 @@ class TableLayout extends Layout {
         if(pg.bookmark) {
           pg.bookmark = null;
           pnElm.style.background = "unset";
-        } else pnElm.style.background = pg.bookmark = randomColor();
+        } else pnElm.style.background = pg.bookmark = nextBkColor();
       });
       _body_.dispatchEvent(new CustomEvent("BOOKMARK"));
     };
@@ -2351,11 +2452,11 @@ class Pager {
       _score_.numbers.pn = clamp(Math.floor((newPos / pagerBox[HEIGHT]) * pgCount) + 1, 1, pgCount);
       // are we at a bookmark? 
       let bkCl = _score_.pgs[_score_.numbers.pn -1].bookmark;
-      if(bkCl) cursor.style.color = ptrDiv.style.color = bkCl;
-      else cursor.style.color = ptrDiv.style.color = "black";
+      cursor.style.color = bkCl || "";
+      ptrDiv.style.backgroundColor = bkCl || "";
+      ptrDiv.style.color = bkCl ? contrastColor(bkCl) : "";
       clearChildren(cursor);
       clearChildren(this.cursor);
-
       this.formatFunc(_score_.numbers, true, this.cursor);
     };
 
@@ -2366,12 +2467,15 @@ class Pager {
       let pg = _score_.pgs[pn - 1];
       if (pg.bookmark) {
         pg.bookmark = null;
-        cursor.style.color = "black";
-        ptrDiv.style.color = "black";
+        cursor.style.color = "";
+        ptrDiv.style.backgroundColor = "";
+        ptrDiv.style.color = "";
       }
       else {
-        let bkCl = pg.bookmark = randomColor();
-        cursor.style.color = ptrDiv.style.color = bkCl;
+        let bkCl = pg.bookmark = nextBkColor();
+        cursor.style.color = bkCl;
+        ptrDiv.style.backgroundColor = bkCl;
+        ptrDiv.style.color = contrastColor(bkCl);
       }
       _body_.dispatchEvent(new CustomEvent("BOOKMARK"));
     });

@@ -50,6 +50,7 @@ export {
   ptrMsg,
   sleep,
   Spot,
+  Surface,
   unlisten,
   strToHash,
   toast,
@@ -82,9 +83,8 @@ window._frMs_ = 0.06; // initial estimate of number of frames per millisecond (6
 window._gs_ = 618; // golden section (reciprocal) msec (.618 seconds)
 window._gsgs_ = (_gs_ * _gs_) / 1000; // shorter golden section!
 window._longPressMs_ = 750;
+window._zTop_ = 1000; // continuously incrementing z-index counter for panels, menu, surfaces
 window._mobile_ = window.matchMedia('(pointer: coarse)').matches;
-window._maxMoveEvents_ = 5; // see flung() below
-window._moveEvents_ = []; // see flung() below
 window._msPerObj_ = 1; // for pdf printing, see score.toPdf()
 window._pxPerEm_ = 25; // initial document.body's font size value: defines pixels in 1 em
 window._score_ = null; // current active score instance
@@ -1427,6 +1427,97 @@ class Spot {
 }
 
 /**
+class Surface
+  Base class for widgets that are normally attached to a panel but
+  can be detached and moved/zoomed independently.
+**/
+
+class Surface {
+  static css = css(
+    "Surface",
+    `
+    .Surface {
+      font-size:1em;
+      position:absolute;
+      width:8em;
+      height:8em;
+      z-index:100;
+    }`
+  );
+
+  surface = helm(`<div data-tag="surface" class="Surface"></div>`);
+  surfaceDragElm = null; // subclasses must define: this is the part of the surface that reacts to drag gestures
+
+  constructor(panel, ScreenPanel) {
+    this.panel = panel;
+    let surface = this.surface;
+    // Give surface same tag as its panel:
+    this.surface.dataset.tag = this.panel.elm.dataset.tag;
+    let longPresser = new Schedule();
+
+    panel.listeners.push(listen(surface, "pointerdown", (e) => {
+      if (surface.parentElement == _body_) surface.style.zIndex = ++_zTop_;
+      // Ignore pointerdown outside of circular area enclosed by this.surfaceDragElm
+      let box = getBox(this.surfaceDragElm);
+      let maxLeft = window.innerWidth - box.width;
+      let maxTop = window.innerHeight - box.height;
+      if (Math.hypot(e.clientX - box.x - box.width / 2, e.clientY - box.y - box.height / 2) > box.width / 2) return;
+      _body_.setPointerCapture(e.pointerId);
+      longPresser.run(_longPressMs_, () => this.onSurfaceEvent("press"));
+      let dX = e.offsetX, dY = e.offsetY; // warning: e can be gc'ed before mv references it.
+      let mv = listen(_body_, "pointermove", (emv) => {
+        flung(emv); // store event for fling detection
+        if (surface.parentElement == _body_) {
+          surface.style.left = clamp(emv.clientX - dX, 0, maxLeft) + "px";
+          surface.style.top = clamp(emv.clientY - dY, 0, maxTop) + "px";
+          mvmt(e, emv);
+        }
+        else if (mvmt(e, emv)) {
+          // attach surface to document body
+          longPresser.cancel();
+          surface.style.fontSize = panel.elm.style.fontSize;
+          surface.style.position = "absolute";
+          surface.classList.add("pz"); // this makes it pan-zoomable
+          _body_.append(surface);
+          _pzTarget_ = surface; // this allows pan-zooming without having to reselect
+          hide(this.panel.elm, dataIndex("tag", this.panel.cell.elm).cellIcon);
+          surface.style.left = emv.clientX - dX + "px";
+          surface.style.top = emv.clientY - dY + "px";
+        }
+      });
+
+      listen(_body_, "pointerup", (eup) => {
+        longPresser.cancel();
+        unlisten(mv);
+        let downTime = eup.timeStamp - e.timeStamp;
+        if (flung(null, eup)) { // fling detected
+          hide(surface, dataIndex("tag", this.panel.cell.elm).cellIcon);
+          if (this.panel.constructor != ScreenPanel) ScreenPanel.update(null);
+        }
+        else if (downTime < _longPressMs_) this.onSurfaceEvent("click");
+      }, { once: true });
+    }));
+
+    delay(2, () => this.build());
+  }
+
+  destructor() {}
+
+  build() {}
+
+  onSurfaceEvent(e, eup, type) {}
+
+  show() {
+    let surface = this.surface;
+    surface.style.position = "static";
+    surface.style.fontSize = "1em";
+    surface.classList.remove("pz");
+    surface.style.visibility = "unset"; // *not* visible: want to inherit
+    this.panel.body.prepend(surface);
+  }
+}
+
+/**
 class TabView
   Class implementing a gui Tabbed Panel view for
   use by Panel subclasses
@@ -1707,8 +1798,8 @@ function dialog(
   return elm;
 }
 
-
-
+let _moveEvents_ = [];
+let _maxMoveEvents_ = 5;
 function flung(emv, eup=null) {
   // flung(eup) (past tense of fling!) is used to decide
   // when user has "flung" a div.
@@ -1725,8 +1816,8 @@ function flung(emv, eup=null) {
     return;
   }
 
-  // Calculate velocity over the last 200ms window
-  let recent = _moveEvents_.filter(e => eup.timeStamp - e.timeStamp <= 200);
+  // Calculate velocity over the last 150ms window
+  let recent = _moveEvents_.filter(e => eup.timeStamp - e.timeStamp <= 150);
   _moveEvents_.length = 0; // done with _moveEvents, so clear
   if (recent.length > 1) {
     let last = recent[recent.length - 1];
@@ -1735,7 +1826,7 @@ function flung(emv, eup=null) {
     if (dT) {
       let dXY = Math.hypot(last.clientX - first.clientX, last.clientY - first.clientY);
       let velocity = dXY / dT; // pixels per ms
-      return velocity > 0.5; // threshold for "flung" - adjust as needed
+      return velocity > 0.75; // threshold for "flung" 
     }
     return false;
   }

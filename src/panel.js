@@ -44,6 +44,7 @@ import {
   SliderGroup,
   schedule,
   Schedule,
+  Surface,
   TabView,
   toast,
   unlisten,
@@ -53,7 +54,7 @@ import { escapeHtml, FileSrc, FileListView, FileSystemView, LocalFileView } from
 import { Layout } from "./layout.js";
 import { Pg, Score } from "./score.js";
 import { smuflTable } from "./smufl.js";
-import { Surface, Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
+import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
 export { Panel, panels, EditPanel, ScreenPanel };
 
 // -skip
@@ -89,8 +90,6 @@ let PAGE_SIZE_SELECT = `
 `;
 
 class Panel {
-  static _zTop = 1000;
-
   static get(cell) {
     return panels[cell.key] || (panels[cell.key] = new this(cell));
   }
@@ -197,7 +196,7 @@ class Panel {
     this.listeners.push(
       listen(this.header, "pointerdown", (e) => {
         let { header, elm } = this;
-        elm.style.zIndex = ++Panel._zTop; // move to top of stacking order
+        elm.style.zIndex = ++_zTop_; // move to top of stacking order
         this.header.classList.add("Panel__header-selected");
         header.setPointerCapture(e.pointerId);
         let middleX = this.panel.offsetWidth / 2;
@@ -304,7 +303,7 @@ class Panel {
       _lastTarget_ = elm;
       _panels_.screen?.surface.update();
     }
-    elm.style.zIndex = ++Panel._zTop;
+    elm.style.zIndex = ++_zTop_;
     return this;
   }
 
@@ -641,7 +640,7 @@ class DetailsPanel extends Panel {
       },
       async (e,tag,value) => {
          let score = _score_;
-         score.pgFit = value;
+         score.details.pgFit = value;
          await Layout.open(_menu_.rings.layout.activeCell);
       }
     );
@@ -858,6 +857,12 @@ class CopyPanel extends OpenPanel {
     this.mode = "copy";
   }
 }
+
+
+class SplicePanel extends OpenPanel {
+  mode = "splice";
+}
+
 
 class SavePanel extends FilePanel {
   mode = "save";
@@ -1205,9 +1210,12 @@ class LayoutPanel extends Panel {
       if(tag == "pgShow") {
          // don't allow pgSnap to be > pgShow
          if(cell.stash.pgSnap > value) cell.stash.pgSnap = value;
-         return "Show: " + value + (value == 1 ? " page." : " pages");
+         return "Show: " + value + (value == 1 ? " page" : " pages");
       } else if(tag == "pgSnap") {
-        if (value == 0) return "Snap disabled";
+        if (value == -3) return "Snap: none";
+        if (value == -2) return "Snap: 1/4 page";
+        if (value == -1) return "Snap: 1/3 page";
+        if (value == 0) return "Snap: 1/2 page";
         return "Snap: " + value + (value == 1 ? " page." : " pages");
       }
     };
@@ -1228,7 +1236,8 @@ class LayoutPanel extends Panel {
         msg: msgCallback,
         throttle: 750,
       },
-      pgSnap: { min: 0, max: 8, step: 1, msg: msgCallback, throttle: 750 },
+      // values <= 0  are reinterpreted: see msgCallback
+      pgSnap: { min: -3, max: 8, step: 1, msg: msgCallback, throttle: 750 },
       gap: {
         min: 0,
         max: 100,
@@ -1358,8 +1367,7 @@ class StoragePanel extends Panel {
         { Menu: { svg: "Menu" }, Recent: { svg: "Score" }, Import: { svg: "Import Page" } },
         (e, prop, tag) => {
           if (tag == "Menu") {
-            _menu_.stashFromJson(_menu_.stashDefaults);
-            localStorage.setItem("menu", _menu_.stashToJson());
+            _menu_.factoryReset();
             toast("Menu reset");
           } else if (tag == "Recent") {
             localStorage.setItem("recent", []);
@@ -1551,6 +1559,7 @@ class NumbersPanel extends Panel {
            <div style="min-width: 4em; text-align: left; font-size: 0.9em">Prev (\u21e6/\u21e9):</div>
            <div data-tag="reverse" style="flex: 1"></div>
          </div>
+         <div data-tag="paceSlider"></div>
        </div>
      </div>
    `);
@@ -1565,7 +1574,7 @@ class NumbersPanel extends Panel {
 
     let formatPn = () => {
       return `Page: ${pnToString(_score_.numbers.pn)} 
-      (${_score_.numbers.pn} / ${score.pgs.length})`;
+      (${~~_score_.numbers.pn} / ${score.pgs.length})`;
     };
 
     let defs = {
@@ -1584,6 +1593,7 @@ class NumbersPanel extends Panel {
     );
 
     this.sliders.replaceWith(this.pnSliderGroup.elm);
+
 
     // Make the "First #" and "Roman" sliders smaller and narrower...looks much
     // nicer that way, emphasizes that they are "subordinate" so to speak
@@ -1615,6 +1625,16 @@ class NumbersPanel extends Panel {
       (e, tag, value) => score.numbers.tag = value,
     );
     this.reverse.replaceWith(this.reverseGroup.elm);
+
+    this.paceSliderGroup = new SliderGroup(
+       _score_.numbers,
+       { pace: { min: 1, max: 101, step:1, value: score.numbers.pace, msg: (tag, val) => val == 101 ? "No Animation": `Pace: ${val}%`}},
+       (e, tag, value) => score.numbers.pace = value,
+    );
+
+    this.paceSlider.replaceWith(this.paceSliderGroup.elm);
+
+
     listen(_body_, "NUMBERS", (e) => {
       if (e.detail.sender === this) return;
       this.refresh(); 
@@ -2028,9 +2048,9 @@ class Pzr
 */
 class Pzr extends Surface {
   static css = css(
-    "PZ",
+    "Pz",
     `
-     .PZ {
+     .Pz {
        display:grid;
        grid-template-columns:repeat(5, 1.6em);
        grid-template-rows:repeat(5, 1.6em);
@@ -2046,17 +2066,17 @@ class Pzr extends Surface {
        stroke-linecap:round;
        stroke-linejoin:round;
       }
-     .PZ_noTarget {
+     .Pz__noTarget {
         stroke: #aaa;
     }
-    .PZ_button {
+    .Pz__control {
       fill: none; 
       stroke: currentColor;
       stroke-width: 8;
       stroke-linecap: round;
       stroke-linejoin: round;
     }
-    .PZ_button-active {
+    .Pz__control-active {
        color: #6c6;
        transform: scale(1.2);
     }
@@ -2067,7 +2087,7 @@ class Pzr extends Surface {
   // The last 2 positions are only used in class Pzr
 
   grid = helm(`
-        <div class="PZ">
+        <div class="Pz">
           <svg style="grid-row:1;grid-column:3;" viewBox="0 0 100 100"><path d="M10 60L50 10L90 60Q50 40 10 60"/></svg>
           <svg style="grid-row:2;grid-column:3;" data-tag="cw"  viewBox="0 0 100 100">
             <path  d="M50 22 A28 28 0 1 1 30.2 70 M50 14 L50 30 L34 22 Z" transform="translate(100,0) scale(-1, 1)"/>
@@ -2092,7 +2112,7 @@ class Pzr extends Surface {
   targets = [] ;
 
   constructor(panel) {
-    super(panel);
+    super(panel, ScreenPanel);
     Object.assign(this, dataIndex("tag", this.grid)) ;
     this.surface.append(this.grid) ;
     this.surfaceDragElm = this.grid ;
@@ -2104,12 +2124,13 @@ class Pzr extends Surface {
       let row = parseInt((e.clientY - box.y) / box.height * 5) ;
       let col = parseInt((e.clientX - box.x) / box.width * 5) ;
       let pos = row * 5 + col ;
-      if(!this.slots.includes(pos)) return ; // no button at this location
+      if(!this.slots.includes(pos)) return ; // no control at this location
       _menu_.busy = true ;
       // add active marker. Note: can't add style to <path.../>, must be parent <svg.../>
-      let target = e.target.tagName == "path"? e.target.parentElement:e.target ;
+      let target = e.target.tagName == "path" ? e.target.parentElement : e.target;
+      if (target.tagName != "svg") return;
       if(this.getTargets()) {
-        target.classList.add("PZ_button-active") ;
+        target.classList.add("Pz__control-active") ;
         e.stopPropagation();
         e.target.setPointerCapture(e.pointerId);
         
@@ -2126,8 +2147,8 @@ class Pzr extends Surface {
         });
       }
       listen(this.grid, "pointerup", () => {
-        this.grid.classList.remove("PZ_noTarget") ;
-        target.classList.remove("PZ_button-active") ;
+        this.grid.classList.remove("Pz__noTarget") ;
+        target.classList.remove("Pz__control-active") ;
         this.repeater.cancel();
         _menu_.busy = false;
         _menu_.autoOff.run();
@@ -2138,10 +2159,10 @@ class Pzr extends Surface {
   update() {
     let getIconPath = () => {
       let type = EditPanel.pzrTarget?.podiumType || EditPanel.pzrTarget?.type ;
-      this.grid.classList.remove("PZ_noTarget") ;
+      this.grid.classList.remove("Pz__noTarget") ;
       switch(type) {
         case undefined: 
-          this.grid.classList.add("PZ_noTarget") ;
+          this.grid.classList.add("Pz__noTarget") ;
           return iconPaths["Void"];
         case "pencil": return iconPaths["Pencil"] ;
         case "pen": return iconPaths["Pen"] ;
@@ -2232,7 +2253,7 @@ class Pzr extends Surface {
       }];
       return true ;
     }
-    this.grid.classList.add("PZ_noTarget") ;
+    this.grid.classList.add("Pz__noTarget") ;
     return false ;
   }
 }
@@ -2240,7 +2261,7 @@ class Pzr extends Surface {
 /**
 class Pz
   This is the detachable body of the ScreenPanel.
-  Subclass of Pz that removes rotation buttons and is specialized for editing
+  Subclass of Pz that removes rotation controls and is specialized for editing
   Fabric.js objects with locked aspect ratio.
 */
 class Pz extends Pzr {
@@ -2248,7 +2269,7 @@ class Pz extends Pzr {
   slots = [2,10,11,13,14,22] ;
 
   constructor(panel) {
-    super(panel) ;
+    super(panel, ScreenPanel);
     // modify the grid, replacing the central icon and removing clockwise and counter-clockwise svg's
     this.cw.remove() ;
     this.ccw.remove() ;
@@ -2258,10 +2279,10 @@ class Pz extends Pzr {
   update() {
     let getIconPath = () => {
       let tag = ScreenPanel.pzTarget?.dataset.tag ;
-      this.grid.classList.remove("PZ_noTarget") ;
+      this.grid.classList.remove("Pz__noTarget") ;
       switch(tag) {
         case undefined: 
-          this.grid.classList.add("PZ_noTarget") ;
+          this.grid.classList.add("Pz__noTarget") ;
           return iconPaths["Void"];
         case "BookLayout":
         case "ScrollLayout":
@@ -2329,7 +2350,7 @@ class Pz extends Pzr {
       else pzTargets = [] ;
     }
     if(pzTargets.length == 0) {
-      this.grid.classList.add("PZ_noTarget") ;
+      this.grid.classList.add("Pz__noTarget") ;
       return false ;
     }
     this.targets.length = 0 ;
@@ -2905,6 +2926,7 @@ let panels = window._panels_ = {
   RastrumPanel,
   ReviewPanel,
   SavePanel,
+  SplicePanel,
   ScreenPanel,
   StoragePanel,
   StopwatchPanel,

@@ -24,7 +24,7 @@ import { animate, clamp, css, dataIndex, delay, delayMs, flung, fontMap, getBox,
 import { checkUnsaved, FileSrc } from "./file.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
-import { Panel, panels } from "./panel.js";
+import { panels } from "./panel.js";
 import { Grid, Score } from "./score.js";
 
 export { Menu };
@@ -297,7 +297,7 @@ class Menu {
     // load menu stash from localStorage
     try {
       let json = localStorage.getItem("menu") ?? this.stashDefaults;
-      this.stashFromJson(json);
+      this.stashFromJson(json, "local");
     } catch (Error) {
       toast("Clearing invalid local storage stash.");
       localStorage.clear();
@@ -310,6 +310,27 @@ class Menu {
       else this.activateCell(this.rings.layout.cells.book);
       // now activate Score ring
       this.activateRing(this.rings.score);
+    }
+
+    // Apply local-only cell states restored from stash
+    {
+      let themeCell = this.rings.app.cells.theme;
+      let theme = themeCell.stash.theme || "Light";
+      document.documentElement.setAttribute("data-theme", theme);
+      dataIndex("tag", themeCell.elm).cellIcon.innerHTML = iconPaths[theme];
+
+      let wakeLockCell = this.rings.app.cells.wakeLock;
+      if (wakeLockCell.stash.on) {
+        (async () => {
+          try {
+            wakeLockCell._wakeLock = await navigator.wakeLock.request("screen");
+            dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Full Screen"];
+          } catch {
+            wakeLockCell.stash.on = false;
+            toast("Wake lock unavailable.");
+          }
+        })();
+      }
     }
 
     // initialize user interaction operation object
@@ -336,7 +357,6 @@ class Menu {
   async buildRings() {
     // Build the data structures (but not the dom elements)
     // that compose the menu's rings.
-
     let rings = this.rings;
 
     // Score ring
@@ -364,7 +384,7 @@ class Menu {
         },
         close: { name: "Close", svgPath: iconPaths["Close"] },
         print: { name: "Print", svgPath: iconPaths["Print"] },
-        details: { name: "Details", svgPath: iconPaths["Details"], stash: { quality: 2, pgFit: "Center"} },
+        details: { name: "Details", svgPath: iconPaths["Details"], stash: { quality: 2, pgFit: "Center", bkColorIdx: 0 }, storage: "score" },
       },
       svgPath: iconPaths["Score"],
     };
@@ -565,7 +585,8 @@ class Menu {
         numbers: {
           name: "Numbers",
           svgPath: iconPaths["Numbers"],
-          stash: { forward: "Pages", reverse: "Pages" },
+          stash: { pn: 1, first: 1, prelim: 0, forward: "Pages", reverse: "Pages", pace: 0 }, // pace: animation speed in %, 0 means no animation
+          storage: "score",
         },
         add: {
           name: "Add",
@@ -579,6 +600,7 @@ class Menu {
         undo: { name: "Undo", svgPath: iconPaths["Undo"] },
         export: { name: "Export", svgPath: iconPaths["Export Page"] },
         import: { name: "Import", svgPath: iconPaths["Import Page"] },
+        splice: { name: "Splice", svgPath: iconPaths["Import Page"] },
         merge: { name: "Merge", svgPath: iconPaths["Merge"] },
         magnify: { name: "Magnify", svgPath: iconPaths["Magnify"], stash: { zoom: 1 } },
       },
@@ -593,7 +615,7 @@ class Menu {
     paths = Object.keys(rings.page.cells).map((path) => `page/${path}/`);
     this.listen(paths.map((path) => path + "up"), (cell) => this.activateCell(rings.page.activeCell === cell ? null :cell));
     this.listen(paths.map((path) => path + "long"), (cell) => this.toggleLock(cell));
-    this.listen(["page/numbers/","page/import/","page/add/","page/magnify/"].map((path) => path + "out"), (cell) =>  this.openPanel(cell));
+    this.listen(["page/numbers/","page/import/","page/add/","page/magnify/","page/splice/"].map((path) => path + "out"), (cell) =>  this.openPanel(cell));
 
     this.listen("page/undo/up", async () => {
        _score_.pgUndo();
@@ -605,11 +627,11 @@ class Menu {
       name: "App",
       cells: {
         about: { name: "About", svgPath: iconPaths["About"], stash: {} },
-        theme: { name: "Theme", svgPath: iconPaths["Light"], stash: {} },
+        theme: { name: "Theme", svgPath: iconPaths["Light"], stash: { theme: "Light" }, storage: "local" },
         guide: { name: "Guide", svgPath: iconPaths["Guide"], stash: {} },
         storage: { name: "Storage", svgPath: iconPaths["Storage"], stash: {} },
-        screen: {  name: "Screen",  stash: { },  svgPath: iconPaths["Full Screen"],
-        },
+        wakeLock: { name: "Wakelock", svgPath: iconPaths["Normal Screen"], stash: { on: false }, storage: "local" },
+        screen: { name: "Screen", stash: {}, svgPath: iconPaths["Full Screen"], storage: "local" },
       },
       svgPath: iconPaths["Podium"],
 
@@ -639,6 +661,35 @@ class Menu {
       document.documentElement.setAttribute("data-theme", theme);
       dataIndex("tag", cell.elm).cellIcon.innerHTML = iconPaths[theme];
       cell.stash.theme = theme;
+    });
+
+    this.listen("app/wakeLock/up", async (cell) => {
+      let cellIcon = dataIndex("tag", rings.app.cells.wakeLock.elm).cellIcon;
+      if (cell.stash.on) {
+        cell.stash.on = false;
+        cell._wakeLock?.release();
+        cell._wakeLock = null;
+        cellIcon.innerHTML = iconPaths["Normal Screen"];
+      } else {
+        try {
+          cell._wakeLock = await navigator.wakeLock.request("screen");
+          cell.stash.on = true;
+          cellIcon.innerHTML = iconPaths["Full Screen"];
+        } catch {
+          toast("Wake lock unavailable.");
+        }
+      }
+    });
+
+    listen(document, "visibilitychange", async () => {
+      let cell = rings.app?.cells?.wakeLock;
+      if (cell?.stash.on && document.visibilityState === "visible") {
+        try {
+          cell._wakeLock = await navigator.wakeLock.request("screen");
+        } catch {
+          // silently ignore — e.g. low power mode
+        }
+      }
     });
 
     // More ring
@@ -787,7 +838,7 @@ class Menu {
 
   opDown(e) {
     if (e.ctrlKey || e.shiftKey) return;
-    this.elm.style.zIndex = ++Panel._zTop;
+    this.elm.style.zIndex = ++_zTop_;
     let op = this.op;
     op.schedule.cancel();
     let keys = e.target.dataset.key || "grip";
@@ -1075,6 +1126,8 @@ class Menu {
         ring.activeCell.locked = false;
         ring.activeCell.elm.classList.remove("Menu__cell-locked");
       }
+      // Discard loaded splice data when splice cell deactivates
+      if (ring.activeCell.key == "splice") ring.activeCell.pdfData = null;
     }
     if (cell) {
       cell.elm.classList.add("Menu__cell-active");
@@ -1180,13 +1233,16 @@ class Menu {
 
   // stash serialization functions:
 
-  stashFromJson(stashJson) {
+  stashFromJson(stashJson, source) {
     // Load all stashes from given data string, stashJson.
-    this.stashFromJsonObj(JSON.parse(stashJson));
+    this.stashFromJsonObj(JSON.parse(stashJson), source);
   }
 
-  stashFromJsonObj(stashJsonObj) {
-    // This merges stashJsonObj onto menu's stashes
+  stashFromJsonObj(stashJsonObj, source) {
+    // This merges stashJsonObj onto menu's stashes.
+    // source: "local" (from localStorage) or "score" (from saved score) or
+    // undefined (no filtering). Cells whose storage property doesn't match
+    // source are skipped as a safeguard.
     let version = stashJsonObj.version;
     if (!version) return;
     if (version != _podiumVersion_) {
@@ -1203,6 +1259,7 @@ class Menu {
         for (let [cellKey, cellStash] of Object.entries(cells)) {
           let cell = ring.cells[cellKey];
           if (!cell) continue;
+          if (source && cell.storage && cell.storage != source) continue;
           cell.stash = cell.stash ?? {};
           Object.assign(cell.stash, cellStash);
         }
@@ -1210,27 +1267,21 @@ class Menu {
         // ignore corrupt entry
       }
     }
-    // Apply theme from loaded stash
-    let themeCell = this.rings.app?.cells?.theme;
-    if (themeCell) {
-      let theme = themeCell.stash.theme || "Light";
-      document.documentElement.setAttribute("data-theme", theme);
-      dataIndex("tag", themeCell.elm).cellIcon.innerHTML = iconPaths[theme];
-    }
   }
 
-  stashToJson() {
-    return JSON.stringify(this.stashToJsonObj());
+  stashToJson(source) {
+    return JSON.stringify(this.stashToJsonObj(source));
   }
 
-  stashToJsonObj() {
+  stashToJsonObj(source) {
     try {
       let stash = {};
       for (let [ringKey, ring] of Object.entries(this.rings)) {
         stash[ringKey] = {};
         let cells = {};
         for (let [cellKey, cell] of Object.entries(ring.cells)) {
-          if (cell.stash) cells[cellKey] = cell.stash;
+          if (cell.stash && (!source || !cell.storage || cell.storage == source))
+            cells[cellKey] = cell.stash;
         }
         stash[ringKey].stash = ring.stash;
         stash[ringKey].cells = cells;
@@ -1243,8 +1294,31 @@ class Menu {
     }
   }
 
+  factoryReset() {
+    this.stashFromJson(this.stashDefaults, "local");
+    localStorage.setItem("menu", this.stashToJson("local"));
+
+    // Apply theme
+    let themeCell = this.rings.app.cells.theme;
+    let theme = themeCell.stash.theme || "Light";
+    document.documentElement.setAttribute("data-theme", theme);
+    dataIndex("tag", themeCell.elm).cellIcon.innerHTML = iconPaths[theme];
+
+    // Release wake lock
+    let wakeLockCell = this.rings.app.cells.wakeLock;
+    wakeLockCell._wakeLock?.release();
+    wakeLockCell._wakeLock = null;
+    dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Normal Screen"];
+
+    // Exit fullscreen
+    if (document.fullscreenElement) document.exitFullscreen();
+
+    // Close all open panels
+    this.closePanels(["app"]);
+  }
+
   stash() {
-    localStorage.setItem("menu", this.stashToJson());
+    localStorage.setItem("menu", this.stashToJson("local"));
   }
 
   // menu positioning functions:

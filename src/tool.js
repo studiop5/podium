@@ -20,105 +20,14 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, flung, getBox, helm, hide, iconSvg, listen, mvmt, schedule, Schedule, SliderGroup, TabView, toast, unlisten, pxToEm,} from "./common.js";
+import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, flung, getBox, helm, hide, iconSvg, listen, mvmt, schedule, Schedule, SliderGroup, Surface, TabView, toast, unlisten, pxToEm,} from "./common.js";
 import { pianoSamples } from "./sample.js";
-import { panels, ScreenPanel } from "./panel.js"; 
+import { panels, ScreenPanel } from "./panel.js";
 import { Yin } from "./yin.js";
-export { Surface, Review, Metronome, Clock, Stopwatch, Piano, Volume };
+export { Review, Metronome, Clock, Stopwatch, Piano, Volume };
 
 // -skip
 
-
-/**
-class Surface
-  Base class for widgets that are normally attached to a panel but
-  can be detached and moved/zoomed independently.
-**/
-
-class Surface {
-  static css = css(
-    "Surface",
-    `
-    .Surface {
-      font-size:1em;
-      position:absolute;
-      width:8em;
-      height:8em;
-      z-index:100;
-    }`
-  );
-
-  surface = helm(`<div data-tag="surface" class="Surface"></div>`);
-  surfaceDragElm = null; // subclasses must define: this is the part of the surface that reacts to drag gestures
-
-  constructor(panel) {
-    this.panel = panel;
-    let surface = this.surface;
-    // Give surface same tag as its panel:
-    this.surface.dataset.tag = this.panel.elm.dataset.tag ;
-    let longPresser = new Schedule();
-
-    panel.listeners.push(listen(surface, "pointerdown", (e) => {
-      // Ignore pointerdown outside of circular area enclosed by this.surfaceDragElm
-      let box = getBox(this.surfaceDragElm);
-      let maxLeft = window.innerWidth - box.width;
-      let maxTop = window.innerHeight - box.height;
-      if(Math.hypot(e.clientX - box.x - box.width / 2, e.clientY - box.y - box.height /2) > box.width / 2) return;
-      _body_.setPointerCapture(e.pointerId);
-      longPresser.run(_longPressMs_,() => this.onSurfaceEvent("press"));
-      let dX = e.offsetX, dY = e.offsetY; // warning: e can be gc'ed before mv references it.
-      let mv = listen(_body_, "pointermove", (emv) => {
-        flung(emv); // store event for fling detection
-        if(surface.parentElement == _body_) {
-          surface.style.left = clamp(emv.clientX - dX, 0, maxLeft) + "px";
-          surface.style.top = clamp(emv.clientY - dY, 0, maxTop) + "px";
-
-          mvmt(e,emv);
-        }
-        else if(mvmt(e,emv)) {
-          // attach surface to document body
-          longPresser.cancel();
-          surface.style.fontSize = panel.elm.style.fontSize;
-          surface.style.position = "absolute";
-          surface.classList.add("pz"); // this makes it pan-zoomable 
-          _body_.append(surface);
-          _pzTarget_ = surface; // this allows pan-zooming without having to reselect
-          hide(this.panel.elm, dataIndex("tag", this.panel.cell.elm).cellIcon);
-          surface.style.left = emv.clientX - dX + "px";
-          surface.style.top = emv.clientY - dY  + "px";
-        }
-      });
-
-      listen(_body_, "pointerup", (eup) => {
-          longPresser.cancel();
-          unlisten(mv);
-          let downTime = eup.timeStamp - e.timeStamp;
-          if (flung(null, eup))  { // fling detected 
-             hide(surface, dataIndex("tag", this.panel.cell.elm).cellIcon);
-             if(this.panel.constructor.name != "ScreenPanel") ScreenPanel.update(null) ;
-          }
-          else if(downTime < _longPressMs_) this.onSurfaceEvent("click");
-        },  { once: true });
-    }));
-
-    delay(2, () => this.build());
-  }
-
-  destructor() {}
-
-  build() {}
-
-  onSurfaceEvent(e, eup, type) {}
-
-  show() {
-    let surface = this.surface;
-    surface.style.position = "static";
-    surface.style.fontSize = "1em";
-    surface.classList.remove("pz");
-    surface.style.visibility = "unset"; // *not* visible: want to inherit
-    this.panel.body.prepend(surface);
-  }
-}
 
 /**
 class Actx
@@ -691,7 +600,7 @@ class Piano {
         let mv = listen(optionsView.frame, "pointermove", (emv) => {
           mvmt(e,emv) ;
           if(e.moved) {
-            _moveEvents_.push(emv);
+            flung(emv);
             if(emv.movementX) optionsView.sash.setPointerCapture(e.pointerId);
             optionsView.frame.style.left = clamp(emv.clientX - offsetX, 0, limit) + "px";
             e.emv = emv;
@@ -906,7 +815,7 @@ class Volume
 */
 class Volume extends Surface {
   constructor(panel) {
-    super(panel);
+    super(panel, ScreenPanel);
     this.surface.style.height = "4em";
     this.surface.style.width = "12em";
     let stash = _menu_.rings.more.cells.volume.stash;
@@ -931,7 +840,7 @@ class Clock extends Surface {
   clockSchedule = new Schedule(0, () => this.refreshClock());
 
   constructor(panel) {
-    super(panel);
+    super(panel, ScreenPanel);
   }
 
   destructor() {
@@ -1012,7 +921,7 @@ class Stopwatch extends Surface {
   splitCount = 0;
 
   constructor(panel) {
-    super(panel);
+    super(panel, ScreenPanel);
   }
 
   destructor() {
@@ -1277,7 +1186,7 @@ class Metronome extends Surface {
   secondsPerTick = 1;
 
   constructor(panel) {
-    super(panel);
+    super(panel, ScreenPanel);
     this.beatPattern = this.beatPatterns[0];
     this.volumeStash = _menu_.rings.more.cells.volume.stash;
     [this.actx, this.bus] = Actx.get();

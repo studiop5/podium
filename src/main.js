@@ -63,10 +63,6 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
 // #include src/sharedBuffer.js minified
 async function main() {
 
-  // Initialize theme from localStorage
-  let savedTheme = localStorage.getItem("theme") || "light";
-  document.documentElement.setAttribute("data-theme", savedTheme);
-
   initFabric();
   // Create the menu. It's fontSize is set s.t. it's outer ring
   // will cover _gsgs_ (_gs_ for mobile) * narrowest screen dimension.
@@ -211,8 +207,7 @@ async function main() {
             );
 
             listen(
-              _body_,"pointerup",,
-              (eup) => {
+              _body_,"pointerup", (eup) => {
                 eup.captured = true;
                 unlisten(mv);
               },
@@ -294,21 +289,21 @@ async function main() {
         case "ArrowLeft":
         case "ArrowUp":
         case "PageUp":
-          e.preventDefault(); // Prevent iOS from generating pointer events
+          e.preventDefault(); // Prevent iOS from scrolling 
           layout.pgOpen("prev", reverseBookMarks);
           break;
         case "ArrowRight":
         case "ArrowDown":
         case "PageDown":
-          e.preventDefault(); // Prevent iOS from generating pointer events
+          e.preventDefault(); 
           layout.pgOpen("next", forwardBookMarks);
           break;
         case "Home":
-          e.preventDefault(); // Prevent iOS from generating pointer events
+          e.preventDefault(); 
           layout.pgOpen("first", e.ctrlKey);
           break;
         case "End":
-          e.preventDefault(); // Prevent iOS from generating pointer events
+          e.preventDefault(); 
           layout.pgOpen("last", e.ctrlKey);
           break;
         default:
@@ -363,7 +358,7 @@ async function main() {
     /**
        Implement automatic "stashing" of Menu's settings:
         - stash after every pointerup event (throttled to 6.18 seconds)
-       Implement automatic extension of menu's autooff timer
+      Implement automatic extension of menu's autooff timer
     **/
     let stasher = new Schedule();
     let busyGuard = new Schedule();
@@ -379,7 +374,7 @@ async function main() {
       if(_menu_.activeRing?.activeCell) _menu_.autoOff.run() ; // extend activation
       // run the stasher
       stasher.cancel();
-      stasher.run(3500, () => localStorage.setItem("menu", _menu_.stashToJson())) ;;
+      stasher.run(3500, () => localStorage.setItem("menu", _menu_.stashToJson("local"))) ;;
     })
   }
 

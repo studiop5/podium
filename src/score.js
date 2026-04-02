@@ -104,7 +104,7 @@ class Pg {
     // referenced as this.mozCanvas (short for mozilla pdf library
     // canvas). The code could have rendered the pdf directly into
     // the fabricjs as a fabric "background image", but that route
-    // was found to have poorer resolution that using a decicated
+    // was found to have poorer resolution than using a dedicated
     // dom canvas, sigh.
     if(!this.score.mozDoc) return;
     let mozPg = await this.score.mozDoc.getPage(this.mozPn);
@@ -162,12 +162,10 @@ class Pg {
 
   async inflateAux(render) {
     try {
-
       let signal = this.inflateCtrl?.signal;
       let checkAbort = () => { if(signal?.aborted)
         throw new DOMException("Inflation aborted","AbortError");}
       checkAbort();
-  
       if(!this.inUse) { // yield to inUse pages
          await new Promise(resolve => delay(1, resolve));
          checkAbort();
@@ -175,7 +173,7 @@ class Pg {
   
       // If indicated, determine scaling factor that will "stretch" score s.t. it
       // will expand pg to fit within score's maxWidth & maxHeight
-      this.stretch = this.score.pgFit == "Expand" ? Math.min(
+      this.stretch = this.score.details.pgFit == "Expand" ? Math.min(
          this.score.maxWidth / this.width,this.score.maxHeight / this.height) : 1;
   
       let domCanvas = document.createElement("canvas");
@@ -234,7 +232,6 @@ class Pg {
         this.deferred = false;
       }
       this.canvas = canvas;
-  
       let stateChanged = false; // flag to indicate canvas state has changed s.t. it needs to be pushed to the undoStack
   
       canvas.on("mouse:down:before", async (opts) => {
@@ -372,7 +369,7 @@ class Pg {
       this.thumbElm = helm(
         `<div class="TableLayout__pg" style="width:${maxW / _pxPerEm_}em;height:${maxH / _pxPerEm_}em;"></div>`);
       this.thumbElm.style.backgroundColor = Pg.paddingColor;
-      if(score.pgFit == "Center")
+      if(score.details.pgFit == "Center")
         this.thumbElm.style.backgroundSize = this.width * 100 / score.maxWidth + "%";
 
       // create object URL for fabric canvas
@@ -917,16 +914,8 @@ class Score {
   mozDoc = null; // reference to mozilla pdflib document, if available
   quality = 2; // pdf rendering quality: see Pg.renderPdf()
   dirty = false; // true iff score has been modified (i.e. requires saving) 
-
-  numbers = {
-    pn: 1, // current pn
-    first: 1, // first pn to display
-    prelim: 0, // Number of preliminary (roman numberal) pages
-    forward: "Pages", // Forward arrow behavior: "Pages or "Bookmarks"
-    reverse: "Pages"  // Reverse...
-   }
-
-  pgFit = "Center";
+  numbers = null ; // reference to numbers menu cell stash
+  details = null ; // reference to details menu cell stash
 
   constructor() {
     // Since constructing a score calls async functions, and since a constructor
@@ -950,7 +939,6 @@ class Score {
     // Initialize page undo stack
     this.undoStack = [];
     this.maxUndo = 10;
-    this.pgFit = _menu_.rings.score.cells.details.stash.pgFit ?? this.pgFit;
 
 
     if (pdfData) {
@@ -1001,11 +989,14 @@ class Score {
         this.created = scoreJson.created || this.created;
         this.modified = scoreJson.modified || this.modified;
         this.quality = scoreJson.quality ?? this.quality;
-        this.numbers = scoreJson.numbers ?? this.numbers;
         if(activate) // don't use stashed values if not activating!
-          _menu_.stashFromJsonObj(scoreJson.menu);
+          _menu_.stashFromJsonObj(scoreJson.menu, "score");
+      } else if(activate) {
+        let defaults = JSON.parse(_menu_.stashDefaults);
+        let { page, score } = _menu_.rings;
+        Object.assign(page.cells.numbers.stash, defaults.page?.cells?.numbers);
+        Object.assign(score.cells.details.stash, defaults.score?.cells?.details);
       }
-
       // create a Pg instance for every pdf page, and calculate the
       // max {width/height} over all pgs.
       for (let i = 1; i <= this.mozDoc.numPages; i++) {
@@ -1018,6 +1009,13 @@ class Score {
         this.maxHeight = Math.max(height, this.maxHeight);
       }
     }
+
+    else if(activate) {
+      let defaults = JSON.parse(_menu_.stashDefaults);
+      Object.assign(_menu_.rings.page.cells.numbers.stash, defaults.page?.cells?.numbers);
+      Object.assign(_menu_.rings.score.cells.details.stash, defaults.score?.cells?.details);
+    }
+
     if(activate) await this.activate();
     return this;
   }
@@ -1027,6 +1025,8 @@ class Score {
     // instance the active score
     Score.activeScore = this;
     _score_ = this;
+    this.numbers = _menu_.rings.page.cells.numbers.stash;
+    this.details = _menu_.rings.score.cells.details.stash;
     if (this.name) {
       // Show score name in tab, truncated from middle if long, without .pdf extension
       let name = this.name.replace(/\.pdf$/i, "");
@@ -1120,9 +1120,8 @@ class Score {
         maxWidth: this.maxWidth,
         maxHeight: this.maxHeight,
         quality: this.quality,
-        numbers: this.numbers,
         pages: {},
-        menu: _menu_.stashToJsonObj(),
+        menu: _menu_.stashToJsonObj("score"),
       };
       let pLibPg;
       pns = pns || Array.from({length: this.pgs.length}, (_, i) => i + 1);
