@@ -1978,7 +1978,7 @@ class SymbolsPanel extends Panel {
       <select data-tag="groups"></select>
       <div data-tag="picker"></div>
       <div data-tag="staffSpace"></div>
-      <div style="margin: var(--spacing-md); height: 2.5em; display: flex; align-items: center; justify-content: center;"><a href="https://w3c.github.io/smufl/latest/index.html" rel="noopener noreferrer">SMuFL</a></div>
+      <div style="margin: var(--spacing-md); height: 2.5em; display: flex; align-items: center; justify-content: center;"><a href="https://www.w3.org/2021/03/smufl14/" rel="noopener noreferrer">SMuFL</a></div>
      </div>
    `);
 
