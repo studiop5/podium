@@ -880,6 +880,10 @@ for more details.</p>
 
   releaseNotesFace = helm(
     `<div class="AboutPanel__scroll" style="padding:2em;text-align:left;font-size:.8em;">
+      <h2>V2.0.2 April 2026</h2>
+  <ul>
+  <li>Updated SMuFL documentation link.</li>
+  </ul>
       <h2>V2.0 March 2026</h2>
   <ul>
   <li><b>Browser Extension (Chrome, Edge)</b><br>
@@ -1978,7 +1982,7 @@ class SymbolsPanel extends Panel {
       <select data-tag="groups"></select>
       <div data-tag="picker"></div>
       <div data-tag="staffSpace"></div>
-      <div style="margin: var(--spacing-md); height: 2.5em; display: flex; align-items: center; justify-content: center;"><a href="https://w3c.github.io/smufl/latest/index.html" rel="noopener noreferrer">SMuFL</a></div>
+      <div style="margin: var(--spacing-md); height: 2.5em; display: flex; align-items: center; justify-content: center;"><a href="https://www.w3.org/2021/03/smufl14/" rel="noopener noreferrer">SMuFL</a></div>
      </div>
    `);
 
