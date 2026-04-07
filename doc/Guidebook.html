@@ -1,3 +1,21 @@
+<!--
+  Copyright 2025 Glendon Diener. All rights reserved.
+
+  Adding icons:
+  1. Find the icon in src/icon.js (in the iconPaths object)
+  2. Copy its SVG content (everything between the backticks)
+  3. Add a new symbol to the <svg style="display:none"> block near the top of <body>:
+       <symbol id="gb-icon-name" viewBox="0 0 24 24">
+         [pasted SVG content]
+       </symbol>
+     Use a lowercase hyphenated id, e.g. "gb-new-score" for "New Score".
+     Replace \uXXXX escapes with &#xXXXX; entities.
+     Replace var(--menu-drawer-front) with #ddd, var(--bodyShadow) with none.
+     Replace ${scissorsD} and ${circlePath(...)} using the values in icon.js.
+  4. Use the icon anywhere with:
+       <svg class="gb-icon"><use href="#gb-icon-name"/></svg>
+     Add style="margin-left:0.3em" or style="margin-right:0.3em" as needed.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -387,8 +405,236 @@
         table.compat .no { color: #999; }
         table.compat .partial { color: #e67e22; }
     </style>
+<style>
+    @font-face {
+        font-family: "Bravura";
+        src: url("https://cdn.jsdelivr.net/gh/steinbergmedia/bravura@master/redist/otf/Bravura.otf");
+    }
+    svg.gb-icon {
+        width: 1.35em;
+        height: 1.35em;
+        vertical-align: middle;
+        overflow: visible;
+    }
+</style>
 </head>
 <body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="gb-score" viewBox="0 0 24 24">
+    <path fill="#aaa" stroke="currentColor" stroke-width="0.8" d="m14.309339,12.611855v0m-2.543782,-3.2802594 3.122609,-0.01247M1.6649238,22.289353 21.865783,22.478636M18.366179,22.221781 18.066257,3.5141062 20.086952,3.4646895 20.102136,22.20106Zm-1.51175,0.05511-0.560058,-17.6242436 1.367543,0.014358 0.16507,17.6551636zm-6.050171,-0.19639 0.300854,-16.1871633 4.813427,-0.031453 0.02069,16.3211033zM6.1506929,22.108151 11.756662,2.5432418 8.2865928,1.7325439 2.6529156,20.947044Z"/>
+  </symbol>
+  <symbol id="gb-layout" viewBox="0 0 24 24">
+    <path fill="none" stroke="currentColor" stroke-width="0.8" d="m12.1,1.82v2.13m0,8.35v3.9M16.8,11A3.88,4.91 86.2 0 1 11.9,14.3 3.88,4.91 86.2 0 1 7.09,11.1M11.4,8.08C10.3,7.89 9.88,6.88 9.99,5.76 10.1,4.65 11.1,3.81 12.2,3.84c1.1,0 2,0.92 2.1,2.04 0,1.11-0.4,2-1.5,2.13M4.97,21 12.2,7.03 19.8,21"/>
+  </symbol>
+  <symbol id="gb-ink" viewBox="0 0 24 24">
+    <path style="fill:#aaa;stroke:currentColor;stroke-width:0.6;stroke-linecap:butt;stroke-linejoin:miter;" d="m13.5,16.7c1.3,0.4 3.3,0.5 4.4,0m-6.3,1.6c2.1,0.9 6.3,0.9 8.1,0M16.8,17.9C14.8,13.9 14.2,10.2 4.5,2.98 8.43,6.49 12.7,11 16.8,17.9ZM14,13.6C11.8,13.2 10.4,12.2 9.55,11L9.87,10.3 8.48,10.1C5.05,7.72 4.04,3.78 3.08,1.77 5.26,2.68 7.43,3.63 9.43,4.9L9.57,5.78 10.1,5.41c1.7,1.12 3.5,2.34 4.2,4.12l0.1,1.77 0.5,-0.4c0.5,1.2 0.5,2.1-0.2,2.6m-2.3,8c-1.6,-0.2-1.1,-2.3-0.8,-3.2 0.3,-0.9 1.1,-1.5 1.9,-1.6 0,-1 0.2,-1.4 0.4,-1.6 1,-0.1 2.2,-0.2 3.5,0 0.5,0.5 0.4,1 0.5,1.6 0.9,0 1.5,0.7 1.8,1.6 0.3,0.9 0.6,3.1-0.8,3.2-1.4,0.1-4.9,0.2-6.5,0z"/>
+  </symbol>
+  <symbol id="gb-page" viewBox="0 0 24 24">
+    <path fill="#aaa" stroke="currentColor" stroke-width=".6" d="M5.92,15.9H14.9M5.92,12.3H15M5.92,8.63H15M5.92,5H15M17.3,1.88V18.4L3.83,18.3 3.71,1.89Zm0.2,1.59h2.4V20L6.43,19.9V18.6M19.9,5.18h2.5V21.8L8.76,21.6v-1.5" />
+  </symbol>
+  <symbol id="gb-podium" viewBox="0 0 24 24">
+    <g transform="translate(1) scale(0.9,0.9)">
+      <path fill="#aaa" stroke="currentColor" stroke-width=".6" stroke-linejoin="round" d="M4 23v-3h16v3h1.5h-19ZM7 20v-14h10v14M7 12h-2l-3-10h20l-3 10h-2"/>
+      <text x="10" y="14" font-family="Bravura" font-size="12px">&#xE520;</text>
+    </g>
+  </symbol>
+  <symbol id="gb-more" viewBox="0 0 24 24">
+    <circle fill="currentColor" cx="12" cy="6" r="2"/>
+    <circle fill="currentColor" cx="12" cy="12" r="1.75"/>
+    <circle fill="currentColor" cx="12" cy="18" r="1.5"/>
+  </symbol>
+  <symbol id="gb-open" viewBox="0 0 24 24">
+    <path style="fill:#aaa;fill-rule:nonzero;stroke:currentColor;stroke-width:0.6;" d="M3.48,2.04 9.64,3.99 21.1,3.03 14.8,1.29ZM3.55,2.1 3.84,16.5 9.78,21.2 9.63,3.98ZM9.8,21.3 9.58,21.7v1.1L21.4,20.3v-1L21.1,18.9ZM3.85,16.5 3.56,17v0.8l6,5V21.7L9.77,21.2ZM9.64,3.99 21.1,3.06V18.9L9.89,21.2Z" />
+    <path style="fill:#ddd;fill-rule:nonzero;stroke:currentColor;stroke-width:0.6;" d="m10.7,4.94v7.36l9.9,-1.6-0.1,-6.66zm4.1,9.86c0.1,0.4 0.6,0.7 1.4,0.5 0.7,-0.2 1.1,-0.5 1.1,-0.9 0,-0.3-0.6,-0.6-1.4,-0.4-0.7,0.1-1.1,0.5-1.1,0.8zm-4.1,-1.7v7l9.8,-2v-6.7z" />
+    <path style="fill:#ddd;fill-rule:nonzero;stroke:currentColor;stroke-width:0.6;" d="m16.9,8.13c0.1,0.4 0.6,0.7 1.4,0.5 0.7,-0.2 1.1,-0.5 1.1,-0.9 0,-0.3-0.6,-0.6-1.4,-0.4-0.7,0.1-1.1,0.5-1.1,0.8zM12.8,5.84v7.46l9.9,-1.6V4.68ZM10.7,7.89V11l2.1,1V8.72Zm0.1,0 2,0.78V7.76Z"/>
+  </symbol>
+  <symbol id="gb-save" viewBox="0 0 24 24">
+    <path style="fill:#aaa;stroke:currentColor;stroke-width:0.5;fill-rule:nonzero" d="m9.8,21.3-0.22,0.4v1L21.4,20.3v-1L21.1,18.9ZM3.55,2.04 9.64,3.99 21.1,3.03 14.8,1.29ZM3.85,16.5 3.56,17v0.8l5.98,4.9v-1L9.75,21.2ZM3.58,2.06 3.84,16.5 9.78,21.2 9.68,3.97ZM9.77,4.02 9.89,21.2 21.1,18.9V3.06Z"/>
+    <path style="fill:#ddd;stroke:currentColor;stroke-width:0.5;fill-rule:nonzero;" d="m17.2,6.37c0,0.4-0.3,0.76-1.1,0.86-0.7,0.13-1.3,-0.16-1.4,-0.53 0,-0.33 0.5,-0.67 1.1,-0.78 0.8,-0.12 1.4,0.12 1.4,0.45zM10.9,5.06 20.3,4.18v6.72l-9.4,1.4zm0,8.34 9.4,-1.5V18l-9.4,1.9zm6.3,0.9c0,0.3-0.3,0.6-1.1,0.8-0.7,0.1-1.5,0-1.5,-0.5 0,-0.3 0.6,-0.8 1.2,-0.9 0.8,-0.1 1.4,0.1 1.4,0.6z"/>
+  </symbol>
+  <symbol id="gb-new-score" viewBox="0 0 24 24">
+    <path fill="none" stroke="currentColor" stroke-width=".4" stroke-linecap="square" d="m8.45,15.1v0.2m0,0.8v0.2M6.12,15.7c-0.68,0.4-0.68,-1.1 0.48,-0.9 0.83,0 0.96,0.4 1.04,0.9 0.13,1-0.9,2-2.1,2.6v0M6.79,9.67c0.8,-0.2 1.3,-0.8 0.9,-1.6-0.5,-0.8-1.1,-0.7-1.6,-0.3-0.7,0.6-0.1,1.3 0.2,1.3v0M5.69,11c0.3,1.3 1.3,0.8 1.3,0-0.2,-2.03-0.4,-3.93-0.4,-5.93 0,-0.4 0.3,-0.9 0.5,-1 0.9,0.2 0.4,1.9-0.5,2.3-2.3,1-2.2,3.2 0.3,3.3M2.82,18.7c19.98,0 19.98,0 19.98,0v-0.1 0M2.82,17.7c19.98,0 19.98,0 19.98,0v-0.1 0M2.82,16.8c19.98,0 19.98,0 19.98,0v-0.2 0M2.82,15.7c19.98,0 19.98,0 19.98,0v-0.2 0M2.82,14.7c19.98,0 19.98,0 19.98,0v-0.2 0M3.04,9.57c19.76,0 19.76,0 19.76,0v-0.11 0M3.03,8.75c19.77,0 19.77,0 19.77,0v-0.29 0M3.03,7.65c19.77,0 19.77,0 19.77,0v-0.21 0M3.03,6.6c19.77,0 19.77,0 19.77,0v-0.21 0M3.03,5.51c19.77,0 19.77,0 19.77,0v-0.19 0m-19.71,0c0,13.38 0,13.38 0,13.38H2.97v0M2.12,4.72c-1.795,2.14 0.76,3.34-0.86,7.68 1.6,4.5-0.859,6.3 1.03,7.5" />
+  </symbol>
+  <symbol id="gb-print" viewBox="0 0 24 24">
+    <path fill="#aaa" stroke="currentColor" stroke-width=".5" d="m14.3,12h2.2M18.6,15.6 17.5,13M6.18,12H7.97M3.37,15.6 5.17,13M11.1,1.96h1M10.7,3.13 11.4,2.57 11.1,2M11.8,3.12 12.4,2.53 12.1,1.96M11.1,6.91 10.6,6.28 11.2,5.88 10.6,5.19 11.1,4.75 10.7,4.18M12.4,6.86 12,6.23 12.6,5.82 12,5.13 12.4,4.69 12.1,4.12m0.8,2.85H9.85V8.83H12.9V8.28L20.8,8.15V7.69L12.9,7.58ZM7.02,8.82H15.7V10.3H7.01ZM8.19,11.6 6.63,14.4H15.3L14.1,11.6ZM3.56,22.9V15.6H18.4V23H16.5V18.6H15.6V17H6.03v1.6H5.14v4.3zM16.6,8.23V13h0.9L17.6,8.24ZM5.14,13V2.1H6.16V3.15H16.6v-1.1h1.1l-0.1,5.57h-1V4.09H6.16V13Z" />
+  </symbol>
+  <symbol id="gb-details" viewBox="0 0 24 24">
+    <defs>
+      <mask id="gb-details-mask">
+        <rect x="0" y="0" height="24" width="24" fill="white"/>
+        <path fill="black" d="M5 15A8 8 0 0 1 19 15Z"/>
+      </mask>
+    </defs>
+    <path mask="url(#gb-details-mask)" fill="#aaa" stroke="currentColor" stroke-width=".6"
+      d="M1 18A8 8 0 0 1 23 18ZM5 15A8 8 0 0 1 19 15ZM3 18v-1M6 18v-1.5M9 18v-1M12 18v-2M15 18v-1M18 18v-1.5M21 18v-1M4 15l-1.5-.25M7 11l-1-1M12 10v-2M17 11l1-1M20 15l1.5-.25"/>
+  </symbol>
+  <symbol id="gb-book" viewBox="0 0 24 24">
+    <path style="fill:#aaa;stroke:currentColor;stroke-width:0.6;" d="M11.9,21.3C15.1,20.4 18.3,19.5 23,20.6V6C22.4,5.55 19.8,4.56 19,4.31V15.1c-2.4,0.3-4.8,3.4-7.1,6.2z"/>
+    <path style="fill:none;stroke:currentColor;stroke-width:0.6;" d="m3.46,11.2c1.38,-0.6 4.12,-1.8 5.95,0m-6.3,6.9C4.19,17.9 6.76,16.5 9.49,18M3.31,14.7c1.43,-0.6 3.56,-1.8 5.95,0M3.35,8.38c1.44,-0.87 3.98,-1.41 6.32,0M12,6.14C6.99,3.73 3.82,4.29 1.12,6.13L1.02,21.4c3.46,-1.5 6.99,-2.1 10.78,0z" />
+    <path style="fill:none;stroke:currentColor;stroke-width:0.6;" d="m13.6,12.3c1,-1.4 2.1,-2.82 3.2,-3.4m-3,6.8c0.3,-0.9 1.4,-2.1 3.1,-3.5M13.7,8.93c1.2,-1.9 2.2,-2.45 3.5,-3.36M11.9,6.14C14,4.03 16.4,2.47 19,1.04V15c-2.8,1.1-5,3.8-7.2,6.4z" />
+  </symbol>
+  <symbol id="gb-horizontal-scroll" viewBox="0 0 24 24">
+    <path fill="#888" stroke="currentColor" stroke-width="0.6" d="M16.7,9.6H7.48m9.22,5.2H7.48m9.22,2.5H7.37M16.7,12.2H7.48M16.7,6.98H7.37M1.44,20.2a0.545,0.519 0 0 0 0.53,0.5 0.545,0.519 0 0 0 0.52,-0.5H1.97Zm20.46,0.1a0.545,0.519 0 0 0 0.6,0.5 0.545,0.519 0 0 0 0.5,-0.5H22.5ZM1.55,3.92A0.545,0.519 0 0 1 2.07,3.4 0.545,0.519 0 0 1 2.6,3.92H2.07ZM21.8,4.03a0.545,0.519 0 0 1 0.5,-0.52 0.545,0.519 0 0 1 0.6,0.52H22.3ZM21.4,20C15.1,19.3 9.01,19.4 3.12,20M21.4,4.35C15,5.16 9.01,4.75 3.02,4.35M23.4,4V20.3H21.5V4.06ZM3.02,3.92V20.2H1.13V3.98Z" />
+  </symbol>
+  <symbol id="gb-vertical-scroll" viewBox="0 0 24 24">
+    <path fill="#888" stroke="currentColor" stroke-width="0.6" d="M6.63,14.7H17.5M6.63,9.85H17.5M6.63,7.4H17.6M6.63,12.3H17.5M6.63,17.2H17.6m4,5.2a0.607,0.519 0 0 0 0.6,-0.5 0.607,0.519 0 0 0-0.6,-0.5v0.5zM21.7,2.95A0.607,0.519 0 0 0 22.3,2.43 0.607,0.519 0 0 0 21.7,1.91V2.43ZM2.52,22.3A0.607,0.519 0 0 1 1.9,21.8 0.607,0.519 0 0 1 2.52,21.3v0.5zM2.64,3.05A0.607,0.519 0 0 1 2.04,2.53 0.607,0.519 0 0 1 2.64,2.01V2.53ZM21.4,3.38c-0.9,6.05-0.8,11.82 0,17.42M3.02,3.42c0.94,6.09 0.46,11.78 0,17.48M2.61,1.55H21.7V3.33H2.67ZM2.52,20.9H21.6v1.8H2.58Z"/>
+  </symbol>
+  <symbol id="gb-table" viewBox="0 0 24 24">
+    <path fill="#999" stroke="currentColor" stroke-width="0.5" fill-rule="nonzero" d="M22.8,3.78C22.6,4.12 22.3,4.46 22.4,4.8M17,5.25V6.02M2.4,4.17C2.49,3.91 2.22,3.65 2.04,3.39L7.79,2.03 22.9,3.81 17,5.12 2.09,3.45v0M20.5,7.44c-0.4,1.58 0.6,7.66 0.4,11.26 0.2,0.5-0.4,1.2 0.4,1.5 0.5,0.3 0.5,0.7 1.2,-0.4 0.3,-0.4-0.2,-0.7-0.5,-1.5-0.5,-4 1.2,-8 0.4,-11.4M17,6.21 2.41,4.19V6.52M17,8.51 22.4,6.84V4.82L17,6.16ZM14.9,8.26c0.7,0.47 1,1.15 1.1,2.44 0.8,3.6 0.6,7.1 0.7,10.7-0.1,0.7 0.3,0.7 0.7,0.8 0.4,-0.1 0.4,-0.3 0.5,-0.5C17.8,19 17.1,18.3 18.4,10.6 18.5,10.1 18.6,8.88 19,7.91M9.01,7.63C8.45,10 8.51,13.1 8.6,15.8c0,1.1-0.1,1.1-0.76,1C7.46,16.8 7.6,16.1 7.6,15.6 7.39,12.8 7.29,8.91 6.11,6.92M5.09,6.81C4.35,8.45 4.4,13.9 4.39,17.4c0,1.2 0.89,1.2-1.1,1.3-0.37,0-0.55,-0.9 0.18,-1.5C3.8,12.1 1.75,8.65 2.53,6.48l14.37,2.1"/>
+  </symbol>
+  <symbol id="gb-pen" viewBox="0 0 24 24">
+    <path fill="#aaa" stroke="currentColor" stroke-width="0.5" d="m14.9,3.18 1.4,-1.25 5.4,5.26-1.3,1.29zM2.21,20.5C4.18,18.1 5.33,14.7 5.99,10.7 9.09,8.87 12.2,7.09 14.8,4.6L19,8.77c-2.3,2.33-4.2,5.63-6.2,8.93-5.34,0.5-7.49,2.1-9.78,3.6l7.08,-7.1c1,0.1 1.5,-0.9 0.8,-1.6-0.7,-0.6-1.75,0-1.49,0.9z" />
+  </symbol>
+  <symbol id="gb-pencil" viewBox="0 0 24 24">
+    <path fill="#aaa" stroke="currentColor" stroke-width="0.5" d="M2.36,21.4 2.22,21.8 2.61,21.6M18.7,3.37 20.6,5.39m-2.5,-1.5 2,1.98M17.7,4.33 19.6,6.32M17.2,4.8 19.1,6.77m-2.7,-1.17 2,1.99M3.41,18.6h1.07v0.8h0.85v1.1M2.08,21.9 3.42,18.5 19.7,2.26c1.3,-0.1 2,0.41 2,1.99L5.4,20.5Z" />
+  </symbol>
+  <symbol id="gb-rastrum" viewBox="0 0 24 24">
+    <path fill="#aaa" stroke="currentColor" stroke-width=".6" d="M15.6,2.74 17,1.48 22.4,6.75 21.1,8.04ZM0.472,17.8 6.59,10C9.69,8.18 12.9,6.65 15.5,4.16l4.2,4.17C17.4,10.7 15.5,14 13.5,17.3l-7.55,6.2 6.15,-7.6-7.56,6C4.31,22.1 11.1,14 10.6,14.4l-7.49,6.1 6.21,-7.6-7.65,6.2c-0.59,0.5 6.51,-8.2 6.06,-7.8z"/>
+  </symbol>
+  <symbol id="gb-text" viewBox="0 0 24 24">
+    <text x="0" y="16" font-size="12px" fill="currentColor">Abc</text>
+  </symbol>
+  <symbol id="gb-symbols" viewBox="0 0 24 24">
+    <text y="15" x="7" font-size="13px" font-family="Bravura" fill="currentColor">&#xE050;</text>
+  </symbol>
+  <symbol id="gb-cut" viewBox="0 0 24 24">
+    <path fill="currentColor" transform="translate(3,17) scale(0.02,-0.02) translate(-35,-81)" d="M244 518Q244 499 236.5 479.5Q229 460 229 457Q229 439 267 439Q288 439 335.5 424.5Q383 410 421 393L733 511Q793 533 834 533Q861 533 880.0 524.5Q899 516 926 492L549 348L927 206Q888 166 832 166Q787 166 730 187L421 301Q321 262 251 251Q240 249 236.5 248.0Q233 247 231.5 244.5Q230 242 230.0 236.0Q230 230 238.0 212.5Q246 195 246 175Q246 135 216.0 108.0Q186 81 141.0 81.0Q96 81 67.0 107.5Q38 134 38 175Q38 222 73.5 251.5Q109 281 165 281L233 280Q277 280 310.0 298.5Q343 317 354 348Q325 413 230 413L160 411Q105 411 70.0 439.5Q35 468 35.0 512.0Q35 556 64.0 583.5Q93 611 139 611Q183 611 213.5 584.0Q244 557 244 518ZM146 443Q174 443 192.5 462.0Q211 481 211.0 510.0Q211 539 190.0 559.0Q169 579 138.0 579.0Q107 579 87.5 561.0Q68 543 68.0 514.0Q68 485 91.0 464.0Q114 443 146 443ZM148 249Q117 249 94.0 226.5Q71 204 71 175Q71 148 90.0 130.5Q109 113 138 113Q172 113 192.5 132.5Q213 152 213 185Q213 213 194.5 231.0Q176 249 148 249Z"/>
+  </symbol>
+  <symbol id="gb-copy" viewBox="0 0 24 24">
+    <text y="12" x="4" font-size="11px" font-family="Bravura" fill="#888">&#xE050;</text>
+    <text y="16" x="8" font-size="11px" font-family="Bravura" fill="currentColor">&#xE050;</text>
+  </symbol>
+  <symbol id="gb-paste" viewBox="0 0 24 24">
+    <g style="transform:translate(-3px,-3px) scale(1.2,1.2);">
+      <path style="fill:#aaa;stroke:currentColor;stroke-width:.6;" d="m10.5,10.2h3.2v4.9H10.5ZM11,8.62C10.5,8.75 9.93,8.6 9.56,9.22V16.4H14.6V9.24C14.3,8.66 13.7,8.69 13.1,8.61ZM11,7.4h2.1V8.63H11Zm1.1,-2.22c0.3,-0.1 0.7,2.11 0.6,2.22H11.5C11.4,7.24 11.8,5.07 12.1,5.18Z" />
+    </g>
+  </symbol>
+  <symbol id="gb-undo" viewBox="0 0 24 24">
+    <text font-size="20px" y="16" x="6" fill="currentColor" font-family="Bravura">&#xEDF0;</text>
+  </symbol>
+  <symbol id="gb-grid" viewBox="0 0 24 24">
+    <text font-size="25px" y="12" x="-12" font-family="Bravura" fill="currentColor">&#xEE37;</text>
+  </symbol>
+  <symbol id="gb-edit" viewBox="0 0 24 24">
+    <path fill="#aaa" stroke="currentColor" stroke-width="0.6" d="M12 3 m-2 0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 M4 10 m-2 0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 M20 10 m-2 0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 M4 20 m-2 0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 M20 20 m-2 0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 M4,10h16v10h-16zM12,10v-6.5" />
+  </symbol>
+  <symbol id="gb-numbers" viewBox="0 0 24 24">
+    <path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+    <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+    <rect x="7" y="6" width="9" height="13.5" fill="#aaa" stroke="none"/>
+    <text style="fill:currentColor;font-family:Bravura;font-size:18px;" x="9" y="12.5">&#xE262;</text>
+  </symbol>
+  <symbol id="gb-new-page" viewBox="0 0 24 24">
+    <path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+    <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+    <rect x="7" y="9" width="9" height="6.5" fill="#aaa" stroke="none"/>
+    <text font-family="Bravura" font-size="21" fill="currentColor" transform="translate(9.5,10.5) rotate(45)">&#xE263;</text>
+  </symbol>
+  <symbol id="gb-cut-page" viewBox="0 0 24 24">
+    <path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+    <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 17h12M5.5 20h12"/>
+    <path fill="currentColor" transform="translate(5.5,16) scale(0.013,-0.013) translate(-35,-81)" d="M244 518Q244 499 236.5 479.5Q229 460 229 457Q229 439 267 439Q288 439 335.5 424.5Q383 410 421 393L733 511Q793 533 834 533Q861 533 880.0 524.5Q899 516 926 492L549 348L927 206Q888 166 832 166Q787 166 730 187L421 301Q321 262 251 251Q240 249 236.5 248.0Q233 247 231.5 244.5Q230 242 230.0 236.0Q230 230 238.0 212.5Q246 195 246 175Q246 135 216.0 108.0Q186 81 141.0 81.0Q96 81 67.0 107.5Q38 134 38 175Q38 222 73.5 251.5Q109 281 165 281L233 280Q277 280 310.0 298.5Q343 317 354 348Q325 413 230 413L160 411Q105 411 70.0 439.5Q35 468 35.0 512.0Q35 556 64.0 583.5Q93 611 139 611Q183 611 213.5 584.0Q244 557 244 518ZM146 443Q174 443 192.5 462.0Q211 481 211.0 510.0Q211 539 190.0 559.0Q169 579 138.0 579.0Q107 579 87.5 561.0Q68 543 68.0 514.0Q68 485 91.0 464.0Q114 443 146 443ZM148 249Q117 249 94.0 226.5Q71 204 71 175Q71 148 90.0 130.5Q109 113 138 113Q172 113 192.5 132.5Q213 152 213 185Q213 213 194.5 231.0Q176 249 148 249Z"/>
+  </symbol>
+  <symbol id="gb-copy-page" viewBox="0 0 24 24">
+    <g style="transform:scale(.85)">
+      <path style="transform:translate(-2.5px,-2.5px);fill:#aaa;stroke:currentColor;stroke-width:.3" d="M3 2h17v20.5h-17Z"/>
+      <path style="transform:translate(-2.5px,-2.5px);fill:#aaa;stroke:currentColor;stroke-width:0.1" d="M5.5 5h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+      <path style="transform:translate(5px,3px);fill:#ccc;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+      <path style="transform:translate(5px,3px);fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+    </g>
+  </symbol>
+  <symbol id="gb-paste-page" viewBox="0 0 24 24">
+    <path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+    <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+    <rect x="7" y="7" width="9" height="12.5" fill="#aaa" stroke="none"/>
+    <g style="transform:translate(-2px,.5px) scale(1.1,1.1);">
+      <path style="fill:#bbb;stroke:currentColor;stroke-width:.6;" d="m10.5,10.2h3.2v4.9H10.5ZM11,8.62C10.5,8.75 9.93,8.6 9.56,9.22V16.4H14.6V9.24C14.3,8.66 13.7,8.69 13.1,8.61ZM11,7.4h2.1V8.63H11Zm1.1,-2.22c0.3,-0.1 0.7,2.11 0.6,2.22H11.5C11.4,7.24 11.8,5.07 12.1,5.18Z" />
+    </g>
+  </symbol>
+  <symbol id="gb-export-page" viewBox="0 0 24 24">
+    <path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 5h17v17.5h-17Z"/>
+    <path style="fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+    <rect x="9.75" y="5.5" width="3.5" height="15" fill="#aaa" stroke="none"/>
+    <text x="10" y="22" font-family="Bravura" font-size="15" fill="currentColor">&#xE634;</text>
+  </symbol>
+  <symbol id="gb-import-page" viewBox="0 0 24 24">
+    <path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 5h17v17.5h-17Z"/>
+    <path style="fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+    <rect x="6.75" y="5.5" width="3.5" height="15" fill="#aaa" stroke="none"/>
+    <rect x="13" y="5.5" width="3.5" height="15" fill="#aaa" stroke="none"/>
+    <text x="7" y="22" font-family="Bravura" font-size="15" fill="currentColor">&#xE635;</text>
+    <text x="13" y="22" font-family="Bravura" font-size="15" fill="currentColor">&#xE635;</text>
+  </symbol>
+  <symbol id="gb-merge" viewBox="0 0 24 24">
+    <path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 5h17v17.5h-17Z"/>
+    <path style="fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+    <rect x="3.5" y="17" width="16" height="2.5" fill="#aaa" stroke="none"/>
+    <g transform="rotate(-90,12,12)">
+      <text x="4" y="19.5" font-family="Bravura" font-size="15" fill="currentColor">&#xE635;</text>
+      <text x="13" y="19.5" font-family="Bravura" font-size="15" fill="currentColor">&#xE635;</text>
+    </g>
+  </symbol>
+  <symbol id="gb-magnify" viewBox="0 0 24 24">
+    <defs>
+      <mask id="gb-magnify-mask">
+        <rect x="0" y="0" width="24" height="24" fill="white"/>
+        <circle cx="9" cy="9" r="5.2" fill="black"/>
+      </mask>
+    </defs>
+    <path stroke="currentColor" stroke-width=".3" fill="#aaa" d="M12.1 14.4L20 20L21 18.9L14.4 12.2Z"/>
+    <circle mask="url(#gb-magnify-mask)" cx="9" cy="9" r="6.1" fill="#aaa" stroke="currentColor" stroke-width=".3"/>
+    <circle mask="url(#gb-magnify-mask)" cx="9" cy="9" r="5.3" fill="#aaa" stroke="currentColor" stroke-width=".3"/>
+  </symbol>
+  <symbol id="gb-about" viewBox="0 0 24 24">
+    <text font-size="42px" y="20" x="7" font-family="Bravura" fill="currentColor">&#xED19;</text>
+  </symbol>
+  <symbol id="gb-storage" viewBox="0 0 24 24">
+    <path d="M2 5h20v14h-8v-1.5h-1.5v1.5H2v-5a2 2 0 0 0 0-4V5z" fill="none" stroke="currentColor" stroke-width="0.8"/>
+    <rect x="6" y="7.5" width="5" height="7" rx="0.5" fill="#aaa" stroke="currentColor" stroke-width="0.8"/>
+    <rect x="15" y="7.5" width="5" height="7" rx="0.5" fill="#aaa" stroke="currentColor" stroke-width="0.8"/>
+    <path d="M6.5 7.5v-1.5M8.5 7.5v-1.5M10.5 7.5v-1.5M6.5 14.5v1.5M8.5 14.5v1.5M10.5 14.5v1.5" stroke="currentColor" stroke-width="0.6"/>
+    <path d="M15.5 7.5v-1.5M17.5 7.5v-1.5M19.5 7.5v-1.5M15.5 14.5v1.5M17.5 14.5v1.5M19.5 14.5v1.5" stroke="currentColor" stroke-width="0.6"/>
+    <path d="M2 17h10.5M14 17h8" stroke="currentColor" stroke-width="0.5"/>
+    <path d="M4 19v-2M6 19v-2M8 19v-2M10 19v-2M16 19v-2M18 19v-2M20 19v-2" stroke="currentColor" stroke-width="0.6"/>
+  </symbol>
+  <symbol id="gb-guide" viewBox="0 0 24 24">
+    <g transform="translate(24,0) scale(-1,1) rotate(-20,12,12)">
+      <text font-size="22px" x="2" y="18" font-family="Bravura" fill="currentColor" stroke="currentColor" stroke-width="0.6" style="paint-order:stroke;">&#xEC46;</text>
+    </g>
+  </symbol>
+  <symbol id="gb-light" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M16,6A7,7 0 0 0 9,13A7,7 0 0 0 16,20A7,7 0 0 0 21,18.5A8,8 0 0 1 13,12A8,8 0 0 1 16,6Z"/>
+    <circle fill="currentColor" cx="7" cy="8" r="0.8"/>
+  </symbol>
+  <symbol id="gb-dark" viewBox="0 0 24 24">
+    <circle fill="currentColor" cx="12" cy="12" r="4"/>
+    <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M12,2.5v2M12,19.5v2M21.5,12h-2M4.5,12h-2M18.4,5.6l-1.4,1.4M7,17l-1.4,1.4M18.4,18.4l-1.4-1.4M7,7L5.6,5.6"/>
+  </symbol>
+  <symbol id="gb-full-screen" viewBox="0 0 24 24">
+    <path fill="#aaa" stroke="currentColor" stroke-width="0.9" d="m4.99,18.9 3.1,-3.3m-3.1,0v3.3h3.1m10.21,0-3.1,-3.3m3.1,0v3.3H15.2M5.06,5.18 8.16,8.42M4.99,8.3V5.06h3.1m10.21,0-3.1,3.24m3.1,0V5.06H15.2M8.99,9.01a0.4,0.4 0 0 0-0.4,0.4v5.39a0.4,0.4 0 0 0 0.4,0.4h5.41a0.4,0.4 0 0 0 0.4,-0.4V9.41a0.4,0.4 0 0 0-0.4,-0.4z" />
+  </symbol>
+  <symbol id="gb-normal-screen" viewBox="0 0 24 24">
+    <path fill="#aaa" stroke="currentColor" stroke-width="0.9" d="M8.04,15.7 4.94,19m3.1,0v-3.3h-3.1m10.36,0 3.1,3.3m-3.1,0v-3.3h3.1M8.03,8.24 4.93,5M8.1,5.12V8.36H5M15.3,8.24 18.4,5m-3.1,0v3.24h3.1M8.99,9.01a0.4,0.4 0 0 0-0.4,0.4v5.39a0.4,0.4 0 0 0 0.4,0.4h5.41a0.4,0.4 0 0 0 0.4,-0.4V9.41a0.4,0.4 0 0 0-0.4,-0.4z" />
+  </symbol>
+  <symbol id="gb-metronome" viewBox="0 0 24 24">
+    <path fill="none" stroke="currentColor" stroke-width="1.0" d="M11.6,15 6.85,6.9M11.1,3.92h2.8v0 0M12.6,14 12.5,4.64v0m3.4,16.16v0.8H17V20.8ZM8,20.9h1.13v0.7H7.96Zm0,-5.1h2.47c1.6,-1.5 3,-1.3 4.3,0h2m-9.99,5 4.19,-17.09 1.6,-0.98 1.4,1 4.1,17.07z" />
+  </symbol>
+  <symbol id="gb-stopwatch" viewBox="0 0 24 24">
+    <path fill="none" stroke="currentColor" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" d="m11.9,13 3.2,1.7M8.35,7.28 7.74,5.99M6.04,9.72 4.8,8.96M5.82,16.3 4.77,16.9M8.3,18.7 7.7,20m7.2,-1.1 0.6,1m1.9,-3.6 1.2,0.7M17.4,9.8 18.7,9.05M15.1,7.33 15.8,6.08m-4,-2.16V4.46M3.7,12.9H5.13M11.8,4.93V6.36M11.6,19.7v1.4M18.4,13h1.4m-8,-7.23V13L6.42,17.9M9.49,3.85V2.13H13.9V3.9ZM17.3,6.43 18,5.6 19.2,6.63 18.3,7.61M5.1,7.6 4.15,6.68 5.36,5.51 6.25,6.4M20.3,13A8.57,8.57 0 0 1 11.7,21.6 8.57,8.57 0 0 1 3.13,13 8.57,8.57 0 0 1 11.7,4.43 8.57,8.57 0 0 1 20.3,13Z" />
+  </symbol>
+  <symbol id="gb-clock" viewBox="0 0 24 24">
+    <path fill="none" stroke="currentColor" stroke-width="1.2" d="M3.42,12.9H5.13M11.8,4.68V6.36M11.6,19.7v1.7M18.4,13H20M8.11,8.11 11.8,13.2 11.2,8.24M20.3,13A8.57,8.57 0 0 1 11.7,21.6 8.57,8.57 0 0 1 3.13,13 8.57,8.57 0 0 1 11.7,4.43 8.57,8.57 0 0 1 20.3,13Z" />
+  </symbol>
+  <symbol id="gb-piano" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M9.74,8.98H13.5L13.3,10.9H9.92ZM4.05,13.3V12.7H19.1v0.6zM3.88,10.6 14.2,4.17 18.5,10.4 15.3,10.5V8.31H7.99v2.19zm-0.6,4.3 0.29,7.4h1.16l0.33,-7.4 3.36,0.2 0.51,6h0.74l0.43,-5.9 8,-0.2 0.5,7.1 0.9,-0.1 0.4,-7.1h0.5V10.4H18.9L14.6,4.05 17.7,1.98 17.5,1.49 2.84,9.96 2.8,14.9Z" />
+  </symbol>
+  <symbol id="gb-review" viewBox="0 0 24 24">
+    <path fill="none" stroke="currentColor" stroke-width="0.8" d="m14.5,6.73c-1,-1.34-1.9,-0.78-2.5,0m-7.97,0.5c0,2.48 1.73,4.47 3.99,4.47 2.18,0 4.08,-1.95 4.08,-4.47 0,-2.51-1.9,-4.52-4.08,-4.47-2.26,0-3.99,2-3.99,4.47zM14.5,7.03c0,2.52 2,4.57 4.2,4.47 2.2,0 4,-2.01 4,-4.47 0,-2.47-1.8,-4.48-4,-4.48-2.2,-0.11-4.2,1.95-4.2,4.48zm-10.57,0H1.4L10,22.7c0.5,0 0.8,-0.2 0.9,-0.6L1.4,7.05" />
+  </symbol>
+  <symbol id="gb-volume" viewBox="0 0 24 24">
+    <text y="13" x="6" font-size="20px" font-family="Bravura" fill="currentColor">&#xE534;</text>
+  </symbol>
+</svg>
 
 <script>
 function playVideo(container) {
@@ -970,7 +1216,7 @@ function closeVideo(event, container) {
 </section>
 
 <section id="chapter-4">
-    <h2>Chapter 4: Score Ring</h2>
+    <h2><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-score"/></svg>Chapter 4: Score Ring</h2>
 
     <p>Manage scores stored as PDF files.</p>
 
@@ -995,7 +1241,7 @@ function closeVideo(event, container) {
         <li><strong>Details (drag):</strong> Drag out to reveal a Panel showing detailed information about the score</li>
     </ul>
 
-    <h3 id="chapter-4-open-save">4.1 Score Ring: Open, Save</h3>
+    <h3 id="chapter-4-open-save">4.1 Score Ring: Open, Save<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-open"/></svg><svg class="gb-icon"><use href="#gb-save"/></svg></h3>
 
     <p>Open and save PDF score files.</p>
 
@@ -1074,7 +1320,7 @@ function closeVideo(event, container) {
 
     <p>On platforms that don't allow specifying the file name during save, edit the score name first in the Details Panel (Score Ring &rarr; Details). The .pdf extension is not required&mdash;it's added automatically on save if not present.</p>
 
-    <h3 id="chapter-4-new">4.2 Score Ring: New</h3>
+    <h3 id="chapter-4-new">4.2 Score Ring: New<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-score"/></svg></h3>
 
     <p>Create new, empty scores.</p>
 
@@ -1093,7 +1339,7 @@ function closeVideo(event, container) {
         <li><strong>Background Opacity:</strong> Adjust the opacity of the background color</li>
     </ul>
 
-    <h3 id="chapter-4-print">4.3 Score Ring: Print</h3>
+    <h3 id="chapter-4-print">4.3 Score Ring: Print<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-print"/></svg></h3>
 
     <p>Print the current score with or without annotations.</p>
 
@@ -1113,7 +1359,7 @@ function closeVideo(event, container) {
 
     <div class="note">Large scores or scores with particularly dense or poorly encoded, unoptimized PDF content can fail while printing. If you encounter printing failures, try printing the score in several smaller sections by specifying different page ranges.</div>
 
-    <h3 id="chapter-4-details">4.4 Score Ring: Details</h3>
+    <h3 id="chapter-4-details">4.4 Score Ring: Details<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></h3>
 
     <p>The Details Panel displays comprehensive information about the currently open score.</p>
 
@@ -1137,7 +1383,7 @@ function closeVideo(event, container) {
 </section>
 
 <section id="chapter-5">
-    <h2>Chapter 5: Layout Ring</h2>
+    <h2><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-layout"/></svg>Chapter 5: Layout Ring</h2>
 
     <p>Determine how scores are displayed.</p>
 
@@ -1158,7 +1404,7 @@ function closeVideo(event, container) {
 
     <div class="note">In a Podium Layout, all pages must be the same size. Whenever a score file is opened, the maximum page width and height are first determined. Then, if any pages are smaller than this maximum, they are by default centered and padded with a gray border on all sides. Alternatively, smaller pages can be expanded: the score is scaled so its largest dimension fills the page, then centered in the other dimension. See the <a href="#chapter-4-details" class="chapter-link">Details Panel</a> to configure this behavior.</div>
 
-    <h3 id="chapter-5-book">5.1 Layout Ring: Book</h3>
+    <h3 id="chapter-5-book">5.1 Layout Ring: Book<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-book"/></svg></h3>
 
     <p>Simulate a physical book.</p>
 
@@ -1195,7 +1441,7 @@ function closeVideo(event, container) {
 
     <div class="note">Physical books must have an even number of pages, as each page has 2 sides. If the PDF score file contains an odd number of pages, the last page is displayed on the right (back inside cover position) and cannot be flipped to the left.</div>
 
-    <h3 id="chapter-5-horizontal">5.2 Layout Ring: Horizontal</h3>
+    <h3 id="chapter-5-horizontal">5.2 Layout Ring: Horizontal<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-horizontal-scroll"/></svg></h3>
 
     <p>Display the score as a continuous, horizontally-scrollable flow of pages.</p>
 
@@ -1225,7 +1471,7 @@ function closeVideo(event, container) {
 
     <p><strong>Bookmarks:</strong> Work the same as in Book layout (see above).</p>
 
-    <h3 id="chapter-5-vertical">5.3 Layout Ring: Vertical</h3>
+    <h3 id="chapter-5-vertical">5.3 Layout Ring: Vertical<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-vertical-scroll"/></svg></h3>
 
     <p>Display the score as a continuous, vertically-scrollable flow of pages.</p>
 
@@ -1245,7 +1491,7 @@ function closeVideo(event, container) {
 
     <div class="note">For viewing on a smartphone or small tablet, Vertical layout often gives the best experience. Smartphones work best in landscape orientation. Activate full-screen mode, turn off Numbers, set Page Fit: Width, Show: 1 page, and Snap: disabled. Dismiss the Panel, either by tapping the close button's X, or by simply flinging the panel. Then thumb-scroll through the score. Pro tip: add a blank page at the end of the score so the bottom of the last page can be scrolled fully into view.</div>
 
-    <h3 id="chapter-5-table">5.4 Layout Ring: Table</h3>
+    <h3 id="chapter-5-table">5.4 Layout Ring: Table<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-table"/></svg></h3>
 
     <p>Display all pages of the score in a single table.</p>
 
@@ -1296,7 +1542,7 @@ function closeVideo(event, container) {
 </section>
 
 <section id="chapter-6">
-    <h2>Chapter 6: Ink Ring</h2>
+    <h2><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-ink"/></svg>Chapter 6: Ink Ring</h2>
 
     <p>Add annotations to a score.</p>
 
@@ -1331,7 +1577,7 @@ function closeVideo(event, container) {
 
     <p><strong>Edit:</strong> while active, tapping on any existing annotation allows it to be selected, moved, rotated, or resized. Drag out to reveal a panel with precision sliders for exact positioning.</p>
 
-    <h3 id="chapter-6-pen-pencil">6.1 Ink Ring: Pen, Pencil</h3>
+    <h3 id="chapter-6-pen-pencil">6.1 Ink Ring: Pen, Pencil<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-pen"/></svg><svg class="gb-icon"><use href="#gb-pencil"/></svg></h3>
 
     <p>Draw on score pages.</p>
 
@@ -1354,7 +1600,7 @@ function closeVideo(event, container) {
         <li><strong>Slope:</strong> draws a straight line between two points with no angle restrictions</li>
     </ul>
 
-    <h3 id="chapter-6-rastrum">6.2 Ink Ring: Rastrum</h3>
+    <h3 id="chapter-6-rastrum">6.2 Ink Ring: Rastrum<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-rastrum"/></svg></h3>
 
     <p>Draw music staves.</p>
 
@@ -1379,7 +1625,7 @@ function closeVideo(event, container) {
 
     <div class="note">The Rastrum tool, in combination with <a href="#chapter-6-cut-copy-paste" class="chapter-link">Copy/Paste</a>, the <a href="#chapter-6-grid" class="chapter-link">Grid</a>, and the <a href="#chapter-7-merge" class="chapter-link">Merge operation</a>, can be used to design manuscript paper of considerable complexity.</div>
 
-    <h3 id="chapter-6-text">6.3 Ink Ring: Text</h3>
+    <h3 id="chapter-6-text">6.3 Ink Ring: Text<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-text"/></svg></h3>
 
     <p>Add text boxes to a page.</p>
 
@@ -1394,7 +1640,7 @@ function closeVideo(event, container) {
         <li>Choose from standard PDF text fonts, plus Vercetti, Bravura, and Patrick Hand fonts.</li>
     </ul>
 
-    <h3 id="chapter-6-symbols">6.4 Ink Ring: Symbols</h3>
+    <h3 id="chapter-6-symbols">6.4 Ink Ring: Symbols<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-symbols"/></svg></h3>
 
     <p>Add music symbols to a page.</p>
 
@@ -1403,7 +1649,7 @@ function closeVideo(event, container) {
         <figcaption>Symbols Panel showing random selection of the approximately 3500 available glyphs</figcaption>
     </figure>
 
-    <p> Symbols are arranged in groups as defined by the Standard Music Font Layout (SMuFL). The <a href="https://w3c.github.io/smufl" target="_blank">SMuFL webpage</a> displays a comprehensive table showing all glyphs and their names in the SMuFL standard. In Podium, all music symbols come from the SMuFL reference <a href="https://github.com/steinbergmedia/bravura" target="_blank">Bravura font</a>.</p>
+    <p> Symbols are arranged in groups as defined by the Standard Music Font Layout (SMuFL). The <a href="https://www.w3.org/2021/03/smufl14/" target="_blank">SMuFL webpage</a> displays a comprehensive table showing all glyphs and their names in the SMuFL standard. In Podium, all music symbols come from the SMuFL reference <a href="https://github.com/steinbergmedia/bravura" target="_blank">Bravura font</a>.</p>
 
     <p>Choose a Symbols Group from the dropdown, then tap to select a symbol in the Preview. Note that most groups have many more symbols than are visible in the preview: drag left ⇄ right to see them all.</p>
 
@@ -1411,7 +1657,7 @@ function closeVideo(event, container) {
 
     <p>After placing a symbol, use the <a href="#chapter-6-edit" class="chapter-link">Edit tool</a> to precisely position, resize, or rotate it.</p>
 
-    <h3 id="chapter-6-cut-copy-paste">6.5 Ink Ring: Cut, Copy, Paste</h3>
+    <h3 id="chapter-6-cut-copy-paste">6.5 Ink Ring: Cut, Copy, Paste<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut"/></svg><svg class="gb-icon"><use href="#gb-copy"/></svg><svg class="gb-icon"><use href="#gb-paste"/></svg></h3>
 
     <p>Manage annotation objects.</p>
 
@@ -1425,7 +1671,7 @@ function closeVideo(event, container) {
 
     <p><strong>Deleting annotations:</strong> To delete an annotation object, activate the Cut cell and tap the object. If you don't subsequently paste the object elsewhere, it is effectively deleted from the score.</p>
 
-    <h3 id="chapter-6-undo">6.6 Ink Ring: Undo</h3>
+    <h3 id="chapter-6-undo">6.6 Ink Ring: Undo<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></h3>
 
     <p>Undo the last Ink Ring action.</p>
 
@@ -1433,7 +1679,7 @@ function closeVideo(event, container) {
 
     <p>You can undo any Ink Ring action including paste, delete, and transform operations. The only exception is the Copy action itself, which cannot be undone (though you can undo the subsequent paste).</p>
 
-    <h3 id="chapter-6-grid">6.7 Ink Ring: Grid</h3>
+    <h3 id="chapter-6-grid">6.7 Ink Ring: Grid<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-grid"/></svg></h3>
 
     <p>Draw a 2-d guide grid for measuring and layout.</p>
 
@@ -1462,7 +1708,7 @@ function closeVideo(event, container) {
 
     <p>The Grid helps in aligning and precisely positioning ink elements. It can also be used to measure distance between elements or score features: when activating the grid, set the 0 point to the start of the measurement and then read off the length. Grid measurements represent Podium's best guess at the size of the corresponding printed representation of the score, regardless of zoom level or monitor resolution.</p>
 
-    <h3 id="chapter-6-edit">6.8 Ink Ring: Edit</h3>
+    <h3 id="chapter-6-edit">6.8 Ink Ring: Edit<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-edit"/></svg></h3>
 
     <p>Edit (move, resize, rotate) annotation objects.</p>
 
@@ -1515,7 +1761,7 @@ function closeVideo(event, container) {
 </section>
 
 <section id="chapter-7">
-    <h2>Chapter 7: Page Ring</h2>
+    <h2><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-page"/></svg>Chapter 7: Page Ring</h2>
 
     <p>Manage the pages and page numbers of a score.</p>
 
@@ -1550,7 +1796,7 @@ function closeVideo(event, container) {
 
     <p><strong>Magnify:</strong> Drag out to reveal a magnifier panel that shows a zoomed-in view of the score at the touch point.</p>
 
-    <h3 id="chapter-7-numbers">7.1 Page Ring: Numbers</h3>
+    <h3 id="chapter-7-numbers">7.1 Page Ring: Numbers<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-numbers"/></svg></h3>
 
     <p>Configure page numbering and view the current page number displayed in the layout margins.</p>
 
@@ -1596,7 +1842,7 @@ function closeVideo(event, container) {
         <li><strong>PageUp / PageDown:</strong> Navigate to previous/next page</li>
     </ul>
 
-    <h3 id="chapter-7-add">7.2 Page Ring: Add</h3>
+    <h3 id="chapter-7-add">7.2 Page Ring: Add<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-page"/></svg></h3>
 
     <p>Configure the appearance of new pages added to the score.</p>
 
@@ -1622,7 +1868,7 @@ function closeVideo(event, container) {
         <li><strong>Custom Size:</strong> Specify custom dimensions for added pages.</li>
     </ul>
 
-    <h3 id="chapter-7-cut-copy-paste">7.3 Page Ring: Cut, Copy, Paste</h3>
+    <h3 id="chapter-7-cut-copy-paste">7.3 Page Ring: Cut, Copy, Paste<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut-page"/></svg><svg class="gb-icon"><use href="#gb-copy-page"/></svg><svg class="gb-icon"><use href="#gb-paste-page"/></svg></h3>
 
     <p>Cut, copy, and paste pages within the current score.</p>
 
@@ -1638,7 +1884,7 @@ function closeVideo(event, container) {
 
     <div class="note">Cut and Paste operations can be undone using the Undo cell. Copy cannot be undone.</div>
 
-    <h3 id="chapter-7-undo">7.4 Page Ring: Undo</h3>
+    <h3 id="chapter-7-undo">7.4 Page Ring: Undo<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></h3>
 
     <p>Undo the last page operation.</p>
 
@@ -1648,7 +1894,7 @@ function closeVideo(event, container) {
 
     <div class="note">Unlike the Ink Ring's per-page undo stack, the Page Ring undo operates on page-level operations across the entire score.</div>
 
-    <h3 id="chapter-7-export-import">7.5 Page Ring: Export, Import</h3>
+    <h3 id="chapter-7-export-import">7.5 Page Ring: Export, Import<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-export-page"/></svg><svg class="gb-icon"><use href="#gb-import-page"/></svg></h3>
 
     <p>Share pages between Podium tabs via the shared buffer.</p>
 
@@ -1678,7 +1924,7 @@ function closeVideo(event, container) {
 
     <div class="note"><strong>Performance Note:</strong> Copying pages between PDFs is very compute intensive, as the PDF format was not designed for this type of operation. It's best not to fill the shared buffer with too many pages at once, or the system will become very slow.</div>
 
-    <h3 id="chapter-7-merge">7.6 Page Ring: Merge</h3>
+    <h3 id="chapter-7-merge">7.6 Page Ring: Merge<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-merge"/></svg></h3>
 
     <p>Merge a score page's Ink annotations into the PDF.</p>
 
@@ -1700,7 +1946,7 @@ function closeVideo(event, container) {
 
     <div class="note">Because a merge operation cannot be undone, you'll be prompted to confirm before the operation is performed.</div>
 
-    <h3 id="chapter-7-magnify">7.7 Page Ring: Magnify</h3>
+    <h3 id="chapter-7-magnify">7.7 Page Ring: Magnify<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-magnify"/></svg></h3>
 
     <p>Magnify a portion of a page.</p>
 
@@ -1732,7 +1978,7 @@ function closeVideo(event, container) {
 </section>
 
 <section id="chapter-8">
-    <h2>Chapter 8: App Ring</h2>
+    <h2><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-podium"/></svg>Chapter 8: App Ring</h2>
 
     <p>Application information and display settings.</p>
 
@@ -1753,7 +1999,7 @@ function closeVideo(event, container) {
 
     <p><strong>Screen:</strong> Toggle full screen mode.</p>
 
-    <h3 id="chapter-8-about">8.1 App Ring: About</h3>
+    <h3 id="chapter-8-about">8.1 App Ring: About<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-about"/></svg></h3>
 
     <p>A tabbed panel providing application information.</p>
 
@@ -1780,7 +2026,7 @@ function closeVideo(event, container) {
     <h4>License Tab:</h4>
     <p>Official copyright and license statement (<a href="https://www.gnu.org/licenses/agpl-3.0-standalone.html" target="_blank">GNU Affero General Public License v3</a>).</p>
 
-    <h3 id="chapter-8-storage">8.2 App Ring: Storage</h3>
+    <h3 id="chapter-8-storage">8.2 App Ring: Storage<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-storage"/></svg></h3>
 
     <p>Manage Podium's browser storage.</p>
 
@@ -1801,15 +2047,15 @@ function closeVideo(event, container) {
 
     <div class="note"><strong>Privacy:</strong> If you share a browser with other users, use the factory reset buttons to clear information you don't want to share after your session. This includes recent file lists, shared buffer contents, and menu settings. Note that the web app and the browser extension maintain separate storage; if you use both, you must use these reset buttons in both environments to clear all your data.</div>
 
-    <h3 id="chapter-8-guide">8.3 App Ring: Guide</h3>
+    <h3 id="chapter-8-guide">8.3 App Ring: Guide<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-guide"/></svg></h3>
 
     <p>Opens this guidebook in the app. The guidebook is fetched from the web, so an internet connection is required. In the browser extension, the guidebook opens in a new tab. To save it for offline reading, open it in a new window and use your browser's Save Page feature (typically Ctrl+S or Cmd+S) to download it with all images and videos.</p>
 
-    <h3 id="chapter-8-theme">8.4 App Ring: Theme</h3>
+    <h3 id="chapter-8-theme">8.4 App Ring: Theme<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-light"/></svg><svg class="gb-icon"><use href="#gb-dark"/></svg></h3>
 
     <p>Toggles between light and dark display themes. The current theme is stored and persists across sessions.</p>
 
-    <h3 id="chapter-8-screen">8.5 App Ring: Screen</h3>
+    <h3 id="chapter-8-screen">8.5 App Ring: Screen<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-full-screen"/></svg><svg class="gb-icon"><use href="#gb-normal-screen"/></svg></h3>
 
     <p>Toggles full screen mode. Alternatively, toggle full screen by swiping left ⇄ right on the background. On iPhone/iPad, the swipe gesture can only exit full-screen; use this button to enter.</p>
 
@@ -1817,7 +2063,7 @@ function closeVideo(event, container) {
 </section>
 
 <section id="chapter-9">
-    <h2>Chapter 9: More Ring</h2>
+    <h2><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-more"/></svg>Chapter 9: More Ring</h2>
 
     <p>Musician's toolkit.</p>
 
@@ -1859,7 +2105,7 @@ function closeVideo(event, container) {
 
     <p>To close and delete a detached panel, drag out the panel from the menu again, then tap the panel's X button.</p>
 
-    <h3 id="chapter-9-metronome">9.2 More Ring: Metronome</h3>
+    <h3 id="chapter-9-metronome">9.2 More Ring: Metronome<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-metronome"/></svg></h3>
 
     <p>Animated metronome with simulated conductor.</p>
 
@@ -1885,7 +2131,7 @@ function closeVideo(event, container) {
 
     <div class="note">The conducting patterns are experimental: due to the complexity of the animation, expect some misalignment between the pattern and the animation, particularly on slower devices, and at faster tempos.</div>
 
-    <h3 id="chapter-9-stopwatch">9.3 More Ring: Stopwatch</h3>
+    <h3 id="chapter-9-stopwatch">9.3 More Ring: Stopwatch<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-stopwatch"/></svg></h3>
 
     <p>Timer for your practice sessions.</p>
 
@@ -1900,13 +2146,13 @@ function closeVideo(event, container) {
 
     <div class="note">Hiding the panel by flinging (detached or not) keeps the stopwatch running in the background. To stop and close the stopwatch, tap the X button—this effectively deletes the panel. The next time you drag out the Stopwatch cell, the panel is recreated from scratch.</div>
 
-    <h3 id="chapter-9-clock">9.4 More Ring: Clock</h3>
+    <h3 id="chapter-9-clock">9.4 More Ring: Clock<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-clock"/></svg></h3>
 
     <p>Wall clock displaying the current time and date, using the platform's default time zone. Useful for keeping track of time during practice sessions without leaving Podium.</p>
 
     <p>The clock can be detached and positioned anywhere on screen.</p>
 
-    <h3 id="chapter-9-piano">9.5 More Ring: Piano</h3>
+    <h3 id="chapter-9-piano">9.5 More Ring: Piano<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-piano"/></svg></h3>
 
     <p>Playable piano keyboard with tuning and pitch detection features.</p>
 
@@ -1955,7 +2201,7 @@ function closeVideo(event, container) {
 
     <div class="note">Most options include links to explanatory web articles. To select an option, tap the option name itself rather than the link.</div>
 
-    <h3 id="chapter-9-review">9.6 More Ring: Review</h3>
+    <h3 id="chapter-9-review">9.6 More Ring: Review<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-review"/></svg></h3>
 
     <p>Record audio/video with instant replay.</p>
 
@@ -2019,7 +2265,7 @@ function closeVideo(event, container) {
         <figcaption>Review panel Options tab showing camera, recording, and device settings</figcaption>
     </figure>
 
-    <h3 id="chapter-9-volume">9.7 More Ring: Volume</h3>
+    <h3 id="chapter-9-volume">9.7 More Ring: Volume<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-volume"/></svg></h3>
 
     <p>Master volume control for all Podium audio output (metronome, piano, review playback).</p>
 
@@ -2060,26 +2306,25 @@ function closeVideo(event, container) {
     <h2>Index</h2>
     <div class="idx-letter">A</div>
     <dl>
-        <dt>About</dt><dd> &mdash; <a href="#chapter-8-about">8.1</a></dd>
         <dt>About the Author</dt><dd> &mdash; <a href="#chapter-10">Ch.10</a></dd>
-        <dt>Add</dt><dd> &mdash; <a href="#chapter-7-add">7.2</a></dd>
-        <dt>Annotations</dt><dd> &mdash; <a href="#chapter-1">Ch.1</a>, <a href="#chapter-6">Ch.6</a></dd>
-        <dt>App Ring</dt><dd> &mdash; <a href="#chapter-8">Ch.8</a></dd>
+        <dt>About<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-about"/></svg></dt><dd> &mdash; <a href="#chapter-8-about">8.1</a></dd>
+        <dt>Add<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-page"/></svg></dt><dd> &mdash; <a href="#chapter-7-add">7.2</a></dd>
+        <dt>Annotations</dt><dd> &mdash; <a href="#chapter-1">Ch.1</a>, <a href="#chapter-6">chapter-6</a></dd>
         <dt>Aspect ratio</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
     </dl>
     <div class="idx-letter">B</div>
     <dl>
-        <dt>Book</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a></dd>
+        <dt>Book<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-book"/></svg></dt><dd> &mdash; <a href="#chapter-5-book">5.1</a></dd>
         <dt>Bookmarks</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-5-horizontal">5.2</a>, <a href="#chapter-5-table">5.4</a></dd>
         <dt>Bravura font</dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
         <dt>Browser extension</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
-        <dt>Browser tab naming</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Browser tab naming</dt><dd> &mdash; <a href="#chapter-3">chapter-3</a></dd>
     </dl>
     <div class="idx-letter">C</div>
     <dl>
-        <dt>Cell auto-deactivation</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
-        <dt>Cell locking</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a>, <a href="#chapter-6">Ch.6</a></dd>
-        <dt>Clock</dt><dd> &mdash; <a href="#chapter-9-clock">9.4</a></dd>
+        <dt>Cell auto-deactivation</dt><dd> &mdash; <a href="#chapter-3">chapter-3</a></dd>
+        <dt>Cell locking</dt><dd> &mdash; <a href="#chapter-3">chapter-3</a>, <a href="#chapter-6">chapter-6</a></dd>
+        <dt>Clock<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-clock"/></svg></dt><dd> &mdash; <a href="#chapter-9-clock">9.4</a></dd>
         <dt>Cloud storage</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
         <dt>Color chooser</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a>, <a href="#chapter-7-add">7.2</a></dd>
         <dt>Conducting patterns</dt><dd> &mdash; <a href="#chapter-9-metronome">9.2</a></dd>
@@ -2092,7 +2337,7 @@ function closeVideo(event, container) {
     <dl>
         <dt>Dark theme</dt><dd> &mdash; <a href="#chapter-8-theme">8.4</a></dd>
         <dt>Detached Panels</dt><dd> &mdash; <a href="#chapter-9-detached">9.1</a></dd>
-        <dt>Details</dt><dd> &mdash; <a href="#chapter-4-details">4.4</a></dd>
+        <dt>Details<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></dt><dd> &mdash; <a href="#chapter-4-details">4.4</a></dd>
         <dt>Display quality</dt><dd> &mdash; <a href="#chapter-4-details">4.4</a></dd>
         <dt>Drag and drop</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
         <dt>Dropbox</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
@@ -2100,7 +2345,7 @@ function closeVideo(event, container) {
     <div class="idx-letter">E</div>
     <dl>
         <dt>E-reader</dt><dd> &mdash; <a href="#overture">Overture</a></dd>
-        <dt>Edit</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
+        <dt>Edit<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-edit"/></svg></dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
         <dt>Equal temperament</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
         <dt>Expand mode</dt><dd> &mdash; <a href="#chapter-4-details">4.4</a></dd>
         <dt>Export</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
@@ -2109,32 +2354,30 @@ function closeVideo(event, container) {
     <dl>
         <dt>File System Access API</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
         <dt>Firefox settings</dt><dd> &mdash; <a href="#firefox-settings">4.1</a></dd>
-        <dt>Fling gesture</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Fling gesture</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-3">chapter-3</a></dd>
         <dt>Footpedal</dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
-        <dt>Full screen</dt><dd> &mdash; <a href="#chapter-8-screen">8.5</a>, <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Full screen</dt><dd> &mdash; <a href="#chapter-8-screen">8.5</a>, <a href="#chapter-3">chapter-3</a></dd>
     </dl>
     <div class="idx-letter">G</div>
     <dl>
-        <dt>Gestures</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Gestures</dt><dd> &mdash; <a href="#chapter-3">chapter-3</a></dd>
         <dt>Google Drive</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Grid</dt><dd> &mdash; <a href="#chapter-6-grid">6.7</a></dd>
-        <dt>Grip</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Grid<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-grid"/></svg></dt><dd> &mdash; <a href="#chapter-6-grid">6.7</a></dd>
+        <dt>Grip</dt><dd> &mdash; <a href="#chapter-3">chapter-3</a></dd>
         <dt>Group selection</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
-        <dt>Guide</dt><dd> &mdash; <a href="#chapter-8-guide">8.3</a></dd>
+        <dt>Guide<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-guide"/></svg></dt><dd> &mdash; <a href="#chapter-8-guide">8.3</a></dd>
     </dl>
     <div class="idx-letter">H</div>
     <dl>
-        <dt>Horizontal</dt><dd> &mdash; <a href="#chapter-5-horizontal">5.2</a></dd>
+        <dt>Horizontal<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-horizontal-scroll"/></svg></dt><dd> &mdash; <a href="#chapter-5-horizontal">5.2</a></dd>
     </dl>
     <div class="idx-letter">I</div>
     <dl>
         <dt>Images, importing</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a></dd>
-        <dt>Import</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
+        <dt>Import<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-export-page"/></svg><svg class="gb-icon"><use href="#gb-import-page"/></svg></dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
         <dt>IMSLP</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
-        <dt>Ink Ring</dt><dd> &mdash; <a href="#chapter-6">Ch.6</a></dd>
-        <dt>Inner ring</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Inner ring</dt><dd> &mdash; <a href="#chapter-3">chapter-3</a></dd>
         <dt>Installation</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
-        <dt>Interface Basics</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
     </dl>
     <div class="idx-letter">K</div>
     <dl>
@@ -2142,30 +2385,28 @@ function closeVideo(event, container) {
     </dl>
     <div class="idx-letter">L</div>
     <dl>
-        <dt>Layout Ring</dt><dd> &mdash; <a href="#chapter-5">Ch.5</a></dd>
         <dt>Light theme</dt><dd> &mdash; <a href="#chapter-8-theme">8.4</a></dd>
         <dt>Line drawing</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a></dd>
         <dt>Live mode</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Local storage</dt><dd> &mdash; <a href="#chapter-8-storage">8.2</a></dd>
-        <dt>Long press</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Long press</dt><dd> &mdash; <a href="#chapter-3">chapter-3</a></dd>
     </dl>
     <div class="idx-letter">M</div>
     <dl>
-        <dt>Magnify</dt><dd> &mdash; <a href="#chapter-7-magnify">7.7</a></dd>
+        <dt>Magnify<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-magnify"/></svg></dt><dd> &mdash; <a href="#chapter-7-magnify">7.7</a></dd>
         <dt>Manuscript paper</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a>, <a href="#chapter-7-merge">7.6</a></dd>
-        <dt>Merge</dt><dd> &mdash; <a href="#chapter-7-merge">7.6</a></dd>
+        <dt>Merge<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-merge"/></svg></dt><dd> &mdash; <a href="#chapter-7-merge">7.6</a></dd>
         <dt>Metadata</dt><dd> &mdash; <a href="#chapter-4-details">4.4</a></dd>
-        <dt>Metronome</dt><dd> &mdash; <a href="#chapter-9-metronome">9.2</a></dd>
+        <dt>Metronome<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-metronome"/></svg></dt><dd> &mdash; <a href="#chapter-9-metronome">9.2</a></dd>
         <dt>Microphone</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a>, <a href="#chapter-9-review">9.6</a></dd>
-        <dt>More Ring</dt><dd> &mdash; <a href="#chapter-9">Ch.9</a></dd>
-        <dt>Mouse controls</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Mouse controls</dt><dd> &mdash; <a href="#chapter-3">chapter-3</a></dd>
         <dt>Musopen</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
     </dl>
     <div class="idx-letter">N</div>
     <dl>
         <dt>Navigation</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-1">Ch.1</a></dd>
-        <dt>New</dt><dd> &mdash; <a href="#chapter-4-new">4.2</a></dd>
-        <dt>Numbers</dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
+        <dt>New<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-score"/></svg></dt><dd> &mdash; <a href="#chapter-4-new">4.2</a></dd>
+        <dt>Numbers<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-numbers"/></svg></dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
     </dl>
     <div class="idx-letter">O</div>
     <dl>
@@ -2174,29 +2415,30 @@ function closeVideo(event, container) {
         <dt>Opacity</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a>, <a href="#chapter-7-add">7.2</a></dd>
         <dt>Open</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
         <dt>Open source</dt><dd> &mdash; <a href="#overture">Overture</a></dd>
-        <dt>Outer ring</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Outer ring</dt><dd> &mdash; <a href="#chapter-3">chapter-3</a></dd>
     </dl>
     <div class="idx-letter">P</div>
     <dl>
         <dt>Page numbers</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-7-numbers">7.1</a></dd>
         <dt>Page ordering</dt><dd> &mdash; <a href="#chapter-5-table">5.4</a></dd>
         <dt>Page range</dt><dd> &mdash; <a href="#chapter-4-print">4.3</a></dd>
-        <dt>Page Ring</dt><dd> &mdash; <a href="#chapter-7">Ch.7</a></dd>
         <dt>Page sizing</dt><dd> &mdash; <a href="#chapter-4-details">4.4</a></dd>
         <dt>Page turn</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a></dd>
         <dt>Password-protected PDF</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Paste</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a>, <a href="#chapter-7-cut-copy-paste">7.3</a></dd>
         <dt>Paste buffer</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
+        <dt>Paste<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut"/></svg><svg class="gb-icon"><use href="#gb-copy"/></svg><svg class="gb-icon"><use href="#gb-paste"/></svg></dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a></dd>
+        <dt>Paste<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut-page"/></svg><svg class="gb-icon"><use href="#gb-copy-page"/></svg><svg class="gb-icon"><use href="#gb-paste-page"/></svg></dt><dd> &mdash; <a href="#chapter-7-cut-copy-paste">7.3</a></dd>
         <dt>PDF files</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a>, <a href="#overture">Overture</a></dd>
         <dt>Pen</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a></dd>
-        <dt>Pencil</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a></dd>
-        <dt>Piano</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
-        <dt>Pinch-zoom</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Pencil<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-pen"/></svg><svg class="gb-icon"><use href="#gb-pencil"/></svg></dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a></dd>
+        <dt>Piano<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-piano"/></svg></dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
+        <dt>Pinch-zoom</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-3">chapter-3</a></dd>
         <dt>Pitch detector</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
         <dt>Playback</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Practice scores</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
         <dt>Precision sliders</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
         <dt>Print</dt><dd> &mdash; <a href="#chapter-4-print">4.3</a></dd>
+        <dt>Print<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-print"/></svg></dt><dd> &mdash; <a href="#chapter-4-print">4.3</a></dd>
         <dt>Privacy</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a>, <a href="#chapter-8-storage">8.2</a></dd>
         <dt>Progressive Web App</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
     </dl>
@@ -2206,58 +2448,57 @@ function closeVideo(event, container) {
     </dl>
     <div class="idx-letter">R</div>
     <dl>
-        <dt>Rastrum</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a></dd>
+        <dt>Rastrum<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-rastrum"/></svg></dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a></dd>
         <dt>Recent files</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a>, <a href="#chapter-8-storage">8.2</a></dd>
         <dt>Recording</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Reorder pages</dt><dd> &mdash; <a href="#chapter-5-table">5.4</a></dd>
-        <dt>Resize</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Resize</dt><dd> &mdash; <a href="#chapter-3">chapter-3</a></dd>
         <dt>Revert to saved</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Review</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
+        <dt>Review<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-review"/></svg></dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Roman numerals</dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
-        <dt>Rotating rings</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Rotating rings</dt><dd> &mdash; <a href="#chapter-3">chapter-3</a></dd>
         <dt>Running Podium</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
     </dl>
     <div class="idx-letter">S</div>
     <dl>
         <dt>Salamander Grand Piano</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
-        <dt>Save</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Score Ring</dt><dd> &mdash; <a href="#chapter-4">Ch.4</a></dd>
-        <dt>Screen</dt><dd> &mdash; <a href="#chapter-8-screen">8.5</a></dd>
+        <dt>Save<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-open"/></svg><svg class="gb-icon"><use href="#gb-save"/></svg></dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
+        <dt>Screen<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-full-screen"/></svg><svg class="gb-icon"><use href="#gb-normal-screen"/></svg></dt><dd> &mdash; <a href="#chapter-8-screen">8.5</a></dd>
         <dt>Scrubber</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Shared buffer</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
-        <dt>Sliders</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Sliders</dt><dd> &mdash; <a href="#chapter-3">chapter-3</a></dd>
         <dt>SMuFL</dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
         <dt>Snap scrolling</dt><dd> &mdash; <a href="#chapter-5-horizontal">5.2</a>, <a href="#chapter-5-vertical">5.3</a></dd>
         <dt>Spectrogram</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Split times</dt><dd> &mdash; <a href="#chapter-9-stopwatch">9.3</a></dd>
         <dt>Staff space</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a>, <a href="#chapter-6-symbols">6.4</a></dd>
         <dt>Staves</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a></dd>
-        <dt>Stopwatch</dt><dd> &mdash; <a href="#chapter-9-stopwatch">9.3</a></dd>
-        <dt>Storage</dt><dd> &mdash; <a href="#chapter-8-storage">8.2</a></dd>
+        <dt>Stopwatch<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-stopwatch"/></svg></dt><dd> &mdash; <a href="#chapter-9-stopwatch">9.3</a></dd>
+        <dt>Storage<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-storage"/></svg></dt><dd> &mdash; <a href="#chapter-8-storage">8.2</a></dd>
         <dt>Sustain mode</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
         <dt>Symbol library</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
-        <dt>Symbols</dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
+        <dt>Symbols<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-symbols"/></svg></dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
     </dl>
     <div class="idx-letter">T</div>
     <dl>
         <dt>Tablature</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a></dd>
-        <dt>Table</dt><dd> &mdash; <a href="#chapter-5-table">5.4</a></dd>
+        <dt>Table<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-table"/></svg></dt><dd> &mdash; <a href="#chapter-5-table">5.4</a></dd>
         <dt>Temperament</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
-        <dt>Text</dt><dd> &mdash; <a href="#chapter-6-text">6.3</a></dd>
-        <dt>Theme</dt><dd> &mdash; <a href="#chapter-8-theme">8.4</a></dd>
+        <dt>Text<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-text"/></svg></dt><dd> &mdash; <a href="#chapter-6-text">6.3</a></dd>
+        <dt>Theme<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-light"/></svg><svg class="gb-icon"><use href="#gb-dark"/></svg></dt><dd> &mdash; <a href="#chapter-8-theme">8.4</a></dd>
         <dt>Timbre</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
         <dt>Transform handles</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
         <dt>Tuner</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
     </dl>
     <div class="idx-letter">U</div>
     <dl>
-        <dt>Undo</dt><dd> &mdash; <a href="#chapter-6-undo">6.6</a>, <a href="#chapter-7-undo">7.4</a></dd>
         <dt>Undo history</dt><dd> &mdash; <a href="#chapter-6-undo">6.6</a>, <a href="#chapter-7-undo">7.4</a></dd>
+        <dt>Undo<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></dt><dd> &mdash; <a href="#chapter-6-undo">6.6</a>, <a href="#chapter-7-undo">7.4</a></dd>
     </dl>
     <div class="idx-letter">V</div>
     <dl>
-        <dt>Vertical</dt><dd> &mdash; <a href="#chapter-5-vertical">5.3</a></dd>
-        <dt>Volume</dt><dd> &mdash; <a href="#chapter-9-volume">9.7</a></dd>
+        <dt>Vertical<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-vertical-scroll"/></svg></dt><dd> &mdash; <a href="#chapter-5-vertical">5.3</a></dd>
+        <dt>Volume<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-volume"/></svg></dt><dd> &mdash; <a href="#chapter-9-volume">9.7</a></dd>
     </dl>
     <div class="idx-letter">W</div>
     <dl>
@@ -2269,7 +2510,7 @@ function closeVideo(event, container) {
     </dl>
     <div class="idx-letter">Z</div>
     <dl>
-        <dt>Zoom</dt><dd> &mdash; <a href="#chapter-7-magnify">7.7</a>, <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Zoom</dt><dd> &mdash; <a href="#chapter-7-magnify">7.7</a>, <a href="#chapter-3">chapter-3</a></dd>
     </dl>
     <a href="#toc" class="back-to-toc">&uarr; Back to Table of Contents</a>
 </nav>

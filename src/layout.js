@@ -447,12 +447,12 @@ class Layout {
           break;
         }
 
-        case "splice": {
+        case "merge": {
           // splice an entire pdf directly into the current score at pn
-          let spliceCell = _menu_.rings.page.cells.splice;
-          if (!spliceCell.pdfData) break;
-          let pdfData = spliceCell.pdfData;
-          _shade_.show("Splicing...", 50);
+          let mergeCell = _menu_.rings.page.cells.merge;
+          if (!mergeCell.pdfData) break;
+          let pdfData = mergeCell.pdfData;
+          _shade_.show("Merging...", 50);
           _menu_.activateCell(null);
           try {
             let mergedScore = await _score_.bindScore(pdfData, pn);
@@ -463,11 +463,11 @@ class Layout {
           break;
         }
 
-        case "merge": {
-          dialog(`Confirm: Merge all annotations on this page?<br>(cannot be undone)`, 
-            { Merge: { svg: "Merge" }, Cancel: { svg: "Cancel" } },
+        case "flatten": {
+          dialog(`Confirm: Flatten all annotations on this page?<br>(cannot be undone)`, 
+            { Flatten: { svg: "Flatten" }, Cancel: { svg: "Cancel" } },
             (e, prop, tag, args) => {
-              if(tag == "Merge") pg.mergeObjects();
+              if(tag == "Flatten") pg.flattenObjects();
               args.close();
             });
           break;
@@ -943,7 +943,7 @@ class BookLayout extends Layout {
     // Animate page flip from current x and y one step towards toX, toY, all in spineBox coords,
     // then call myself again for next step.
     // When x,y is reached, execute func.
-    //    this.inOp = true;
+    this.inOp = true;
     if (x == toX && y == toY) {
       if (func) func();
       this.inOp = false;

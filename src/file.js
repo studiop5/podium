@@ -1700,11 +1700,11 @@ class LocalFileView {
           Score.visit({ source:Score.sources.local, name:file.name, path:"n/a"}, visitUpdate);
           toast("File opened");
         }
-        else if (this.mode == "splice") {
-          let spliceCell = _menu_.rings.page.cells.splice;
-          spliceCell.pdfData = await file.arrayBuffer();
-          _menu_.activateCell(spliceCell);
-          toast("Tap score to splice");
+        else if (this.mode == "merge") {
+          let mergeCell = _menu_.rings.page.cells.merge;
+          mergeCell.pdfData = await file.arrayBuffer();
+          _menu_.activateCell(mergeCell);
+          toast("Tap score to merge");
         }
         else {
           if(await checkUnsaved()) {
@@ -2076,7 +2076,7 @@ class FileListView {
   }
 
   async getFile(source, requestedPath, requestedName) {
-    if(this.mode != "copy" && this.mode != "splice" && !await checkUnsaved())
+    if(this.mode != "copy" && this.mode != "merge" && !await checkUnsaved())
       return;
     _shade_.show("Downloading file");
     return new Promise(async (accept, reject) => {
@@ -2090,12 +2090,12 @@ class FileListView {
             _menu_.setPasteObj(await bytesToBase64DataUrl(data, this.mimeTypes[ext]), this.mimeTypes[ext]);
             Score.visit({ source, name, path }, visitUpdate);
           }
-        } else if (this.panel.mode == "splice") {
-          let spliceCell = _menu_.rings.page.cells.splice;
-          spliceCell.pdfData = data;
-          _menu_.activateCell(spliceCell);
+        } else if (this.panel.mode == "merge") {
+          let mergeCell = _menu_.rings.page.cells.merge;
+          mergeCell.pdfData = data;
+          _menu_.activateCell(mergeCell);
           Score.visit({ source, name, path }, visitUpdate);
-          toast("Tap score to splice");
+          toast("Tap score to merge");
         } else {
           let score = await new Score().init(source, path, name, data);
           if (fileHandle) score.fileHandle = fileHandle;

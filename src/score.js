@@ -173,7 +173,7 @@ class Pg {
   
       // If indicated, determine scaling factor that will "stretch" score s.t. it
       // will expand pg to fit within score's maxWidth & maxHeight
-      this.stretch = this.score.details.pgFit == "Expand" ? Math.min(
+      this.stretch = this.score.details?.pgFit == "Expand" ? Math.min(
          this.score.maxWidth / this.width,this.score.maxHeight / this.height) : 1;
   
       let domCanvas = document.createElement("canvas");
@@ -369,7 +369,7 @@ class Pg {
       this.thumbElm = helm(
         `<div class="TableLayout__pg" style="width:${maxW / _pxPerEm_}em;height:${maxH / _pxPerEm_}em;"></div>`);
       this.thumbElm.style.backgroundColor = Pg.paddingColor;
-      if(score.details.pgFit == "Center")
+      if(score.details?.pgFit == "Center")
         this.thumbElm.style.backgroundSize = this.width * 100 / score.maxWidth + "%";
 
       // create object URL for fabric canvas
@@ -463,17 +463,17 @@ class Pg {
     _menu_.activateCell(null);
   }
 
-  mergeObjects() {
+  flattenObjects() {
     // This function will effect how a subsequent call of this.toPdf
-    // behaves: it marks all objects on the page with a merge=true
+    // behaves: it marks all objects on the page with a flatten=true
     // property, and set them un-selectable and un-evented.
     // When a page is subsequently saved to pdf, objects with this
-    //  merge property are added to the pdf as normal pdf items, i.e.
-    // "merged" into the pdf. Object without this property will be
+    //  flatten property are added to the pdf as normal pdf items, i.e.
+    // "flattened" into the pdf. Object without this property will be
     // added as pdf stamp annotations that could, in theory, be further edited
     // by other pdf tools.
     for (let obj of this.canvas.getObjects()) {
-      obj.merge = true;
+      obj.flatten = true;
       obj.selectable = false;
       obj.evented = false;
     }
@@ -518,7 +518,8 @@ class Pg {
           top: absoluteTransform.top,
           scaleX : absoluteTransform.scaleX,
           scaleY: absoluteTransform.scaleY,
-          angle: absoluteTransform.angle });
+          angle: absoluteTransform.angle,
+          flatten: absoluteTransform.flatten });
       }     
 
       switch (obj.type) {
@@ -656,6 +657,7 @@ class Pg {
               // Nested group: apply parent transformation, then recurse
                 let clonedGroup = fabric.util.object.clone(groupObj);
                 fabric.util.addTransformToObject(clonedGroup, groupMatrix);
+                clonedGroup.flatten = obj.flatten;
                 await processObj(clonedGroup, null);
             } else {
               // Not a group: get absolute coordinates and app get absolute coordinates
@@ -667,6 +669,7 @@ class Pg {
                   scaleX: tmpObj.scaleX,
                   scaleY: tmpObj.scaleY,
                   angle: tmpObj.angle,
+                  flatten: obj.flatten,
               });
             }
           }
@@ -693,9 +696,9 @@ class Pg {
 
     let json = this.toJson();
     if (!wasInflated) this.deflate();
-    // The returned json will not contain any fabricjs objects with the "merge" property:
+    // The returned json will not contain any fabricjs objects with the "flatten" property:
     // these will have been encorporated directly into the pdf.
-    json.objects = json.objects.filter((obj) => !obj.merge);
+    json.objects = json.objects.filter((obj) => !obj.flatten);
     json.bookmark = this.bookmark;
     return json;
   }
@@ -706,7 +709,7 @@ class Pg {
     //
     // @obj  fabricjs object
     // @ink  "none", "pdf", or "stamp"
-    //   when ink == "none", the object is added to pLibPg whenever obj.mergePdf is true
+    //   when ink == "none", the object is added to pLibPg whenever obj.flattenPdf is true
     //   when ink == "pdf", the object is added into pLibPg
     //   when ink == "stamp", the object is added to a "temporary" pLibPg, then copied
     //     into pLibPg as a stamp annotation
@@ -716,7 +719,7 @@ class Pg {
     let pLibDoc = pLibPg.doc;
     let context = pLibDoc.context;
     let { width, height } = pLibPg.getSize();
-    if ((ink == "none" && obj.merge) || ink == "pdf") {
+    if ((ink == "none" && obj.flatten) || ink == "pdf") {
       // apply func to current page
       func.apply(pLibPg, funcArgs);
       return;

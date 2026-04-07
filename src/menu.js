@@ -324,7 +324,7 @@ class Menu {
         (async () => {
           try {
             wakeLockCell._wakeLock = await navigator.wakeLock.request("screen");
-            dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Full Screen"];
+            dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Wakelock Off"];
           } catch {
             wakeLockCell.stash.on = false;
             toast("Wake lock unavailable.");
@@ -596,12 +596,11 @@ class Menu {
         cut: { name: "Cut", svgPath: iconPaths["Cut Page"] },
         copy: { name: "Copy", svgPath: iconPaths["Copy Page"] },
         paste: { name: "Paste", svgPath: iconPaths["Paste Page"] },
-
         undo: { name: "Undo", svgPath: iconPaths["Undo"] },
         export: { name: "Export", svgPath: iconPaths["Export Page"] },
         import: { name: "Import", svgPath: iconPaths["Import Page"] },
-        splice: { name: "Splice", svgPath: iconPaths["Import Page"] },
         merge: { name: "Merge", svgPath: iconPaths["Merge"] },
+        flatten: { name: "Flatten", svgPath: iconPaths["Flatten"] },
         magnify: { name: "Magnify", svgPath: iconPaths["Magnify"], stash: { zoom: 1 } },
       },
       name: "Page",
@@ -615,7 +614,7 @@ class Menu {
     paths = Object.keys(rings.page.cells).map((path) => `page/${path}/`);
     this.listen(paths.map((path) => path + "up"), (cell) => this.activateCell(rings.page.activeCell === cell ? null :cell));
     this.listen(paths.map((path) => path + "long"), (cell) => this.toggleLock(cell));
-    this.listen(["page/numbers/","page/import/","page/add/","page/magnify/","page/splice/"].map((path) => path + "out"), (cell) =>  this.openPanel(cell));
+    this.listen(["page/numbers/","page/import/","page/add/","page/magnify/","page/merge/"].map((path) => path + "out"), (cell) =>  this.openPanel(cell));
 
     this.listen("page/undo/up", async () => {
        _score_.pgUndo();
@@ -630,7 +629,7 @@ class Menu {
         theme: { name: "Theme", svgPath: iconPaths["Light"], stash: { theme: "Light" }, storage: "local" },
         guide: { name: "Guide", svgPath: iconPaths["Guide"], stash: {} },
         storage: { name: "Storage", svgPath: iconPaths["Storage"], stash: {} },
-        wakeLock: { name: "Wakelock", svgPath: iconPaths["Normal Screen"], stash: { on: false }, storage: "local" },
+        wakeLock: { name: "Wakelock", svgPath: iconPaths["Wakelock Off"], stash: { on: false }, storage: "local" },
         screen: { name: "Screen", stash: {}, svgPath: iconPaths["Full Screen"], storage: "local" },
       },
       svgPath: iconPaths["Podium"],
@@ -669,12 +668,12 @@ class Menu {
         cell.stash.on = false;
         cell._wakeLock?.release();
         cell._wakeLock = null;
-        cellIcon.innerHTML = iconPaths["Normal Screen"];
+        cellIcon.innerHTML = iconPaths["Wakelock On"];
       } else {
         try {
           cell._wakeLock = await navigator.wakeLock.request("screen");
           cell.stash.on = true;
-          cellIcon.innerHTML = iconPaths["Full Screen"];
+          cellIcon.innerHTML = iconPaths["Wakelock Off"];
         } catch {
           toast("Wake lock unavailable.");
         }
@@ -683,7 +682,7 @@ class Menu {
 
     listen(document, "visibilitychange", async () => {
       let cell = rings.app?.cells?.wakeLock;
-      if (cell?.stash.on && document.visibilityState === "visible") {
+      if (cell?.stash.on && document.visibilityState == "visible") {
         try {
           cell._wakeLock = await navigator.wakeLock.request("screen");
         } catch {
@@ -1126,8 +1125,8 @@ class Menu {
         ring.activeCell.locked = false;
         ring.activeCell.elm.classList.remove("Menu__cell-locked");
       }
-      // Discard loaded splice data when splice cell deactivates
-      if (ring.activeCell.key == "splice") ring.activeCell.pdfData = null;
+      // Discard loaded merge data when merge cell deactivates
+      if (ring.activeCell.key == "merge") ring.activeCell.pdfData = null;
     }
     if (cell) {
       cell.elm.classList.add("Menu__cell-active");
