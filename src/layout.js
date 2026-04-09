@@ -1491,11 +1491,11 @@ class ScrollLayout extends Layout {
       [TOP]: 0,
     });
 
-    // sash
+    // sash — clear any residual transition; LEFT is set by pgGoTo below
+    this.sash.style.transition = "unset";
     Object.assign(this.sash.style, {
       [HEIGHT]: "100%",
       [WIDTH]: toEm(g.sash[WIDTH]),
-      [LEFT]: 0,
       [TOP]: 0,
     });
 
@@ -1738,17 +1738,19 @@ class ScrollLayout extends Layout {
       else if (dir == "left") snapIndex++;
       this.sashStart = -snapIndex * snapWidth;
       this.snapIndex = snapIndex;
-    }
+   }
 
-    else if(dir != "none") {
-      // Use the visible (viewport-clipped) frame extent as step — the full frame may extend offscreen
+   if (pace > 0.07 && dir != "none" && pgSnap == 0) {
+      // Free-scroll fling: no snap grid, so use velocity to carry the sash further.
+      // With pgSnap > 0 the snap calculation already chose the target page; don't override it.
       let { X, INNERWIDTH } = this.props;
       let frameBox = getBox(this.frame);
       let visSize = Math.min(frameBox[X] + frameBox[WIDTH], window[INNERWIDTH]) - Math.max(frameBox[X], 0);
-      if (Math.abs(pace) > 0.07)
-        this.sashStart += dir == "left" ? -pace * visSize : pace * visSize; // fling
-      // else: low pace = finger lift, leave sash where drag left it
+      this.sashStart += dir == "left" ? -pace * visSize : pace * visSize;
     }
+
+    this.sashStart = clamp(this.sashStart, sashLimit, 0);
+    this.snapIndex = Math.round(-this.sashStart / snapWidth) ;///
     let [newPn] = this.snapPns() ; // pg number after snap
     this.pnPost(newPn);
     this.pagerLeft.build();
@@ -1763,7 +1765,7 @@ class ScrollLayout extends Layout {
       if(animated)
         animate(this.sash, null, { [LEFT]:this.sashStart / _pxPerEm_ + "em"}, `${LEFT} ${snapDur}ms ease-out`);
       else
-        this.sash.style.left = this.sashStart / _pxPerEm_ + "em" ;
+        this.sash.style[LEFT] = this.sashStart / _pxPerEm_ + "em" ;
       this.spinRollers(snapDur);
     }
     else {
