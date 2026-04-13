@@ -446,6 +446,7 @@ class Menu {
           stash: {
             fit: "Auto", // "Auto","Width","Height","None",
             pnShow: "On", // "On" or "Off"
+            pace: 85, // pace: animation speed in %, 0 means no animation
           },
           svgPath: iconPaths["Book"],
         },
@@ -458,6 +459,7 @@ class Menu {
             pnShow: "On",
             pgShow: 2,
             pgSnap: 2,
+            pace: 85, 
           },
           svgPath: iconPaths["Horizontal Scroll"],
         },
@@ -470,6 +472,7 @@ class Menu {
             pnShow: "On",
             pgShow: 1, // [1,_score_.pages.length)
             pgSnap: 0, // 0 = disabled
+            pace: 85, 
           },
           svgPath: iconPaths["Vertical Scroll"],
         },
@@ -585,7 +588,7 @@ class Menu {
         numbers: {
           name: "Numbers",
           svgPath: iconPaths["Numbers"],
-          stash: { pn: 1, first: 1, prelim: 0, forward: "Pages", reverse: "Pages", pace: 85 }, // pace: animation speed in %, 0 means no animation
+          stash: { pn: 1, first: 1, prelim: 0, forward: "Pages", reverse: "Pages" },
           storage: "score",
         },
         add: {
@@ -631,6 +634,7 @@ class Menu {
         storage: { name: "Storage", svgPath: iconPaths["Storage"], stash: {} },
         wakeLock: { name: "Wakelock", svgPath: iconPaths["Wakelock Off"], stash: { on: false }, storage: "local" },
         screen: { name: "Screen", stash: {}, svgPath: iconPaths["Full Screen"], storage: "local" },
+        animation: { name: "Animation", stash: {}, svgPath: iconPaths["Full Screen"], storage: "local" },
       },
       svgPath: iconPaths["Podium"],
 

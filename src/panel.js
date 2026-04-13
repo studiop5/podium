@@ -578,8 +578,8 @@ class AddPanel extends Panel {
     let disable = stash.size != "Custom";
 
     this.customGroup = new SliderGroup(stash,
-      { Width: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
-        Height: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
+      { Width: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable, row:1, col:1 },
+        Height: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable, row:1, col:2 },
       }, null);
     this.custom.replaceWith(this.customGroup.elm);
 
@@ -948,8 +948,8 @@ class GridPanel extends Panel {
       this.inchSliders = new SliderGroup(
         this.cell.stash,
         {
-          xStep: { min: 0, max: 4, step: 1, value: 0, msg: xStepMsg },
-          yStep: { min: 0, max: 4, step: 1, value: 0, msg: yStepMsg },
+          xStep: { min: 0, max: 4, step: 1, value: 0, msg: xStepMsg, row:1, col:1 },
+          yStep: { min: 0, max: 4, step: 1, value: 0, msg: yStepMsg, row:1, col:2 },
         },
         () => {}
       );
@@ -1160,6 +1160,7 @@ class LayoutPanel extends Panel {
       <div data-tag="bookFace" class="Panel__body">
         Page Fit<br>
         <div data-tag="fitBook"></div>
+        <div data-tag="bookSliders"></div>
         Numbers<br>
         <div data-tag="pnBook"></div>
        </div>
@@ -1216,12 +1217,14 @@ class LayoutPanel extends Panel {
          if(cell.stash.pgSnap > value) cell.stash.pgSnap = value;
          return "Show: " + value + (value == 1 ? " page" : " pages");
       } else if(tag == "pgSnap") {
-        if (value == -3) return "Snap: none";
+        if (value == -4) return "Snap: none";
+        if (value == -3) return "Snap: visible";
         if (value == -2) return "Snap: 1/4 page";
         if (value == -1) return "Snap: 1/3 page";
         if (value == 0) return "Snap: 1/2 page";
         return "Snap: " + value + (value == 1 ? " page." : " pages");
-      }
+      } else if(tag == "gap") return `Gap: ${value}%`;
+      else if(tag == "pace") return `Pace: ${value}%`
     };
 
     // defs for scroll/slider groups
@@ -1231,24 +1234,22 @@ class LayoutPanel extends Panel {
       Width: { svg: "Fit Width", radio: "fit", redo: true },
       Height: { svg: "Fit Height", radio: "fit", redo: true },
     };
-
-    let scrollSlidersGroupDef = {
-      pgShow: {
-        min: 1,
-        max: 8,
-        step: 1,
-        msg: msgCallback,
-        throttle: 750,
-      },
+    let bookSlidersGroupDef = {
+      pace:   { min: 1, max: 100, step: 1, msg: msgCallback, throttle: 750 }
+    }
+    let horzSlidersGroupDef = {
+      pgShow: { min: 1, max: 8, step: 1, msg: msgCallback, throttle: 750, row:1, col:1},
       // values <= 0  are reinterpreted: see msgCallback
-      pgSnap: { min: -3, max: 8, step: 1, msg: msgCallback, throttle: 750 },
-      gap: {
-        min: 0,
-        max: 100,
-        step: 0.5,
-        msg: "Gap: {value} %",
-        throttle: 750,
-      },
+      pgSnap: { min: -4, max: 8, step: 1, msg: msgCallback, throttle: 750, row:1, col:2},
+      gap: { min: 0, max: 100, step: 0.5, msg: "Gap: {value} %", throttle: 750, row:2, col:1},
+      pace:   { min: 1, max: 100, step: 1, msg: msgCallback, throttle: 750, row: 2, col: 2},
+    };
+    // Horizontal layout uses a 2-column grid: pgShow/pgSnap on row 1, gap/pace on row 2
+    let vertSlidersGroupDef = {
+      pgShow: { min: 1, max: 8, step: 1, msg: msgCallback, throttle: 750, col: 1, row: 1 },
+      pgSnap: { min: -4, max: 8, step: 1, msg: msgCallback, throttle: 750, col: 2, row: 1 },
+      gap:    { min: 0, max: 100, step: 0.5, msg: "Gap: {value} %", throttle: 750, col: 1, row: 2 },
+      pace:   { min: 1, max: 100, step: 1, msg: msgCallback, throttle: 750, col: 2, row: 2 },
     };
 
     let pnGroupDef = {
@@ -1257,27 +1258,9 @@ class LayoutPanel extends Panel {
     };
 
     let tableSlidersGroupDef = {
-      pages: {
-        min: 1,
-        max: 50,
-        msg: "Pages per row: {value}",
-        step: 1,
-        throttle: 750,
-      },
-      horizontalGap: {
-        min: -100,
-        max: 100,
-        msg: "Horizontal Gap: {value} %",
-        step: 1,
-        throttle: 750,
-      },
-      verticalGap: {
-        min: -100,
-        max: 100,
-        msg: "Vertical Gap: {value} %",
-        step: 1,
-        throttle: 750,
-      },
+      pages: { min: 1, max: 50, msg: "Pages per row: {value}", step: 1, throttle: 750 },
+      horizontalGap: { min: -100, max: 100, msg: "Horizontal Gap: {value} %", step: 1, throttle: 750},
+      verticalGap: { min: -100, max: 100, msg: "Vertical Gap: {value} %", step: 1, throttle: 750 },
     };
 
     // build faces. Note: both BottonGroup and SliderGroup modify their defs element, so we
@@ -1287,6 +1270,9 @@ class LayoutPanel extends Panel {
     // build book face
     let stash = _menu_.rings.layout.cells.book.stash;
     tags.fitBook.replaceWith(new ButtonGroup(stash, fitGroupDef, handler).elm);
+    tags.bookSliders.replaceWith(
+      new SliderGroup(stash, bookSlidersGroupDef, handler).elm,
+    );
     tags.pnBook.replaceWith(new ButtonGroup(stash, pnGroupDef, handler).elm);
 
     // build horizontal face
@@ -1295,7 +1281,7 @@ class LayoutPanel extends Panel {
       new ButtonGroup(stash, fitGroupDef, handler).elm
     );
     tags.fitHorizontalSliders.replaceWith(
-      new SliderGroup(stash, scrollSlidersGroupDef, handler).elm
+      new SliderGroup(stash, horzSlidersGroupDef, handler).elm,
     );
     tags.pnHorizontal.replaceWith(
       new ButtonGroup(stash, pnGroupDef, handler).elm
@@ -1307,7 +1293,7 @@ class LayoutPanel extends Panel {
       new ButtonGroup(stash, fitGroupDef, handler).elm
     );
     tags.fitVerticalSliders.replaceWith(
-      new SliderGroup(stash, scrollSlidersGroupDef, handler).elm
+      new SliderGroup(stash, vertSlidersGroupDef, handler).elm
     );
     tags.pnVertical.replaceWith(
       new ButtonGroup(stash, pnGroupDef, handler).elm
@@ -1563,7 +1549,6 @@ class NumbersPanel extends Panel {
            <div style="min-width: 4em; text-align: left; font-size: 0.9em">Prev (\u21e6/\u21e9):</div>
            <div data-tag="reverse" style="flex: 1"></div>
          </div>
-         <div data-tag="paceSlider"></div>
        </div>
      </div>
    `);
@@ -1583,11 +1568,11 @@ class NumbersPanel extends Panel {
 
     let defs = {
       pn: { min: 1, max: score.pgs.length, value: score.numbers.pn, step: 1,
-        msg: formatPn, throttle: 500},
+        msg: formatPn, throttle: 500, fullWidth:true},
       prelim: {min: 0, max: 100,value: _score_.numbers.prelim,step: 1,
-        msg: () => `Roman: ${_score_.numbers.prelim}`,throttle: 500 },
+        msg: () => `Roman: ${_score_.numbers.prelim}`,throttle: 500, row:2, col:1 },
       first: { min: 1, max: 1000, value: _score_.numbers.first, step: 1,
-        msg: () => `First: ${_score_.numbers.first}`,throttle: 500},
+        msg: () => `First: ${_score_.numbers.first}`,throttle: 500, row:2, col:2},
     };
     this.pnSliderGroup = new SliderGroup(
        _score_.numbers,
@@ -1597,20 +1582,6 @@ class NumbersPanel extends Panel {
     );
 
     this.sliders.replaceWith(this.pnSliderGroup.elm);
-
-
-    // Make the "First #" and "Roman" sliders smaller and narrower...looks much
-    // nicer that way, emphasizes that they are "subordinate" so to speak
-    let sliderBlocks = this.pnSliderGroup.elm.querySelectorAll('.SliderGroup__SliderBlock');
-    [sliderBlocks[1], sliderBlocks[2]].forEach(block => {
-      if (block) {
-        block.style.fontSize = '.8em';
-        block.style.width = '80%';
-        block.style.marginLeft = 'auto';
-        block.style.marginRight = 'auto';
-        block.style.position = 'relative';
-      }
-    });
 
     this.forwardGroup = new ButtonGroup(
       score.numbers,
@@ -1630,13 +1601,6 @@ class NumbersPanel extends Panel {
     );
     this.reverse.replaceWith(this.reverseGroup.elm);
 
-    this.paceSliderGroup = new SliderGroup(
-       _score_.numbers,
-       { pace: { min: 1, max: 101, step:1, value: score.numbers.pace, msg: (tag, val) => val == 101 ? "No Animation": `Pace: ${val}%`}},
-       (e, tag, value) => score.numbers.pace = value,
-    );
-
-    this.paceSlider.replaceWith(this.paceSliderGroup.elm);
 
 
     listen(_body_, "NUMBERS", (e) => {
@@ -1805,17 +1769,17 @@ class PenPanel extends PencilPanel {}
 class RastrumPanel extends PencilPanel {
   slidersDef = {
     gap: {
-      throttle: 250, min: 5, max: 40, step: 1, value: 8, msg: "Staff Space: {value}px" },
+      throttle: 250, min: 5, max: 40, step: 1, value: 8, fullWidth:true, msg: "Staff Space: {value}px" },
     lines: {
-      throttle: 250, min: 1, max: 60, step: 1, value: 5, msg: "Lines: {value}" },
+      throttle: 250, min: 1, max: 60, step: 1, value: 5, row:2, col:1, msg: "Lines: {value}"},
     width: {
-      throttle: 250, min: 0, max: 20, step: 0.1, value: 1, msg: (tag, value) =>
+      throttle: 250, min: 0, max: 20, step: 0.1, value: 1, row:2, col:2, msg: (tag, value) =>
         `Width: ${value == 0 ? "Auto":value + "px"}` },
     bars: {
-      throttle: 250, min: 0, max: 60, step: 1, value: 4, msg: "Bars: {value}" },
+      throttle: 250, min: 0, max: 60, step: 1, value: 4, row:3, col:1, msg: "Bars: {value}" },
     barWidth: {
-      throttle: 250, min: 0, max: 30, step: 0.1, value: 4, msg: (tag, value) => 
-        `Barline Width: ${value == 0 ? "Auto":value + "px"}` },
+      throttle: 250, min: 0, max: 30, step: 0.1, value: 4, row:3, col:2, msg: (tag, value) => 
+        `Width: ${value == 0 ? "Auto":value + "px"}` },
 
   };
 
@@ -1826,54 +1790,6 @@ class RastrumPanel extends PencilPanel {
 
   constructor(cell) {
     super(cell);
-
-
-    delay(3, () => { 
-      // After superclass constructor has done layout, arrange sliders 
-      // so that lLines/width, bars/barsWidth are on same line
-      this.body.style.width = "16em" ;
-      Object.assign(this.sliders.elm.style, {
-        "display": "grid",
-        "grid-template-columns": "repeat(6, 1fr)",
-        "width": "100%",
-      });
-      let sliderBlocks = this.sliders.elm.querySelectorAll('.SliderGroup__SliderBlock');
-      Object.assign(sliderBlocks[0].style, {
-        "grid-column": "1/-1",
-        "grid-row": 1,
-      });
-      Object.assign(sliderBlocks[1].style, {
-        "font-size": "0.75em",
-        "grid-column": "1/4",
-        "grid-row": 2,
-      });
-      Object.assign(sliderBlocks[2].style, {
-        "font-size": "0.75em",
-        "grid-column": "4/7",
-        "grid-row": 2,
-      }),
-      Object.assign(sliderBlocks[3].style, {
-        "font-size": "0.75em",
-        "grid-column": "1/4",
-        "grid-row": 3,
-      }),
-      Object.assign(sliderBlocks[4].style, {
-        "font-size": "0.75em",
-        "grid-column": "4/7",
-        "grid-row": 3,
-      }),
-
-      this.sliders.elm.querySelectorAll('.Slider').forEach((slider, i) => {
-        if(i != 0) 
-          Object.assign(slider.style, {
-            width: "calc(50% - 3em)",
-            left: "unset",
-          })
-       });
-     }) ;
-     // make preview square
-     this.preview.style.height = "unset";
-     this.preview.style.aspectRatio = 1 ;
     }
 
 
@@ -1887,7 +1803,7 @@ class RastrumPanel extends PencilPanel {
     if (width == 0) width = .13 * gap ; 
     if (barWidth == 0) barWidth = .16 * gap ; 
     let staffHeight = (lines - 1) * gap + width;
-    let offset = (100 - staffHeight) / 2;
+    let offset = (50 - staffHeight) / 2;
     for (let i = 0, y = offset; ++i <= lines; y += gap)
       if (style == "L-R") linePath += `M5 ${y}h90v${width}h-90Z`;
       else linePath += `M${y} 5v90h${width}v-90Z`;
@@ -1923,7 +1839,6 @@ class RastrumPanel extends PencilPanel {
       width: width,
       gap: gap,
       bars: bars,
-      // style: style, // style doesn't redraw correctly
     });
     brush.draw();
     Object.assign(active, active._calcDimensions());
@@ -1934,8 +1849,8 @@ class RastrumPanel extends PencilPanel {
 
 class TextPanel extends PencilPanel {
   slidersDef = {
-    size: { min: 1, max: 100, step: 1, value: 1, msg: "Font Size: {value} px" },
-    height: { min: 1, max: 100, step: 1, value: 1, msg: "Line Height: {value} px" },
+    size: { min: 1, max: 100, step: 1, value: 1, msg: "Size: {value} px", row:1, col:1 },
+    height: { min: 1, max: 100, step: 1, value: 1, msg: "Spacing: {value} px", row:1, col:2 },
   };
 
   buttonsDef = null;

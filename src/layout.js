@@ -20,9 +20,9 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { Spot, animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, delayMs, dialog, getBox,   helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, unlisten,} from "./common.js";
-import { panels, ScreenPanel } from "./panel.js";
-import { Pg, Score } from "./score.js";
+import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, getBox, helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, toast, unlisten,} from "./common.js";
+import {ScreenPanel } from "./panel.js";
+import { Pg } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
 // -skip
 
@@ -162,67 +162,37 @@ class Layout {
         linear-gradient(145deg, #f958 0%, #A748 100%),
         ${Layout.recto}
     }
+    .Layout__alert {
+      background-color: #0000;
+      height: 60px !important;
+      width: 60px !important;
+    }
+
   `);
 
 
-  // startElm and endElm are displayed Layout.pgAlert to show a div whenever the user
-  // attempts to navigate to a page that's before the start or past the end of a score.
-  static startElm = document.createElement("canvas");
-  static endElm = document.createElement("canvas");
-  static {
-    document.fonts.load("30px Bravura").then(() => {
-      for (let elm of [Layout.startElm, Layout.endElm]) {
-        elm.width = elm.height = 45;
-        elm.style = "position:absolute;z-index:1000;";
-        let ctx = elm.getContext("2d");
-        ctx.shadowColor = "rgba(0, 0, 0, 0.5)"; // Shadow color
-        ctx.shadowOffsetX = 2; // Horizontal offset
-        ctx.shadowOffsetY = 2; // Vertical offset
-        ctx.shadowBlur = 4; // Blur amount
-        ctx.font = "30px Bravura";
-        ctx.fillText("\ue01a", 0, 32);
-        if (elm === Layout.startElm) ctx.fillText("\ue033", 0, 32);
-        else {
-          // assume Layout.endElm
-          ctx.fillText("\ue032", 16, 32);
-          ctx.font = "italic 12px Bravura";
-          ctx.fillText("Fine", 2, 42);
-        }
-        // This seems like it should be bigger:
-        elm.style.transform = "scale(2.5)";
-      }
-    });
+  // Toast shown when user tries to navigate before the first or past the last page.
+  static pgAlert(which) {
+    toast(which == "start"
+      ? `<div style="position:absolute;font:2em/1 Bravura;top:42px;left:33px;">\ue033</div>
+         <div style="position:absolute;font:2em/1 Bravura;top:42px;left:33px;">\ue01a</div>`
+      : `<div style="position:absolute;top:5px;left:28px;font:italic bold 0.9em/1 'Times New Roman',serif";>Fine</div>
+         <div style="position:absolute;font:2em/1 Bravura;left:33px;top:50px;">\ue01a</div>
+         <div style="position:absolute;font:2em/1 Bravura;left:57px;top:50px;">\ue032</div>`,
+      "Layout__alert", 150) ;
+
   }
 
-  // Display an alert when user tries to page past end or before
-  // beginning of score using a pointer event.
-  // @e is the pointer event
-  // @elm is on of Layout.startElm or Layout.endElm
-  static pgAlert(e, elm) {
-    // no-op if div already onscreen:
-    if (elm.isConnected) return;
-    let setPos = (e) => {
-      Object.assign(elm.style, {
-        left: e.clientX + "px",
-        top: (e.clientY > 100 ? e.clientY - 100 : e.clientY + 150) + "px",
-      });
-    };
-    setPos(e);
-    _body_.append(elm);
-    let mv = listen(_body_, "pointermove", (emv) => setPos(emv));
-    listen(_body_, "pointerup", () => {
-      unlisten(mv); elm.remove();},
-      { once: true });
-   }
 
   static async open(cell) {
     if (!_score_) return;
     _shade_.show("Formatting");
     let score = _score_; // assumes there is an activeScore
     Layout.activeLayout?.destructor();
-    if (cell.key == "book") await new BookLayout(score, cell).build();
-    else if (cell.key == "horizontal" || cell.key == "vertical") await new ScrollLayout(score, cell).build();
-    else if (cell.key == "table") await new TableLayout(score, cell).build();
+    _score_.layout = cell.stash;
+    if (cell.key == "book") await new BookLayout(_score_, cell).build();
+    else if (cell.key == "horizontal" || cell.key == "vertical") await new ScrollLayout(_score_, cell).build();
+    else if (cell.key == "table") await new TableLayout(_score_, cell).build();
     _menu_.rings.layout.stash.active = cell.key;
     _shade_.hide();
     ScreenPanel.update(Layout.activeLayout.elm);
@@ -394,7 +364,7 @@ class Layout {
             await pg.inflate() ; 
             await pg.getThumbElm() ;
           }
-          await this.build(false);
+          this.build(false);
           break;
         }
 
@@ -466,7 +436,7 @@ class Layout {
         case "flatten": {
           dialog(`Confirm: Flatten all annotations on this page?<br>(cannot be undone)`, 
             { Flatten: { svg: "Flatten" }, Cancel: { svg: "Cancel" } },
-            (e, prop, tag, args) => {
+            (_e, _prop, tag, args) => {
               if(tag == "Flatten") pg.flattenObjects();
               args.close();
             });
@@ -488,7 +458,7 @@ class Layout {
     return false;
   }
 
-  async pgOpen(how,unused) {
+  async pgOpen(how) {
     // Subclasses override with logic to open page, where @how is one
     // of "next","prev","first","last".
     // Ignore rapid page turn requests while operation is in progress
@@ -885,7 +855,7 @@ class BookLayout extends Layout {
     let slot = e.target.closest(".BookLayout__slot");
     if (slot === this.slots[3] && this.slots[4].children.length > 0) advancing = true;
     else if (slot === this.slots[2]) advancing = false;
-    else return Layout.pgAlert(e, Layout.endElm);
+    else return Layout.pgAlert("end");
     this.inOp = true;
     this.elm.setPointerCapture(e.pointerId);
     let spineBox = getBox(this.spine);
@@ -908,32 +878,20 @@ class BookLayout extends Layout {
         unlisten(mv);
         let x = eup.clientX - spineBox.x;
         let y = eup.clientY - spineBox.y;
-        // Determine if we're actually flipping a page (fromX moved past spine)
-        // or letting page flop back to its original position.
         let flipping = (advancing && x <= 0) || (!advancing && x > 0);
-        // Compute velocity from last 150ms of movement
-        let recentBuf = mvBuffer.filter(ev => eup.timeStamp - ev.t <= 150);
-        let pace;
-        if (recentBuf.length >= 2) {
-          let first = recentBuf[0], last = recentBuf[recentBuf.length - 1];
-          let dt = last.t - first.t;
-          if (dt > 0) {
+        let pace = 100 ; 
+        if(eup.timeStamp - e.timeStamp > 150 || Math.abs(e.clientX - eup.clientX) > 10) { // not a jab
+          let recentBuf = mvBuffer.filter(ev => eup.timeStamp - ev.t <= 150);
+          if (recentBuf.length > 1) {
+            let first = recentBuf[0], last = recentBuf[recentBuf.length - 1];
+            let dt = last.t - first.t;
             let vel = (last.x - first.x) / dt; // px/ms, signed
-            let speed = Math.abs(vel);
-            if (speed > 0.1) {
-              // fast recent movement: direction determines flip or flop
-              flipping = advancing ? vel < 0 : vel > 0;
-            }
-            pace = speed;
+            pace = Math.abs(vel);
+            flipping = advancing ? vel < 0 : vel > 0; // sign determines flip or flop
           }
+          else pace = null; 
         }
-        // treat < 150ms total with no significant recent movement as quick press
-        if(eup.timeStamp - e.timeStamp < 150 && !pace) {
-          this.pgFlipAnimator.cancel();
-          this.inOp = false;
-          return await this.pgShift(advancing);
-        }
-
+        else flipping = true ;
         // Determine x position of where to move page: flip fully to opposite side
         // of spine, or flop fully back to initial side.
         let toX = flipping ? (advancing ? -pgWidth : pgWidth) : advancing ? pgWidth : -pgWidth;
@@ -948,30 +906,28 @@ class BookLayout extends Layout {
     );
   }
 
-  pgFlip(x, y, toX, toY, advancing, func, pace = .8) {
-    // Animate page flip from current x and y one step towards toX, toY, all in spineBox coords,
-    // then call myself again for next step.
-    // When x,y is reached, execute func.
+  pgFlip(x, y, toX, toY, advancing, func, pace, stepDist=null) {
+    // Animate page flip one step towards toX/toY (spineBox coords), recurse until done.
+    // pace: animation speed in px/ms. pace >= 1 completes in 3 iterations (near-instant).
+    //   pace < 1 scales up iteration count proportionally. null = use layout stash default.
+    if (pace == null) pace = _score_.layout.pace / 100;
     this.inOp = true;
-    if (x == toX && y == toY) {
+    if (x == toX) {
       if (func) func();
       this.inOp = false;
       return;
     }
-
-    // Move towards toX by 1/divisor of the distance each step (ease-out), snapping
-    // when within 1em. Pace controls both the interval and the divisor: faster fling =
-    // shorter interval + larger step fraction = visibly faster animation.
-    let minD = _pxPerEm_ / 4 ; // snap closed when this many px from closed position.
-    let divisor = clamp(2.5 / pace, 1.5, 5);
-    let dX = Math.abs(toX - x) / divisor;
-    let dY = Math.abs(toY - y) / divisor;
-    let flipping = dX <= minD ;
-    x = flipping ? toX : toX > x ? x + dX : x - dX;
-    y = flipping ? toY : toY > y ? y + dY : y - dY;
+    if (stepDist == null) {
+      let steps = pace >= 1 ? 3 : clamp(Math.round(3 / pace), 3, 15);
+      stepDist = Math.abs(toX - x) / steps;
+    }
+    let remaining = Math.abs(toX - x);
+    let progress = Math.min(stepDist / remaining, 1);
+    x = progress >= 1 ? toX : x + (toX - x) * progress;
+    y = progress >= 1 ? toY : y + (toY - y) * progress;
     this.pgMove(x, y, advancing);
     let interval = clamp(42 / pace, 16, 120);
-    this.pgFlipAnimator.run(interval, () => this.pgFlip(x, y, toX, toY, advancing, func, pace));
+    this.pgFlipAnimator.run(interval, () => this.pgFlip(x, y, toX, toY, advancing, func, pace, stepDist));
   }
 
   async pgMount(pn, slot, nonblocking=true) {
@@ -1122,7 +1078,6 @@ class BookLayout extends Layout {
     let pn = parseInt(_score_.numbers.pn);
     let inc = 2; // Always turn by 2 pages (one spread) for consistent page turns
     let pgCount = this.score.pgs.length;
-    let pace = _score_.numbers.pace == 100 ? 0: _score_.numbers.pace / 100 ;
 
     switch (how) {
       case "next":
@@ -1201,7 +1156,7 @@ class BookLayout extends Layout {
       this.pn0 = pn0 + 2;
     }
     let {pgWidth, pgHeight} = this.cell.geo;
-    let pace = _score_.numbers.pace == 101 ? 0: _score_.numbers.pace / 100 ;
+    let pace = _score_.layout.pace == 101 ? 0: _score_.layout.pace / 100 ;
     if(pace == 0 || !animated) {  // skip pgFlip animation
      this.pgFlipAnimator.cancel() ;
      this.inOp = false ;
@@ -1569,16 +1524,8 @@ class ScrollLayout extends Layout {
         this.sash.style[LEFT] = toEm(this.sashStart);
         this.spinRollers();
         dir = clientX > e.mv1[CLIENTX] ? "right" : clientX < e.mv1[CLIENTX] ? "left" : "none";
-        if (dir == "left" && atEnd) {
-          Layout.pgAlert(emv, Layout.endElm);
-          if (Layout.startElm.isConnected) Layout.startElm.remove();
-        } else if (dir == "right" && atStart) {
-          Layout.pgAlert(emv, Layout.startElm);
-          if (Layout.endElm.isConnected) Layout.endElm.remove();
-        } else {
-          if (Layout.startElm.isConnected) Layout.startElm.remove();
-          if (Layout.endElm.isConnected) Layout.endElm.remove();
-        }
+        if (dir == "left" && atEnd && !e.alerted) { e.alerted = true; Layout.pgAlert("end"); }
+        else if (dir == "right" && atStart && !e.alerted) { e.alerted = true; Layout.pgAlert("start"); }
       }).bind(this)
     );
 
@@ -1621,22 +1568,13 @@ class ScrollLayout extends Layout {
   }
 
   async pgGoTo(pn, animated=true) {
-    let { LEFT, WIDTH } = this.props;
-    let { gap, pg, pgCount, pgSnap, pgShow, sashLimit } = this.cell.geo;
-    let pace = _score_.numbers.pace == 100 ? 0: _score_.numbers.pace / 100 ;
-    let pgSpan = pg[WIDTH] + gap ;
-    let [left] = this.snapPns() ;
-    if(pn <= left) { // backward: move sash right
-      this.sashStart = -pgSpan * pn ; // move 1 pg to left of final position
-      this.sash.style[LEFT] = this.sashStart / _pxPerEm_ + "em" ; 
-      return await this.pgSnapTo("right", pace, animated, true) ;
-    }
-    else { // forward: move sash left
-      this.sashStart = -pgSpan * (pn - 2); // 1 pg to right of final position
-      this.sashStart = Math.max(this.sashStart, (pgCount - pgShow - 1) * -pgSpan) ;
-      this.sash.style[LEFT] = this.sashStart / _pxPerEm_ + "em" ;
-      return await this.pgSnapTo("left", pace, animated, true) ;
-    }
+    let { pg, gap, sashLimit } = this.cell.geo;
+    let pace = _score_.layout.pace == 101 ? 0 : _score_.layout.pace / 100;
+    let pgSpan = pg[this.props.WIDTH] + gap;
+    this.sashStart = clamp(-(pn - 1) * pgSpan, sashLimit, 0);
+    this.snapStep = 1;       // whole-page; pgSnapTo corrects for snap setting on next gesture
+    this.snapIndex = pn - 1;
+    await this.pgCommit(pn, pace, animated);
   }
 
   async pgMount(pn) {
@@ -1674,10 +1612,29 @@ class ScrollLayout extends Layout {
     }
   }
 
+  async pgCommit(pn, pace, animated) {
+    let { LEFT } = this.props;
+    this.pnPost(pn);
+    this.pagerLeft.build();
+    this.pagerRight.build();
+    await this.pgMount(pn);
+    if (pace > 0) {
+      let snapDur = ((2000 - 50) * (1 - pace) + 50) * (this.snapStep || 1);
+      if (animated)
+        animate(this.sash, null, { [LEFT]: this.sashStart / _pxPerEm_ + "em" }, `${LEFT} ${snapDur}ms ease-out`);
+      else
+        this.sash.style[LEFT] = this.sashStart / _pxPerEm_ + "em";
+      this.spinRollers(snapDur);
+    } else {
+      this.spinRollers(1000);
+      this.sash.style[LEFT] = this.sashStart / _pxPerEm_ + "em";
+    }
+  }
+
   async pgOpen(how, bookMarks) {
     if (bookMarks) return super.pgOpen(how);
     let pn = parseInt(_score_.numbers.pn);
-    let pace = _score_.numbers.pace == 100 ? 0: _score_.numbers.pace / 100 ;
+    let pace = _score_.layout.pace == 101 ? 0 : _score_.layout.pace / 100 ;
     switch (how) {
       case "next": return this.pgSnapTo("right", pace) ;
       case "prev": return this.pgSnapTo("left", pace) ;
@@ -1692,7 +1649,7 @@ class ScrollLayout extends Layout {
    * page boundary (or partial page).
    */
 
-  snapMap = {"-3":0, "-2":1/4, "-1":1/3, "0":1/2}; // partial page snaps
+  snapMap = {"-4":0, "-3":"visible", "-2":1/4, "-1":1/3, "0":1/2}; // partial page snaps
 
   snapPns() {
     // Returns [leftPn, rightPn] using integer arithmetic to avoid float accumulation error.
@@ -1716,62 +1673,48 @@ class ScrollLayout extends Layout {
     return [left, right];
   }
 
-  async pgSnapTo(dir, pace, animated=true, integral=false) {
-    // "snap" displayed pages so that they align with a page boundary.  @dir is "right" or "left" or none (i.e. nearest)
-    // @pace is "velocity". If pgSnap == -3 (maps to 0...)0, and dir != none, then pace is used to fling the sash left or right.
-    //    In this case, if pace <= 0, then no animation, just snap.
-    // @animated animate the snap, otherwise skip animation
-    // @integral when true, snap's of less than a pg are ignored...when coming from a pager move or from 
-    //   a rebuild, there are no snaps < 1.
-    let { LEFT, WIDTH } = this.props;
-    let { gap, pgCount, pgSnap, pgShow, sashLimit} = this.cell.geo;
+  async pgSnapTo(dir, pace, animated=true) {
+    // dir: "left" (forward), "right" (backward), "none" (snap to nearest — user paused before release)
+    // pace: fling velocity 0..1, or -1 for jab (immediate snap, no animation)
+    let { WIDTH, X, INNERWIDTH } = this.props;
+    let { gap, pgSnap, sashLimit } = this.cell.geo;
     let pgWidth = this.cell.geo.pg[WIDTH];
-    if(pgSnap < 1) { 
-      pgSnap = this.snapMap[pgSnap] ;
-      if(integral) pgSnap = 1 ;
+    let pgSpan = pgWidth + gap;
+    let frameBox = getBox(this.frame);
+    let visSize = Math.min(frameBox[X] + frameBox[WIDTH], window[INNERWIDTH]) - Math.max(frameBox[X], 0);
+
+    // Resolve snap width
+    let snap = pgSnap < 1 ? (this.snapMap[pgSnap] ?? 0) : pgSnap;
+    let snapWidth;
+    if (snap == "visible") {
+      snapWidth = visSize;   // snap by visible screen amount (non-integer pages OK)
+      this.snapStep = 0;     // snapPns() derives page from sashStart
+    } else {
+      this.snapStep = snap;
+      snapWidth = pgSpan * snap;
     }
-    this.snapStep = pgSnap;
-    let snapWidth = (pgWidth + gap) * pgSnap;
-    if (pgSnap > 0) {
-      let snapIndex = Math.round(-this.sashStart / snapWidth) ;
+
+    if (snapWidth > 0) {
+      // Snap to nearest boundary, then step one unit in the gesture direction
+      let snapIndex = Math.round(-this.sashStart / snapWidth);
       if (dir == "right") snapIndex--;
       else if (dir == "left") snapIndex++;
       this.sashStart = -snapIndex * snapWidth;
       this.snapIndex = snapIndex;
-   }
-
-   if (pace > 0.07 && dir != "none" && pgSnap == 0) {
-      // Free-scroll fling: no snap grid, so use velocity to carry the sash further.
-      // With pgSnap > 0 the snap calculation already chose the target page; don't override it.
-      let { X, INNERWIDTH } = this.props;
-      let frameBox = getBox(this.frame);
-      let visSize = Math.min(frameBox[X] + frameBox[WIDTH], window[INNERWIDTH]) - Math.max(frameBox[X], 0);
+    } else if (pace > 0.07 && dir != "none") {
+      // Free-scroll fling (pgSnap == 0): carry sash by velocity × one visible screen
       this.sashStart += dir == "left" ? -pace * visSize : pace * visSize;
     }
 
+    let targetSash = this.sashStart;
     this.sashStart = clamp(this.sashStart, sashLimit, 0);
-    this.snapIndex = Math.round(-this.sashStart / snapWidth) ;///
-    let [newPn] = this.snapPns() ; // pg number after snap
-    this.pnPost(newPn);
-    this.pagerLeft.build();
-    this.pagerRight.build();
-    await this.pgMount(newPn, dir);
+    if (targetSash !== this.sashStart)
+      Layout.pgAlert(targetSash > 0 ? "start" : "end");
+    if (snapWidth > 0)
+      this.snapIndex = Math.round(-this.sashStart / snapWidth);
 
-    if(pace > 0) {
-      // animate the snap, updating on every animation frame
-      let maxDur = 2000 ; // per-page snap duration when pace = 0 (theoretical: when pace == 0, block not entered)
-      let minDur = 50 ;   // per-page snap duration when pace = 1
-      let snapDur = ((maxDur - minDur) * (1 - pace) + minDur) * (pgSnap || 1) ; // when pgSnap == 0, multiply by 1
-      if(animated)
-        animate(this.sash, null, { [LEFT]:this.sashStart / _pxPerEm_ + "em"}, `${LEFT} ${snapDur}ms ease-out`);
-      else
-        this.sash.style[LEFT] = this.sashStart / _pxPerEm_ + "em" ;
-      this.spinRollers(snapDur);
-    }
-    else {
-      this.spinRollers(1000);
-      this.sash.style[LEFT] = this.sashStart / _pxPerEm_ + "em" ;
-    }
+    let [newPn] = this.snapPns();
+    await this.pgCommit(newPn, pace, animated);
   }
 
   spinRollers(dur = 0) {
@@ -1888,7 +1831,7 @@ class TableLayout extends Layout {
     this.animated = animated;
     if(this.active) {
       this.active.classList.remove("TableLayout__pg-active");
-      let canvas = this.active.querySelector(".canvas-container")?.remove();
+      this.active.querySelector(".canvas-container")?.remove();
       this.active = null;
     }
     Object.assign(this, this.cell.stash);
@@ -1955,7 +1898,7 @@ class TableLayout extends Layout {
     }
     else {
       // ...then all thumbnails already built
-      for(let {pn, top, left} of this.gridCoords) {
+      for(let {pn, top} of this.gridCoords) {
         let gridHeight = top + pgHeight ;
         grid.style.height = toEm(gridHeight);
         let nextTop = innerHeight - gridHeight - Layout.margin;
@@ -2091,7 +2034,7 @@ class TableLayout extends Layout {
     }
 
     mv(emv) {
-      let {splits, splitsStyle, splitsTrans, transform, active} = this;
+      let {splits, splitsStyle} = this;
       this.active.style.left = emv.clientX - this.offset.x + "px";
       this.active.style.top = emv.clientY - this.offset.y + "px";
       let target = document.elementFromPoint(emv.clientX, emv.clientY);
@@ -2124,7 +2067,7 @@ class TableLayout extends Layout {
          this.toPn = this.active.pn;
     }
 
-    async up(eup) {
+    async up() {
       this.splits.forEach((elm, i) => elm && (elm.style.cssText = this.splitsStyle[i]));
       let score = this.layout.score;
       if(this.toPn == null) {

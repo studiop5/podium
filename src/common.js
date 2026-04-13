@@ -1268,6 +1268,7 @@ class SliderGroup {
      }
      .SliderGroup__SliderBlock__Slider {
         display: block;
+        position: relative;
         width: 100%;
         height: 2em;
         margin-top: var(--spacing-sm);
@@ -1275,6 +1276,12 @@ class SliderGroup {
      .SliderGroup__SliderBlock__Slider-disabled {
        opacity: 0.35;
        pointer-events: none;
+     }
+    .SliderGroup--grid {
+       display: grid;
+       grid-template-columns: 1fr 1fr;
+       column-gap: var(--spacing-sm);
+       font-size: 75%;
      }
    `
   );
@@ -1290,6 +1297,7 @@ class SliderGroup {
     // but any object will do), to read/write the slider value from/to.
     // handler is a (possibly empty) callback invoked when slider value changes,
     //    throttle: <<msecs>>, throttle calling of any handler
+    // Grid mode is activated automatically when any def has col, row, or fullWidth set.
     this.props = props;
     // Any keys not assigned in def are given default values:
     this.defs = defs;
@@ -1315,8 +1323,13 @@ class SliderGroup {
                min="${tagDef.min}" max="${tagDef.max}" step="${tagDef.step}" value="${tagDef.value}">
           </pod-slider></div>`
       );
+      if (tagDef.fullWidth) elm.style.gridColumn = "1 / -1";
+      else if (tagDef.col != null) elm.style.gridColumn = tagDef.col;
+      if (tagDef.row != null) elm.style.gridRow = tagDef.row;
       this.elm.append(elm);
     }
+    let useGrid = Object.values(defs).some(d => d.col != null || d.row != null || d.fullWidth);
+    if (useGrid) this.elm.classList.add("SliderGroup--grid");
     this.dataIndex = dataIndex("tag", this.elm);
     listen(this.elm, ["input", "change"], this.handle.bind(this));
 
@@ -2274,17 +2287,21 @@ function strToHash(str) {
   return Math.abs(hash);
 }
 
-function toast(innerHtml) {
+function toast(innerHtml, addClass=null, duration=null) {
   // display a "toast", i.e. a brief message that automatically dismisses
   // after _gs_ msecs.
   // @param innerHtml the html content of the toast.
+  // @param addClass optional additonal css class
+  // @param duration optional float that replaces _gs_ as duration basis
+  let dur = duration ? duration: _gs_ ;
   let elm = helm(
-    `<div style="position:absolute;display:flex;justify-content:center;align-items: center;height: 100vh;width:100vw;">
-       <div class="floatingMsg" style="z-index:999999998;position:absolute;width:fit-content;height:fit-content;opacity:0;transition:opacity ${_gs_}ms ease-in">${innerHtml}</div>
+    `<div style="position:absolute;pointer-events:none;display:flex;justify-content:center;align-items:center;height:100vh;width:100vw;pointer-events:none">
+       <div class="floatingMsg" style="z-index:999999998;position:absolute;width:fit-content;height:fit-content;opacity:0;transition:opacity ${dur}ms ease-in">${innerHtml}</div>
      </div>`
   );
+  if(addClass) elm.firstElementChild.classList.add(addClass) ;
   _body_.append(elm);
   delay(1, () => elm.firstElementChild.style.opacity = "1");
-  delayMs(_gs_ * 2.5, () => elm.firstElementChild.style.opacity = "0");
-  delayMs(_gs_ * 3.5, () => elm.remove());
+  delayMs(dur * 2.5, () => elm.firstElementChild.style.opacity = "0");
+  delayMs(dur * 3.5, () => elm.remove());
 }
