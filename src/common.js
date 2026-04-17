@@ -1034,10 +1034,8 @@ class PodiumSlider extends HTMLElement {
     if (this.adjusting) return;
     if (which != "value") {
       this[which] = parseFloat(is);
-      this.updateGeometry();
     } else {
-      this.updateGeometry();
-      let pos = (is - this.min) / (this.max - this.min);
+      let pos = clamp((is - this.min) / (this.max - this.min), 0, 1);
       this.setPos(pos);
     }
   }
@@ -1047,8 +1045,9 @@ class PodiumSlider extends HTMLElement {
     this.pos = pos;
     let value = pos * (this.max - this.min) + this.min;
     this.value = (Math.round(value / this.step) * this.step).toPrecision(6); // discrete-ize value in this.step
-    let knobLeft = pos * this.sliderBox.width - this.knobBox.width / 2;
-    this.knob.style.left = pxToEm(knobLeft, this.slider);
+    // Position knob as % of track width minus half the knob's fixed 2.8em width.
+    // Using calc() avoids pxToEm, which breaks during font-size transitions.
+    this.knob.style.left = `calc(${(pos * 100).toFixed(4)}% - 1.4em)`;
   }
 }
 

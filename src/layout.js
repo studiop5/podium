@@ -658,7 +658,7 @@ class BookLayout extends Layout {
   // slot that has a child Page elm will be slot[3].
   pn0 = -2;
   inOp = false;
-  pgFlipAnimator = new Schedule();
+  animId = 0; // prevent multiple pgFlip.animator() threads
 
   constructor(score, cell) {
     super(score, cell);
@@ -807,7 +807,7 @@ class BookLayout extends Layout {
       this.pagerLeft.elm.remove();
       this.pagerRight.elm.remove();
     }
-    this.pgGoTo(_score_.numbers.pn, false);
+    this.pgGoTo(_score_.numbers.pn);
     if(!animated) return;
 
     // 
@@ -825,12 +825,13 @@ class BookLayout extends Layout {
 
   async onDown(e) {
     if (this.inOp && this.closeFunc) {
-      // This block runs when a pointer event is received while the pgFlipAnimator is
-      // running from previous page flip, i.e. user is turning pages faster than they
-      // are flipping closed.
-      this.pgFlipAnimator.cancel();
+      // This block runs when a pointer event is received while a sequencee of
+      // pgFlip's animator calls is still running running from previous page flip,
+      // i.e. user is turning pages faster than they are flipping closed.
+      this.animId++;
       await this.closeFunc();
       this.closeFunc = null;
+      this.inOp = false; 
       return this.onDown({
         isPrimary: true,
         target: document.elementFromPoint(e.clientX, e.clientY),
@@ -859,13 +860,12 @@ class BookLayout extends Layout {
     this.inOp = true;
     this.elm.setPointerCapture(e.pointerId);
     let spineBox = getBox(this.spine);
-    this.pgFlip(advancing ? pgWidth : -pgWidth, pgHeight / 2, e.clientX - spineBox.x, e.clientY - spineBox.y, advancing, null);
+    this.pgFlip(advancing ? pgWidth : -pgWidth, pgHeight / 2, e.clientX - spineBox.x, e.clientY - spineBox.y, advancing);
 
     // Rolling buffer of recent pointermove events for velocity calculation
     let mvBuffer = [];
 
     let mv = listen(this.elm, "pointermove", (emv) => {
-      this.pgFlipAnimator.cancel();
       this.pgMove(emv.clientX - spineBox.x, emv.clientY - spineBox.y, advancing);
       mvBuffer.push({ x: emv.clientX, t: emv.timeStamp });
       if (mvBuffer.length > 10) mvBuffer.shift();
@@ -906,29 +906,31 @@ class BookLayout extends Layout {
     );
   }
 
-  pgFlip(x, y, toX, toY, advancing, func, pace, stepDist=null) {
-    // Animate page flip one step towards toX/toY (spineBox coords), recurse until done.
-    // pace: animation speed in px/ms. pace >= 1 completes in 3 iterations (near-instant).
-    //   pace < 1 scales up iteration count proportionally. null = use layout stash default.
-    if (pace == null) pace = _score_.layout.pace / 100;
-    this.inOp = true;
-    if (x == toX) {
-      if (func) func();
-      this.inOp = false;
-      return;
-    }
-    if (stepDist == null) {
-      let steps = pace >= 1 ? 3 : clamp(Math.round(3 / pace), 3, 15);
-      stepDist = Math.abs(toX - x) / steps;
-    }
-    let remaining = Math.abs(toX - x);
-    let progress = Math.min(stepDist / remaining, 1);
-    x = progress >= 1 ? toX : x + (toX - x) * progress;
-    y = progress >= 1 ? toY : y + (toY - y) * progress;
-    this.pgMove(x, y, advancing);
-    let interval = clamp(42 / pace, 16, 120);
-    this.pgFlipAnimator.run(interval, () => this.pgFlip(x, y, toX, toY, advancing, func, pace, stepDist));
-  }
+  pgFlip(x, y, toX, toY, advancing, func=null, pace=null) {
+    // pace in msec/flip. if null, value from stash (which is in secs/flip) is used
+    let pgWidth = this.cell.geo.pgWidth;                                                          
+    let pxPerFlip = pgWidth * 2;
+    let msecPerFlip = pace == null ? this.cell.stash.pace : pxPerFlip * (1/pace) ; 
+    let startFlip  = advancing ? (pgWidth - x)   / pxPerFlip : (x   + pgWidth) / pxPerFlip;           
+    let targetFlip = advancing ? (pgWidth - toX)  / pxPerFlip : (toX + pgWidth) / pxPerFlip;          
+    let duration = Math.abs(targetFlip - startFlip) * msecPerFlip;       
+    this.inOp = true;                                                                             
+    let start = performance.now();                                                                
+    let easedStart  = startFlip  * startFlip  * (3 - 2 * startFlip);                            
+    let easedTarget = targetFlip * targetFlip  * (3 - 2 * targetFlip); // 0 for flop, 1 for flip
+    let animId = ++this.animId;                                                                   
+    let animate = (now) => {
+      if (animId != this.animId) return;                                                          
+      let t = Math.min((now - start) / duration, 1);                                              
+      let flip = startFlip + (targetFlip - startFlip) * t;
+      let easedFlip = flip * flip * (3 - 2 * flip);                                               
+      let progress = t >= 1 ? 1 : (easedFlip - easedStart) / (easedTarget - easedStart);          
+      this.pgMove(x + (toX - x) * progress, y + (toY - y) * progress, advancing);
+      if (t >= 1) { if (func) func(); this.inOp = false; }                                        
+      else requestAnimationFrame(animate);                                                      
+    }                                                                                             
+    animate(start);                                                                             
+  }      
 
   async pgMount(pn, slot, nonblocking=true) {
     // First, remove all children of this.slots[slot]. When
@@ -1131,16 +1133,12 @@ class BookLayout extends Layout {
     if (post) this.pnPost(Math.min(this.pn0 + 3, this.score.pgs.length));
   }
 
-  async pgGoTo(pn, animated=true) {
+  async pgGoTo(pn) {
     pn = clamp(pn, 1, this.score.pgs.length);
     let pn0 = pn - (pn & 0x01 ? 3 : 2);
-
-    this.pgFlipAnimator.cancel();
     this.pgResetSlots();
-
     let advancing = pn - 2 > this.pn0;
     if(pn == 1) advancing = false; // can't advance into 1st page
-
     if(advancing) { 
       await this.pgMount(pn0+2, 4, false);
       await this.pgMount(pn0+3, 5, false);
@@ -1156,18 +1154,10 @@ class BookLayout extends Layout {
       this.pn0 = pn0 + 2;
     }
     let {pgWidth, pgHeight} = this.cell.geo;
-    let pace = _score_.layout.pace == 101 ? 0: _score_.layout.pace / 100 ;
-    if(pace == 0 || !animated) {  // skip pgFlip animation
-     this.pgFlipAnimator.cancel() ;
-     this.inOp = false ;
-     await this.pgShift(advancing) ;
-    }
-    else {
-      if (advancing) this.pgFlip(pgWidth, 0, -pgWidth, pgHeight / 2, true, 
-        async () => await this.pgShift(true, false), pace);
-      else this.pgFlip(-pgWidth, pgHeight, pgWidth, pgHeight / 2, false, 
-        async() => await this.pgShift(false, false), pace);
-    }
+    if (advancing) this.pgFlip(pgWidth, 0, -pgWidth, pgHeight / 2, true, 
+			       async () => await this.pgShift(true, false));
+    else this.pgFlip(-pgWidth, pgHeight, pgWidth, pgHeight / 2, false, 
+		     async() => await this.pgShift(false, false));
     this.pnPost(pn, true);
     return pn;
   }
@@ -1491,7 +1481,7 @@ class ScrollLayout extends Layout {
         `left, top, font-size ${_gs_}ms`
       );
     }
-    await this.pgGoTo(_score_.numbers.pn, false); // false means do not animate the pgSnap
+    await this.pgGoTo(_score_.numbers.pn);
   }
 
   async onDown(e) {
@@ -1567,14 +1557,13 @@ class ScrollLayout extends Layout {
     );
   }
 
-  async pgGoTo(pn, animated=true) {
+  async pgGoTo(pn) {
     let { pg, gap, sashLimit } = this.cell.geo;
-    let pace = _score_.layout.pace == 101 ? 0 : _score_.layout.pace / 100;
     let pgSpan = pg[this.props.WIDTH] + gap;
     this.sashStart = clamp(-(pn - 1) * pgSpan, sashLimit, 0);
     this.snapStep = 1;       // whole-page; pgSnapTo corrects for snap setting on next gesture
     this.snapIndex = pn - 1;
-    await this.pgCommit(pn, pace, animated);
+    await this.pgCommit(pn, _score_.layout.pace);
   }
 
   async pgMount(pn) {
@@ -1612,7 +1601,31 @@ class ScrollLayout extends Layout {
     }
   }
 
-  async pgCommit(pn, pace, animated) {
+  commitAnimId = 0; // prevent multiple pgCommit animation threads
+
+  async pgCommit(pn, pace) {
+    let { LEFT } = this.props;
+    this.pnPost(pn);
+    this.pagerLeft.build();
+    this.pagerRight.build();
+    await this.pgMount(pn);
+    let target = this.sashStart / _pxPerEm_;
+    let startLeft = parseFloat(this.sash.style[LEFT]) || 0;
+    let duration = pace * (this.snapStep || 1);
+    this.spinRollers(duration);
+    let start = performance.now();
+    let animId = ++this.commitAnimId;
+    let step = (now) => {
+      if (animId !== this.commitAnimId) return;
+      let t = Math.min((now - start) / duration, 1);
+      let eased = t * t * (3 - 2 * t); // smoothstep, matching pgFlip easing
+      this.sash.style[LEFT] = (startLeft + (target - startLeft) * eased) + "em";
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  async pgCommitOrig(pn, pace, animated) {
     let { LEFT } = this.props;
     this.pnPost(pn);
     this.pagerLeft.build();
@@ -1634,14 +1647,13 @@ class ScrollLayout extends Layout {
   async pgOpen(how, bookMarks) {
     if (bookMarks) return super.pgOpen(how);
     let pn = parseInt(_score_.numbers.pn);
-    let pace = _score_.layout.pace == 101 ? 0 : _score_.layout.pace / 100 ;
     switch (how) {
-      case "next": return this.pgSnapTo("right", pace) ;
-      case "prev": return this.pgSnapTo("left", pace) ;
-      case "first": return this.pgGoTo(1) ;    
+      case "next": return this.pgSnapTo("right", 1) ;
+      case "prev": return this.pgSnapTo("left", 1) ;
+      case "first": return this.pgGoTo(1) ;
       case "last": return this.pgGoTo(this.score.pgs.length) ;
     }
-    await this.pgGoTo(pn) ;    
+    await this.pgGoTo(pn) ;
   }
 
   /**
@@ -1673,9 +1685,9 @@ class ScrollLayout extends Layout {
     return [left, right];
   }
 
-  async pgSnapTo(dir, pace, animated=true) {
+  async pgSnapTo(dir, vel=0) {
     // dir: "left" (forward), "right" (backward), "none" (snap to nearest — user paused before release)
-    // pace: fling velocity 0..1, or -1 for jab (immediate snap, no animation)
+    // vel: fling velocity 0..1, or -1 for jab (instant snap)
     let { WIDTH, X, INNERWIDTH } = this.props;
     let { gap, pgSnap, sashLimit } = this.cell.geo;
     let pgWidth = this.cell.geo.pg[WIDTH];
@@ -1701,9 +1713,9 @@ class ScrollLayout extends Layout {
       else if (dir == "left") snapIndex++;
       this.sashStart = -snapIndex * snapWidth;
       this.snapIndex = snapIndex;
-    } else if (pace > 0.07 && dir != "none") {
+    } else if (vel > 0.07 && dir != "none") {
       // Free-scroll fling (pgSnap == 0): carry sash by velocity × one visible screen
-      this.sashStart += dir == "left" ? -pace * visSize : pace * visSize;
+      this.sashStart += dir == "left" ? -vel * visSize : vel * visSize;
     }
 
     let targetSash = this.sashStart;
@@ -1714,7 +1726,8 @@ class ScrollLayout extends Layout {
       this.snapIndex = Math.round(-this.sashStart / snapWidth);
 
     let [newPn] = this.snapPns();
-    await this.pgCommit(newPn, pace, animated);
+    let pace = vel < 0 ? 0 : _score_.layout.pace; // jab (vel == -1): instant
+    await this.pgCommit(newPn, pace);
   }
 
   spinRollers(dur = 0) {

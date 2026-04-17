@@ -1206,7 +1206,8 @@ class LayoutPanel extends Panel {
 
     let handler = (e, tag, value, props) => {
       if (tag == "fit") this.cell.pz = null; // reset pz-set marker so layout will use fit setting
-      if (_score_ && this.cell === Layout.activeLayout.cell) {
+      if (tag == "pace") return;
+      if (_score_ && this.cell == Layout.activeLayout.cell) {
         Layout.activeLayout.build();
       }
     };
@@ -1224,43 +1225,44 @@ class LayoutPanel extends Panel {
         if (value == 0) return "Snap: 1/2 page";
         return "Snap: " + value + (value == 1 ? " page." : " pages");
       } else if(tag == "gap") return `Gap: ${value}%`;
-      else if(tag == "pace") return `Pace: ${value}%`
+      else if(tag == "pace") return `Pace: ${(value/1000).toFixed(1)} sec/snap`
     };
 
     // defs for scroll/slider groups
     let fitGroupDef = {
-      Auto: { svg: "Fit Auto", radio: "fit", redo: true },
-      None: { svg: "Fit None", radio: "fit", redo: true },
-      Width: { svg: "Fit Width", radio: "fit", redo: true },
-      Height: { svg: "Fit Height", radio: "fit", redo: true },
+      Auto:   { svg: "Fit Auto",   radio: "fit", redo: true},
+      None:   { svg: "Fit None",   radio: "fit", redo: true},
+      Width:  { svg: "Fit Width",  radio: "fit", redo: true},
+      Height: { svg: "Fit Height", radio: "fit", redo: true},
     };
     let bookSlidersGroupDef = {
-      pace:   { min: 1, max: 100, step: 1, msg: msgCallback, throttle: 750 }
+      pace: { min: 0, max: 1500, step: 100, throttle: 750,
+              msg: (tag,value) => `Pace: ${(value/1000).toFixed(1)} sec/flip`},
     }
     let horzSlidersGroupDef = {
-      pgShow: { min: 1, max: 8, step: 1, msg: msgCallback, throttle: 750, row:1, col:1},
+      pgShow: { min: 1, max: 8, step: 1, throttle: 750, row:1, col:1, msg: msgCallback},
       // values <= 0  are reinterpreted: see msgCallback
-      pgSnap: { min: -4, max: 8, step: 1, msg: msgCallback, throttle: 750, row:1, col:2},
-      gap: { min: 0, max: 100, step: 0.5, msg: "Gap: {value} %", throttle: 750, row:2, col:1},
-      pace:   { min: 1, max: 100, step: 1, msg: msgCallback, throttle: 750, row: 2, col: 2},
+      pgSnap: { min: -4, max: 8,     step: 1,   throttle: 750, row:1, col:2, msg: msgCallback},
+      gap:    { min: 0,  max: 100,   step: 0.5, throttle: 750, row:2, col:1, msg: msgCallback},
+      pace:   { min: 0,  max: 10000, step: 100, throttle: 750, row:2, col: 2, msg: msgCallback},
     };
     // Horizontal layout uses a 2-column grid: pgShow/pgSnap on row 1, gap/pace on row 2
     let vertSlidersGroupDef = {
-      pgShow: { min: 1, max: 8, step: 1, msg: msgCallback, throttle: 750, col: 1, row: 1 },
-      pgSnap: { min: -4, max: 8, step: 1, msg: msgCallback, throttle: 750, col: 2, row: 1 },
-      gap:    { min: 0, max: 100, step: 0.5, msg: "Gap: {value} %", throttle: 750, col: 1, row: 2 },
-      pace:   { min: 1, max: 100, step: 1, msg: msgCallback, throttle: 750, col: 2, row: 2 },
+      pgShow: { min: 1,  max: 8,     step: 1,   throttle: 750, col: 1, row: 1, msg: msgCallback},
+      pgSnap: { min: -4, max: 8,     step: 1,   throttle: 750, col: 2, row: 1, msg: msgCallback},
+      gap:    { min: 0,  max: 100,   step: 0.5, throttle: 750, col: 1, row: 2, msg: msgCallback},
+      pace:   { min: 0,  max: 10000, step: 100, throttle: 750, col: 2, row: 2, msg: msgCallback},
     };
 
     let pnGroupDef = {
-      On: { svg: "Numbers", radio: "pnShow" },
-      Off: { svg: "Close", radio: "pnShow" },
+      On:  { svg: "Numbers", radio: "pnShow" },
+      Off: { svg: "Close",   radio: "pnShow" },
     };
 
     let tableSlidersGroupDef = {
-      pages: { min: 1, max: 50, msg: "Pages per row: {value}", step: 1, throttle: 750 },
-      horizontalGap: { min: -100, max: 100, msg: "Horizontal Gap: {value} %", step: 1, throttle: 750},
-      verticalGap: { min: -100, max: 100, msg: "Vertical Gap: {value} %", step: 1, throttle: 750 },
+      pages:         { min: 1,    max: 50,  step: 1, throttle: 750, msg: "Pages per row: {value}"},
+      horizontalGap: { min: -100, max: 100, step: 1, throttle: 750, msg: "Horizontal Gap: {value} %"},
+      verticalGap:   { min: -100, max: 100, step: 1, throttle: 750, msg: "Vertical Gap: {value} %"},
     };
 
     // build faces. Note: both BottonGroup and SliderGroup modify their defs element, so we

@@ -459,20 +459,20 @@ class Menu {
             pnShow: "On",
             pgShow: 2,
             pgSnap: 2,
-            pace: 85, 
+            pace: 500, // msec/snap
           },
           svgPath: iconPaths["Horizontal Scroll"],
         },
         vertical: {
           name: "Vertical",
-          pz: null, 
+          pz: null,
           stash: {
             fit: "Auto", // "Auto", "Width","Height","None"
             gap: 0.2, // [0,10]% of fit dimension
             pnShow: "On",
             pgShow: 1, // [1,_score_.pages.length)
             pgSnap: 0, // 0 = disabled
-            pace: 85, 
+            pace: 500, // msec/snap
           },
           svgPath: iconPaths["Vertical Scroll"],
         },
