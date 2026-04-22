@@ -8,6 +8,7 @@ MIME_MAP = {
    "": "text/html",
    ".html": "text/html",
    ".js": "application/javascript",
+   ".mjs": "application/javascript",
    ".otf": "application/font-otf",
    ".pdf": "application/pdf",
    ".png": "image/png",

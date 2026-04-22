@@ -953,10 +953,11 @@ class Score {
         // (base64-encoded-gzipped strings defined globally) on demand
         let pdfUrl = URL.createObjectURL(await inflate(mozSrc));
         mozSrc = null; // allow gc
-        await import(pdfUrl);
+        window.pdfjsLib = await import(pdfUrl);
         URL.revokeObjectURL(pdfUrl);
         let mozWorkerUrl = URL.createObjectURL(await inflate(mozWorkerSrc));
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = mozWorkerUrl;
+        window.pdfjsLib.GlobalWorkerOptions.workerPort = new Worker(mozWorkerUrl, { type: "module" });
+        URL.revokeObjectURL(mozWorkerUrl); // safe to revoke once Worker is constructed
         mozWorkerSrc = null; // allow gc
       }
 

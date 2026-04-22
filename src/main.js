@@ -38,7 +38,7 @@ import { ScreenPanel } from "./panel.js";
 import { initFabric } from "./canvas.js";
 import { SharedBuffer } from "./sharedBuffer.js";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
+window.pdfjsLib.GlobalWorkerOptions.workerPort = new Worker("pdf.worker.min.mjs", { type: "module" });
 // -skip
 
 // #include build/font.js
@@ -47,8 +47,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
 // #include lib/fabric.min.js
 // #include lib/pdf-lib.min.js
 // #include lib/fontkit.umd.min.js
-// #include lib/pdf.min.js deflateAs mozSrc
-// #include lib/pdf.worker.min.js deflateAs mozWorkerSrc
+// #include lib/pdf.min.mjs deflateAs mozSrc
+// #include lib/pdf.worker.min.mjs deflateAs mozWorkerSrc
 // #include src/canvas.js minified
 // #include src/common.js minified
 // #include src/menu.js minified
