@@ -417,7 +417,8 @@ async function main() {
   listen(document, ["pointermove", "pointerdown"], () => lastMoveTime = performance.now(), { capture: true });
   listen(document, "pointerdown",   (e) => activePointers.set(e.pointerId, e.target), { capture: true });
   listen(document, "pointerup",     (e) => activePointers.delete(e.pointerId), { capture: true });
-  listen(document, "pointercancel", (e) => activePointers.delete(e.pointerId), { capture: true });
+  // Don't delete on pointercancel: let lostpointercapture fire cancelAll, which dispatches a
+  // synthetic pointerup so app-level handlers (opUp, unlisten(mv), etc.) can clean up properly.
 
   listen(document, "visibilitychange",   cancelAll, { capture: true });
   listen(document, "lostpointercapture", cancelAll, { capture: true });
