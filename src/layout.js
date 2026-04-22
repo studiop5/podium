@@ -146,7 +146,7 @@ class Layout {
             </feComponentTransfer>
             <feComposite in2='SourceGraphic' operator='multiply' result='textured'/>
           </filter>  
-          <rect width='100%' height='100%' fill='#CD853F' filter='url(#paperFilter)'/>
+          <rect width='100%' height='100%' fill='#383838' filter='url(#paperFilter)'/>
         </svg>`) +
       "')";
 
@@ -156,11 +156,11 @@ class Layout {
       position: absolute;
       box-shadow: var(--layout-shadow);
       border-radius: var(--borderRadius);
-      border: ${0.1}em solid #8B4513;
+      border: 0.1em solid var(--layout-border-color, #222);
       box-sizing: border-box;
       background-image:
-        linear-gradient(145deg, #f958 0%, #A748 100%),
-        ${Layout.recto}
+        var(--layout-gradient),
+        var(--recto)
     }
     .Layout__alert {
       background-color: #0000;
@@ -719,14 +719,11 @@ class BookLayout extends Layout {
     // Layout scroll g((eo)metry) in units of css pixels
     let g = this.cell.geo = (this.cell.geo || {});
     // top/bottom gap and left/right gap, for a border-radius of .8em
-    g.tbGap = g.lrGap = .8 * _pxPerEm_;
-    g.pagerWidth = 0;
-
-    if(this.pnShow == "On") {
-       // Compensate for width of pager, and remove  gap on left and right
-      g.pagerWidth = Pager.width;
-      g.lrGap = 0;
-    }
+    g.tbGap = .8 * _pxPerEm_;
+    // Pager always occupies its own strip (hidden or not), lrGap=0 when pager is present.
+    // Hidden pager gets Layout.margin width — narrow but non-overlapping with pages.
+    g.lrGap = 0;
+    g.pagerWidth = this.pnShow == "On" ? Pager.width : Layout.margin;
     g.pgCount = this.score.pgs.length;
 
     if (fit == "none") {
@@ -798,15 +795,13 @@ class BookLayout extends Layout {
     this.layoutSlots();
 
     // pagers
-    if(this.pnShow == "On") {
-      this.layout.append(this.pagerLeft.elm);
-      this.layout.append(this.pagerRight.elm);
-      this.pagerLeft.build();
-      this.pagerRight.build();
-    } else {
-      this.pagerLeft.elm.remove();
-      this.pagerRight.elm.remove();
-    }
+    this.layout.append(this.pagerLeft.elm);
+    this.layout.append(this.pagerRight.elm);
+    let pagerHidden = this.pnShow != "On";
+    this.pagerLeft.setHidden(pagerHidden, Layout.margin);
+    this.pagerRight.setHidden(pagerHidden, Layout.margin);
+    this.pagerLeft.build();
+    this.pagerRight.build();
     this.pgGoTo(_score_.numbers.pn);
     if(!animated) return;
 
@@ -920,7 +915,7 @@ class BookLayout extends Layout {
     let easedTarget = targetFlip * targetFlip  * (3 - 2 * targetFlip); // 0 for flop, 1 for flip
     let animId = ++this.animId;                                                                   
     let animate = (now) => {
-      if (animId != this.animId) return;                                                          
+      if (animId != this.animId) return;  // cancelled
       let t = Math.min((now - start) / duration, 1);                                              
       let flip = startFlip + (targetFlip - startFlip) * t;
       let easedFlip = flip * flip * (3 - 2 * flip);                                               
@@ -1204,7 +1199,7 @@ class ScrollLayout
 
 
 class ScrollLayout extends Layout {
-
+///
   // Define svg for "back" of scroll, i.e. visible on the left/right scrollers
   static verso = "url('data:image/svg+xml;base64," + btoa(`
   <!-- leather-worn-amber.svg -->
@@ -1222,15 +1217,15 @@ class ScrollLayout extends Layout {
                   0 0 0 1 0" result="contrast"/>
         <feDiffuseLighting in="contrast"
           surfaceScale="2.8" diffuseConstant="1.15"
-          lighting-color="#fff9e0" result="lit">
+          lighting-color="#f0f0f0" result="lit">
           <feDistantLight azimuth="230" elevation="55"/>
         </feDiffuseLighting>
         <feBlend in="contrast" in2="lit" mode="multiply" result="grain"/>
       </filter>
     </defs>
-    <rect width="128" height="128" fill="#f88a2d"/>
+    <rect width="128" height="128" fill="#585858"/>
     <!-- texture overlay -->
-    <rect width="128" height="128" filter="url(#leatherWear)" opacity="0.28"/>
+    <rect width="128" height="128" filter="url(#leatherWear)" opacity="0.32"/>
   </svg>
   `) +  "')";
 
@@ -1247,7 +1242,7 @@ class ScrollLayout extends Layout {
         .ScrollLayout__roll {
           position:absolute;
           z-index:10;
-          filter:drop-shadow(.1em .7em .5em #0008);
+          filter:drop-shadow(0 .2em .35em #0005);
           overflow:hidden;
         }
         .ScrollLayout__roll-shadow {
@@ -1263,7 +1258,7 @@ class ScrollLayout extends Layout {
           height:100%;
           background-image: 
             linear-gradient(to right, #0000 35% , #ccc2 50%, #0000 65% ),
-            ${ScrollLayout.verso}
+            var(--verso)
         } 
    `
   );
@@ -1317,6 +1312,7 @@ class ScrollLayout extends Layout {
     this.pointerListener = listen(this.elm, ["pointerdown"], this.onDown.bind(this));
 
     this.props = cell.key == "horizontal" ? NORMAL_PROPS : ORTHO_PROPS;
+    this.elm.dataset.scrollOrient = cell.key == "horizontal" ? "h" : "v";
 
     // Create left/right (top/bottom) pager instances:
     this.pagerLeft = new Pager(this.props.LEFT, (stash, adjusting, cursor) => {
@@ -1452,8 +1448,7 @@ class ScrollLayout extends Layout {
         [roll === this.leftRoll ? LEFT : RIGHT]: 0,
         [TOP]: 0,
        
-        // box shadow adds caps on top & bottom or rolls
-        boxShadow: LEFT == "left" ? "0 -3px 0 #8B4513,0 3px 0 #8B4513" : "-3px 0 0 #8B4513,3px 0 0 #8B4513",
+        // box shadow adds caps on top & bottom or rolls — color via --roll-cap-color CSS var
       });
 
     // left/right roll pattern: simulated rolled-up portion of scroll
@@ -1463,15 +1458,13 @@ class ScrollLayout extends Layout {
         [WIDTH]: "200%", 
       });
 
-    if(this.pnShow == "On") {
-      this.leftRoll.append(this.pagerLeft.elm);
-      this.rightRoll.append(this.pagerRight.elm);
-      this.pagerLeft.build();
-      this.pagerRight.build();
-    } else {
-      this.pagerLeft.elm.remove();
-      this.pagerRight.elm.remove();
-    }
+    this.leftRoll.append(this.pagerLeft.elm);
+    this.rightRoll.append(this.pagerRight.elm);
+    let pagerHidden = this.pnShow != "On";
+    this.pagerLeft.setHidden(pagerHidden, Layout.margin);
+    this.pagerRight.setHidden(pagerHidden, Layout.margin);
+    this.pagerLeft.build();
+    this.pagerRight.build();
 
     if(animated) { // animate centering of layout's screen position
       let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
@@ -1618,7 +1611,7 @@ class ScrollLayout extends Layout {
     let step = (now) => {
       if (animId !== this.commitAnimId) return;
       let t = Math.min((now - start) / duration, 1);
-      let eased = t * t * (3 - 2 * t); // smoothstep, matching pgFlip easing
+      let eased = 1 - Math.pow(1 - t, 3); // cubic ease-out: full speed start, decelerates to rest
       this.sash.style[LEFT] = (startLeft + (target - startLeft) * eased) + "em";
       if (t < 1) requestAnimationFrame(step);
     };
@@ -2266,7 +2259,9 @@ class Pager {
        position:absolute;
        opacity:.75;
        border-radius:.5em;
-     }`);
+     }
+     .Pager--hidden .Pager__cursor,
+     .Pager--hidden .Pager__bookmark { visibility: hidden; }`);
 
   static id = 0;
   static width = 45 / _dvPxRt_; // px
@@ -2310,6 +2305,12 @@ class Pager {
     // Called when containing layout is about to be removed from dom.
     this.resizeObserver.disconnect();
     unlisten(this.pnListener, this.bookmarkListener, this.pointerListener);
+  }
+
+  setHidden(hidden, narrowWidthPx) {
+    let { WIDTH } = this.props;
+    this.pager.style[WIDTH] = (hidden ? narrowWidthPx : Pager.width) + "px";
+    this.pager.classList.toggle("Pager--hidden", hidden);
   }
 
   build() {
@@ -2424,3 +2425,30 @@ class Pager {
     );
   }
 }
+
+// Per-theme layout CSS vars (recto/verso backgrounds, border, gradient overlay, roll cap color)
+let rectoWarm = "url('data:image/svg+xml;base64,ICAgICAgPHN2ZyB3aWR0aD0nM2VtJyBoZWlnaHQ9JzNlbScgdmlld0JveD0nMCAwIDEwMCAxMDAnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+CiAgICAgICAgPGZpbHRlciBpZD0ncGFwZXJGaWx0ZXInPgogICAgICAgICAgPGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9JzAuNScgCiAgICAgICAgICAgcmVzdWx0PSdub2lzZScgbnVtT2N0YXZlcz0iNCIgc3RpdGNoVGlsZXM9J3N0aXRjaCcgc2VlZD0nNDInLz4KICAgICAgICAgIDxmZUNvbG9yTWF0cml4IGluPSdub2lzZScgdHlwZT0nc2F0dXJhdGUnIHZhbHVlcz0nMCcvPgogICAgICAgICAgPGZlQ29tcG9uZW50VHJhbnNmZXI+CiAgICAgICAgICAgIDxmZUZ1bmNBIHR5cGU9J2xpbmVhcicgc2xvcGU9JzAuMycgaW50ZXJjZXB0PScwLjUnLz4KICAgICAgICAgICAgPC9mZUNvbXBvbmVudFRyYW5zZmVyPgogICAgICAgICAgICA8ZmVDb21wb3NpdGUgaW4yPSdTb3VyY2VHcmFwaGljJyBvcGVyYXRvcj0nbXVsdGlwbHknIHJlc3VsdD0ndGV4dHVyZWQnLz4KICAgICAgICAgIDwvZmlsdGVyPiAgCiAgICAgICAgICA8cmVjdCB3aWR0aD0nMTAwJScgaGVpZ2h0PScxMDAlJyBmaWxsPScjQ0Q4NTNGJyBmaWx0ZXI9J3VybCgjcGFwZXJGaWx0ZXIpJy8+CiAgICAgICAgPC9zdmc+')";
+let versoWarm = "url('data:image/svg+xml;base64,ICA8IS0tIGxlYXRoZXItd29ybi1hbWJlci5zdmcgLS0+CiAgPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4Ij4KICAgIDxkZWZzPgogICAgICA8ZmlsdGVyIGlkPSJsZWF0aGVyV2VhciIgY29sb3ItaW50ZXJwb2xhdGlvbi1maWx0ZXJzPSJzUkdCIj4KICAgICAgICA8IS0tIGxhcmdlIG9yZ2FuaWMgZ3JhaW4gcGF0dGVybiAtLT4KICAgICAgICA8ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIKICAgICAgICAgIGJhc2VGcmVxdWVuY3k9IjAuMjMiIG51bU9jdGF2ZXM9IjMiIHNlZWQ9IjgiCiAgICAgICAgICBzdGl0Y2hUaWxlcz0ic3RpdGNoIiByZXN1bHQ9Im5vaXNlIi8+CiAgICAgICAgPGZlQ29sb3JNYXRyaXggaW49Im5vaXNlIiB0eXBlPSJtYXRyaXgiCiAgICAgICAgICB2YWx1ZXM9IjEuNyAwIDAgMCAwCiAgICAgICAgICAgICAgICAgIDAgMS43IDAgMCAwCiAgICAgICAgICAgICAgICAgIDAgMCAxLjcgMCAwCiAgICAgICAgICAgICAgICAgIDAgMCAwIDEgMCIgcmVzdWx0PSJjb250cmFzdCIvPgogICAgICAgIDxmZURpZmZ1c2VMaWdodGluZyBpbj0iY29udHJhc3QiCiAgICAgICAgICBzdXJmYWNlU2NhbGU9IjIuOCIgZGlmZnVzZUNvbnN0YW50PSIxLjE1IgogICAgICAgICAgbGlnaHRpbmctY29sb3I9IiNmZmY5ZTAiIHJlc3VsdD0ibGl0Ij4KICAgICAgICAgIDxmZURpc3RhbnRMaWdodCBhemltdXRoPSIyMzAiIGVsZXZhdGlvbj0iNTUiLz4KICAgICAgICA8L2ZlRGlmZnVzZUxpZ2h0aW5nPgogICAgICAgIDxmZUJsZW5kIGluPSJjb250cmFzdCIgaW4yPSJsaXQiIG1vZGU9Im11bHRpcGx5IiByZXN1bHQ9ImdyYWluIi8+CiAgICAgIDwvZmlsdGVyPgogICAgPC9kZWZzPgogICAgPHJlY3Qgd2lkdGg9IjEyOCIgaGVpZ2h0PSIxMjgiIGZpbGw9IiNmODhhMmQiLz4KICAgIDwhLS0gdGV4dHVyZSBvdmVybGF5IC0tPgogICAgPHJlY3Qgd2lkdGg9IjEyOCIgaGVpZ2h0PSIxMjgiIGZpbHRlcj0idXJsKCNsZWF0aGVyV2VhcikiIG9wYWNpdHk9IjAuMjgiLz4KICA8L3N2Zz4KICA=')";
+
+css("layout-themes", `
+  :root {
+    --recto: ${Layout.recto};
+    --verso: ${ScrollLayout.verso};
+    --layout-gradient: linear-gradient(145deg, #ffffff0a 0%, #00000055 100%);
+    --layout-border-color: #222;
+    --roll-cap-color: #181818;
+  }
+  [data-theme="Warm"] {
+    --recto: ${rectoWarm};
+    --verso: ${versoWarm};
+    --layout-gradient: linear-gradient(145deg, #f958 0%, #A748 100%);
+    --layout-border-color: #8B4513;
+    --roll-cap-color: #8B4513;
+  }
+  [data-scroll-orient="h"] .ScrollLayout__roll {
+    box-shadow: 0 -3px 0 var(--roll-cap-color), 0 3px 0 var(--roll-cap-color);
+  }
+  [data-scroll-orient="v"] .ScrollLayout__roll {
+    box-shadow: -3px 0 0 var(--roll-cap-color), 3px 0 0 var(--roll-cap-color);
+  }
+`);

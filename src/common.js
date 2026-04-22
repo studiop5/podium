@@ -57,7 +57,6 @@ export {
   ButtonGroup,
   SliderGroup,
   TabView,
-  Timer,
   ColorPicker,
 };
 import { iconPaths } from "./icon.js";
@@ -89,18 +88,33 @@ window._msPerObj_ = 1; // for pdf printing, see score.toPdf()
 window._pxPerEm_ = 25; // initial document.body's font size value: defines pixels in 1 em
 window._score_ = null; // current active score instance
 window._voidFunc_ = () => {}; 
+window._curtain_ = null; // set below: used to dim the screen
 
 // svg texture used for all draggable elements
-let panSvg =
+let panSvgWarm =
   // Note: you must escape second / in a url, otherwise builder.py will parse
   // them as comments.
   "url('data:image/svg+xml;base64," + btoa(`
       <svg width='3em' height='3em' viewBox='0 0 175 175' xmlns='http:/\/www.w3.org/2000/svg'>
-        <filter id='noiseFilter'>
+        <filter id='noiseFilterWarm'>
           <feTurbulence type='turbulence' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/>
           <feComponentTransfer>
             <feFuncA type='linear' slope='0.3'/>
           </feComponentTransfer>
+        </filter>
+        <g><rect width='100%' height='100%' filter='url(#noiseFilterWarm)'/></g>
+      </svg>`) +
+  "')";
+
+let panSvgCool =
+  "url('data:image/svg+xml;base64," + btoa(`
+      <svg width='3em' height='3em' viewBox='0 0 175 175' xmlns='http:/\/www.w3.org/2000/svg'>
+        <filter id='noiseFilter'>
+          <feTurbulence type='turbulence' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/>
+          <feColorMatrix type='matrix' values='0.30 0.30 0.30 0 -0.07
+                                               0.30 0.30 0.30 0 -0.03
+                                               0.30 0.30 0.30 0  0.20
+                                               0    0    0    0  0.27'/>
         </filter>
         <g><rect width='100%' height='100%' filter='url(#noiseFilter)'/></g>
       </svg>`) +
@@ -177,7 +191,8 @@ css( // common css declarations.
 
     /* Light theme colors */
     --bodyColor: #efefef;
-    --panTexture: ${panSvg};
+    --panTexture: ${panSvgCool};
+    --bodyVignette: radial-gradient(ellipse at 50% 45%, transparent 30%, rgba(0,0,0,0.13) 100%);
 
     /* Typography */
     --body-font-family: Vercetti, sans-serif;
@@ -194,10 +209,10 @@ css( // common css declarations.
     --layout-shadow: .25em .25em 1.5em #888;
 
     /* Menu colors */
-    --menu-cell-bg: radial-gradient(#c9c9c9 45%, #ccc 66%, #b4b4b4 72%);
-    --menu-cell-selected-bg: radial-gradient(#aaa 25%, #fff 100%);
-    --menu-cell-active-bg: radial-gradient(#fff 64%, #ccc 73%);
-    --menu-disk-bg: radial-gradient(#888, #c9c9c9 25%, #ccc 58%, #b4b4b4 75%);
+    --menu-cell-bg: radial-gradient(rgba(210,215,225,0.88) 0%, rgba(195,205,220,0.80) 50%, rgba(170,178,195,0.78) 100%);
+    --menu-cell-selected-bg: radial-gradient(rgba(235,238,245,0.92) 0%, rgba(210,218,232,0.88) 100%);
+    --menu-cell-active-bg: radial-gradient(rgba(250,252,255,0.95) 0%, rgba(225,232,245,0.90) 100%);
+    --menu-disk-bg: radial-gradient(rgba(205,212,225,0.85) 0%, rgba(190,200,218,0.78) 60%, rgba(165,175,195,0.75) 100%);
     --menu-grip-bg: #b8b8b8;
     --menu-grip-selected-bg: #b0b0b0;
     --menu-panel-indicator: #a8a8a8;
@@ -213,17 +228,17 @@ css( // common css declarations.
     --menu-disk-shadow: none;
 
     /* Panel colors */
-    --panel-bg: #c8c8c8;
+    --panel-bg: rgba(200, 208, 222, 0.93);
     --panel-header-bg: #b8b8b8;
     --panel-header-selected-bg: #b0b0b0;
-    --panel-inset-shadow: -0.15em -0.15em 0.3em #fff3 inset,
-                          0.15em 0.15em 0.3em #0002 inset;
+    --panel-inset-shadow: 0.15em 0.15em 0.35em rgba(255,255,255,0.55) inset,
+                          -0.15em -0.15em 0.35em rgba(0,0,0,0.14) inset;
 
     /* Slider colors */
     --slider-knob-bg: #b8b8b8;
     --slider-knob-selected-bg: #b0b0b0;
-    --slider-knob-shadow: -0.1em -0.1em 0.2em #fff2 inset,
-                          0.1em 0.1em 0.2em #0001 inset,
+    --slider-knob-shadow: 0.1em 0.1em 0.2em #fff2 inset,
+                          -0.1em -0.1em 0.2em #0001 inset,
                           0.1em 0.125em 0.2em #6668;
 
     /* Select dropdown colors */
@@ -280,13 +295,14 @@ css( // common css declarations.
     --z-sticky: 20;
     --z-menu: 100;
     --z-modal: 1000;
-    --z-topmost: 1000000000;
+    --z-topmost: 10000000000;
   }
 
   /* Dark theme */
   [data-theme="Dark"] {
     --bodyColor: #242424;
     --panTexture: ${panSvgDark};
+    --bodyVignette: radial-gradient(ellipse at 50% 45%, transparent 20%, rgba(0,0,0,0.45) 100%);
 
     /* File list colors */
     --file-properties-color: #ddd;
@@ -348,8 +364,8 @@ css( // common css declarations.
     /* Slider colors - dark theme */
     --slider-knob-bg: #2c2c2c;
     --slider-knob-selected-bg: #404040;
-    --slider-knob-shadow: -0.1em -0.1em 0.2em #fff1 inset,
-                          0.1em 0.1em 0.2em #0003 inset,
+    --slider-knob-shadow: 0.1em 0.1em 0.2em #fff1 inset,
+                          -0.1em -0.1em 0.2em #0003 inset,
                           0.1em 0.125em 0.2em #000a;
 
     /* Select dropdown colors - dark theme */
@@ -358,6 +374,29 @@ css( // common css declarations.
 
     /* Text shadow for contrast - dark theme */
     --text-shadow-contrast: 0 0 0.3em rgba(0, 0, 0, 0.8);
+  }
+
+
+  /* Warm theme (original neutral grey/amber) */
+  [data-theme="Warm"] {
+    --panTexture: ${panSvgWarm};
+
+    /* Menu colors - warm theme */
+    --menu-cell-bg: radial-gradient(#c9c9c9 45%, #ccc 66%, #b4b4b4 72%);
+    --menu-cell-selected-bg: radial-gradient(#aaa 25%, #fff 100%);
+    --menu-cell-active-bg: radial-gradient(#fff 64%, #ccc 73%);
+    --menu-disk-bg: radial-gradient(#888, #c9c9c9 25%, #ccc 58%, #b4b4b4 75%);
+    --menu-cell-box-shadow: none;
+    --menu-grip-shadow: drop-shadow(-0.08em -0.1em 0.15em rgba(255,255,255,0.4))
+                        drop-shadow(0.1em 0.12em 0.2em #8884);
+    --menu-grip-box-shadow: -0.2em -0.2em 0.4em #888c inset,
+                            0.2em 0.2em 0.4em #aaa4 inset;
+    --menu-disk-shadow: none;
+
+    /* Panel colors - warm theme */
+    --panel-bg: #c8c8c8;
+    --panel-inset-shadow: 0.15em 0.15em 0.3em #fff3 inset,
+                          -0.15em -0.15em 0.3em #0002 inset;
   }
 
   body {
@@ -369,6 +408,7 @@ css( // common css declarations.
     margin: 0;
     padding: 0;
     background-color: var(--bodyColor);
+    background-image: var(--bodyVignette);
     height: 100svh; /* small (min) viewport height */
     width: 100lvw;  /* large (max) viewport width */
     position:fixed;
@@ -869,6 +909,66 @@ class ColorPicker {
   }
 }
 
+
+/**
+class Curtain
+  The Curtain is a div that overlays the entire window. It is used
+  to dim the screen during performance situations where, for example,
+  a tablet screen might be too bright for the a darkened stage. It can
+  dim to black or to red. Red allows easier reading the score s.t. eyes stay
+  "dark-adapged" for the rest of the room, as eyse are less sensitive to
+  long-wavelength red light.
+
+  If level is in 0-100, dim color is black, opacity = level / 100.
+  otherwise level should be in 101 - 201: dim color is #A00000 (deep red), opacity = (201 - level) / 100
+
+**/
+
+class Curtain {
+
+  on = false ;
+  level = 60 ;
+
+  curtain = helm(`<div data-tag="Curtain" style=
+     "position:fixed;inset:0;pointer-events:none;opacity:0;transition: opacity 1.5s ease;z-index:9999999999">
+      </div>`) ; // singleton div
+
+  constructor() {
+    _body_.append(this.curtain);
+  }
+
+  toggle() {
+    this.on = !this.on ;
+    let cellIcon = dataIndex("tag", _menu_.rings.app.cells.curtain.elm).cellIcon;
+    cellIcon.innerHTML = iconPaths[_curtain_.on ? "Curtain On" : "Curtain"];
+    this.update() ;
+  }
+
+  update () {
+    let curtain = this.curtain ;
+    if(this.on) {
+      let level = _menu_.rings.app.cells.curtain.stash.level;
+      if(level < 101) {
+        curtain.style.background = "#000";
+        curtain.style.opacity = level / 100  * .8; // at most .8 opacity
+        curtain.style.mixBlendMode = "normal";
+      }
+      else {
+        curtain.style.background = "#A00000";
+        curtain.style.opacity = (201 - level) / 100 ;
+        // blend mode help's with score visibility when using red overlay
+        curtain.style.mixBlendMode = "multiply";
+      }
+    }
+    else curtain.style.opacity = 0 ;
+  }
+
+} 
+
+window._curtain_ = new Curtain() ; // create the singleton
+
+
+
 /**
 class PodumSlider
   A custom html element that replaces <input type="range"> for use in
@@ -1237,7 +1337,6 @@ class Shade {
 
 window._shade_ = new Shade();
 
-
 async function sleep(ms) {
   // sleep for (at least) ms
   let until = performance.now() + ms;
@@ -1340,10 +1439,11 @@ class SliderGroup {
     // it  can be a callback that returns a string, or it can be a string
     // that will be formatted using {min},{max},{value},{step}
     // substitutions. If value is non-null, it's used instead of
-    // the value in the tag def: see this.progress
+    // the value in the tag def: see this.progress. If the msg
+    // contains "...", everything after any "..." is removed.
     let tagDef = this.defs[tag];
     let value = this.props[tag];
-    if (tagDef.msg instanceof Function) return tagDef.msg(tag, value);
+    if (tagDef.msg instanceof Function) return tagDef.msg(tag, value) ;
     else if (typeof tagDef.msg == "string")
       return tagDef.msg.format({
         min: tagDef.min,
@@ -1398,7 +1498,8 @@ class SliderGroup {
       if (tagDef.disabled)
         elm.classList.add("SliderGroup__SliderBlock__Slider-disabled");
       else elm.classList.remove("SliderGroup__SliderBlock__Slider-disabled");
-      elm.firstChild.data = this.formatMsg(tag);
+      elm.firstChild.data = this.formatMsg(tag).replace(/(.*?\.\.\.).*/, "$1");
+////     elm.firstChild.data = this.formatMsg(tag).split("...")[0] + "...";
     }
   }
 
@@ -1468,7 +1569,8 @@ class Surface {
     let longPresser = new Schedule();
 
     panel.listeners.push(listen(surface, "pointerdown", (e) => {
-      if (surface.parentElement == _body_) surface.style.zIndex = ++_zTop_;
+      // set z-index to bring surface on top (note: Curtain class manages its own z-index)
+      if(this.constructor.name != "Curtain" && surface.parentElement == _body_) surface.style.zIndex = ++_zTop_;
       // Ignore pointerdown outside of circular area enclosed by this.surfaceDragElm
       let box = getBox(this.surfaceDragElm);
       let maxLeft = window.innerWidth - box.width;
@@ -1678,29 +1780,6 @@ class TabView {
         ? select(tab)
         : tab.deselect();
     }
-  }
-}
-
-/**
-class Timer
-   Used only for development performance testing.
-**/
-class Timer {
-  constructor(title = "unnamed") {
-    this.title = title;
-    this.startTime = performance.now();
-    this.prevTime = this.startTime;
-    console.log(`Timer ${this.title} started.`);
-  }
-
-  lap(tag = "") {
-    let now = performance.now();
-    console.log(
-      `Timer ${this.title}/${tag}  lap: ${now - this.prevTime} et: ${
-        now - this.startTime
-      }`
-    );
-    this.prevTime = now;
   }
 }
 
@@ -2172,6 +2251,7 @@ css(
       z-index: var(--z-topmost);
       background-color: var(--bodyColor);
       will-change: transform, left, top;
+      transition: left, top .1s;
    }`
 );
 
@@ -2181,6 +2261,7 @@ function ptrMsg(e, msgFunc, styles) {
   // obscured by the pointer: normally, above the pointer, but
   // to the left or right of the pointer as the pointer approaches
   // the top of the screen, etc.
+// "..."....
   let div = helm(`<div class="ptrMsg floatingMsg" style="${styles}"></div>`);
   _body_.append(div);
 
@@ -2192,7 +2273,7 @@ function ptrMsg(e, msgFunc, styles) {
   let expander = e.pointertype == "mouse" ? 1 : 2;
   let put = (ev) => {
     let result = msgFunc(ev, div);
-    if (result) div.innerHTML = result;
+    if (result) div.innerHTML = result.replace("...","") ; // remove "...continuation
 
     // Measure true content width (only clear minWidth if it's already set)
     if (maxWidth > 0) div.style.minWidth = "";

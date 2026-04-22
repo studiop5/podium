@@ -83,6 +83,25 @@ Close:
 "Close Panel":
   `<path style="pointer-events:none" fill="currentColor" d="M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z" />`,
 
+// Curtain — stage dim toggle. Open = dim off, On = dim active.
+Curtain:
+  `<g transform="translate(2.4,1.8) scale(0.8)">
+   <line x1="1" y1="3.5" x2="23" y2="3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+   <path fill="#aaa" stroke="currentColor" stroke-width="0.7" stroke-linejoin="round" d="M2,4 L9,4 C8,10 7,16 6,22 L2,22 Z"/>
+   <path fill="none" stroke="currentColor" stroke-width="0.4" stroke-linecap="round" d="M7,4 C6.5,9 6,15 5.5,20"/>
+   <path fill="#aaa" stroke="currentColor" stroke-width="0.7" stroke-linejoin="round" d="M22,4 L15,4 C16,10 17,16 18,22 L22,22 Z"/>
+   <path fill="none" stroke="currentColor" stroke-width="0.4" stroke-linecap="round" d="M17,4 C17.5,9 18,15 18.5,20"/>
+   </g>`,
+
+"Curtain On":
+  `<g transform="translate(2.4,1.8) scale(0.8)">
+   <line x1="1" y1="3.5" x2="23" y2="3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+   <path fill="#aaa" stroke="currentColor" stroke-width="0.7" stroke-linejoin="round" d="M2,4 L14,4 C12,9 11,15 11,22 L2,22 Z"/>
+   <path fill="none" stroke="currentColor" stroke-width="0.4" stroke-linecap="round" d="M11,4 C10.5,9 10,15 9.5,20"/>
+   <path fill="#aaa" stroke="currentColor" stroke-width="0.7" stroke-linejoin="round" d="M22,4 L10,4 C12,9 13,15 13,22 L22,22 Z"/>
+   <path fill="none" stroke="currentColor" stroke-width="0.4" stroke-linecap="round" d="M13,4 C13.5,9 14,15 14.5,20"/>
+   </g>`,
+
 "Export Page":
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 5h17v17.5h-17Z"/>
    <path style="fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
@@ -147,8 +166,16 @@ Dropbox:
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-35.3175 -50 306.085 300"><defs id="defs112"><style id="style110">.cls-1{fill:#0061ff}</style></defs><path id="polygon116" class="cls-1" d="M58.86 75l58.87-37.5L58.86 0 0 37.5z"/><path id="polygon118" class="cls-1" d="M176.59 75l58.86-37.5L176.59 0l-58.86 37.5z"/><path id="polygon120" class="cls-1" d="M117.73 112.5L58.86 75 0 112.5 58.86 150z"/><path id="polygon122" class="cls-1" d="M176.59 150l58.86-37.5L176.59 75l-58.86 37.5z"/><path id="polygon124" class="cls-1" d="M176.59 162.5L117.73 125l-58.87 37.5 58.87 37.5z"/></svg>`,
 
 Dark:
+  `<path fill="currentColor" d="M16,6A7,7 0 0 0 9,13A7,7 0 0 0 16,20A7,7 0 0 0 21,18.5A8,8 0 0 1 13,12A8,8 0 0 1 16,6Z"/>
+   <circle fill="currentColor" cx="7" cy="8" r="0.8"/>`,
+
+Warm:
   `<circle fill="currentColor" cx="12" cy="12" r="4"/>
    <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M12,2.5v2M12,19.5v2M21.5,12h-2M4.5,12h-2M18.4,5.6l-1.4,1.4M7,17l-1.4,1.4M18.4,18.4l-1.4-1.4M7,7L5.6,5.6"/>`,
+
+Glass:
+  `<path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M12,3.5v17M3.5,12h17M6.1,6.1l11.8,11.8M17.9,6.1L6.1,17.9"/>
+   <circle fill="currentColor" cx="12" cy="12" r="1.5"/>`,
 
 Expand:
   `<rect x="2" y="2" width="20" height="20" fill="#aaa" stroke="currentColor" stroke-width="0.6"/>

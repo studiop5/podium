@@ -816,15 +816,15 @@ class Volume
 class Volume extends Surface {
   constructor(panel) {
     super(panel, ScreenPanel);
-    this.surface.style.height = "4em";
-    this.surface.style.width = "12em";
-    let stash = _menu_.rings.more.cells.volume.stash;
-    this.volumeSlider = new SliderGroup(stash,
+    this.volumeSlider = new SliderGroup(panel.cell.stash,
     { volume: { min: 0, max: 1, step: 0.1, value: 1, msg: "Volume: {value}" } },
     (e, tag, value) => {
       this.panel.cell.stash.tag = value;
       _body_.dispatchEvent(new CustomEvent("VOLUME", { detail: value }));
     });
+    this.surface.style.height = "4em" ;
+    this.surface.style.width = "13em" ;
+    this.volumeSlider.elm.style.width = "13em" ;
     this.surface.prepend(this.volumeSlider.elm);
     this.surfaceDragElm = this.volumeSlider.elm;
     delay(2, () => this.volumeSlider.refresh());
@@ -851,11 +851,24 @@ class Clock extends Surface {
   build() {
     let clock = helm(`
       <svg data-tag="clock" transform="scale(1,1)"
-        style="position:relative;pointer-events:none;"
+        style="position:relative;pointer-events:none;filter:drop-shadow(0 0.2em 0.5em rgba(0,0,0,0.22))"
         viewBox="0 0 1200 1200">
-        <defs><path id="face" d="M 600,250 A 350,350 0 0 1 600 950 A 350,350 0 1 1 600,250"/></defs>
+        <defs>
+          <path id="face" d="M 600,250 A 350,350 0 0 1 600 950 A 350,350 0 1 1 600,250"/>
+          <radialGradient id="clockBezel" cx="40%" cy="35%" r="60%">
+            <stop offset="0%" stop-color="#ddd"/>
+            <stop offset="70%" stop-color="#bbb"/>
+            <stop offset="100%" stop-color="#777"/>
+          </radialGradient>
+          <radialGradient id="clockDome" cx="38%" cy="32%" r="75%">
+            <stop offset="0%"   stop-color="white" stop-opacity="0.55"/>
+            <stop offset="50%"  stop-color="white" stop-opacity="0.06"/>
+            <stop offset="70%"  stop-color="black" stop-opacity="0.02"/>
+            <stop offset="100%" stop-color="black" stop-opacity="0.18"/>
+          </radialGradient>
+        </defs>
         // Circular outline of clock
-        <circle data-tag="surfaceDragElm" cx="600" cy="600" r="480" fill="#eee"/>
+        <circle data-tag="surfaceDragElm" cx="600" cy="600" r="480" fill="url(#clockBezel)"/>
         <circle cx="600" cy="600" r="450" fill="white"/>
         // Major ticks on outer face: every 5 seconds
         <circle pathLength="120" fill="none" stroke="currentColor" cx="600" cy="600" r="300"
@@ -885,6 +898,8 @@ class Clock extends Surface {
         <circle cx="600" cy="600" r="10" fill="white"/>      
         // date (dynamically assigned)
         <text x="380" y="730" data-tag="date" style="font-size:65px;font-family:Liminari;font-style:italic;">1/1/2024</text>
+        // dome overlay: curved glass effect
+        <circle cx="600" cy="600" r="450" fill="url(#clockDome)" pointer-events="none"/>
       </svg>`);
 
     Object.assign(this, dataIndex("tag", clock));
@@ -941,7 +956,7 @@ class Stopwatch extends Surface {
 
     let watch = helm(`
        <svg data-tag="watch" transform="scale(1,1)"
-           style="position:relative;width:100%;"
+           style="position:relative;width:100%;filter:drop-shadow(0 0.2em 0.5em rgba(0,0,0,0.22))"
            viewBox="0 0 1200 1200">
           <defs>
             <path id="hourPointer" d="M585,640 L600,210 L615,640,Z"/>
@@ -949,10 +964,16 @@ class Stopwatch extends Surface {
             <path id="secondPointer" d="M590,640 L600,390 L610,640,Z"/>
             <circle id="outerFace" pathLength="600" fill="none" stroke="black" cx="600" cy="600" r="400"/>
             <circle id="innerFace"  pathLength="600" fill="none" stroke="black" cx="600" cy="600" r="200"/>
-            <radialGradient id="casingGradient">
-              <stop offset="0%" stop-color="grey" />
-              <stop offset="93%" stop-color="white" />
-              <stop offset="100%" stop-color="grey" />
+            <radialGradient id="casingGradient" cx="40%" cy="35%" r="60%">
+              <stop offset="0%"   stop-color="#ddd"/>
+              <stop offset="70%"  stop-color="#bbb"/>
+              <stop offset="100%" stop-color="#777"/>
+            </radialGradient>
+            <radialGradient id="watchDome" cx="38%" cy="32%" r="75%">
+              <stop offset="0%"   stop-color="white" stop-opacity="0.55"/>
+              <stop offset="50%"  stop-color="white" stop-opacity="0.06"/>
+              <stop offset="70%"  stop-color="black" stop-opacity="0.02"/>
+              <stop offset="100%" stop-color="black" stop-opacity="0.18"/>
             </radialGradient>
             <linearGradient id="stemGradient" >
               <stop offset="0" stop-color="darkgrey" />
@@ -1010,6 +1031,8 @@ class Stopwatch extends Surface {
          <rect data-tag="splitArea" x="800" y="75" width="300" height="300" fill="#0000"/>
         // logo
         <text x="510" y="500" style="font-size:45px;font-family:Liminari;font-style:italic;">PODIUM</text>
+        // dome overlay: curved glass effect
+        <circle cx="600" cy="600" r="450" fill="url(#watchDome)" pointer-events="none"/>
        </svg>`);
     this.surface.prepend(watch);
     Object.assign(this, dataIndex("tag", watch));

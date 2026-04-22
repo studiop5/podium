@@ -55,7 +55,7 @@ import { Layout } from "./layout.js";
 import { Pg, Score } from "./score.js";
 import { smuflTable } from "./smufl.js";
 import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
-export { Panel, panels, EditPanel, ScreenPanel };
+export { Panel, panels, EditPanel, ScreenPanel, CurtainPanel };
 
 // -skip
 
@@ -103,6 +103,7 @@ class Panel {
       position: fixed;
       overflow: hidden;
       border-radius: var(--borderRadius);
+      border: 0.05em solid rgba(100,115,148,0.22);
       filter: var(--panelShadow);
       box-shadow: var(--panel-inset-shadow);
       background: var(--panel-bg);
@@ -196,7 +197,8 @@ class Panel {
     this.listeners.push(
       listen(this.header, "pointerdown", (e) => {
         let { header, elm } = this;
-        elm.style.zIndex = ++_zTop_; // move to top of stacking order
+        if(!this instanceof CurtainPanel) // CurtainPanel uniquely manages its own z-index
+          elm.style.zIndex = ++_zTop_; // move to top of stacking order
         this.header.classList.add("Panel__header-selected");
         header.setPointerCapture(e.pointerId);
         let middleX = this.panel.offsetWidth / 2;
@@ -299,11 +301,12 @@ class Panel {
     reflow();
     elm.style.fontSize = fontSize;
     _pzTarget_ = elm;
-    if (this != _panels_.screen && this.constructor.name != "ScreenPanel") {
+    let clazz = this.constructor.name ;
+    if (this != _panels_.screen && clazz != "ScreenPanel") {
       _lastTarget_ = elm;
       _panels_.screen?.surface.update();
     }
-    elm.style.zIndex = ++_zTop_;
+    if(clazz != "CurtainPanel") elm.style.zIndex = ++_zTop_;
     return this;
   }
 
@@ -573,7 +576,7 @@ class AddPanel extends Panel {
       let pt = val.toFixed(0);
       let mm = (val * (1 / 2.8346456693)).toFixed(0);
       let inch = (val * (1 / 72)).toFixed(2);
-      return `${tag}: ${pt} pt, ${mm} mm, ${inch} in`;
+      return `${tag}: ${pt}pt,... ${mm}mm, ${inch}in`;
     };
     let disable = stash.size != "Custom";
 
@@ -1978,11 +1981,21 @@ class Pzr extends Surface {
        justify-items:center;
        align-items:center;
        border-radius:100%;
-       border:.2em solid #aaa;
-       background:#eee6;width:100%;
+       /* Protractor edge: barely visible, just defines the circle */
+       border: 0.05em solid rgba(100,100,120,0.25);
+       /* Specular highlight + edge vignette for curvature illusion */
+       background:
+         radial-gradient(circle at 34% 28%, rgba(222,228,242,0.85) 0%, transparent 32%),
+         radial-gradient(circle at center, rgba(200,208,222,0.22) 0%, rgba(172,184,208,0.45) 100%);
+       /* Drop shadow + glass edge highlights */
+       box-shadow:
+         0 0.2em 0.5em rgba(0,0,0,0.20),
+         inset 0 0.2em 0.5em rgba(255,255,255,0.90),
+         inset 0 -0.15em 0.4em rgba(0,0,0,0.20);
+       width:100%;
        height:100%;
        fill:none;
-       stroke:currentColor;
+       stroke:#444;
        stroke-width:8;
        stroke-linecap:round;
        stroke-linejoin:round;
@@ -1991,8 +2004,8 @@ class Pzr extends Surface {
         stroke: #aaa;
     }
     .Pz__control {
-      fill: none; 
-      stroke: currentColor;
+      fill: none;
+      stroke: #444;
       stroke-width: 8;
       stroke-linecap: round;
       stroke-linejoin: round;
@@ -2817,6 +2830,61 @@ class MagnifyPanel extends Panel {
   }
 }
 
+class CurtainSurface extends Surface {
+
+  constructor(panel) {
+    super(panel, ScreenPanel);
+    
+    // If dim level is in 0-100, dimmer color is black, opacity = val / 100.
+    // otherwise it in 101 - 201, color is #A0000000 (deep red). opacity = (201 - val) / 100
+    this.slider = new SliderGroup(panel.cell.stash,
+      { level: { min: 0, max: 201, step: 1, throttle: 50, value: 60, msg: (tag,value) => 
+        { if(value < 101) return `Curtain: Black ${Math.trunc(value)}%` ;
+          else return `Curtain: Red ${Math.trunc(201 - value)}%`
+      }}},
+      (e, tag, value) => {
+        panel.cell.stash.level = value;
+        if(!_curtain_.on) _curtain_.toggle() ;
+        _curtain_.update() ;
+    });
+
+    this.surface.style.width = "13em";
+    this.surface.style.height = "4em";
+    this.surface.style.display = "block";
+    this.slider.elm.style.width = "13em" ;
+    this.surface.append(this.slider.elm);
+    this.surfaceDragElm = this.slider.elm;
+    panel.elm.style.zIndex = this.surface.style.zIndex = _curtain_.curtain.style.zIndex + 1 ;
+    delay(2, () => this.slider.refresh());
+  }
+
+}
+
+
+class CurtainPanel extends Panel {
+
+  constructor(cell) {
+    super(cell);
+    this.surface = new CurtainSurface(this) ;
+  }
+
+  destructor() {
+    super.destructor();
+    this.surface.destructor();
+  }
+
+  show() {
+    super.show();
+    this.surface.show();
+    return this;
+  }
+
+  hide() {
+    super.hide();
+    this.surface.hide();
+  }
+}
+
 let panels = window._panels_ = {
   // This structure maps every Panel to its class.
   // Panels are instantiated on demand, and the
@@ -2856,5 +2924,6 @@ let panels = window._panels_ = {
   SymbolsPanel,
   TablePanel,
   VerticalPanel,
+  CurtainPanel,
   VolumePanel,
 };

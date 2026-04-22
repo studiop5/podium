@@ -315,9 +315,10 @@ class Menu {
     // Apply local-only cell states restored from stash
     {
       let themeCell = this.rings.app.cells.theme;
-      let theme = themeCell.stash.theme || "Light";
+      let theme = themeCell.stash.theme || "Glass";
       document.documentElement.setAttribute("data-theme", theme);
       dataIndex("tag", themeCell.elm).cellIcon.innerHTML = iconPaths[theme];
+      this.applyGaps(theme);
 
       let wakeLockCell = this.rings.app.cells.wakeLock;
       if (wakeLockCell.stash.on) {
@@ -622,19 +623,19 @@ class Menu {
     this.listen("page/undo/up", async () => {
        _score_.pgUndo();
        await Layout.activeLayout.build(false);
-   })
+    })
 
     
     rings.app = {
       name: "App",
       cells: {
         about: { name: "About", svgPath: iconPaths["About"], stash: {} },
-        theme: { name: "Theme", svgPath: iconPaths["Light"], stash: { theme: "Light" }, storage: "local" },
+        theme: { name: "Theme", svgPath: iconPaths["Glass"], stash: { theme: "Glass" }, storage: "local" },
         guide: { name: "Guide", svgPath: iconPaths["Guide"], stash: {} },
         storage: { name: "Storage", svgPath: iconPaths["Storage"], stash: {} },
+        curtain: { name: "Curtain", svgPath: iconPaths["Curtain"], stash: { level: 60 }, storage: "local" },
         wakeLock: { name: "Wakelock", svgPath: iconPaths["Wakelock Off"], stash: { on: false }, storage: "local" },
         screen: { name: "Screen", stash: {}, svgPath: iconPaths["Full Screen"], storage: "local" },
-        animation: { name: "Animation", stash: {}, svgPath: iconPaths["Full Screen"], storage: "local" },
       },
       svgPath: iconPaths["Podium"],
 
@@ -643,6 +644,8 @@ class Menu {
     this.listen("app/up", () => this.activateRing(rings.app));
 
     this.listen("app/about/out", (cell) => this.openPanel(cell));
+    this.listen("app/curtain/out", (cell) => this.openPanel(cell));
+    this.listen("app/curtain/up", (cell) => _curtain_.toggle());
     this.listen("app/screen/out", (cell) => this.openPanel(cell));
     this.listen("app/storage/out", (cell) => this.openPanel(cell));
     this.listen("app/guide/out", (cell) => this.openPanel(cell));
@@ -659,11 +662,13 @@ class Menu {
     });
 
     this.listen("app/theme/up", (cell) => {
-      let theme = cell.stash.theme || "Light";
-      theme = theme == "Dark" ? "Light" : "Dark";
+      const themes = ["Warm", "Glass", "Dark"];
+      let theme = cell.stash.theme || "Glass";
+      theme = themes[(themes.indexOf(theme) + 1) % themes.length];
       document.documentElement.setAttribute("data-theme", theme);
       dataIndex("tag", cell.elm).cellIcon.innerHTML = iconPaths[theme];
       cell.stash.theme = theme;
+      this.applyGaps(theme);
     });
 
     this.listen("app/wakeLock/up", async (cell) => {
@@ -837,11 +842,51 @@ class Menu {
     }); // forEach(([key, ring
   }
 
+  applyGaps(theme) {
+    // Recompute and reapply cell clip-paths with theme-specific gaps.
+    // Glass mode uses gap=0 (seamless cells); all other themes use the default getSizes() gaps.
+    let gap = theme == "Glass" ? 0 : this.sizes.cellGap;
+    let { diskDiameter, diskRadius, ringDiameter, ringRadius } = this.sizes;
+    let diskEntries = Object.entries(this.rings);
+    let ringKnt = diskEntries.length;
+
+    let diskClipPath = "circle(50%)";
+    if (ringKnt >= 2) {
+      let c = diskRadius;
+      let theta = (2 * Math.PI) / (ringKnt * 2);
+      let x = Math.sin(theta) * diskDiameter;
+      let y = Math.cos(theta) * diskDiameter;
+      diskClipPath = `polygon(${c - gap}em ${c}em,${c + x - gap}em ${c - y}em,${c - x + gap}em ${c - y}em,${c + gap}em ${c}em)`;
+    }
+
+    diskEntries.forEach(([, ring]) => {
+      ring.cellElm.style.clipPath = diskClipPath;
+      let cellEntries = Object.entries(ring.cells);
+      let cellKnt = cellEntries.length;
+      let ringClipPath = "circle(50%)";
+      if (cellKnt >= 2) {
+        let c = ringRadius;
+        let theta = (2 * Math.PI) / (cellKnt * 2);
+        let x = Math.sin(theta) * ringDiameter;
+        let y = Math.cos(theta) * ringDiameter;
+        ringClipPath = `polygon(${c - gap}em ${c}em,${c + x - gap}em ${c - y}em,${c - x + gap}em ${c - y}em,${c + gap}em ${c}em)`;
+      }
+      cellEntries.forEach(([, cell]) => {
+        cell.elm.style.clipPath = ringClipPath;
+      });
+    });
+  }
+
   // event operation handles:
 
   opDown(e) {
     if (e.ctrlKey || e.shiftKey) return;
     this.elm.style.zIndex = ++_zTop_;
+    // Cancel any active spin flings on touch
+    Object.values(this.rings).forEach(r => {
+      if (r._spinRaf) { cancelAnimationFrame(r._spinRaf); r._spinRaf = null; }
+    });
+    if (this.disk._spinRaf) { cancelAnimationFrame(this.disk._spinRaf); this.disk._spinRaf = null; }
     let op = this.op;
     op.schedule.cancel();
     let keys = e.target.dataset.key || "grip";
@@ -992,10 +1037,11 @@ class Menu {
           let rotation = 1 / op.ring.elm.childElementCount;
           [...op.ring.elm.children].forEach((elm, i) => (elm.firstElementChild.style.transform =
             `rotate(${-rotation * i - op.ring.turn}turn)`));
-          if (!op.spun) return; // insufficient movement
-          // issue spin notification, i.emv. spin in progress
           this.notify(`${op.ringKey}/${op.cellKey}/spin`);
           op.cell.elm.classList.remove("Menu__cell-selected");
+          op.turnHistory = op.turnHistory || [];
+          op.turnHistory.push({ turn: op.turn, t: emv.timeStamp });
+          if (op.turnHistory.length > 8) op.turnHistory.shift();
         }
         break;
       }
@@ -1004,11 +1050,13 @@ class Menu {
           this.disk.turn = op.turn - this.disk.turnOffset;
           this.disk.style.transform = `rotate(${this.disk.turn}turn)`;
           let rotation = 1 / this.disk.childElementCount;
-          [...this.disk.children].forEach((elm, i) => (elm.firstElementChild.style.transform = 
+          [...this.disk.children].forEach((elm, i) => (elm.firstElementChild.style.transform =
             `rotate(${-rotation * i - this.disk.turn}turn)`));
-          if (!op.spun) return; // insufficient movement
           this.notify(`${op.ringKey}/spin`);
           op.ring.cellElm.classList.remove("Menu__diskCell-selected");
+          op.turnHistory = op.turnHistory || [];
+          op.turnHistory.push({ turn: op.turn, t: emv.timeStamp });
+          if (op.turnHistory.length > 8) op.turnHistory.shift();
         }
         break;
       }
@@ -1026,6 +1074,53 @@ class Menu {
     }
   }
 
+  spinFling(op) {
+    let history = op.turnHistory;
+    if (!history || history.length < 2) return;
+    let now = history[history.length - 1].t;
+    let recent = history.filter(h => now - h.t <= 150);
+    if (recent.length < 2) return;
+    let dT = recent[recent.length - 1].t - recent[0].t;
+    if (!dT) return;
+    let vel = (recent[recent.length - 1].turn - recent[0].turn) / dT; // turns/ms
+    if (Math.abs(vel) < 0.0005) return; // must be a definite fling
+
+    let isRing = op.state === "ring";
+    let obj = isRing ? op.ring : this.disk;
+    let spinElm = isRing ? op.ring.elm : this.disk;
+    let rotation = 1 / spinElm.childElementCount;
+    let children = [...spinElm.children];
+    let lastT = performance.now();
+    let turned = 0;
+
+    if (obj._spinRaf) cancelAnimationFrame(obj._spinRaf);
+
+    const applyTurn = (delta) => {
+      obj.turn += delta;
+      spinElm.style.transform = `rotate(${obj.turn}turn)`;
+      children.forEach((child, i) =>
+        child.firstElementChild.style.transform = `rotate(${-rotation * i - obj.turn}turn)`);
+    };
+
+    const step = (now) => {
+      let dt = now - lastT;
+      lastT = now;
+      vel *= Math.pow(0.5, dt / 500); // half-life ~500ms
+      if (Math.abs(vel) < 0.00006) { obj._spinRaf = null; return; }
+      let delta = vel * dt;
+      let remaining = 1 - Math.abs(turned);
+      if (Math.abs(delta) >= remaining) {
+        applyTurn(Math.sign(delta) * remaining); // land exactly at 1 turn
+        obj._spinRaf = null;
+        return;
+      }
+      turned += delta;
+      applyTurn(delta);
+      obj._spinRaf = requestAnimationFrame(step);
+    };
+    obj._spinRaf = requestAnimationFrame(step);
+  }
+
   opUp(eup) {
     let op = this.op;
     op.schedule.cancel();
@@ -1033,7 +1128,7 @@ class Menu {
     op.cell && op.cell.elm.classList.remove("Menu__cell-selected");
     op.ring && op.ring.cellElm.classList.remove("Menu__diskCell-selected");
     this.grip.classList.remove("Menu__grip-selected");
-    if (op.spun) return;
+    if (op.spun) { this.spinFling(op); return; }
     if(op.out) {
       if(flung(null, eup)) {
         let panel = panels[op.cell.name + "Panel"]?.get(op.cell);
@@ -1303,7 +1398,7 @@ class Menu {
 
     // Apply theme
     let themeCell = this.rings.app.cells.theme;
-    let theme = themeCell.stash.theme || "Light";
+    let theme = themeCell.stash.theme || "Glass";
     document.documentElement.setAttribute("data-theme", theme);
     dataIndex("tag", themeCell.elm).cellIcon.innerHTML = iconPaths[theme];
 
