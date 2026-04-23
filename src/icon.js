@@ -49,7 +49,7 @@ Alpha:
    <circle style="fill:#8888;" cx="14" cy="12" r="6"/>`,
 
 About:
-  `<text font-size="42px" y="20" x="7" font-family="Bravura" fill="currentColor">\ued19</text>`,
+  `<text font-size="24px" y="20" x="7" font-family="Bravura" fill="currentColor">\ued19</text>`,
 
 "Blank Page":
   `<path style="fill:none;stroke:#000;stroke-width:.6" d="M3 3h17v20h-17Z"/>`,
@@ -106,15 +106,15 @@ Curtain:
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 5h17v17.5h-17Z"/>
    <path style="fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
    <rect x="9.75" y="5.5" width="3.5" height="15" fill="#aaa" stroke="none"/> -->
-   <text x="10" y="22" style="fill:currentColor;font-family:Bravura;font-size:15">\uE634</text>`,
+   <text x="10.5" y="21.5" style="fill:currentColor;font-family:Bravura;font-size:12">\uE634</text>`,
 
 "Import Page":
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 5h17v17.5h-17Z"/>
    <path style="fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
    <rect x="6.75" y="5.5" width="3.5" height="15" fill="#aaa" stroke="none"/>
    <rect x="13" y="5.5" width="3.5" height="15" fill="#aaa" stroke="none"/>
-   <text x="7" y="22" style="fill:currentColor;font-family:Bravura;font-size:15">\uE635</text>,
-   <text x="13" y="22" style="fill:currentColor;font-family:Bravura;font-size:15">\uE635</text>`,
+   <text x="7.5" y="21" style="fill:currentColor;font-family:Bravura;font-size:12">\uE635</text>,
+   <text x="14" y="21" style="fill:currentColor;font-family:Bravura;font-size:12">\uE635</text>`,
 
 "Copy Page":
   `<g style="transform:scale(.85)">
@@ -134,8 +134,8 @@ Curtain:
   <path fill="currentColor" transform="translate(5.5,16) scale(0.013,-0.013) translate(-35,-81)" d="${scissorsD}"/>`,
 
 "Copy":
-  `<text y="12" x="4" font-size="11px" font-family="Bravura" fill="#888">\ue050</text>
-   <text y="16" x="8" font-size="11px" font-family="Bravura" fill="#currentColor">\ue050</text>`,
+  `<text y="12" x="6" font-size="11px" font-family="Bravura" fill="#888">\ue050</text>
+   <text y="16" x="10" font-size="11px" font-family="Bravura" fill="#currentColor">\ue050</text>`,
 
  "Delete Page":
     `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
@@ -198,10 +198,10 @@ File:
   `<path fill="currentColor" d="M9,11H15V8L19,12L15,16V13H9V16L5,12L9,8V11M2,20V4H4V20H2M20,20V4H22V20H20Z" />`,
 
 Flatten:
-  `<text transform="rotate(0) skewX(0)" y="4.8" x="5" font-size="13px" font-family="Bravura" fill="currentColor">\ue1d4</text>
+  `<text transform="rotate(0) skewX(0)" y="11" x="5" font-size="14px" font-family="Bravura" fill="currentColor">\ue1d4</text>
    <path stroke="currentColor" fill="#9998" stroke-width=".6" d="M4 12L0 20L24 20L20 12Z"/>
    <path fill="none" stroke="currentColor" stroke-width="0.3" d="M4 12.5L20 12.5M3.5 14L20.5 14M3 15.5L21 15.5M2.5 17L21.5 17M2 18.5L22 18.5M1.5 20L22.5 20"/>
-   <text transform="translate(19 16) rotate(130) skewX(40)" y="0" x="0" font-size="12px" font-family="Bravura" fill="currentColor">\ue1d4</text>`,
+   <text transform="translate(19 16) rotate(130) skewX(40)" y="6px" x="0" font-size="14px" font-family="Bravura" fill="currentColor">\ue1d4</text>`,
 
 "Flute Mirrored":
   `<path fill="none" stroke="currentColor" stroke-width="0.5" d="m12.7,12.3c0.3,0.7 1.6,0.8 2.8,0.8 1.1,-0.8 1.5,-2.3 1.8,-3.57L5.38,8.22V7.4L17.7,8.56c0.2,-0.67 2.1,-0.49 2.5,0.16L23.3,9.05 23,10.3 19.9,9.71c-1.3,2.19-2.6,5.69-4.1,5.89-1.5,-0.1-3.7,-0.2-4.5,-1.1m-1.55,1C8.82,17.9 8.5,21.8 8.5,23.1 6.2,23.3 3.41,24.3 1.1,22.6 1.1,17.5 0.939,10 1.25,9.71 4.57,10.4 6.87,11.7 8.82,13.4 10.8,11.8 11.2,9.54 12.7,9.71c1.6,0-1.4,5.79-2.95,5.79zM9.13,8.71C7.52,11.7 0.939,7.57 0.618,5.27 0.275,1.64 2.44,0.329 4.72,0.329 8.92,1.15 9.96,4.6 9.23,7.57" />`,
@@ -219,18 +219,10 @@ Free:
   `<path fill="#aaa" stroke="currentColor" stroke-width="0.9"  d="m4.99,18.9 3.1,-3.3m-3.1,0v3.3h3.1m10.21,0-3.1,-3.3m3.1,0v3.3H15.2M5.06,5.18 8.16,8.42M4.99,8.3V5.06h3.1m10.21,0-3.1,3.24m3.1,0V5.06H15.2M8.99,9.01a0.4,0.4 0 0 0-0.4,0.4v5.39a0.4,0.4 0 0 0 0.4,0.4h5.41a0.4,0.4 0 0 0 0.4,-0.4V9.41a0.4,0.4 0 0 0-0.4,-0.4z" />`,
 
 Grid:
-  `<text font-size="25px" y="12" x="-12" font-family="Bravura" fill="currentColor">\uee37</text>`,
+  `<text font-size="28px" y="12" x="-9" font-family="Bravura" fill="currentColor">\uee37</text>`,
 
 Guide:
   `<g transform="translate(24, 0) scale(-1, 1) rotate(-20 12 12)"><text font-size="22px" x="2" y="18" font-family="Bravura" fill="currentColor" stroke="currentColor" stroke-width="0.6" style="paint-order:stroke;">\uec46</text></g>`,
-
-Help:
-  ` <g style="fill:none;stroke:currentColor;stroke-width:.6px">
-  <circle cx=12 cy=12 r=10 /><circle cx=12 cy=12 r=7>
-  </g><defs>
-  <mask id="help"><circle style="fill:none;stroke:white;stroke-width:4" cx=12 cy=12 r=9 />
-  </mask></defs><path mask="url(#help)" style="fill:none;stroke:#888;stroke-width:4;stroke-linecap:butt;" d="M5 5L19 19M19 5L5 19"/>
-  <text font-family="Bravura" font-size="12" x="9.5" y="16" fill="currentColor">?</text>`,
 
 "Horizontal Scroll":
   `<path fill="#888" stroke="currentColor" stroke-width="0.6" d="M16.7,9.6H7.48m9.22,5.2H7.48m9.22,2.5H7.37M16.7,12.2H7.48M16.7,6.98H7.37M1.44,20.2a0.545,0.519 0 0 0 0.53,0.5 0.545,0.519 0 0 0 0.52,-0.5H1.97Zm20.46,0.1a0.545,0.519 0 0 0 0.6,0.5 0.545,0.519 0 0 0 0.5,-0.5H22.5ZM1.55,3.92A0.545,0.519 0 0 1 2.07,3.4 0.545,0.519 0 0 1 2.6,3.92H2.07ZM21.8,4.03a0.545,0.519 0 0 1 0.5,-0.52 0.545,0.519 0 0 1 0.6,0.52H22.3ZM21.4,20C15.1,19.3 9.01,19.4 3.12,20M21.4,4.35C15,5.16 9.01,4.75 3.02,4.35M23.4,4V20.3H21.5V4.06ZM3.02,3.92V20.2H1.13V3.98Z" />`,
@@ -243,7 +235,7 @@ Ink:
 
 Jpg:
   `<rect width="24" height="24" rx="2" fill="#aaa" />
-   <text y="14" x="6" font-family="Bravura" font-size="12px">\ueb1b</text>
+   <text y="14" x="8" font-family="Bravura" font-size="12px">\ueb1b</text>
    <text y="22" x="4.5" font-size="6px">JPEG</text>`,
 
 Layout:
@@ -280,14 +272,15 @@ Menu:
      <path d="M16.95,7.05L19.78,4.22M16.95,16.95L19.78,19.78M7.05,16.95L4.22,19.78M7.05,7.05L4.22,4.22"/>
   </g>`,
 
+
+//   <path style="fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
+
 Merge:
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 5h17v17.5h-17Z"/>
-   <path style="fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
-   <rect x="34" y="7.5" width="16" height="2.5" fill="#faa" stroke="none"/> 
-   <rect x="3.5" y="17" width="16" height="2.5" fill="#aaa" stroke="none"/>  
+   <path style="fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 8h12M5.5 14h12 M5.5 20h12"/>
    <g transform-origin="center" transform="rotate(-90)">
-     <text x="4" y="19.5" style="fill:currentColor;font-family:Bravura;font-size:15">\uE635</text>,
-     <text x="13" y="19.5" style="fill:currentColor;font-family:Bravura;font-size:15">\uE635</text>
+     <text x="5.5" y="19" style="fill:currentColor;font-family:Bravura;font-size:12">\uE635</text>,
+     <text x="12" y="19" style="fill:currentColor;font-family:Bravura;font-size:12">\uE635</text> 
    </g>`,
 
 Metric:
@@ -314,7 +307,7 @@ More:
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
    <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
    <rect x="7" y="9" width="9" height="6.5" fill="#aaa" stroke="none"/>
-   <text style="fill:currentColor;font-family:Bravura;transform:translate(9.5px,10.5px) rotate(45deg);font-size:21">\ue263</text>`,
+   <text x="7.5" y="15.5" style="font-size:11">\u2295</text>`,
 
 "New Score":
   `<path fill="none" stroke="currentColor" stroke-width=".4" stroke-linecap="square" d="m8.45,15.1v0.2m0,0.8v0.2M6.12,15.7c-0.68,0.4-0.68,-1.1 0.48,-0.9 0.83,0 0.96,0.4 1.04,0.9 0.13,1-0.9,2-2.1,2.6v0M6.79,9.67c0.8,-0.2 1.3,-0.8 0.9,-1.6-0.5,-0.8-1.1,-0.7-1.6,-0.3-0.7,0.6-0.1,1.3 0.2,1.3v0M5.69,11c0.3,1.3 1.3,0.8 1.3,0-0.2,-2.03-0.4,-3.93-0.4,-5.93 0,-0.4 0.3,-0.9 0.5,-1 0.9,0.2 0.4,1.9-0.5,2.3-2.3,1-2.2,3.2 0.3,3.3M2.82,18.7c19.98,0 19.98,0 19.98,0v-0.1 0M2.82,17.7c19.98,0 19.98,0 19.98,0v-0.1 0M2.82,16.8c19.98,0 19.98,0 19.98,0v-0.2 0M2.82,15.7c19.98,0 19.98,0 19.98,0v-0.2 0M2.82,14.7c19.98,0 19.98,0 19.98,0v-0.2 0M3.04,9.57c19.76,0 19.76,0 19.76,0v-0.11 0M3.03,8.75c19.77,0 19.77,0 19.77,0v-0.29 0M3.03,7.65c19.77,0 19.77,0 19.77,0v-0.21 0M3.03,6.6c19.77,0 19.77,0 19.77,0v-0.21 0M3.03,5.51c19.77,0 19.77,0 19.77,0v-0.19 0m-19.71,0c0,13.38 0,13.38 0,13.38H2.97v0M2.12,4.72c-1.795,2.14 0.76,3.34-0.86,7.68 1.6,4.5-0.859,6.3 1.03,7.5" />`,
@@ -331,17 +324,19 @@ More:
 "No Ink":
   `<path style="fill:none;stroke:currentColor;stroke-width:0.6;stroke-linecap:butt;stroke-linejoin:miter;" d="m13.5,16.7c1.3,0.4 3.3,0.5 4.4,0m-6.3,1.6c2.1,0.9 6.3,0.9 8.1,0M16.8,17.9C14.8,13.9 14.2,10.2 4.5,2.98 8.43,6.49 12.7,11 16.8,17.9ZM14,13.6C11.8,13.2 10.4,12.2 9.55,11L9.87,10.3 8.48,10.1C5.05,7.72 4.04,3.78 3.08,1.77 5.26,2.68 7.43,3.63 9.43,4.9L9.57,5.78 10.1,5.41c1.7,1.12 3.5,2.34 4.2,4.12l0.1,1.77 0.5,-0.4c0.5,1.2 0.5,2.1-0.2,2.6m-2.3,8c-1.6,-0.2-1.1,-2.3-0.8,-3.2 0.3,-0.9 1.1,-1.5 1.9,-1.6 0,-1 0.2,-1.4 0.4,-1.6 1,-0.1 2.2,-0.2 3.5,0 0.5,0.5 0.4,1 0.5,1.6 0.9,0 1.5,0.7 1.8,1.6 0.3,0.9 0.6,3.1-0.8,3.2-1.4,0.1-4.9,0.2-6.5,0z"/>`,
 
-"Not Pdf":
-  `<path fill="#aaa" stroke="currentColor" stroke-width=".2" d="m7.52,16.6v1.5h0.76q0.41,0 0.64,-0.2 0.23,-0.2 0.23,-0.6 0,-0.4-0.23,-0.5-0.23,-0.2-0.64,-0.2zm-0.6,-0.5h1.36q0.73,0 1.12,0.4 0.38,0.3 0.38,0.8 0,0.6-0.38,0.9-0.39,0.2-1.12,0.2H7.52V20h-0.6zm4.28,0.5v3h0.7q1,0 1.4,-0.4 0.4,-0.3 0.4,-1.1 0,-0.8-0.4,-1.2-0.4,-0.3-1.4,-0.3zm-0.6,-0.5h1.2q1.3,0 1.9,0.6 0.7,0.4 0.7,1.4 0,1-0.7,1.5-0.6,0.4-1.9,0.4h-1.2zm4.7,0h2.5v0.5h-1.9v1.1h1.8v0.5H15.9V20H15.3ZM4.25,2.07H19.8c1.2,0 2.1,0.95 2.1,2.13V19.8C21.9,21 21,22 19.8,22H4.25C3.07,22 2.12,21 2.12,19.8V4.2c0,-1.18 0.95,-2.13 2.13,-2.13z"/><path stroke-width="1" stroke="currentColor" d="M0 0L24 24M24 0l-24 24" /><text y="12" x="5" font-family="Bravura" font-size="6px">\ue01a\ue01a\ue01a</text><text y="10.5" x="5" font-family="Bravura" font-size="6px">\ue050</text>`,
-
-"Normal Screen":
-  `<path fill="#aaa" stroke="currentColor" stroke-width="0.9" d="M8.04,15.7 4.94,19m3.1,0v-3.3h-3.1m10.36,0 3.1,3.3m-3.1,0v-3.3h3.1M8.03,8.24 4.93,5M8.1,5.12V8.36H5M15.3,8.24 18.4,5m-3.1,0v3.24h3.1M8.99,9.01a0.4,0.4 0 0 0-0.4,0.4v5.39a0.4,0.4 0 0 0 0.4,0.4h5.41a0.4,0.4 0 0 0 0.4,-0.4V9.41a0.4,0.4 0 0 0-0.4,-0.4z" />`,
+"Not Pdf": 
+  `<rect width="24" height="24" rx="2" fill="#aaa" />
+   <text y="12" x="9" font-family="Bravura" font-size="10px">\ue01a\ue01a\ue01a</text>
+   <text y="12.125" x="9.75" font-family="Bravura" font-size="10px">\ue050</text>
+   <text y="22" x="6" font-size="6px">PDF</text>
+   <path stroke="currentColor" stroke-width=".9" d="M0 0l24 24M24 0l-24 24"/>`
+,
 
 Numbers:
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
    <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
    <rect x="7" y="6" width="9" height="13.5" fill="#aaa" stroke="none"/>
-   <text style="fill:currentColor;font-family:Bravura;" font-size="18" x="9" y="12.5">\uE262</text>`,
+   <text style="fill:currentColor;font-family:Bravura;" font-size="22" x="9.50" y="21">\uE262</text>`,
 
 OneDrive:
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 5.5 32 20.5"><g id="STYLE_COLOR"><path d="M12.20245,11.19292l.00031-.0011,6.71765,4.02379,4.00293-1.68451.00018.00068A6.4768,6.4768,0,0,1,25.5,13c.14764,0,.29358.0067.43878.01639a10.00075,10.00075,0,0,0-18.041-3.01381C7.932,10.00215,7.9657,10,8,10A7.96073,7.96073,0,0,1,12.20245,11.19292Z" fill="#0364b8"/><path d="M12.20276,11.19182l-.00031.0011A7.96073,7.96073,0,0,0,8,10c-.0343,0-.06805.00215-.10223.00258A7.99676,7.99676,0,0,0,1.43732,22.57277l5.924-2.49292,2.63342-1.10819,5.86353-2.46746,3.06213-1.28859Z" fill="#0078d4"/><path d="M25.93878,13.01639C25.79358,13.0067,25.64764,13,25.5,13a6.4768,6.4768,0,0,0-2.57648.53178l-.00018-.00068-4.00293,1.68451,1.16077.69528L23.88611,18.19l1.66009.99438,5.67633,3.40007a6.5002,6.5002,0,0,0-5.28375-9.56805Z" fill="#1490df"/><path d="M25.5462,19.18437,23.88611,18.19l-3.80493-2.2791-1.16077-.69528L15.85828,16.5042,9.99475,18.97166,7.36133,20.07985l-5.924,2.49292A7.98889,7.98889,0,0,0,8,26H25.5a6.49837,6.49837,0,0,0,5.72253-3.41556Z" fill="#28a8ea"/></g></svg>`,
@@ -377,15 +372,15 @@ Pause:
 
 Pdf: 
   `<rect width="24" height="24" rx="2" fill="#aaa" />
-  <text y="12" x="5" font-family="Bravura" font-size="6px">\ue01a\ue01a\ue01a</text>
-  <text y="10.5" x="5" font-family="Bravura" font-size="6px">\ue050</text>
-  <text y="22" x="7" font-size="6px">PDF</text>`,
+   <text y="12" x="9" font-family="Bravura" font-size="10px">\ue01a\ue01a\ue01a</text>
+   <text y="12.125" x="9.75" font-family="Bravura" font-size="10px">\ue050</text>
+   <text y="22" x="6" font-size="6px">PDF</text>`,
 
 Pedal:
-  `<text y="17" x="5" font-size="16px" font-family="Bravura">\ue650</text>`,
+  `<text y="17" x="3" font-size="14px" font-family="Bravura">\ue650</text>`,
 
 "Pedal Up":
-  `<text y="17" x="8" font-size="20px" font-family="Bravura">\ue655</text>`,
+  `<text y="18" x="6.5" font-size="20px" font-family="Bravura">\ue655</text>`,
 
 Pen:
   `<path fill="#aaa" stroke="currentColor" stroke-width="0.5" d="m14.9,3.18 1.4,-1.25 5.4,5.26-1.3,1.29zM2.21,20.5C4.18,18.1 5.33,14.7 5.99,10.7 9.09,8.87 12.2,7.09 14.8,4.6L19,8.77c-2.3,2.33-4.2,5.63-6.2,8.93-5.34,0.5-7.49,2.1-9.78,3.6l7.08,-7.1c1,0.1 1.5,-0.9 0.8,-1.6-0.7,-0.6-1.75,0-1.49,0.9z"  />`,
@@ -407,9 +402,9 @@ Png:
 
 Podium:
   `<g transform="translate(1),scale(0.9,0.9)">
-  <path  fill="#aaa" stroke="currentColor" stroke-width=".6" stroke-linejoin="round"
-  d="M4 23v-3h16v3h1.5h-19ZM7 20v-14h10v14M7 12h-2l-3-10h20l-3 10h-2"/>
-  <text x="10" y="14" font-family="Bravura" font-size="12px">\ue520</text></g>`,
+   <path  fill="#aaa" stroke="currentColor" stroke-width=".6" stroke-linejoin="round"
+   d="M4 23v-3h16v3h1.5h-19ZM7 20v-14h10v14M7 12h-2l-3-10h20l-3 10h-2"/>
+   <text x="9.5" y="14" font-family="Bravura" font-size="10px">\ue520</text></g>`,
 
 Print:
   `<path fill="#aaa" stroke="currentColor" stroke-width=".5" d="m14.3,12h2.2M18.6,15.6 17.5,13M6.18,12H7.97M3.37,15.6 5.17,13M11.1,1.96h1M10.7,3.13 11.4,2.57 11.1,2M11.8,3.12 12.4,2.53 12.1,1.96M11.1,6.91 10.6,6.28 11.2,5.88 10.6,5.19 11.1,4.75 10.7,4.18M12.4,6.86 12,6.23 12.6,5.82 12,5.13 12.4,4.69 12.1,4.12m0.8,2.85H9.85V8.83H12.9V8.28L20.8,8.15V7.69L12.9,7.58ZM7.02,8.82H15.7V10.3H7.01ZM8.19,11.6 6.63,14.4H15.3L14.1,11.6ZM3.56,22.9V15.6H18.4V23H16.5V18.6H15.6V17H6.03v1.6H5.14v4.3zM16.6,8.23V13h0.9L17.6,8.24ZM5.14,13V2.1H6.16V3.15H16.6v-1.1h1.1l-0.1,5.57h-1V4.09H6.16V13Z" />`,
@@ -424,14 +419,15 @@ Replace:
   `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M2.28,16.6 12.3,5.33 11.2,3.9h5.4v5.72l-1.3,-1.1-5.55,5.98-1.51,-1.3 0.11,6.1 5.15,-0.1-1,-1.6 9.9,-11.03"/>`,
 
 Repeat:
-  `<text y="20" x="6" font-family="Bravura" font-size="14px" fill="currentColor">\ue040</text>
-   <text y="20" x="13" font-family="Bravura" font-size="14px" fill="currentColor">\ue041</text>`,
+  `<text y="19" x="6.5" font-family="Bravura" font-size="16px" fill="currentColor">\ue040</text>
+   <text y="19" x="13.5" font-family="Bravura" font-size="16px" fill="currentColor">\ue041</text>`,
 
 Replay:
-  `<text y="22" x="2" font-family="Bravura" font-size="21px">\ueb18</text>`,
+  `<text y="18" x="2" font-family="Bravura" font-size="21px">\ueb18</text>`,
 
 Reset:
   `<path fill="none" stroke="currentColor" stroke-width="1.5" d="${circlePath(9,12,12)} M10 2 l4 0 M12 12 l0 -7 M7 5 l-1.75 -2.25"/>`,
+
 
 Review:
   `<path fill="none" stroke="currentColor" stroke-width="0.8" d="m14.5,6.73c-1,-1.34-1.9,-0.78-2.5,0m-7.97,0.5c0,2.48 1.73,4.47 3.99,4.47 2.18,0 4.08,-1.95 4.08,-4.47 0,-2.51-1.9,-4.52-4.08,-4.47-2.26,0-3.99,2-3.99,4.47zM14.5,7.03c0,2.52 2,4.57 4.2,4.47 2.2,0 4,-2.01 4,-4.47 0,-2.47-1.8,-4.48-4,-4.48-2.2,-0.11-4.2,1.95-4.2,4.48zm-10.57,0H1.4L10,22.7c0.5,0 0.8,-0.2 0.9,-0.6L1.4,7.05" />`,
@@ -448,9 +444,6 @@ Score:
 
 Slope:
   `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M5 5l19 19M5 10v-5h5M18 23h5v-5"/>`,
-
-Snap:
-  `<text y="12" x="4" font-family="Bravura" font-size="30px">\ueab7</text>`,
 
 Speaker:
   `<path fill="none" stroke="currentColor" stroke-width="0.6" d="m10.9,18.3 6.6,-0.2m-2.4,-5c0,0.7-0.5,1.2-1.1,1.2-0.6,0-1.1,-0.5-1.1,-1.2 0,-0.7 0.5,-1.2 1.1,-1.2 0.6,0 1.1,0.5 1.1,1.2zm2.1,0.1c0,1.8-1.3,3.3-3,3.3-1.7,0-3,-1.5-3,-3.3 0,-1.8 1.3,-3.32 3,-3.3 1.7,-0 3,1.5 3,3.3zM15.1,6.61c0,0.49-0.4,0.87-0.8,0.87-0.4,-0.1-0.7,-0.42-0.7,-0.87 0,-0.46 0.3,-0.86 0.7,-0.91 0.4,0 0.8,0.4 0.8,0.91zm0.7,0c0,0.94-0.7,1.69-1.5,1.66-0.8,-0-1.4,-0.77-1.4,-1.66 0,-0.89 0.6,-1.63 1.4,-1.66 0.8,-0 1.5,0.72 1.5,1.66zM11.1,9.8c1.5,-0.84 3.7,-0.95 6,0.1 0.8,1.7 1.3,4.2 0.2,6.7-1.9,0.9-3.8,0.6-6.2,0.1-0.9,-1.9-1.12,-3.9 0,-6.9zM9.13,19.3 5.54,18.4V6.16L9.27,3.3m0.1,0 9.23,1.25 0.2,14.55-9.55,0.2z"/>`,
@@ -477,7 +470,7 @@ Storage:
    <path d="M4 19v-2M6 19v-2M8 19v-2M10 19v-2M16 19v-2M18 19v-2M20 19v-2" stroke="currentColor" stroke-width="0.6"/>`,
 
 Stretch:
-  `<text y="10" x="7" font-size="14px" font-family="Bravura">\ue512</text>
+  `<text y="10" x="6" font-size="10px" font-family="Bravura">\ue512</text>
    <text y="22" x="1" font-size="24px">\u21d4</text>`,
 
 Symbols:
@@ -515,7 +508,7 @@ Void:
    `<path d=""/>`,
 
 Volume:
-   `<text y="13" x="6" font-size="20px" font-family="Bravura" fill="currentColor">\ue534</text>`,
+   `<text y="13" x="6" font-size="16px" font-family="Bravura" fill="currentColor">\ue534</text>`,
 
 Video:
   `<path fill="none" stroke="currentColor" stroke-width="0.6" d="m14,16.6 3.8,-0.9M10.3,3.42c1.5,0.44 2.3,0.5 2.4,1.18L16.3,4.11C15.9,3.58 14.8,3.16 13.4,3.15ZM7.92,14.9 8.2,14.2 9.38,15.1 9.29,16ZM4.31,6.48C4.27,7.12 3.85,7.6 3.38,7.56 2.92,7.52 2.59,6.99 2.63,6.37c0,-0.63 0.45,-1.12 0.92,-1.08 0.46,0 0.8,0.56 0.76,1.19zM3.9,11.6 2.39,11.5v1.7l1.61,1.3 2.27,1v-2zM18.6,9.78V8.6l-5.9,1.1v9.7l5.9,-1.7V15M16,5.92 13.3,6.3V8.99L16,8.49Zm4.9,9.48c-1.4,-0.2-2.8,-0.3-4.5,-1m5.7,-3.6C20.9,10.3 19.9,10 18.4,9.8m3.6,1.4c-0.6,-0.1-1.1,0.2-1.5,0.5-0.3,0.5-0.5,1-0.5,1.5 0,0.4 0.1,0.8 0.3,1.2 0.2,0.3 0.5,0.6 0.9,0.6 0.9,0 1.7,-0.8 1.7,-1.8 0,-0.4 0,-0.9-0.2,-1.3 0,-0.3-0.4,-0.6-0.7,-0.7zm0,0.2c0.3,0 0.5,0.3 0.7,0.6 0,0.3 0,0.8 0,1.2 0,0.8-0.8,1.6-1.5,1.6-0.4,0-0.7,-0.1-0.8,-0.5-0.2,-0.3-0.2,-0.7-0.2,-1.1 0,-0.4 0.2,-0.9 0.5,-1.3 0.2,-0.4 0.8,-0.6 1.3,-0.5zm0,-0.7c-0.7,-0.1-1.3,0.2-1.8,0.7-0.4,0.6-0.7,1.2-0.7,1.8 0,0.6 0.1,1.1 0.4,1.6 0.3,0.4 0.7,0.7 1.2,0.7 1.1,0 2.1,-1 2.2,-2.2 0,-0.6 0,-1.2-0.2,-1.7-0.2,-0.4-0.6,-0.8-1.1,-0.9zm0,0.2c0.4,0.1 0.7,0.4 0.9,0.8 0.2,0.4 0.2,1 0.2,1.6-0.1,1-1.1,2-2,2-0.5,0-0.8,-0.2-1,-0.6-0.3,-0.4-0.4,-1-0.4,-1.5 0,-0.5 0.3,-1.1 0.7,-1.6 0.4,-0.5 1,-0.8 1.6,-0.7zm-5.4,3.6C15.4,13.9 15.1,12.4 15.5,11.1 16,10 17.1,9.5 18.4,9.8m0.7,5.3v3.1C19,18.5 19,18.6 18.9,18.6l-7.4,2.3M19,4.64V9.89M1.7,3.35 9.35,2.03M19,4.69 11.5,5.72M9.31,2.03c3.09,0.93 8.89,0 9.69,2.63M11.5,5.72V20.8C11,21.8 4.84,17.3 1.71,15.5V3.39C4.94,4.32 10.7,3.16 11.5,5.72Z"/>`,

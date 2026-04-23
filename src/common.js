@@ -235,6 +235,8 @@ css( // common css declarations.
                           -0.15em -0.15em 0.35em rgba(0,0,0,0.14) inset;
 
     /* Slider colors */
+    --slider-indicator: #666;
+    --slider-indicator-active: #eef;
     --slider-knob-bg: #b8b8b8;
     --slider-knob-selected-bg: #b0b0b0;
     --slider-knob-shadow: 0.1em 0.1em 0.2em #fff2 inset,
@@ -362,6 +364,8 @@ css( // common css declarations.
                           0.15em 0.15em 0.3em #fff1 inset;
 
     /* Slider colors - dark theme */
+    --slider-indicator: #444;
+    --slider-indicator-active: #eef;
     --slider-knob-bg: #2c2c2c;
     --slider-knob-selected-bg: #404040;
     --slider-knob-shadow: 0.1em 0.1em 0.2em #fff1 inset,
@@ -397,6 +401,9 @@ css( // common css declarations.
     --panel-bg: #c8c8c8;
     --panel-inset-shadow: 0.15em 0.15em 0.3em #fff3 inset,
                           -0.15em -0.15em 0.3em #0002 inset;
+
+    --slider-indicator: #888;
+    --slider-indicator-active: #eef;
   }
 
   body {
@@ -1020,11 +1027,11 @@ class PodiumSlider extends HTMLElement {
         height: .6em;
         top: calc(50% - .3em);
         left: calc(50% - .3em);
-        background: var(--color-border);
+        background: var(--slider-indicator);
      }
      .Slider__knob__indicator-active {
         position: relative;
-        background-color: #6c6;
+        background-color: var(--slider-indicator-active);
      }
      `
   );
@@ -1144,7 +1151,8 @@ class PodiumSlider extends HTMLElement {
     // set the pos, which represents slider position in [0,1]
     this.pos = pos;
     let value = pos * (this.max - this.min) + this.min;
-    this.value = (Math.round(value / this.step) * this.step).toPrecision(6); // discrete-ize value in this.step
+    let snapped = Math.round(value / this.step) * this.step;
+    this.value = Number.isInteger(snapped) ? snapped : parseFloat(snapped.toPrecision(6)); // discrete-ize value in this.step
     // Position knob as % of track width minus half the knob's fixed 2.8em width.
     // Using calc() avoids pxToEm, which breaks during font-size transitions.
     this.knob.style.left = `calc(${(pos * 100).toFixed(4)}% - 1.4em)`;
@@ -1499,7 +1507,6 @@ class SliderGroup {
         elm.classList.add("SliderGroup__SliderBlock__Slider-disabled");
       else elm.classList.remove("SliderGroup__SliderBlock__Slider-disabled");
       elm.firstChild.data = this.formatMsg(tag).replace(/(.*?\.\.\.).*/, "$1");
-////     elm.firstChild.data = this.formatMsg(tag).split("...")[0] + "...";
     }
   }
 
@@ -1615,7 +1622,14 @@ class Surface {
     delay(2, () => this.build());
   }
 
-  destructor() {}
+  hide() {
+    if (this.surface.parentElement == _body_)
+      hide(this.surface, dataIndex("tag", this.panel.cell.elm).cellIcon);
+  }
+
+  destructor() {
+    this.surface.remove();
+  }
 
   build() {}
 
@@ -2153,6 +2167,8 @@ function pnToDiv(pn, div, autoSize = true) {
   let roman = pn - prelim <= 0;
   div.style.fontFamily = roman ? "Times" : "Bravura";
   div.style.fontStyle = roman ? "italic" : "normal";
+  div.style.letterSpacing = roman ? "normal" : "0.345em";
+  if(!roman) div.style.paddingTop = 0 ; // this keeps or bravura chars more centererd
   let str = pnToString(pn, true);
 
   if (autoSize && div.offsetWidth > 0) {
@@ -2251,7 +2267,6 @@ css(
       z-index: var(--z-topmost);
       background-color: var(--bodyColor);
       will-change: transform, left, top;
-      transition: left, top .1s;
    }`
 );
 
@@ -2260,8 +2275,13 @@ function ptrMsg(e, msgFunc, styles) {
   // displaying a message. It displays the message s.t. it is not
   // obscured by the pointer: normally, above the pointer, but
   // to the left or right of the pointer as the pointer approaches
-  // the top of the screen, etc.
-// "..."....
+  // the top of the screen, etc.  In some cases, the ptrMsg will
+  // have an embedded string "..." which we remove: the idea is that
+  // some sliders don't have room for a lot of text, so they display
+  // "...".  The slider then deletes all chars following the 3 dots,
+  // whereas here we delete the 3 dots and show the following chars,
+  // ex. a...b c d e shows a a... in the slider, but as a b c d e
+  // in the ptrMsg. 
   let div = helm(`<div class="ptrMsg floatingMsg" style="${styles}"></div>`);
   _body_.append(div);
 

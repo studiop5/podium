@@ -1345,7 +1345,6 @@ class Score {
     _menu_.enableCells("page/undo", this.undoStack.length);
   }
 
-
   async pgUse(pn, nonblocking=true) {
     // Layouts "use" a Pg when they want to actively display it,
     // and "unuse" when they are done actively displaying it.
@@ -1398,7 +1397,9 @@ class Score {
         for (let obj of pg.canvas.getObjects()) {
           obj.hasControls = bool;
         pg.canvas.requestRenderAll();
-    } } }
+    }} 
+  }
+
 
   update(props) {
     // Used to update any or all off this.source, this.name, this.path

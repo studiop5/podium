@@ -86,26 +86,24 @@ if args.font:
     #      (re)build font.js        #
     #################################
 
-    fontFileName = 'lib/Bravura.otf'
     outFileName = 'build/font.js'
 
     with open(outFileName, 'wb') as outFile:
         outFile.write(b"""
   { window.fontData = {} ;
-    
-    // Store base64 font data once
+
+    // Bravura Text font (registered as "Bravura" for both CSS and PDF embedding)
     const bravuraBase64 = \"""")
 
-        with open(fontFileName,'rb') as inFile:
+        with open('lib/BravuraText.otf','rb') as inFile:
             outFile.write(base64.b64encode(inFile.read()))
 
         outFile.write(b"""\";
-    
-    // Load CSS font from the same data
+
     let fontFile = new FontFace("Bravura", "url(data:font/otf;charset=utf-8;base64," + bravuraBase64 + ")");
     document.fonts.add(fontFile);
     await fontFile.load();
-    
+
     // Lazy loading: convert base64 to Uint8Array only when PDF-lib needs it
     window.fontData["Bravura"] = function() {
       if (!this._bytes) {

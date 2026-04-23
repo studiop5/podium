@@ -242,7 +242,7 @@ class Panel {
   close() {
     // When a panel is closed, its first hidden, then, removed from
     // the dom, and its singleton is deleted.
-    hide(this.elm, dataIndex("tag", this.cell.elm).cellIcon);
+    this.hide();
     if (this.elm.dataset.tag != "ScreenPanel" && ScreenPanel.pzTarget == this.elm) ScreenPanel.update(null) ;
     schedule(510, () => {
       this.elm.remove();
@@ -2359,49 +2359,50 @@ class SymbolsPanel extends Panel {
   static css = css(
     "SymbolsPanel",
      `.SymbolsPanel__frame {
-        background: var(--panel-header-bg);
-        background-image: var(--panTexture);
-        height: 6em;
+        background: white;
         width: 100%;
-        padding:.8em 0;
+        padding: 0.25em;
         box-sizing: border-box;
         margin-bottom: 0.2em;
-        overflow: hidden;
+        height: 16em;
+        overflow-y: auto;
+        scrollbar-width: none;
         border-radius: var(--borderRadius);
+        touch-action: none;
       }
 
-      .SymbolsPanel__sash {
-        font-family:Bravura;
-        position: relative;
-        height:100%;
-        width: max-content;
-        min-width: 100%;
-        padding: 0 0.8em;
-        box-sizing: border-box;
-        display: flex;
-        gap: 0.4em;
-        align-items: flex-start;
+      .SymbolsPanel__frame::-webkit-scrollbar {
+        display: none;
+      }
+
+      .SymbolsPanel__grid {
+        font-family: Bravura;
+        font-size: 2em;
+        display: grid;
+        grid-template-columns: repeat(6, 1.375em);
+        gap: 0.075em;
       }
 
    .SymbolsPanel__symbol {
-      background-color: #f5f5f5;
-      padding: 0 var(--spacing-sm);
+      width: 1.375em;
+      height: 2em;
+      line-height: 0;
+      padding-top: 1em;
+      box-sizing: border-box;
+      text-align: center;
       border-radius: calc(var(--borderRadius) / 4);
-      opacity: 0.5;
-      height: 100%;
-      line-height: 4.5em;      
    }
 
    .SymbolsPanel__symbol-active {
-     opacity: 1;
+     background-color: #e0e8fff0;
    }
 
    `);
 
   content = helm(`
-     <div data-tag="body" class="Panel__body" style="width: 13em">
+     <div data-tag="body" class="Panel__body" style="width: 18em">
        <div class="SymbolsPanel__frame" data-tag="frame">
-         <div class="SymbolsPanel__sash" data-tag="sash"></div>
+         <div class="SymbolsPanel__grid" data-tag="grid"></div>
        </div>
       Symbols Group<br>
       <select data-tag="groups"></select>
@@ -2427,44 +2428,57 @@ class SymbolsPanel extends Panel {
     }
 
     listen(this.groups, "change", () => {
-      clearChildren(this.sash);
-      for (let codePoint of smuflTable[this.groups.value]) {
-        let symbol = helm(
-          `<div class="SymbolsPanel__symbol ${codePoint == stash.codePoint ? "SymbolsPanel__symbol-active": "" }">${codePoint}</div>`
-        );
-        this.sash.append(symbol);
-        this.sash.style.left = "0";
-        stash.group = this.groups.value;
+      clearChildren(this.grid);
+      stash.group = this.groups.value;
+      let glyphs = this.groups.value == "Common: Recent"
+        ? (stash.recent || "")
+        : smuflTable[this.groups.value];
+      for (let codePoint of glyphs) {
+        this.grid.append(helm(
+          `<div class="SymbolsPanel__symbol ${codePoint == stash.codePoint ? "SymbolsPanel__symbol-active" : ""}">${codePoint}</div>`
+        ));
       }
     });
 
     this.groups.dispatchEvent(new Event("change"));
 
+    listen(this.frame, "pointerdown", (e) => {
+      this.frame.setPointerCapture(e.pointerId);
+      let startY = e.clientY;
+      let startScrollTop = this.frame.scrollTop;
+      let moved = false;
 
-    listen(this.sash, "pointerdown", (e) => { 
-      this.sash.setPointerCapture(e.pointerId);
-      let fs = parseFloat(getComputedStyle(this.sash).fontSize);
-      let offsetX = e.clientX - this.sash.offsetLeft;
-      let limit = this.sash.offsetWidth - this.frame.offsetWidth;
-
-      let mv = listen(this.sash, "pointermove", (emv) => {
-        let leftPx = clamp(emv.clientX - offsetX, -limit, 0);
-        this.sash.style.left = leftPx / fs + "em";
-         mvmt(e, emv);
+      let mv = listen(this.frame, "pointermove", (emv) => {
+        let dy = emv.clientY - startY;
+        if (!moved && Math.abs(dy) > 4) moved = true;
+        if (moved) this.frame.scrollTop = startScrollTop - dy;
       });
 
-      listen(this.sash, "pointerup", (eup) => {
+      listen(this.frame, "pointerup", (eup) => {
         unlisten(mv);
-        if(!e.moved) {
-          let target = document.elementFromPoint(e.clientX, e.clientY);
-          if(target?.classList.contains("SymbolsPanel__symbol")) {
-          Array.from(this.sash.children).forEach((child) => child.classList.remove("SymbolsPanel__symbol-active"));
-            target.classList.add("SymbolsPanel__symbol-active");
-            stash.codePoint = target.textContent;
-           _menu_.activateCell(cell);
+        if (!moved) {
+          let target = document.elementFromPoint(eup.clientX, eup.clientY)
+            ?.closest(".SymbolsPanel__symbol");
+          if (target) {
+            if (target.classList.contains("SymbolsPanel__symbol-active")) {
+              target.classList.remove("SymbolsPanel__symbol-active");
+              target.style.transform = '';
+              target.style.color = '';
+              target.style.opacity = '';
+              stash.codePoint = null;
+            } else {
+              Array.from(this.grid.children).forEach(c => { c.classList.remove("SymbolsPanel__symbol-active"); c.style.transform = ''; c.style.color = ''; c.style.opacity = ''; });
+              target.classList.add("SymbolsPanel__symbol-active");
+              stash.codePoint = target.textContent;
+              let recent = [...(stash.recent || "")].filter(c => c !== stash.codePoint);
+              recent.unshift(stash.codePoint);
+              stash.recent = recent.slice(0, 24).join("");
+              _menu_.activateCell(cell);
+              this.update();
+            }
           }
-       }
-      }, {once:true});
+        }
+      }, {once: true});
     });
 
 
@@ -2481,9 +2495,9 @@ class SymbolsPanel extends Panel {
     this.picker.replaceWith(picker.elm);
 
     let staffSpace = new SliderGroup(
-      stash,  { size: { min: 5, max: 40, step: 1, value: 8, msg: "Staff Space: {value} px" }},
+      stash,  { size: { min: 5, max: 40, step: 1, value: 8, msg: "Staff Space: {value}px" }},
       (e, tag, value) => {
-        stash.tag = value;
+        stash[tag] = value;
         this.update();
     });
 
@@ -2494,17 +2508,21 @@ class SymbolsPanel extends Panel {
 
 
   update() {
-    let { alpha, group, rgb, size, height } = this.cell.stash;
-     this.groups.value = group;
-     this.sash.style.color = rgb;
-     this.sash.style.transparency = alpha;
-     this.frame.style.fontSize = (size - 5) / 95 + 1 + "em";
-     let active = _score_.getActiveObject();
-     if (active && active.podiumType == "symbols") {
-       let color = fabric.Color.fromHex(rgb);
-       color.setAlpha(alpha);
-       active.setSelectionStyles({fill: color.toRgba(), fontSize: size * 4 }, 0, active.text.length);
-       active.canvas.requestRenderAll();
+    let { alpha = 1, group, rgb = '#000000', size = 8 } = this.cell.stash;
+    this.groups.value = group;
+    let activeCell = this.grid.querySelector('.SymbolsPanel__symbol-active');
+    if (activeCell) {
+      activeCell.style.transform = `scale(${size / 8})`;
+      activeCell.style.color = rgb;
+      activeCell.style.opacity = parseFloat(alpha);
+    }
+    let active = _score_.getActiveObject();
+    if (active && active.podiumType == "symbols") {
+      let color = fabric.Color.fromHex(rgb);
+      color.setAlpha(parseFloat(alpha));
+      active.set({ fill: color.toRgba(), fontSize: size * 4 });
+      active.setCoords();
+      active.canvas.requestRenderAll();
     }
   }
 }

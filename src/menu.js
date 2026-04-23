@@ -431,7 +431,6 @@ class Menu {
       Layout.activeLayout.elm.remove();
       Layout.activeLayout = null;
       _score_ = null;
-      _score_ = null;
       _menu_.closePanels();
       _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"], false);
       document.dispatchEvent(new CustomEvent("scoreClosed"));
@@ -539,7 +538,7 @@ class Menu {
         symbols: {
           name: "Symbols",
           svgPath: iconPaths["Symbols"],
-          stash: {alpha:"1", rgb:"#000000", font: "Bravura", size: 5, group: "4.5. Clefs", codePoint: "\ue050"},
+          stash: {alpha:"1", rgb:"#000000", font: "Bravura", size: 5, group: "Common: Recent", codePoint: "\ue050", recent: ""},
         },
         cut: {
           name: "Cut",
@@ -636,6 +635,8 @@ class Menu {
         curtain: { name: "Curtain", svgPath: iconPaths["Curtain"], stash: { level: 60 }, storage: "local" },
         wakeLock: { name: "Wakelock", svgPath: iconPaths["Wakelock Off"], stash: { on: false }, storage: "local" },
         screen: { name: "Screen", stash: {}, svgPath: iconPaths["Full Screen"], storage: "local" },
+        volume: { name: "Volume", svgPath: iconPaths["Volume"], stash: { volume:1}, },
+
       },
       svgPath: iconPaths["Podium"],
 
@@ -649,6 +650,7 @@ class Menu {
     this.listen("app/screen/out", (cell) => this.openPanel(cell));
     this.listen("app/storage/out", (cell) => this.openPanel(cell));
     this.listen("app/guide/out", (cell) => this.openPanel(cell));
+    this.listen("app/volume/out", (cell) => this.openPanel(cell));
 
     this.listen("app/screen/up", (cell) => {
       let cellIcon = dataIndex("tag", rings.app.cells.screen.elm).cellIcon;
@@ -734,11 +736,6 @@ class Menu {
             mirror: "Mirror",
             replay: 15,  // mimimum replay time in seconds
           },
-        },
-        volume: {
-          name: "Volume",
-          svgPath: iconPaths["Volume"],
-          stash: { volume:1},
         },
       },
       name: "More",
@@ -1593,6 +1590,7 @@ class Menu {
         color.setAlpha(alpha);
         let rgba = color.toRgba();
         let config = {
+          podiumType: "symbols",
           fill: rgba,
           fontSize: size * 4, // * 4 because size is in "pixels per staff space" and there's normally 4 spaces / staff
           editable: false,
