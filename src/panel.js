@@ -2359,7 +2359,14 @@ class SymbolsPanel extends Panel {
   static css = css(
     "SymbolsPanel",
      `.SymbolsPanel__frame {
-        background: white;
+        background-color: #fff;
+        background-image:
+          linear-gradient(45deg, #e8e8e8 25%, transparent 25%),
+          linear-gradient(-45deg, #e8e8e8 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #e8e8e8 75%),
+          linear-gradient(-45deg, transparent 75%, #e8e8e8 75%);
+        background-size: 0.5em 0.5em;
+        background-position: 0 0, 0 0.25em, 0.25em -0.25em, -0.25em 0;
         width: 100%;
         padding: 0.25em;
         box-sizing: border-box;
