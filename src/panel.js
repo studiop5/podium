@@ -2430,7 +2430,7 @@ class SymbolsPanel extends Panel {
     listen(this.groups, "change", () => {
       clearChildren(this.grid);
       stash.group = this.groups.value;
-      let glyphs = this.groups.value == "Common: Recent"
+      let glyphs = this.groups.value == "Recent"
         ? (stash.recent || "")
         : smuflTable[this.groups.value];
       for (let codePoint of glyphs) {
@@ -2472,7 +2472,7 @@ class SymbolsPanel extends Panel {
               stash.codePoint = target.textContent;
               let recent = [...(stash.recent || "")].filter(c => c !== stash.codePoint);
               recent.unshift(stash.codePoint);
-              stash.recent = recent.slice(0, 24).join("");
+              stash.recent = recent.slice(0, 72).join("");
               _menu_.activateCell(cell);
               this.update();
             }

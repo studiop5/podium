@@ -538,7 +538,7 @@ class Menu {
         symbols: {
           name: "Symbols",
           svgPath: iconPaths["Symbols"],
-          stash: {alpha:"1", rgb:"#000000", font: "Bravura", size: 5, group: "Common: Recent", codePoint: "\ue050", recent: ""},
+          stash: {alpha:"1", rgb:"#000000", font: "Bravura", size: 5, group: "Recent", codePoint: "\ue050", recent: ""},
         },
         cut: {
           name: "Cut",

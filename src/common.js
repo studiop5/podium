@@ -82,6 +82,7 @@ window._frMs_ = 0.06; // initial estimate of number of frames per millisecond (6
 window._gs_ = 618; // golden section (reciprocal) msec (.618 seconds)
 window._gsgs_ = (_gs_ * _gs_) / 1000; // shorter golden section!
 window._longPressMs_ = 750;
+window._sliderPrecision_ = 4; // sensitivity multiplier for slider/pager precision mode
 window._zTop_ = 1000; // continuously incrementing z-index counter for panels, menu, surfaces
 window._mobile_ = window.matchMedia('(pointer: coarse)').matches;
 window._msPerObj_ = 1; // for pdf printing, see score.toPdf()
@@ -190,7 +191,7 @@ css( // common css declarations.
     --panelWidth: 12em;
 
     /* Light theme colors */
-    --bodyColor: #efefef;
+    --bodyColor: #b8b8b8;
     --panTexture: ${panSvgCool};
     --bodyVignette: radial-gradient(ellipse at 50% 45%, transparent 30%, rgba(0,0,0,0.13) 100%);
 
@@ -1073,22 +1074,18 @@ class PodiumSlider extends HTMLElement {
       let { knobBox, sliderBox } = this;
       this.knob.setPointerCapture(e.pointerId);
 
-      let origin = e.clientX;
-      // This function converts pointer position into a value in 0,1
-      // used in  call of this.setPos(pos). The also allows a user to gain
-      // increased precision by moving the pointer further away,
-      // vertically, from the sliderBox.  clientPos is clientX, and
-      // delta is absulute value of pixel distance between clientY and
-      // middle of sliderBox
-      let set = (clientPos, delta) => {
-        if (delta / knobBox.height <= 1) origin = clientPos;
-        let mvm = clientPos - origin;
-        // the "* 5" in following increases the "sensitivity" of the slider as
-        // delta increases
-        delta = Math.max(1, (delta / knobBox.height) * 5);
-        let posPx = origin + mvm / delta;
-        let posFrac = (posPx - sliderBox.x) / sliderBox.width;
-        this.setPos(clamp(posFrac, 0, 1));
+      let prevX = e.clientX;
+      // frac accumulates continuously so sub-step progress isn't lost when
+      // setPos snaps to the nearest step each frame.
+      let frac = (this.value - this.min) / (this.max - this.min);
+      let set = (clientX, delta) => {
+        let dx = clientX - prevX;
+        prevX = clientX;
+        let t = Math.max(0, delta / knobBox.height - 0.5);
+        let unitsPerPx = (this.max - this.min) / sliderBox.width / this.step;
+        let sensitivity = 1 + t * unitsPerPx * _sliderPrecision_;
+        frac = clamp(frac + (dx / sliderBox.width) / sensitivity, 0, 1);
+        this.setPos(frac);
       };
 
       set(

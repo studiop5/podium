@@ -33,10 +33,8 @@ the Bravura font is used, but theoretically this mechanism will work for any any
 // -skip
 
 let smuflTable = {
-  "Common: Recent": "",
-  "Common: Essentials": "",
-  "Common: Ornaments & Navigation": "",
-  "Common: Fingerings": "",
+  "Recent": "",
+  "Basic": "",
   "4.1. Staff brackets and dividers": "",
   "4.2. Staves": "",
   "4.3. Barlines": "",

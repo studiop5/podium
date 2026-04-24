@@ -2364,20 +2364,19 @@ class Pager {
     cursor.classList.add("Pager__cursor-active");
 
     let ptrDiv = ptrMsg(e,(e,div) => this.formatFunc(_score_.numbers, true, div) && false, `width: ${cursor.style.width};`);
-    let origin = e[CLIENTY];
-    let cursorOffset = pagerBox[Y] + cursorBox.height;
+    let prevPos = e[CLIENTY];
+    let cursorTop = cursorBox[Y] - pagerBox[Y];
 
     let setCursor = (clientPos, delta) => {
-      // clientPos is vertical (horizontal) position of cursor
-      // delta is horizontal (vertical) distance of pointer from middle of cursor...
-      delta = Math.max(1, delta / pagerBox.width);
-      if(delta == 1) origin = clientPos; // reset origin when delta is 1
-      let dY = (clientPos - origin) / delta ;
-      dY += cursorBox[HEIGHT] / 2; // middle of cursor
-      let newPos = origin + dY - cursorOffset ;
-      cursor.style[TOP] = clamp(newPos, 0, pagerBox[HEIGHT] - cursorBox[HEIGHT]) + "px"; 
-      newPos += cursorBox[HEIGHT] / 2; // compensate for cursor height
-      _score_.numbers.pn = clamp(Math.floor((newPos / pagerBox[HEIGHT]) * pgCount) + 1, 1, pgCount);
+      let dPos = clientPos - prevPos;
+      prevPos = clientPos;
+      let t = Math.max(0, delta / pagerBox[WIDTH] - 0.5);
+      let unitsPerPx = pgCount / pagerBox[HEIGHT];
+      let sensitivity = 1 + t * unitsPerPx * _sliderPrecision_;
+      cursorTop = clamp(cursorTop + dPos / sensitivity, 0, pagerBox[HEIGHT] - cursorBox[HEIGHT]);
+      cursor.style[TOP] = cursorTop + "px";
+      let midPos = cursorTop + cursorBox[HEIGHT] / 2;
+      _score_.numbers.pn = clamp(Math.floor((midPos / pagerBox[HEIGHT]) * pgCount) + 1, 1, pgCount);
       // are we at a bookmark? 
       let bkCl = _score_.pgs[_score_.numbers.pn -1].bookmark;
       cursor.style.color = bkCl || "";
