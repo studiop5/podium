@@ -2367,7 +2367,7 @@ class SymbolsPanel extends Panel {
           linear-gradient(-45deg, transparent 75%, #e8e8e8 75%);
         background-size: 0.5em 0.5em;
         background-position: 0 0, 0 0.25em, 0.25em -0.25em, -0.25em 0;
-        width: 100%;
+        width: fit-content;
         padding: 0.25em;
         box-sizing: border-box;
         margin-bottom: 0.2em;
@@ -2386,37 +2386,38 @@ class SymbolsPanel extends Panel {
         font-family: Bravura;
         font-size: 2em;
         display: grid;
-        grid-template-columns: repeat(6, 1.375em);
-        gap: 0.075em;
-      }
-
-      .SymbolsPanel__grid--wide {
-        grid-template-columns: repeat(3, 2.75em);
+        grid-template-columns: repeat(6, 1.55em);
       }
 
    .SymbolsPanel__symbol {
-      width: 1.375em;
+      width: 1.55em;
       height: 2em;
       line-height: 0;
       padding-top: 1em;
       box-sizing: border-box;
       text-align: center;
       border-radius: calc(var(--borderRadius) / 4);
+      border: 0.02em solid #d0d0d0;
    }
 
    .SymbolsPanel__symbol-active {
      background-color: #e0e8fff0;
    }
 
+   .SymbolsPanel__groups {
+     max-width: 18em;
+   }
+
    `);
 
+// 25.5, 2em
   content = helm(`
-     <div data-tag="body" class="Panel__body" style="width: 18em">
+     <div data-tag="body" class="Panel__body">
        <div class="SymbolsPanel__frame" data-tag="frame">
          <div class="SymbolsPanel__grid" data-tag="grid"></div>
        </div>
       Symbols Group<br>
-      <select data-tag="groups"></select>
+      <select data-tag="groups" class="SymbolsPanel__groups"></select>
       <div data-tag="picker"></div>
       <div data-tag="staffSpace"></div>
       <div style="margin: var(--spacing-md); height: 2.5em; display: flex; align-items: center; justify-content: center;"><a href="https://www.w3.org/2021/03/smufl14/" rel="noopener noreferrer">SMuFL</a></div>
@@ -2441,7 +2442,6 @@ class SymbolsPanel extends Panel {
     listen(this.groups, "change", () => {
       clearChildren(this.grid);
       stash.group = this.groups.value;
-      this.grid.classList.toggle("SymbolsPanel__grid--wide", this.groups.value == "Combined: Key & Time Signatures");
       let glyphs = this.groups.value == "Recent"
         ? (stash.recent || "")
         : smuflTable[this.groups.value];
