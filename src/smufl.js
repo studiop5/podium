@@ -34,7 +34,8 @@ the Bravura font is used, but theoretically this mechanism will work for any any
 
 let smuflTable = {
   "Recent": "",
-  "Basic": "",
+  "Basic": "",
+  "Signatures": "",
   "4.1. Staff brackets and dividers": "",
   "4.2. Staves": "",
   "4.3. Barlines": "",
@@ -132,7 +133,7 @@ let smuflTable = {
   "4.95. Multi-segment lines": "",
   "4.96. Electronic music pictograms": "",
   "4.97. Arrows and arrowheads": "",
-  "4.98. Combining staff positions": "",
+/*  "4.98. Combining staff positions": "", */
   "4.99. Renaissance lute tablature": "",
   "4.100. French and English Renaissance lute tablature": "",
   "4.101. Italian and Spanish Renaissance lute tablature": "",

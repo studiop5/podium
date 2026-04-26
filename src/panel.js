@@ -2390,6 +2390,10 @@ class SymbolsPanel extends Panel {
         gap: 0.075em;
       }
 
+      .SymbolsPanel__grid--wide {
+        grid-template-columns: repeat(3, 2.75em);
+      }
+
    .SymbolsPanel__symbol {
       width: 1.375em;
       height: 2em;
@@ -2437,6 +2441,7 @@ class SymbolsPanel extends Panel {
     listen(this.groups, "change", () => {
       clearChildren(this.grid);
       stash.group = this.groups.value;
+      this.grid.classList.toggle("SymbolsPanel__grid--wide", this.groups.value == "Combined: Key & Time Signatures");
       let glyphs = this.groups.value == "Recent"
         ? (stash.recent || "")
         : smuflTable[this.groups.value];
