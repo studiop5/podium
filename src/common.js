@@ -58,6 +58,7 @@ export {
   SliderGroup,
   TabView,
   ColorPicker,
+  mergeRecent,
 };
 import { iconPaths } from "./icon.js";
 // -skip
@@ -73,7 +74,7 @@ Element.prototype["replace"] = function(newElm) {
 // properties defined on the window "global" namespace
 // are distinguished using the convention of leading+trailing underscores:
 
-window._podiumVersion_ = "2.0";
+window._podiumVersion_ = "2.0.1";
 window._body_ = document.body;
 _body_.dataset.tag = "body";
 window._lastTarget_ = null; // last touched .pz element, excluding EditPanel
@@ -88,7 +89,8 @@ window._mobile_ = window.matchMedia('(pointer: coarse)').matches;
 window._msPerObj_ = 1; // for pdf printing, see score.toPdf()
 window._pxPerEm_ = 25; // initial document.body's font size value: defines pixels in 1 em
 window._score_ = null; // current active score instance
-window._voidFunc_ = () => {}; 
+window._maxRecent_ = 72; // SymbolsPanel recent-list size (multiple of 6); see mergeRecent below
+window._voidFunc_ = () => {};
 window._curtain_ = null; // set below: used to dim the screen
 
 // svg texture used for all draggable elements
@@ -2133,6 +2135,44 @@ function unlisten(...listenerArgs) {
         listener[0].removeEventListener(listener[1], listener[2], listener[3]);
       });
   }
+}
+
+// ── SymbolsPanel "Recent" list ────────────────────────────────────────────────
+// stash.recent is a plain object mapping each Unicode codepoint character to an
+// integer frequency score, e.g. { "\uE522": 45, "\uE52D": 12, ... }.  Higher
+// score = used more often.  The panel displays entries sorted by score
+// descending, truncated to _maxRecent_ entries (12 rows × 6 columns).
+//
+// mergeRecent(existing, incoming) is the single entry point for all mutations:
+//   • recording a use:        mergeRecent(stash.recent, { [cp]: 1 })
+//   • merging on score open:  mergeRecent(localStorage.recent, score.recent)
+// It sums counts from both objects, then applies "normalise-on-cap":
+//   • when any score reaches the cap (_maxRecent_ * 4), every score is halved
+//     (integer division) and entries that fall to 0 are pruned.
+// This scheme:
+//   • prevents unbounded growth with no hard ceiling on raw values
+//   • preserves relative rankings faithfully through each halving
+//   • gives natural expiry to rarely-used symbols (score 1 → 0 → deleted)
+//   • stays responsive: after halving the winner sits at half-cap, so a newly
+//     favoured symbol can rise to the top within a modest number of sessions
+//   • makes cross-score merging trivial: just sum and normalise
+//
+// The cap (_maxRecent_ * 4) scales with the list size, so changing _maxRecent_
+// automatically re-tunes the normalisation cadence.  _maxRecent_ must be a
+// multiple of 6 (the SymbolsPanel grid column count).
+function mergeRecent(existing, incoming) {
+  let merged = (existing && typeof existing === 'object') ? { ...existing } : {};
+  for (let [cp, count] of Object.entries(incoming))
+    merged[cp] = (merged[cp] || 0) + count;
+  if (Object.values(merged).some(v => v >= _maxRecent_ * 4)) {
+    for (let k in merged) {
+      merged[k] = Math.floor(merged[k] / 2);
+      if (merged[k] === 0) delete merged[k];
+    }
+  }
+  return Object.fromEntries(
+    Object.entries(merged).sort((a, b) => b[1] - a[1]).slice(0, _maxRecent_)
+  );
 }
 
 function mvmt(e, emv, xLimit = 48, yLimit = 36) {

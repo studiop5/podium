@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, clamp, css, dataIndex, delay, delayMs, flung, fontMap, getBox, helm, hide, listen, mvmt, Schedule, schedule, toast, unlisten } from "./common.js";
+import { animate, clamp, css, dataIndex, delay, delayMs, flung, fontMap, getBox, helm, hide, listen, mergeRecent, mvmt, Schedule, schedule, toast, unlisten } from "./common.js";
 import { checkUnsaved, FileSrc } from "./file.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
@@ -294,10 +294,20 @@ class Menu {
     this.enableCells(["layout", "ink", "ink/paste", "page", "score/close", "score/save", "score/details", "score/print", "page/import"], false);
 
     this.stashDefaults = this.stashToJson();
-    // load menu stash from localStorage
+    // load menu stash from localStorage, resetting immediately if version is
+    // out of date so that localStorage is always at the current version.
+    // This guarantees that when a score stash is rejected for version mismatch,
+    // the existing localStorage state is always valid — mergeRecent is therefore
+    // never called with a stale local side.
     try {
       let json = localStorage.getItem("menu") ?? this.stashDefaults;
-      this.stashFromJson(json, "local");
+      let parsed = JSON.parse(json);
+      if (parsed.version !== _podiumVersion_) {
+        this.stashFromJson(this.stashDefaults, "local");
+        localStorage.setItem("menu", this.stashToJson("local"));
+      } else {
+        this.stashFromJson(json, "local");
+      }
     } catch (Error) {
       toast("Clearing invalid local storage stash.");
       localStorage.clear();
@@ -538,7 +548,7 @@ class Menu {
         symbols: {
           name: "Symbols",
           svgPath: iconPaths["Symbols"],
-          stash: {alpha:"1", rgb:"#000000", font: "Bravura", size: 5, group: "Recent", codePoint: "\ue050", recent: ""},
+          stash: {alpha:"1", rgb:"#000000", font: "Bravura", size: 5, group: "Recent", codePoint: "\ue050", recent: {}},
         },
         cut: {
           name: "Cut",
@@ -1356,7 +1366,15 @@ class Menu {
           if (!cell) continue;
           if (source && cell.storage && cell.storage != source) continue;
           cell.stash = cell.stash ?? {};
-          Object.assign(cell.stash, cellStash);
+          if (source === 'score' &&
+              cellStash.recent !== undefined && typeof cellStash.recent === 'object' &&
+              cell.stash.recent !== undefined && typeof cell.stash.recent === 'object') {
+            const { recent: incoming, ...rest } = cellStash;
+            Object.assign(cell.stash, rest);
+            cell.stash.recent = mergeRecent(cell.stash.recent, incoming);
+          } else {
+            Object.assign(cell.stash, cellStash);
+          }
         }
       } catch {
         // ignore corrupt entry

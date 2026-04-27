@@ -37,6 +37,7 @@ import {
   hide,
   iconSvg,
   listen,
+  mergeRecent,
   mvmt,
   pnToString,
   pxToEm,
@@ -1362,8 +1363,16 @@ class StoragePanel extends Panel {
         { Menu: { svg: "Menu" }, Recent: { svg: "Score" }, Import: { svg: "Import Page" } },
         (e, prop, tag) => {
           if (tag == "Menu") {
-            _menu_.factoryReset();
-            toast("Menu reset");
+            dialog("Reset all menu settings to defaults? Open panels will be closed.",
+              { Reset: { svg: "Menu" }, Cancel: { svg: "Cancel" } },
+              (e, prop, tag, args) => {
+                args.close();
+                if (tag == "Reset") {
+                  _menu_.closePanels();
+                  _menu_.factoryReset();
+                  toast("Menu reset");
+                }
+              });
           } else if (tag == "Recent") {
             localStorage.setItem("recent", []);
             for (let src of Object.values(Score.sources))
@@ -2387,6 +2396,7 @@ class SymbolsPanel extends Panel {
         font-size: 2em;
         display: grid;
         grid-template-columns: repeat(6, 1.55em);
+        gap: 2px;
       }
 
    .SymbolsPanel__symbol {
@@ -2398,6 +2408,7 @@ class SymbolsPanel extends Panel {
       text-align: center;
       border-radius: calc(var(--borderRadius) / 4);
       border: 0.02em solid #d0d0d0;
+      overflow: hidden;
    }
 
    .SymbolsPanel__symbol-active {
@@ -2443,7 +2454,7 @@ class SymbolsPanel extends Panel {
       clearChildren(this.grid);
       stash.group = this.groups.value;
       let glyphs = this.groups.value == "Recent"
-        ? (stash.recent || "")
+        ? Object.entries(stash.recent && typeof stash.recent === 'object' ? stash.recent : {}).sort((a, b) => b[1] - a[1]).map(([cp]) => cp)
         : smuflTable[this.groups.value];
       for (let codePoint of glyphs) {
         this.grid.append(helm(
@@ -2482,9 +2493,7 @@ class SymbolsPanel extends Panel {
               Array.from(this.grid.children).forEach(c => { c.classList.remove("SymbolsPanel__symbol-active"); c.style.transform = ''; c.style.color = ''; c.style.opacity = ''; });
               target.classList.add("SymbolsPanel__symbol-active");
               stash.codePoint = target.textContent;
-              let recent = [...(stash.recent || "")].filter(c => c !== stash.codePoint);
-              recent.unshift(stash.codePoint);
-              stash.recent = recent.slice(0, 72).join("");
+              stash.recent = mergeRecent(stash.recent || {}, { [stash.codePoint]: 1 });
               _menu_.activateCell(cell);
               this.update();
             }
