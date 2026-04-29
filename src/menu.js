@@ -722,6 +722,7 @@ class Menu {
             tempo: 60,
             state: "Pause",
             pattern: "metronome",
+            tickOffset: 0,
           },
         },
         stopwatch: {

@@ -1471,19 +1471,13 @@ class MetronomePanel extends Panel {
   content = helm(
     `<div data-tag="body" class="Panel__body Metronome centerChild">
       <select data-tag="patterns" class="Metronome__patterns">
-        <option value="metronome"   >Metronome</option>
-        <option value="2/4"         >2/4</option>
-        <option value="3/4"         >3/4</option>
-        <option value="4/4"         >4/4</option>
-        <option value="6/8"         >6/8</option>
-        <option value="9/8"         >9/8</option>
-        <option value="12/8"        >12/8</option>
-        <option value="3/4 in 6"    >3/4 in 6</option>
-        <option value="4/4 in 8"    >4/4 in 8</option>
-        <option value="5/4 (3+2)"   >5/4 (3+2)</option>
-        <option value="5/4 (2+3)"   >5/4 (2+3)</option>
-        <option value="7/8 (2+2+3)" >7/8 (2+2+3)</option>
-        <option value="7/8 (3+2+2)" >7/8 (3+2+2)</option>
+        <option value="metronome" selected>Metronome</option>
+        <option value="one"  >One</option>
+        <option value="two"  >Two</option>
+        <option value="three">Three</option>
+        <option value="four" >Four</option>
+        <option value="five" >Five (3+2)</option>
+        <option value="six"  >Six (3+3)</option>
       </select>
      </div>`
   );
@@ -1540,6 +1534,26 @@ class MetronomePanel extends Panel {
     this.content.append(this.tempoGroup.elm);
     this.tempoGroup.refresh();
 
+    this.offsetGroup = new SliderGroup(
+      this.cell.stash,
+      {
+        tickOffset: {
+          min: -300,
+          max: 300,
+          step: 10,
+          msg: "Tick offset: {value}ms",
+          value: 0,
+          throttle: 50,
+        },
+      },
+      (e, prop, tag) => {
+        metronome.tickOffset = tag;
+      }
+    );
+    this.offsetGroup.elm.style.width = "14em";
+    this.content.append(this.offsetGroup.elm);
+    this.offsetGroup.refresh();
+
     this.metronome.setPattern(cell.stash.pattern);
   }
 
@@ -1554,6 +1568,7 @@ class MetronomePanel extends Panel {
     return this;
   }
 }
+
 
 class NumbersPanel extends Panel {
   content = helm(`
