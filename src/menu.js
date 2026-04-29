@@ -1618,6 +1618,7 @@ class Menu {
           hasControls: false,
         };
         Object.assign(config, fontMap["Bravura"]);
+        activeCell.stash.recent = mergeRecent(activeCell.stash.recent || {}, { [codePoint]: _recentInsertPts_ });
         return addObj(new fabric.Text(codePoint, config));
       }
 

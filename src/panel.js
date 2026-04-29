@@ -1471,13 +1471,19 @@ class MetronomePanel extends Panel {
   content = helm(
     `<div data-tag="body" class="Panel__body Metronome centerChild">
       <select data-tag="patterns" class="Metronome__patterns">
-        <option value="metronome" selected>Metronome</option>
-        <option value="one"  >One</option>
-        <option value="two"  >Two</option>
-        <option value="three">Three</option>
-        <option value="four" >Four</option>
-        <option value="five" >Five (3+2)</option>
-        <option value="six"  >Six (3+3)</option>
+        <option value="metronome"   >Metronome</option>
+        <option value="2/4"         >2/4</option>
+        <option value="3/4"         >3/4</option>
+        <option value="4/4"         >4/4</option>
+        <option value="6/8"         >6/8</option>
+        <option value="9/8"         >9/8</option>
+        <option value="12/8"        >12/8</option>
+        <option value="3/4 in 6"    >3/4 in 6</option>
+        <option value="4/4 in 8"    >4/4 in 8</option>
+        <option value="5/4 (3+2)"   >5/4 (3+2)</option>
+        <option value="5/4 (2+3)"   >5/4 (2+3)</option>
+        <option value="7/8 (2+2+3)" >7/8 (2+2+3)</option>
+        <option value="7/8 (3+2+2)" >7/8 (3+2+2)</option>
       </select>
      </div>`
   );
@@ -2493,7 +2499,7 @@ class SymbolsPanel extends Panel {
               Array.from(this.grid.children).forEach(c => { c.classList.remove("SymbolsPanel__symbol-active"); c.style.transform = ''; c.style.color = ''; c.style.opacity = ''; });
               target.classList.add("SymbolsPanel__symbol-active");
               stash.codePoint = target.textContent;
-              stash.recent = mergeRecent(stash.recent || {}, { [stash.codePoint]: 1 });
+              stash.recent = mergeRecent(stash.recent || {}, { [stash.codePoint]: _recentSelectPts_ });
               _menu_.activateCell(cell);
               this.update();
             }

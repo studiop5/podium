@@ -89,7 +89,10 @@ window._mobile_ = window.matchMedia('(pointer: coarse)').matches;
 window._msPerObj_ = 1; // for pdf printing, see score.toPdf()
 window._pxPerEm_ = 25; // initial document.body's font size value: defines pixels in 1 em
 window._score_ = null; // current active score instance
-window._maxRecent_ = 72; // SymbolsPanel recent-list size (multiple of 6); see mergeRecent below
+window._maxRecent_ = 72;      // SymbolsPanel recent-list size (multiple of 6); see mergeRecent below
+window._recentSelectPts_ = 1; // points awarded when a symbol is selected in the panel
+window._recentInsertPts_ = 4; // points awarded when a symbol is inserted into the score (4:1 ratio
+                               // ensures symbols you actually use dominate over ones merely browsed)
 window._voidFunc_ = () => {};
 window._curtain_ = null; // set below: used to dim the screen
 
@@ -2144,8 +2147,13 @@ function unlisten(...listenerArgs) {
 // descending, truncated to _maxRecent_ entries (12 rows × 6 columns).
 //
 // mergeRecent(existing, incoming) is the single entry point for all mutations:
-//   • recording a use:        mergeRecent(stash.recent, { [cp]: 1 })
-//   • merging on score open:  mergeRecent(localStorage.recent, score.recent)
+//   • symbol selected in panel:   mergeRecent(stash.recent, { [cp]: _recentSelectPts_ })
+//   • symbol inserted into score: mergeRecent(stash.recent, { [cp]: _recentInsertPts_ })
+//   • merging on score open:      mergeRecent(localStorage.recent, score.recent)
+// Points are weighted so that actual insertions outrank casual browsing: at the
+// default 4:1 ratio a symbol inserted 10 times (40 pts) beats one merely tapped
+// ~39 times to preview it.  Both signals contribute, giving the best of both
+// worlds: browsing still pre-populates the list, but genuine use dominates.
 // It sums counts from both objects, then applies "normalise-on-cap":
 //   • when any score reaches the cap (_maxRecent_ * 4), every score is halved
 //     (integer division) and entries that fall to 0 are pruned.

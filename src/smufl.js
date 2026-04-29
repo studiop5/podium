@@ -34,7 +34,7 @@ the Bravura font is used, but theoretically this mechanism will work for any any
 
 let smuflTable = {
   "Recent": "",
-  "Basic": "",
+  "Basic": "",
   "Signatures": "",
   "4.1. Staff brackets and dividers": "",
   "4.2. Staves": "",

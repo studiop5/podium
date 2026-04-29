@@ -1113,85 +1113,60 @@ class Metronome extends Surface {
   // svg definition of a baton held in a conductor's hand
   conductor = `<defs><g transform="scale(3.5 3.5) translate(-25 -25)" id="marker"><path fill="#eebb99" stroke="#000000" strokeWidth="0.264583px" strokeLinecap="butt" strokeLinejoin="miter" strokeOpacity="1"   d="M 25.5,20.36 c 0.26,1.14 0.95,2.13 1.71,2.99 m -0.31,-0.44 c -0.01,0.012 -0.007,-0.0115 0,0 z m -1.004,-2.39 c -0.00,0.012 -0.007,-0.0115 0,0 z m -0.95,-0.59 c 0.095,-0.01 1.16,0.34 0.64,0.1 m 2.09,2.92 c 0.87,0.36 1.68,-0.24 2.42,-0.594 m -1.38,2.38 c 1.05,-1.68 3.027,-3.045 5.087,-2.639 m -7.127,1.74 c -1.57,0.485 -3.148,0.971 -4.723,1.456 -1.776,-2.465 4.076,-3.67 4.6,-1.78 l 0.06,0.18 z m 7.09,-1.4 c -0.28,1.13 -0.56,2.26 -0.85,3.397 M 10.1,18.479 9.44,18.79 8.78,19.1 m 12.25,6.539 c -1.05,2.657 -3.37,3.397 -5.85,4.0 m 12.57,1.219 c -2.48,0.434 -3.875,2.805 -5.225,4.677 m 6.93,-5.28 c -1.68,-1.88 1.21,-6.0 -2.439,-6.328 m -6.239,-4.836 c 0.278,2.41 3.407,3.627 4.523,1.29 l -0.227,-0.52 m -4.75,0.69 c -1.079,3.217 -5.996,0.273 -6.008,0.2183 0.328,0.593 0.649,1.191 0.974,1.787 M 27.725,21.294 c 0.35,-0.53 1.238,-0.97 1.736,-0.34 m -7.41,-1.47 c 0.554,-0.136 1.109,-0.273 1.664,-0.41 m -2.173,0.06 c 0.542,-0.553 1.26,-0.99 2.05,-1.0 m -5.89,0.22 c -1.67,0.02 -0.61,2.54 0.29,0.667 l 0.348,0.0035 0.695,0.041 m 1.975,0.223 c -1.66,-2.678 -5.959,-5.164 -8.04,-1.686 -0.103,1.445 -0.484,5.746 -1.658,2.215 -1.158,-1.846 0.063,-7.422 -3.634,-5.42 -1.91,3.911 1.68,7.86 1.188,11.904 0.46,5.432 3.89,10.2 3.59,15.760 -0.458844,2.908405 2.189074,6.00493 4.542393,2.969325 3.20974,-1.930224 7.578167,-0.868896 10.08736,-4.049567 3.700552,-2.077991 7.831857,-4.873712 8.203995,-9.526807 0.845687,-3.582 -2.892,-5.964 -0.741,-9.497 m -16.321,-5.4 c 1.401,-3.342 6.217,-1.822 6.211,1.61 1.163,2.03 1.149,3.904 -1.61,3.48 -1.57,-1.596 -2.97,-3.49 -4.59,-5.095 z m 7.03,1.330 c 0.227,-4.66 6.585,-2.96 5.94,0.921 0.549,2.319 0.689,7.12 -3.013,5.24 -2.157,-1.246 -2.489,-3.77 -2.92,-5.984 M 93.24,5.7 C 69.413,11.724 45.5,17.748 21.752,23.772 c 0.044,2.554 2.97,0.48 4.442,0.375 C 48.608,18.212 71.021,12.276 93.435,6.341 93.37,6.127 93.307,5.913 93.244,5.7 Z" /></g></defs>`;
 
-  // List of objects with svg path definitions that defines the Metronome graphic and the paths used to
-  // animate the conductor according to several beat patterns.
-  beatPatterns = [
-    {
-      name: "metronome",
-      background: `
-       <g transform="translate(0 -10)">
-       <path  style="display:inline;fill:#966f33;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
-         d="m 360.52,814.24 31.96,-130.95 225.33,-0.08 34.69,130.76 z"/>
-       <path style="display:inline;fill:#966f33;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
-         d="m 467.48,375.0 0.10,-7.47 38.85,-17.69 41.72,17.21 0.07,8.09 z"/>
-       <path style="display:inline;fill:#000000;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
-         d="m 392.95,682.35 74.43,-306.33 80.94,0.15 68.93,305.88 z" />
-       <path style="display:inline;fill:#c0c0c0;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
-         d="m 492.31,683.69 32.15,-0.42 -0.23,-275.76 -31.88,0.31 c 0,0 -0.79,275.87 -0.03,275.87 z"/>
-       <path style="display:inline;fill:#000000;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
-         d="m 388.24,814.41 30.5,-0.11 -4.52,16.34 -21.20,0.005 z" />
-       <path style="fill:none;stroke:#808080;stroke-width:20;stroke-linecap:round;stroke-dasharray:2,20;stroke-dashoffset:0;"
-         d="M 509.56,659.32 507.29,425.61"/>
-       <path  style="display:inline;fill:#000000;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
-         d="m 591.87,814.24 3.45,15.41 22.26,-0.06 3.97,-14.87 z"/>
-      </g>`,
-      // The metronome pattern alone defines a markerCenter, used as the center of rotation of the marker (i.e. its pendulum).
-      // The values are the center of the circle in the following marker.
-      markerCenter: "507.92 674.26",
-      marker: `<defs><g id="marker">
-         <path style="display:inline;fill:#909090;stroke:#808080;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;"
-            d="m 508.06,719.07 -0.009,-325.48"/>
-         <path style="display:inline;fill:#808080;stroke:#404040;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
-           d="m 484.84,465.21 44.4,-0.37 -6.69,24.69 -30.9,0.24 z"/>
-         <circle style="display:inline;fill:#966f33ff;" cx="507.92" cy="674.256" r="30.0" />
-         <circle fill="#c0c0c0" cx="507.92" cy="674.256" r="14" />
-         </g></defs>`,
-      paths: [""],
-      ticks: [600],
-    },
-    {
-      name: "one",
-      background: "",
-      marker: this.conductor,
-      paths: ["m 506.73987,600 c 6.61502,-38.23927 11.32736,-81.3433 0.14187,-119.35666 -10.87718,38.2011 -5.97916,82.76755 -0.52949,119.7081"],
-      ticks: [600],
-    },
-    {
-      name: "two",
-      background: "",
-      marker: this.conductor,
-      paths: ["m 416.19116,601.33252 c 53.32433,-1.50986 91.37258,-125.82247 123.02771,-266.07837 7.01455,139.97771 68.02774,325.60495 -58.41431,324.64563", "m 480.66077,659.87543 c -64.55381,-7.10515 -82.91038,-41.96037 -111.87744,-80.65662 20.45255,28.45694 33.40312,22.89527 47.40783,22.11371"],
-      ticks: [900, 600],
-    },
-    {
-      name: "three",
-      background: "",
-      marker: this.conductor,
-      paths: ["m 341.86386,581.55834 c 93.73074,5.44531 116.02278,-141.66317 163.9969,-233.92882 l 3.7363,350.63385", "m 509.59706,698.26337 c -37.3781,-65.22699 -155.15681,-30.9108 -176.69037,-81.1292", "m 332.90669,617.13417 c -12.6349,-17.28785 -21.71707,-34.35916 -31.06652,-51.44676 7.49126,10.66109 22.45935,15.51248 40.02369,15.87093"],
-      ticks: [900, 600, 600],
-    },
-    {
-      name: "four",
-      background: "",
-      marker: this.conductor,
-      paths: ["m 376.10444,604.03666 c 83.82548,-4.33549 100.4673,-148.67456 130.70217,-264.68715 l -0.8127,354.01067", "m 505.99391,693.36018 c 5.54426,-104.50552 158.21364,32.74145 152.10007,-16.52096", "M 658.09398,676.83922 C 607.13391,486.65696 427.49525,749.70781 354.41215,643.21089", "m 354.41215,643.21089 c -14.99447,-12.02509 -24.94658,-36.43392 -36.45036,-57.03192 18.43908,10.39582 37.22045,19.17676 58.14265,17.85769"],
-      ticks: [900, 600, 800, 600],
-    },
-    {
-      name: "five",
-      background: "",
-      marker: this.conductor,
-      paths: ["m 319.92518,588.07556 c 11.80525,18.61901 33.0238,17.89221 53.03571,16.41642 135.04318,-11.45713 97.41506,-212.3433 134.1337,-262.92175 l -0.39504,343.91851", "m 506.69955,685.48874 c 25.57708,-50.13643 68.82968,-17.79013 73.18297,-0.0919", "m 579.88252,685.39684 c 19.29798,-42.16075 54.40153,-30.27801 74.20525,-2.42061", "M 654.08777,682.97623 C 632.24026,494.87209 423.90302,742.50987 361.04223,640.13568", "M 361.04223,640.13568 C 332.12758,608.14594 349.77337,628.97772 319.92518,588.07556"],
-      ticks: [900, 600, 600, 800, 600],
-    },
-    {
-      name: "six",
-      background: "",
-      marker: this.conductor,
-      paths: ["m 267.49902,581.87503 c 13.95648,6.41218 27.92331,13.92614 41.70899,2.14118 134.17928,-68.21655 194.07653,-206.22909 197.22543,-231.35532 l -3.17343,318.24762", "m 503.26001,670.90851 c 17.21164,-35.14343 53.30776,-45.01018 80.3864,-0.96755", "m 583.64641,669.94096 c 22.00066,-45.35491 37.25197,-44.97481 77.96339,4.9612", "M 661.6098,674.90216 C 737.13215,527.23351 482.78179,534.1961 441.99445,662.5065", "M 441.99445,662.5065 C 387.69865,618.6899 335.08632,626.46228 302.98419,665.112", "m 302.98419,665.112 c 14.56048,-29.52995 -0.94459,-38.12573 -35.48517,-83.23697"],
-      ticks: [900, 600, 600, 800, 600, 600],
-    },
-  ];
+  // Preset conducting patterns: name → { groups, sub } where groups is an array of beat-group sizes
+  // and sub is the number of subdivisions per main beat.  null means the special metronome pattern.
+  static PRESETS = {
+    'metronome':    null,
+    '2/4':          { groups: [2],     sub: 1 },
+    '3/4':          { groups: [3],     sub: 1 },
+    '4/4':          { groups: [4],     sub: 1 },
+    '6/8':          { groups: [2],     sub: 3 },
+    '9/8':          { groups: [3],     sub: 3 },
+    '12/8':         { groups: [4],     sub: 3 },
+    '3/4 in 6':     { groups: [3],     sub: 2 },
+    '4/4 in 8':     { groups: [4],     sub: 2 },
+    '5/4 (3+2)':    { groups: [3,2],   sub: 1 },
+    '5/4 (2+3)':    { groups: [2,3],   sub: 1 },
+    '7/8 (2+2+3)':  { groups: [2,2,3], sub: 1 },
+    '7/8 (3+2+2)':  { groups: [3,2,2], sub: 1 },
+  };
+
+  // SVG coordinate constants for the conducting area (1024×1024 viewBox).
+  static SVG = { CX:507, BOT:620, TOP:360, MID:490, L:300, R:720, ML:390, MR:640 };
+
+  // The classic pendulum-metronome display (special-cased throughout build/tick).
+  metronomePattern = {
+    name: "metronome",
+    background: `
+     <g transform="translate(0 -10)">
+     <path  style="display:inline;fill:#966f33;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
+       d="m 360.52,814.24 31.96,-130.95 225.33,-0.08 34.69,130.76 z"/>
+     <path style="display:inline;fill:#966f33;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
+       d="m 467.48,375.0 0.10,-7.47 38.85,-17.69 41.72,17.21 0.07,8.09 z"/>
+     <path style="display:inline;fill:#000000;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
+       d="m 392.95,682.35 74.43,-306.33 80.94,0.15 68.93,305.88 z" />
+     <path style="display:inline;fill:#c0c0c0;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
+       d="m 492.31,683.69 32.15,-0.42 -0.23,-275.76 -31.88,0.31 c 0,0 -0.79,275.87 -0.03,275.87 z"/>
+     <path style="display:inline;fill:#000000;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
+       d="m 388.24,814.41 30.5,-0.11 -4.52,16.34 -21.20,0.005 z" />
+     <path style="fill:none;stroke:#808080;stroke-width:20;stroke-linecap:round;stroke-dasharray:2,20;stroke-dashoffset:0;"
+       d="M 509.56,659.32 507.29,425.61"/>
+     <path  style="display:inline;fill:#000000;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
+       d="m 591.87,814.24 3.45,15.41 22.26,-0.06 3.97,-14.87 z"/>
+    </g>`,
+    markerCenter: "507.92 674.26",
+    marker: `<defs><g id="marker">
+       <path style="display:inline;fill:#909090;stroke:#808080;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;"
+          d="m 508.06,719.07 -0.009,-325.48"/>
+       <path style="display:inline;fill:#808080;stroke:#404040;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
+         d="m 484.84,465.21 44.4,-0.37 -6.69,24.69 -30.9,0.24 z"/>
+       <circle style="display:inline;fill:#966f33ff;" cx="507.92" cy="674.256" r="30.0" />
+       <circle fill="#c0c0c0" cx="507.92" cy="674.256" r="14" />
+       </g></defs>`,
+    paths: [""],
+    ticks: [600],
+    subdivision: 1,
+  };
 
   accent1 = 1; // accents;
   accent2 = 0;
@@ -1210,8 +1185,8 @@ class Metronome extends Surface {
 
   constructor(panel) {
     super(panel, ScreenPanel);
-    this.beatPattern = this.beatPatterns[0];
-    this.volumeStash = _menu_.rings.more.cells.volume.stash;
+    this.beatPattern = this.metronomePattern;
+    this.volumeStash = _menu_.rings.app.cells.volume.stash;
     [this.actx, this.bus] = Actx.get();
     this.oscillator = null;
     this.gainNode = new GainNode(this.actx);
@@ -1227,11 +1202,83 @@ class Metronome extends Surface {
     this.ticker.cancel();
   }
 
+  // Return an array of [x, y] ictus positions (one per main beat) for the given groups array.
+  // SVG coordinate constants are from Metronome.SVG (1024×1024 viewBox, conducting area ≈ y 360–620).
+  //
+  // Positions follow standard conducting geometry:
+  //   2-beat:  diagonal V — beat 1 down-center, beat 2 upper-right
+  //   3-beat:  down → right-mid → upper-left
+  //   4-beat:  down → inner-left → outer-right → upper-left  (down/in/out/up)
+  //   5-beat:  first group's beats then second group's beats, each offset spatially
+  //   7-beat:  three sub-groups laid across the conducting space
+  ictusPts(groups) {
+    const {CX, BOT, TOP, MID, L, R, ML, MR} = Metronome.SVG;
+    const key = groups.join(',');
+    const table = {
+      '1':     [[CX, BOT]],
+      '2':     [[CX, BOT], [MR, TOP]],           // V-shape: down then upper-right
+      '3':     [[CX, BOT], [MR, MID], [ML, TOP]],
+      '4':     [[CX, BOT], [ML, MID], [MR, MID], [ML, TOP]], // down/in/out/up
+      '3,2':   [[CX, BOT], [MR, MID], [ML, TOP], [MR, BOT], [R,  TOP]],
+      '2,3':   [[CX, BOT], [ML, MID], [MR, BOT], [R,  MID], [MR, TOP]],
+      '2,2,3': [[CX, BOT], [ML, MID], [MR, BOT], [MR, MID], [ML, BOT], [L, MID], [ML, TOP]],
+      '3,2,2': [[CX, BOT], [MR, MID], [ML, TOP], [MR, BOT], [R,  MID], [ML, BOT], [L, TOP]],
+    };
+    return table[key] || [[CX, BOT]];
+  }
+
+  // Return an absolute SVG cubic-Bézier path from ictus p0 to ictus p3.
+  //
+  // Control points are asymmetric to model real conducting gesture:
+  //   CP1: quick rebound from p0 — departs upward (×0.6 rise) with a 30% horizontal lean toward p3
+  //   CP2: graceful approach to p3 — arrives from well above (×1.0 rise), biased 30% back toward p0
+  // This gives the characteristic "snap up, float down" feel of a baton ictus.
+  // isSubBeat uses a shallower arc for subdivision ticks that don't advance the main beat.
+  segmentPath(p0, p3, isSubBeat = false) {
+    const rise = isSubBeat ? 40 : 120;
+    const cp1 = [p0[0] + (p3[0] - p0[0]) * 0.3, p0[1] - rise * 0.6];
+    const cp2 = [p3[0] + (p0[0] - p3[0]) * 0.3, p3[1] - rise];
+    return `M ${p0[0]},${p0[1]} C ${cp1[0]},${cp1[1]} ${cp2[0]},${cp2[1]} ${p3[0]},${p3[1]}`;
+  }
+
+  // Build and return a complete beatPattern object for the named preset.
+  // Returns the metronomePattern for 'metronome' (or any unrecognised name).
+  generatePattern(name) {
+    const preset = Metronome.PRESETS[name];
+    if (!preset) return this.metronomePattern;
+    const { groups, sub } = preset;
+    const pts = this.ictusPts(groups);
+    const n = pts.length;
+
+    // One SVG path per main beat (travels from ictus[i] to ictus[(i+1)%n]).
+    // Special case: a single ictus point loops back on itself — use a small oval rebound.
+    const paths = (n === 1)
+      ? [`M ${pts[0][0]},${pts[0][1]} C ${pts[0][0]-100},${pts[0][1]-120} ${pts[0][0]+100},${pts[0][1]-120} ${pts[0][0]},${pts[0][1]}`]
+      : pts.map((pt, i) => this.segmentPath(pt, pts[(i + 1) % n]));
+
+    // Identify which main-beat indices start a new group (these get the primary accent).
+    const groupDownbeats = new Set();
+    let pos = 0;
+    for (const g of groups) { groupDownbeats.add(pos); pos += g; }
+
+    // Build the ticks array: sub ticks per main beat.
+    // Frequencies: group-downbeat main tick 900, other main tick 700, sub-beat tick 500.
+    const ticks = [];
+    for (let i = 0; i < n; i++) {
+      for (let s = 0; s < sub; s++) {
+        if (s === 0) ticks.push(groupDownbeats.has(i) ? 900 : 700);
+        else         ticks.push(500);
+      }
+    }
+
+    return { name, background: '', marker: this.conductor, paths, ticks, subdivision: sub };
+  }
+
   build() {
     this.motionPaths.forEach((motionPath) => motionPath.endElement());
     Object.values(this.pathTransforms).forEach((pathTransform) => pathTransform.endElement());
     clearChildren(this.surface);
-    let beatPattern = this.beatPattern || this.beatPatterns[0];
+    let beatPattern = this.beatPattern || this.metronomePattern;
     // Outermost svg tag. Transforms at this level effect entire surface. Note: the svg transform tag doesn't
     // work on ios devices, so we use the css style version instead
     let svg = `<svg style="transform:scale(1.75, 1.75);position:relative;pointer-events:none;" viewBox="0 0 1024 1024">`;
@@ -1288,21 +1335,23 @@ class Metronome extends Surface {
     this.ticker.cancel();
     this.pause.textContent = bool ? "" : "\ue4c0";
     if (bool) {
+      const sub = this.beatPattern.subdivision || 1;
+      const msPerTick = 60000 / this.tempo / sub;
       this.tickTime = this.actx.currentTime + 0.05;
-      this.secondsPerTick = 60 / this.tempo;
+      this.secondsPerTick = msPerTick / 1000;
       this.tick();
-      this.ticker.run(60000 / this.tempo, () => {
+      this.ticker.run(msPerTick, () => {
         this.tickTime = this.actx.currentTime + 0.05;
+        this.secondsPerTick = 60 / this.tempo / sub;
         this.tick();
-        this.ticker.run(60000 / this.tempo);
+        this.ticker.run(msPerTick);
         this.bpm.textContent = Math.floor(this.tempo);
       });
     }
   }
 
   setPattern(name) {
-    // Switch to the named beatPattern.
-    this.beatPattern = this.beatPatterns.find((pattern) => pattern.name == name) || this.beatPatterns[0];
+    this.beatPattern = this.generatePattern(name);
     this.build();
     // Set the gui button to indicate the *next* available beat pattern
     this.panel.cell.stash.pattern = this.beatPattern.name;
@@ -1314,6 +1363,7 @@ class Metronome extends Surface {
   tick() {
     let tickCount = this.tickCount++;
     if (this.gain == 0) return;
+    const sub = this.beatPattern.subdivision || 1;
     let tickPattern = this.beatPattern.ticks;
     let time = this.tickTime;
     time += 0.3; // adjust for skim
@@ -1324,12 +1374,14 @@ class Metronome extends Surface {
     this.oscillator.connect(this.gainNode);
     this.oscillator.start(time);
     this.oscillator.stop(time + 0.03);
-    // Schedule next path animation to
+    // Schedule the path animation.  For sub > 1, ticks fire at the subdivision rate but the
+    // motion paths each last one full main beat, and only advance on main-beat ticks (tickCount % sub === 0).
     schedule((this.tickTime - this.actx.currentTime) * 1000, () => {
-      if (this.secondsPerTick != this.animDur) {
-        // tempo has changed, so adjust all
-        this.animDur = this.secondsPerTick;
-        this.motionPaths.forEach((path) => path.setAttribute("dur", this.animDur));
+      const mainBeatDur = this.secondsPerTick * sub;
+      if (mainBeatDur != this.animDur) {
+        // Tempo has changed: update path durations and reset the counter.
+        this.animDur = mainBeatDur;
+        this.motionPaths.forEach((path) => path.setAttribute("dur", mainBeatDur));
         this.tickCount = 0;
       }
       if (this.beatPattern.name == "metronome") {
@@ -1340,9 +1392,12 @@ class Metronome extends Surface {
         transform.beginElement();
         return;
       }
-      let beatNumber = this.tickCount % this.beatPattern.paths.length;
-      this.motionPaths[beatNumber].beginElement();
-      this.pathTransforms[beatNumber].beginElement();
+      // Only begin the next motion path on a main-beat tick; sub-beat ticks produce sound only.
+      if (tickCount % sub === 0) {
+        let beatNumber = Math.floor(tickCount / sub) % this.beatPattern.paths.length;
+        this.motionPaths[beatNumber].beginElement();
+        this.pathTransforms[beatNumber].beginElement();
+      }
     });
   }
 
