@@ -21,6 +21,7 @@
 **/
 
 import {
+  animate,
   ButtonGroup,
   dataIndex,
   clamp,
@@ -2384,6 +2385,129 @@ class ScreenPanel extends SurfacePanel {
 }
 
 
+
+/**
+ * class Picker
+ * 
+ * Re-implementation of html select list, featuring progressive item selection
+ * by typing to do case-insensitive match on options text.
+ * @param button   - Trigger button element
+ * @param options  - list of strings, options to display
+ * @param option   - string, initial option, if any
+ * @panel
+ */
+class Picker {
+
+  static css = css(
+    "Picker", `
+     mark {
+      background-color: #aaa;
+     }
+     .Picker__list {
+       border-radius:.8em;
+       color:black;
+       visibility:hidden;
+       position:absolute;
+       text-align:left;
+       background:white;
+       font-family:Bravura;
+       overflow-y:scroll;
+       z-index: var(--z-modal)
+     }
+   `) ;
+
+  constructor(button, options, option=null, panel) {
+    let keyBuf = '';
+
+    // Create the Picker list. It will be the same width as the button, hence button MUST be in the
+    // dom when constructor is called. It will extend to the bottom of the panel's body, minus .5em.
+    let list = this.list = helm(`<div class="Picker__list"></div>`);
+    button.after(list) ;
+    let buttonStyle = getComputedStyle(button);
+    let emPerPx = parseFloat(buttonStyle.fontSize) ;
+    list.style.width = parseFloat(buttonStyle.width) / emPerPx + "em";
+    list.style.height = (((getBox(panel.body).bottom - getBox(button).bottom)/ emPerPx) - .5) + "em" ;
+    for(let option of options) list.append(helm(`<div style="padding:.25em">${option}</div>`)) ;
+
+    // remember the initial list height
+    let listHeight = list.style.height ;
+
+    let selectOption = (option, matched=null) => {
+      // called when an option is selected by user, either by clicking the option or by 
+      // matching the option's text through typing. matched, if non-null, contains the
+      // chars in option that were matched by keyBuf (user's typed chars)
+      if(matched) {
+        let re =  new RegExp(matched, "i");
+        button.innerHTML = "<div>" + option.replace(re,`<mark>${option.match(re)[0]}</mark>`) + "</div>";
+      }
+      else button.textContent = option;
+      button.dispatchEvent(new CustomEvent('PICKED', { detail:option}));
+    }
+
+    let l1 = listen(button,"pointerdown", (e) => {
+      if(list.style.visibility == "hidden") {
+        list.style.visibility = "visible" ;
+        animate(list, {height:0}, {height:listHeight}, "height .35s");
+      }
+      else {
+        animate(list, null, { height:0}, "height .35s", () =>
+        { list.style.visibility = "hidden" ; list.style.height = listHeight;}) ;
+      }
+    });
+
+    let l2 = listen(list,"pointerdown", (e) => {
+      if(e.target == list) return ;
+      list.setPointerCapture(e.pointerId);
+      let originY = list.scrollTop;
+      let mv = listen(list, "pointermove", (emv) => {
+        list.scrollTop = originY + e.clientY - emv.clientY;
+      });
+      listen(list, "pointerup", (eup) => {
+        unlisten(mv);
+        if(Math.abs(list.scrollTop - originY) > 5) return ; // scrolled (> 5 for jitter)
+        if(this.target) this.target.style.background = "none" ;
+        this.target = e.target ;
+        this.target.style.background = "#aaa" ;
+        let height = list.style.height;
+        animate(list, null, { height:0}, "height .5s", () => { list.style.visibility = "hidden" ;list.style.height = height ;}) ;
+        keyBuf = "";
+        selectOption(e.target.textContent) ;
+      }, { once:true}) ;
+    }); 
+
+    let l3 = listen(_body_, "keydown", (e) => {
+      if(e.key == "Backspace" || e.key == "Delete") keyBuf = keyBuf.slice(0,-1) ;
+      else if(! /^[a-zA-Z0-9 .]$/.test(e.key)) return;
+      else keyBuf += e.key;
+      let lineNumber = 0 ;
+      let opt = options.find((str) => { ++lineNumber ; return new RegExp(keyBuf, "i").test(str);}) ;
+      if(opt) {
+        selectOption(opt, keyBuf) ;
+        list.scrollTop = (lineNumber / options.length) * list.scrollHeight - list.offsetHeight / 2 ;
+        if(this.target) this.target.style.background = "none" ;
+        this.target = list.children[lineNumber-1] ;
+        this.target.style.background = "#aaa" ;
+      }
+      else keyBuf = keyBuf.slice(0,-1) ;
+    })
+
+    panel.listeners.push(l1, l2, l3) ;
+
+    if(option) {
+      let lineNumber = 0 ;
+      let opt = options.find((str) => { ++lineNumber ; return option == str;}) ;
+      if(opt) {
+        selectOption(opt, keyBuf) ;
+        list.scrollTop = (lineNumber / options.length) * list.scrollHeight - list.offsetHeight / 2 ;
+        if(this.target) this.target.style.background = "none" ;
+        this.target = list.children[lineNumber-1] ;
+        this.target.style.background = "#aaa" ;
+      }
+    }
+  }
+}
+
+
 class SymbolsPanel extends Panel {
 
   static css = css(
@@ -2416,6 +2540,7 @@ class SymbolsPanel extends Panel {
         font-family: Bravura;
         font-size: 2em;
         display: grid;
+        color: black;
         grid-template-columns: repeat(6, 1.55em);
         gap: 2px;
       }
@@ -2437,19 +2562,37 @@ class SymbolsPanel extends Panel {
    }
 
    .SymbolsPanel__groups {
-     max-width: 18em;
+     border:2px solid black;
+     border-radius:.8em;
+     font-family:Bravura;
+     height:3em;
+     display:flex;
+     align-items:center;
+     justify-content:center;
+     position:relative;
+     padding-right:1.5em;
+     width:19.5em;
+     box-sizing: border-box;
+   }
+
+   .SymbolsPanel__groups::after {
+    content: "\ueb7c";
+    position:absolute;
+    right:.2em;
+    font-size:3em;
+    top:-.25em;
+    translateX(.5em);
    }
 
    `);
 
-// 25.5, 2em
   content = helm(`
      <div data-tag="body" class="Panel__body">
        <div class="SymbolsPanel__frame" data-tag="frame">
          <div class="SymbolsPanel__grid" data-tag="grid"></div>
        </div>
-      Symbols Group<br>
-      <select data-tag="groups" class="SymbolsPanel__groups"></select>
+      Group<br>
+      <div data-tag="groups" class="SymbolsPanel__groups"></div>
       <div data-tag="picker"></div>
       <div data-tag="staffSpace"></div>
       <div style="margin: var(--spacing-md); height: 2.5em; display: flex; align-items: center; justify-content: center;"><a href="https://www.w3.org/2021/03/smufl14/" rel="noopener noreferrer">SMuFL</a></div>
@@ -2461,30 +2604,23 @@ class SymbolsPanel extends Panel {
     this.body.replaceWith(this.content);
     Object.assign(this, dataIndex("tag", this.content));
     let stash = cell.stash;
-    for (let group of Object.keys(smuflTable)) {
-      this.groups.append(
-        helm(
-          `<option ${
-            stash.group == group ? "selected" : ""
-          }>${group}</option>`
-        )
-      );
-    }
 
-    listen(this.groups, "change", () => {
-      clearChildren(this.grid);
-      stash.group = this.groups.value;
-      let glyphs = this.groups.value == "Recent"
-        ? Object.entries(stash.recent && typeof stash.recent === 'object' ? stash.recent : {}).sort((a, b) => b[1] - a[1]).map(([cp]) => cp)
-        : smuflTable[this.groups.value];
-      for (let codePoint of glyphs) {
-        this.grid.append(helm(
-          `<div class="SymbolsPanel__symbol ${codePoint == stash.codePoint ? "SymbolsPanel__symbol-active" : ""}">${codePoint}</div>`
-        ));
-      }
-    });
+    // Create a Picker (similar to an html select)...must be called delayed so this.groups is in the dom when it runs
+    delay(10, () => new Picker(this.groups, Object.keys(smuflTable), stash.group, this)) ;
 
-    this.groups.dispatchEvent(new Event("change"));
+    listen(this.groups, "PICKED", (e) => {
+       let key = stash.group = e.detail;
+       let glyphs = (key == "Recent")
+         ? Object.entries(stash.recent).sort((a, b) => b[1] - a[1]).map(([glyph]) => glyph)
+         : smuflTable[key]; 
+       clearChildren(this.grid) ;
+       for (let codePoint of glyphs) {
+         this.grid.append(helm(
+           `<div class="SymbolsPanel__symbol ${codePoint == stash?.codePoint ? "SymbolsPanel__symbol-active" : ""}">${codePoint}</div>`
+         ));
+       }
+
+    }) ;
 
     listen(this.frame, "pointerdown", (e) => {
       this.frame.setPointerCapture(e.pointerId);
@@ -2547,7 +2683,6 @@ class SymbolsPanel extends Panel {
     this.staffSpace = staffSpace;
     this.update();
   }
-
 
   update() {
     let { alpha = 1, group, rgb = '#000000', size = 8 } = this.cell.stash;
