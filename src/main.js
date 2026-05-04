@@ -176,7 +176,6 @@ async function main() {
               }) ;
             }, { once:true} ) ;
           }
-
           // Define track 1: state of first pointer down
           tr1 = { e: e, pz: e.target.closest(".pz") || _body_ };
           tr1.dX = e.clientX - tr1.pz.offsetLeft;

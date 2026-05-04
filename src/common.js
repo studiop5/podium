@@ -785,15 +785,13 @@ class ColorPicker {
   static css = css(
     "ColorPicker",
     `.ColorPicker {
-       margin: 0 var(--spacing-md);
        position: relative;
        text-align: center;
-       font-size: var(--font-size-sm);
+       font-size: var(--font-size-base);
        display: flex;
        align-items: center;
        gap: var(--spacing-md);
        box-sizing: border-box;
-       width: calc(100% - var(--spacing-md) * 2);
       }
       .ColorPicker__colorWrapper {
         position: relative;
@@ -847,8 +845,8 @@ class ColorPicker {
   );
 
   elm = helm(`
-   <div>
-   <div style="font-size:.8em; margin-bottom: var(--spacing-xs)" data-tag="title"></div>
+   <div class="Panel__item">
+   <div data-tag="title"></div>
    <div class="ColorPicker">
       <div class="ColorPicker__colorWrapper">
         <input data-tag="color" class="ColorPicker__color" type="color" colorpick-eyedropper-active="true" list="recentColors"></input>
@@ -999,12 +997,11 @@ class PodiumSlider extends HTMLElement {
     "PodiumSlider",
     `.Slider {
        position: absolute;
-       width: calc(100% - 4em);
+       width: calc(100% - 2.5em);
        height: 2em;
-       left: 2em;
+       left: 1.25em;
      }
      .Slider__track {
-       flex-box;
        position: absolute;
        top: calc(50% - .2em);
        height: .5em;
@@ -1366,9 +1363,8 @@ class SliderGroup {
   static css = css(
     "SliderGroup",
     `.SliderGroup {
-       font-size: var(--font-size-sm);
+       font-size: var(--font-size-base);
        color: var(--color-text);
-       margin: var(--spacing-md) var(--spacing-md) 0 var(--spacing-md);
        text-align: center;
       }
     .SliderGroup__SliderBlock {
@@ -1394,7 +1390,7 @@ class SliderGroup {
    `
   );
 
-  elm = helm(`<div data-tag="sliderGroup" class="SliderGroup">`);
+  elm = helm(`<div data-tag="sliderGroup" class="Panel__item SliderGroup">`);
 
   dataIndex = null;
   handler = null;

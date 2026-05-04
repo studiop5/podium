@@ -62,6 +62,197 @@ export { Panel, panels, EditPanel, ScreenPanel, CurtainPanel };
 // -skip
 
 /**
+ * class Select
+ * 
+ * Re-implementation of html select list for panels, featuring progressive selection
+ * of an option by typing by typing a case-insensitive match string.
+ * @param button   - Trigger button element
+ * @param options  - list of strings, options to display
+ * @param option   - string, initial option, if any
+ * @param  panel   - panel using the Select object
+ *
+ * Dispatches "SELECTED" on the button if/when an option is
+ * picked...picked option is value of event.detail.
+ */
+class Select {
+
+  static css = css(
+    "Select", `
+    mark {
+      background-color: #aaa;
+    }
+    .Select__toggle {
+      border:2px solid black;
+      border-radius:var(--borderRadius);
+      font-family:Bravura;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      padding-right:1.5em;
+      height:3em;
+      box-sizing: border-box;
+    }
+    .Select__toggle:after {
+      content: "\ueb7c";
+      position:absolute;
+      right:.2em;
+      font-size:3em;
+      top: calc(50% - .2em);
+      line-height:0;
+     }
+    .Select__list {
+      border-radius:var(--borderRadius);
+      color:black;
+      position:absolute;
+      text-align:left;
+      background:white;
+      font-family:Bravura;
+      overflow-y:scroll;
+      scrollbar-width:none;
+      z-index: var(--z-modal);
+    }
+    /* for older Safri and Firefox */
+    .Select__list::-webkit-scrollbar {
+      display: none;                                                                                                                                } 
+ `) ;
+
+  elm = helm(`
+    <div>
+     <div data-tag="toggle" class="Select__toggle"></div>
+     <div data-tag="list" class="Select__list" style="visibility:hidden"></div>
+    </div>`) ;
+
+  constructor(options, option=null, panel) {
+    Object.assign(this, dataIndex("tag", this.elm));
+    Object.assign(this, {options, option, panel}) ;
+    delay(25, () => this.build()) ; // call build after we're confident panel is in the dom
+  }
+
+  build() {
+    let keyBuf = '';
+    let {options, option, panel, toggle, list} = this ;
+
+    let toggleStyle = getComputedStyle(toggle);
+    let emPerPx = parseFloat(toggleStyle.fontSize) ;
+    toggle.style.width = list.style.width = parseFloat(toggleStyle.width) / emPerPx + "em";
+    list.style.height = ((getBox(panel.body).bottom - getBox(toggle).bottom) / emPerPx) + "em" ;
+
+    for(let option of options) list.append(helm(`<div style="padding:.25em">${option}</div>`)) ;
+
+    // remember the initial list height (in style format, with "px")
+    let listHeight = list.offsetHeight + "px";
+
+    function gage(e, eup, client="clientY", jitter=6) {
+      // Return velocity in px/msec of a user gesture on pointerup as part of (pointerdown(e), pointermove(emv), pointerup(eup) sequence
+      // e.mvBuffer must exist, format: [ {p:...,t:...},...], where p is point (emv.clientX or emv.clientY) and t is emv.timestamp
+      // client set to "clientX" to compute horizontally
+      // jitter: movement < jitter px is not considered
+      // @return vel (+/- shows direction, 0 means moved but stopped, null means never moved (except for jitter)
+      // NOTE: we may eventually want to move this function to common.js and use it to measure user's velocity in layouts too.
+      // That is why we have a "client" argument.
+      let buf = e.mvBuffer;
+      let moved = buf.length? Math.max(...buf.map(ev => Math.abs(ev.p - e[client]))) : Math.abs(eup[client] - e[client]); // max mvm
+      if(moved <= jitter) return null ;  // no mvm
+      if(!buf.length || eup.timeStamp - buf.at(-1).t > 100) return 0 ; // moved but stopped
+      let recent = buf.filter(ev => eup.timeStamp - ev.t <= 150) ;
+      let velBuf = recent.length >=2 ? recent : buf ;
+      if(velBuf.length < 2) return 0 ; // moved but stopped
+      let first = velBuf[0], last = velBuf.at(-1);
+      let dt = last.t - first.t ;
+      return dt > 0 ? (first.p - last.p) / dt : 0 ;
+    }
+
+    let selectOption = (option, matched=null) => {
+      // called when an option is selected by user, either by clicking the option or by 
+      // matching the option's text through typing. matched, if non-null, contains the
+      // chars in option that were matched by keyBuf (user's typed chars)
+      if(matched) {
+        let re =  new RegExp(matched, "i");
+        toggle.innerHTML = "<div>" + option.replace(re,`<mark>${option.match(re)[0]}</mark>`) + "</div>";
+      }
+      else toggle.textContent = option;
+      toggle.dispatchEvent(new CustomEvent('SELECTED', { detail:option}));
+    }
+
+    let l1 = listen(this.toggle,"pointerdown", (e) => {
+      if(list.style.visibility == "hidden") {
+        list.style.visibility = "visible" ;
+        animate(list, {height:0}, {height:listHeight}, "height .35s");
+      }
+      else {
+        animate(list, null, { height:0}, "height .35s", () =>
+        { list.style.visibility = "hidden" ; list.style.height = listHeight;}) ;
+      }
+    });
+
+    let l2 = listen(list,"pointerdown", (e) => {
+      list.setPointerCapture(e.pointerId);
+      let top = list.scrollTop;
+      e.mvBuffer = []; // buffer for fling velocity calculation
+      let mv = listen(list, "pointermove", (emv) => {
+        e.emv = emv ;
+        e.mvBuffer.push({ p: emv.clientY, t: emv.timeStamp });
+        if (e.mvBuffer.length > 5) e.mvBuffer.shift();
+        list.scrollTop = top + e.clientY - emv.clientY;
+      });
+      listen(list, "pointerup", (eup) => {
+        unlisten(mv);
+
+      let vel = gage(e, eup) ;
+      switch(vel) {
+        case 0: return ; // moved but not flung
+        case null: // not moved, i.e. jab or click
+          if(this.target) this.target.style.background = "none" ;
+          this.target = e.target ;
+          this.target.style.background = "#aaa" ;
+          let height = list.style.height;
+          animate(list, null, { height:0}, "height .5s", () => { list.style.visibility = "hidden" ;list.style.height = height ;}) ;
+          keyBuf = "";
+          return selectOption(e.target.textContent) ;
+        default: // flung
+          let abs= Math.abs(vel) ;
+          let screens = abs > 1? 4: abs > .5 ? 2: .8;
+          list.scrollTo({ top:  list.scrollTop + Math.sign(vel) * screens * list.offsetHeight,  behavior: 'smooth' }) ; }
+      }, { once:true}) ;
+    }); 
+
+    let l3 = listen(_body_, "keydown", (e) => {
+      if(e.key == "Backspace" || e.key == "Delete") keyBuf = keyBuf.slice(0,-1) ;
+      else if(! /^[a-zA-Z0-9 .]$/.test(e.key)) return;
+      else keyBuf += e.key;
+      let lineNumber = 0 ;
+      let opt = options.find((str) => { ++lineNumber ; return new RegExp(keyBuf, "i").test(str);}) ;
+      if(opt) {
+        selectOption(opt, keyBuf) ;
+        list.scrollTo({
+          top: (lineNumber / options.length) * list.scrollHeight - list.offsetHeight / 2,
+          behavior: 'smooth'
+        });
+        if(this.target) this.target.style.background = "none" ;
+        this.target = list.children[lineNumber-1] ;
+        this.target.style.background = "#aaa" ;
+      }
+      else keyBuf = keyBuf.slice(0,-1) ;
+    })
+
+    panel.listeners.push(l1, l2, l3) ;
+
+    if(option) {
+      let lineNumber = 0 ;
+      let opt = options.find((str) => { ++lineNumber ; return option == str;}) ;
+      if(opt) {
+        selectOption(opt, keyBuf) ;
+        list.scrollTop = (lineNumber / options.length) * list.scrollHeight - list.offsetHeight / 2 ;
+        if(this.target) this.target.style.background = "none" ;
+        this.target = list.children[lineNumber-1] ;
+        this.target.style.background = "#aaa" ;
+      }
+    }
+  }
+}
+
+/**
 class Panel
   Panel's subclasses are ui elements invoked from the Menu to configure
   or extend each Menu cell's functionality.
@@ -71,25 +262,6 @@ class Panel
   correspoding menu cell as argument. This @cell is used to initialize the Panel
   subclass, and is simply ignored if singleton already exists.
 **/
-
-
-let PAGE_SIZE_SELECT = `
-  <select class="FontPanel__select" data-tag="presets">
-    <option value="score">Match Score</option>
-    <option value="custom">Custom</option>
-    <option value="mm/279/420">A3</option>
-    <option value="mm/210/297">A4</option>
-    <option value="mm/250/353">B4</option>
-    <option value="in/6.5/10.5">Octavo</option>
-    <option value="in/8.5/11">Letter</option>
-    <option value="in/9/12">Folio</option>
-    <option value="in/9.5/12.5">Hand Copy (Trad)</option>
-    <option value="in/11/14">Orchestral Parts (MOLA)</option>
-    <option value="in/17/11">Ledger</option>
-    <option value="in/8.5/14.0">Legal</option>
-    <option value="in/11/17">Tabloid</option>
-  </select>
-`;
 
 class Panel {
   static get(cell) {
@@ -148,7 +320,7 @@ class Panel {
       right: 0;
     }
     .Panel__body {
-      font-size: var(--font-size-base);
+      font-size: var(--font-size-base); 
       margin: var(--spacing-sm);
       min-width: 13em;
       text-align: center;
@@ -156,6 +328,10 @@ class Panel {
     }
     .Panel__fader {
       transition: opacity var(--transition-normal);
+    }
+    .Panel__item {
+      /* used to seperate logical items in a panel body */
+      margin-top: var(--spacing-sm);
     }
   `
   );
@@ -544,14 +720,31 @@ for more details.</p>
 }
 
 class AddPanel extends Panel {
+
+  options = {
+    "Match Score":"score",
+    "Custom":"custom",
+    "A3":"mm/279/420",
+    "A4":"mm/210/297",
+    "B4":"mm/250/353",
+    "Octavo":"in/6.5/10.5",
+    "Letter":"in/8.5/11",
+    "Folio":"in/9/12",
+    "Hand Copy (Trad)":"in/9.5/12.5",
+    "Orchestral Parts (MOLA)":"in/11/14",
+    "Ledger":"in/17/11",
+    "Legal":"in/8.5/14.0",
+    "Tabloid":"in/11/17",
+  }
+
   content = helm(`
-    <div data-tag="options" class="Panel__body">
-      <div data-tag="picker"></div>
-      <div style="margin-top: var(--spacing-md); margin-bottom: 0.1em">Size</div>
-      ${PAGE_SIZE_SELECT}
-      <div data-tag="custom"></div>
+    <div>
+      <div data-tag="colorPickerProxy"></div>
+      <div class="Panel__item">Size</div>
+      <div data-tag="selectProxy"></div>
+      <div data-tag="customProxy"></div>
     </div>
-  `);
+  `)
 
   constructor(cell) {
     super(cell);
@@ -559,16 +752,17 @@ class AddPanel extends Panel {
     this.body.append(this.content);
     let stash = cell.stash;
      // Color picker
-    let picker = new ColorPicker(
-      "Color",
-      stash.rgb,
-      stash.alpha,
+    this.colorPicker = new ColorPicker(
+      "Color", stash.rgb, stash.alpha,
       (rgb, alpha) => {
         stash.rgb = rgb;
         stash.alpha = alpha;
       }
     );
-    this.picker.replaceWith(picker.elm);
+    this.colorPickerProxy.replaceWith(this.colorPicker.elm);
+    this.select = new Select(Object.keys(this.options), stash.size, this) ;
+    this.selectProxy.replaceWith(this.select.elm) ;
+    this.select.toggle.style.height = "2em" ;
     this.setupSizeSelection(stash);
   }
 
@@ -583,25 +777,26 @@ class AddPanel extends Panel {
     let disable = stash.size != "Custom";
 
     this.customGroup = new SliderGroup(stash,
-      { Width: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable, row:1, col:1 },
-        Height: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable, row:1, col:2 },
+      { Width: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable},
+        Height: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable},
       }, null);
-    this.custom.replaceWith(this.customGroup.elm);
+    this.customProxy.replaceWith(this.customGroup.elm);
 
-    listen(this.presets, ["input", "change"], (e) => {
-      stash.size = e.target.selectedOptions[0].textContent;
-      if (e.target.value == "score") { // Match current score dimensions
+    listen(this.select.toggle, "SELECTED", (e) => {
+      stash.size = e.detail;
+      let detail = this.options[e.detail] ;
+      if (detail == "score") { // Match current score dimensions
         let score = _score_;
         stash.Width = score.maxWidth;
         stash.Height = score.maxHeight;
         this.customGroup.defs.Height.disabled = true;
         this.customGroup.defs.Width.disabled = true;
       }
-      else if (e.target.value == "custom") {
+      else if (detail == "custom") {
         this.customGroup.defs.Height.disabled = false;
         this.customGroup.defs.Width.disabled = false;
       } else {
-        let [unit, width, height] = e.target.value.split("/");
+        let [unit, width, height] = detail.split("/");
         let toPts = unit == "in" ? 72 : unit == "mm" ? 2.8346456693 : 1;
         stash.Width = width * toPts;
         stash.Height = height * toPts;
@@ -612,10 +807,6 @@ class AddPanel extends Panel {
     });
 
     this.customGroup.refresh();
-    let size = [...this.presets.children].find(
-      (option) => option.textContent == stash.size
-    );
-    if (size) size.selected = true;
   }
 }
 
@@ -623,12 +814,11 @@ class NewPanel extends AddPanel {
 
   constructor(cell) {
     super(cell); 
-    let matchScoreOption = [...this.presets.children].find(opt => opt.value == "score");
-    if (matchScoreOption) matchScoreOption.remove();
+    this.select.options.shift() ; // remove the "Math Score" option: not applicable toNewPanel
     this.pagesGroup = new SliderGroup( cell.stash,
       {  pages: { min: 1, max: 100, value: 5, 
          msg: (tag, val) => `${val.toFixed(0)} page${val > 1 ? "s":""}`, step: 1 }, }, null );
-     this.body.prepend(this.pagesGroup.elm);    
+    this.body.prepend(this.pagesGroup.elm);    
     this.pagesGroup.refresh();
   }
 }
@@ -1661,7 +1851,6 @@ class PencilPanel extends Panel {
        height: 6em;
        border: 1px solid var(--color-border);
        border-radius: var(--borderRadius);
-       margin: var(--spacing-md);
        background-color: #fff;
        background-image:
          linear-gradient(45deg, #e8e8e8 25%, transparent 25%),
@@ -1705,7 +1894,7 @@ class PencilPanel extends Panel {
     // This code block is delayed so that it runs after any subclass constructor:
     delay(1, () => {
       if (this.buttonsDef)
-        this.sliders.after(helm(`<div style="font-size:.8em">Styles</div>`));
+        this.sliders.after(helm(`<div>Style</div>`));
 
       let picker = new ColorPicker(
         "Color",
@@ -1885,47 +2074,47 @@ class RastrumPanel extends PencilPanel {
 
 class TextPanel extends PencilPanel {
   slidersDef = {
-    size: { min: 1, max: 100, step: 1, value: 1, msg: "Size: {value} px", row:1, col:1 },
-    height: { min: 1, max: 100, step: 1, value: 1, msg: "Spacing: {value} px", row:1, col:2 },
+    size: { min: 1, max: 100, step: 1, value: 1, msg: "Size: {value} px"},
+    height: { min: 1, max: 100, step: 1, value: 1, msg: "Spacing: {value} px"},
   };
 
   buttonsDef = null;
 
-  fonts = helm(`
-      <select data-tag="font">
-        <option selected>Courier</option>
-        <option>Courier-Bold</option>
-        <option>Courier-Oblique</option>
-        <option>Courier-BoldOblique</option>
-        <option>Helvetica</option>
-        <option>Helvetica-Bold</option>
-        <option>Helvetica-Oblique</option>
-        <option>Helvetica-BoldOblique</option>
-        <option>Times-Roman</option>
-        <option>Times-Bold</option>
-        <option>Times-Italic</option>
-        <option>Times-BoldItalic</option>
-        <option>Bravura</option>
-        <option>Vercetti</option>
-        <option>Patrick Hand</option>
-      </select>`);
-
+  fonts = [
+    "Courier",
+    "Courier-Bold",
+    "Courier-Oblique",
+    "Courier-BoldOblique",
+    "Helvetica",
+    "Helvetica-Bold",
+    "Helvetica-Oblique",
+    "Helvetica-BoldOblique",
+    "Times-Roman",
+    "Times-Bold",
+    "Times-Italic",
+    "Times-BoldItalic",
+    "Bravura",
+    "Vercetti",
+    "Patrick Hand",
+    ] ;
+ 
   text = helm(`<div>Abc<br>123<br></div>`);
 
   constructor(cell) {
     super(cell);
-    let fontLabel = helm(`<div style="font-size:.8em; margin-top: var(--spacing-md); margin-bottom: 0.1em">Font</div>`);
+    let fontLabel = helm(`<div class="Panel__item">Font</div>`);
     this.picker.after(fontLabel);
-    fontLabel.after(this.fonts);
+    let select = new Select(this.fonts, cell.stash.font, this) ;
+    fontLabel.after(select.elm) ;
     this.preview.append(this.text);
-    this.listeners.push(listen(this.fonts, "change", () => this.update()));
+    this.listeners.push(listen(select.toggle, "SELECTED", (e) => this.update(e.detail)));
     this.preview.append(this.text);
     this.fonts.value = cell.stash.font ;
     this.update();
   }
 
-  update() {
-    this.cell.stash.font = this.fonts.value;
+  update(fontName) {
+    this.cell.stash.font = fontName;
     let { font, size, height, rgb, alpha } = this.cell.stash;
     this.text.style.fontSize = size / _pxPerEm_ + "em";
     this.text.style.lineHeight = height / _pxPerEm_ + "em";
@@ -2386,166 +2575,42 @@ class ScreenPanel extends SurfacePanel {
 
 
 
-/**
- * class Picker
- * 
- * Re-implementation of html select list, featuring progressive item selection
- * by typing to do case-insensitive match on options text.
- * @param button   - Trigger button element
- * @param options  - list of strings, options to display
- * @param option   - string, initial option, if any
- * @panel
- */
-class Picker {
-
-  static css = css(
-    "Picker", `
-     mark {
-      background-color: #aaa;
-     }
-     .Picker__list {
-       border-radius:.8em;
-       color:black;
-       visibility:hidden;
-       position:absolute;
-       text-align:left;
-       background:white;
-       font-family:Bravura;
-       overflow-y:scroll;
-       z-index: var(--z-modal)
-     }
-   `) ;
-
-  constructor(button, options, option=null, panel) {
-    let keyBuf = '';
-
-    // Create the Picker list. It will be the same width as the button, hence button MUST be in the
-    // dom when constructor is called. It will extend to the bottom of the panel's body, minus .5em.
-    let list = this.list = helm(`<div class="Picker__list"></div>`);
-    button.after(list) ;
-    let buttonStyle = getComputedStyle(button);
-    let emPerPx = parseFloat(buttonStyle.fontSize) ;
-    list.style.width = parseFloat(buttonStyle.width) / emPerPx + "em";
-    list.style.height = (((getBox(panel.body).bottom - getBox(button).bottom)/ emPerPx) - .5) + "em" ;
-    for(let option of options) list.append(helm(`<div style="padding:.25em">${option}</div>`)) ;
-
-    // remember the initial list height
-    let listHeight = list.style.height ;
-
-    let selectOption = (option, matched=null) => {
-      // called when an option is selected by user, either by clicking the option or by 
-      // matching the option's text through typing. matched, if non-null, contains the
-      // chars in option that were matched by keyBuf (user's typed chars)
-      if(matched) {
-        let re =  new RegExp(matched, "i");
-        button.innerHTML = "<div>" + option.replace(re,`<mark>${option.match(re)[0]}</mark>`) + "</div>";
-      }
-      else button.textContent = option;
-      button.dispatchEvent(new CustomEvent('PICKED', { detail:option}));
-    }
-
-    let l1 = listen(button,"pointerdown", (e) => {
-      if(list.style.visibility == "hidden") {
-        list.style.visibility = "visible" ;
-        animate(list, {height:0}, {height:listHeight}, "height .35s");
-      }
-      else {
-        animate(list, null, { height:0}, "height .35s", () =>
-        { list.style.visibility = "hidden" ; list.style.height = listHeight;}) ;
-      }
-    });
-
-    let l2 = listen(list,"pointerdown", (e) => {
-      if(e.target == list) return ;
-      list.setPointerCapture(e.pointerId);
-      let originY = list.scrollTop;
-      let mv = listen(list, "pointermove", (emv) => {
-        list.scrollTop = originY + e.clientY - emv.clientY;
-      });
-      listen(list, "pointerup", (eup) => {
-        unlisten(mv);
-        if(Math.abs(list.scrollTop - originY) > 5) return ; // scrolled (> 5 for jitter)
-        if(this.target) this.target.style.background = "none" ;
-        this.target = e.target ;
-        this.target.style.background = "#aaa" ;
-        let height = list.style.height;
-        animate(list, null, { height:0}, "height .5s", () => { list.style.visibility = "hidden" ;list.style.height = height ;}) ;
-        keyBuf = "";
-        selectOption(e.target.textContent) ;
-      }, { once:true}) ;
-    }); 
-
-    let l3 = listen(_body_, "keydown", (e) => {
-      if(e.key == "Backspace" || e.key == "Delete") keyBuf = keyBuf.slice(0,-1) ;
-      else if(! /^[a-zA-Z0-9 .]$/.test(e.key)) return;
-      else keyBuf += e.key;
-      let lineNumber = 0 ;
-      let opt = options.find((str) => { ++lineNumber ; return new RegExp(keyBuf, "i").test(str);}) ;
-      if(opt) {
-        selectOption(opt, keyBuf) ;
-        list.scrollTop = (lineNumber / options.length) * list.scrollHeight - list.offsetHeight / 2 ;
-        if(this.target) this.target.style.background = "none" ;
-        this.target = list.children[lineNumber-1] ;
-        this.target.style.background = "#aaa" ;
-      }
-      else keyBuf = keyBuf.slice(0,-1) ;
-    })
-
-    panel.listeners.push(l1, l2, l3) ;
-
-    if(option) {
-      let lineNumber = 0 ;
-      let opt = options.find((str) => { ++lineNumber ; return option == str;}) ;
-      if(opt) {
-        selectOption(opt, keyBuf) ;
-        list.scrollTop = (lineNumber / options.length) * list.scrollHeight - list.offsetHeight / 2 ;
-        if(this.target) this.target.style.background = "none" ;
-        this.target = list.children[lineNumber-1] ;
-        this.target.style.background = "#aaa" ;
-      }
-    }
-  }
-}
-
-
 class SymbolsPanel extends Panel {
 
   static css = css(
     "SymbolsPanel",
-     `.SymbolsPanel__frame {
-        background-color: #fff;
-        background-image:
-          linear-gradient(45deg, #e8e8e8 25%, transparent 25%),
-          linear-gradient(-45deg, #e8e8e8 25%, transparent 25%),
-          linear-gradient(45deg, transparent 75%, #e8e8e8 75%),
-          linear-gradient(-45deg, transparent 75%, #e8e8e8 75%);
-        background-size: 0.5em 0.5em;
-        background-position: 0 0, 0 0.25em, 0.25em -0.25em, -0.25em 0;
-        width: fit-content;
-        padding: 0.25em;
-        box-sizing: border-box;
-        margin-bottom: 0.2em;
-        height: 16em;
-        overflow-y: auto;
-        scrollbar-width: none;
-        border-radius: var(--borderRadius);
-        touch-action: none;
-      }
-
-      .SymbolsPanel__frame::-webkit-scrollbar {
-        display: none;
-      }
-
-      .SymbolsPanel__grid {
-        font-family: Bravura;
-        font-size: 2em;
-        display: grid;
-        color: black;
-        grid-template-columns: repeat(6, 1.55em);
-        gap: 2px;
-      }
-
-   .SymbolsPanel__symbol {
+    `
+    .SymbolsPanel__frame {
+      background-color: #fff;
+      background-image:
+        linear-gradient(45deg, #e8e8e8 25%, transparent 25%),
+        linear-gradient(-45deg, #e8e8e8 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #e8e8e8 75%),
+        linear-gradient(-45deg, transparent 75%, #e8e8e8 75%);
+      background-size: 0.5em 0.5em;
+      background-position: 0 0, 0 0.25em, 0.25em -0.25em, -0.25em 0;
+      width: fit-content;
+      padding: 0.25em;
+      box-sizing: border-box;
+      margin-bottom: 0.2em;
+      height: 16em;
+      overflow-y: auto;
+      scrollbar-width: none;
+      border-radius: var(--borderRadius);
+      touch-action: none;
+    }
+    .SymbolsPanel__frame::-webkit-scrollbar {
+      display: none;
+    }
+    .SymbolsPanel__grid {
+      font-family: Bravura;
+      font-size: 2em;
+      display: grid;
+      color: black;
+      grid-template-columns: repeat(6, 1.55em);
+      gap: 2px;
+    }
+    .SymbolsPanel__symbol {
       width: 1.55em;
       height: 2em;
       line-height: 0;
@@ -2556,34 +2621,9 @@ class SymbolsPanel extends Panel {
       border: 0.02em solid #d0d0d0;
       overflow: hidden;
    }
-
    .SymbolsPanel__symbol-active {
      background-color: #e0e8fff0;
    }
-
-   .SymbolsPanel__groups {
-     border:2px solid black;
-     border-radius:.8em;
-     font-family:Bravura;
-     height:3em;
-     display:flex;
-     align-items:center;
-     justify-content:center;
-     position:relative;
-     padding-right:1.5em;
-     width:19.5em;
-     box-sizing: border-box;
-   }
-
-   .SymbolsPanel__groups::after {
-    content: "\ueb7c";
-    position:absolute;
-    right:.2em;
-    font-size:3em;
-    top:-.25em;
-    translateX(.5em);
-   }
-
    `);
 
   content = helm(`
@@ -2591,8 +2631,8 @@ class SymbolsPanel extends Panel {
        <div class="SymbolsPanel__frame" data-tag="frame">
          <div class="SymbolsPanel__grid" data-tag="grid"></div>
        </div>
-      Group<br>
-      <div data-tag="groups" class="SymbolsPanel__groups"></div>
+      <div style="padding-top: var(--spacing-sm)">Group<div>
+      <div data-tag="select"></div>
       <div data-tag="picker"></div>
       <div data-tag="staffSpace"></div>
       <div style="margin: var(--spacing-md); height: 2.5em; display: flex; align-items: center; justify-content: center;"><a href="https://www.w3.org/2021/03/smufl14/" rel="noopener noreferrer">SMuFL</a></div>
@@ -2605,10 +2645,11 @@ class SymbolsPanel extends Panel {
     Object.assign(this, dataIndex("tag", this.content));
     let stash = cell.stash;
 
-    // Create a Picker (similar to an html select)...must be called delayed so this.groups is in the dom when it runs
-    delay(10, () => new Picker(this.groups, Object.keys(smuflTable), stash.group, this)) ;
+    // Create a Select (similar to an html <select>)
+    let select = new Select(Object.keys(smuflTable), stash.group, this) ;
+    this.select.replaceWith(select.elm) ;
 
-    listen(this.groups, "PICKED", (e) => {
+    listen(select.toggle, "SELECTED", (e) => {
        let key = stash.group = e.detail;
        let glyphs = (key == "Recent")
          ? Object.entries(stash.recent).sort((a, b) => b[1] - a[1]).map(([glyph]) => glyph)
@@ -2622,7 +2663,7 @@ class SymbolsPanel extends Panel {
 
     }) ;
 
-    listen(this.frame, "pointerdown", (e) => {
+    let l1 = listen(this.frame, "pointerdown", (e) => {
       this.frame.setPointerCapture(e.pointerId);
       let startY = e.clientY;
       let startScrollTop = this.frame.scrollTop;
@@ -2634,7 +2675,7 @@ class SymbolsPanel extends Panel {
         if (moved) this.frame.scrollTop = startScrollTop - dy;
       });
 
-      listen(this.frame, "pointerup", (eup) => {
+      let l2 = listen(this.frame, "pointerup", (eup) => {
         unlisten(mv);
         if (!moved) {
           let target = document.elementFromPoint(eup.clientX, eup.clientY)
@@ -2659,6 +2700,7 @@ class SymbolsPanel extends Panel {
       }, {once: true});
     });
 
+    this.listeners.push(l1);
 
     let picker = new ColorPicker(
         "Color",
@@ -2685,8 +2727,7 @@ class SymbolsPanel extends Panel {
   }
 
   update() {
-    let { alpha = 1, group, rgb = '#000000', size = 8 } = this.cell.stash;
-    this.groups.value = group;
+    let {alpha = 1, rgb = '#000000', size = 8 } = this.cell.stash;
     let activeCell = this.grid.querySelector('.SymbolsPanel__symbol-active');
     if (activeCell) {
       activeCell.style.transform = `scale(${size / 8})`;

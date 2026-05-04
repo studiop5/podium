@@ -113,7 +113,7 @@ let smuflTable = {
   "4.75. Tuplets": "",
   "4.76. Conductor symbols": "",
   "4.77. Accordion": "",
-  "4.78. Beams and slurs": "",
+  // "4.78. Beams and slurs": "", 
   "4.79. Medieval and Renaissance staves": "",
   "4.80. Medieval and Renaissance clefs": "",
   "4.81. Medieval and Renaissance prolations": "",

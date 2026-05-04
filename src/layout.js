@@ -1535,7 +1535,7 @@ class ScrollLayout extends Layout {
           let first = velBuf[0], last = velBuf[velBuf.length - 1];
           let dt = last.t - first.t;
           if (dt > 0) {
-            vel = (first.x - last.x) / dt;
+            vel = (first.y - last.y) / dt;
             let ref = visSize / 100;
             vel = Math.sign(vel) * Math.pow(Math.abs(vel) / ref, 1.5) * ref;
           }
@@ -1616,25 +1616,6 @@ class ScrollLayout extends Layout {
       if (t < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
-  }
-
-  async pgCommitOrig(pn, pace, animated) {
-    let { LEFT } = this.props;
-    this.pnPost(pn);
-    this.pagerLeft.build();
-    this.pagerRight.build();
-    await this.pgMount(pn);
-    if (pace > 0) {
-      let snapDur = ((2000 - 50) * (1 - pace) + 50) * (this.snapStep || 1);
-      if (animated)
-        animate(this.sash, null, { [LEFT]: this.sashStart / _pxPerEm_ + "em" }, `${LEFT} ${snapDur}ms ease-out`);
-      else
-        this.sash.style[LEFT] = this.sashStart / _pxPerEm_ + "em";
-      this.spinRollers(snapDur);
-    } else {
-      this.spinRollers(1000);
-      this.sash.style[LEFT] = this.sashStart / _pxPerEm_ + "em";
-    }
   }
 
   async pgOpen(how, bookMarks) {
