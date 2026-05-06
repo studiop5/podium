@@ -748,6 +748,12 @@ class Menu {
             replay: 15,  // mimimum replay time in seconds
           },
         },
+        keypad: {
+          name: "Keyboard",
+          svgPath: iconPaths["Keyboard"],
+          stash: {},
+        },
+
       },
       name: "More",
       stash: { active: null },

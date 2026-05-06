@@ -298,6 +298,8 @@ class Layout {
     // @param e event, the subclass event handler event argument
     // @return boolean, true if this method handles this event and the subclass
     //   should not process it further.
+    let ae = document.activeElement;
+    if(ae && (ae.tagName == "INPUT" || ae.tagName == "TEXTAREA")) ae.blur();
     if (e.ctrlKey || !e.isPrimary) return true;
     // When magnify cell is active, update magnifier and suppress layout events:
     if (_menu_.magnifier?.active) {

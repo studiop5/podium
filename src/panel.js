@@ -175,14 +175,22 @@ class Select {
       toggle.dispatchEvent(new CustomEvent('SELECTED', { detail:option}));
     }
 
+    list.tabIndex = 0;
+
+    let closeList = () => {
+      if(list.style.visibility == "hidden") return;
+      animate(list, null, {height:0}, "height .35s", () => { list.style.visibility = "hidden"; list.style.height = listHeight; });
+      keyBuf = "";
+      list.blur();
+    };
+
     let l1 = listen(this.toggle,"pointerdown", (e) => {
       if(list.style.visibility == "hidden") {
         list.style.visibility = "visible" ;
-        animate(list, {height:0}, {height:listHeight}, "height .35s");
+        animate(list, {height:0}, {height:listHeight}, "height .35s", () => list.focus());
       }
       else {
-        animate(list, null, { height:0}, "height .35s", () =>
-        { list.style.visibility = "hidden" ; list.style.height = listHeight;}) ;
+        closeList();
       }
     });
 
@@ -206,9 +214,7 @@ class Select {
           if(this.target) this.target.style.background = "none" ;
           this.target = e.target ;
           this.target.style.background = "#aaa" ;
-          let height = list.style.height;
-          animate(list, null, { height:0}, "height .5s", () => { list.style.visibility = "hidden" ;list.style.height = height ;}) ;
-          keyBuf = "";
+          closeList();
           return selectOption(e.target.textContent) ;
         default: // flung
           let abs= Math.abs(vel) ;
@@ -217,7 +223,14 @@ class Select {
       }, { once:true}) ;
     }); 
 
-    let l3 = listen(_body_, "keydown", (e) => {
+    let l3 = listen(list, "keydown", (e) => {
+console.log("keydown") ;
+      if(e.key == "ArrowDown" || e.key == "ArrowUp") {
+        let optionHeight = list.scrollHeight / options.length;
+        list.scrollTop += e.key == "ArrowDown" ? optionHeight : -optionHeight;
+        e.stopPropagation();
+        return;
+      }
       if(e.key == "Backspace" || e.key == "Delete") keyBuf = keyBuf.slice(0,-1) ;
       else if(! /^[a-zA-Z0-9 .]$/.test(e.key)) return;
       else keyBuf += e.key;
@@ -236,7 +249,7 @@ class Select {
       else keyBuf = keyBuf.slice(0,-1) ;
     })
 
-    panel.listeners.push(l1, l2, l3) ;
+    panel.listeners.push(l1, l2, l3, listen(panel.elm, 'panelhide', closeList)) ;
 
     if(option) {
       let lineNumber = 0 ;
@@ -375,7 +388,7 @@ class Panel {
     this.listeners.push(
       listen(this.header, "pointerdown", (e) => {
         let { header, elm } = this;
-        if(!this instanceof CurtainPanel) // CurtainPanel uniquely manages its own z-index
+        if(!(this instanceof CurtainPanel)) // CurtainPanel uniquely manages its own z-index
           elm.style.zIndex = ++_zTop_; // move to top of stacking order
         this.header.classList.add("Panel__header-selected");
         header.setPointerCapture(e.pointerId);
@@ -489,6 +502,7 @@ class Panel {
   }
 
   hide() {
+    this.elm.dispatchEvent(new CustomEvent('panelhide'));
     hide(this.elm, dataIndex("tag", this.cell.elm).cellIcon);
   }
 
@@ -1346,6 +1360,7 @@ class ImportPanel extends Panel {
   }
 
 }
+
 
 class LayoutPanel extends Panel {
   // Superclass for all Layout panels.
@@ -2559,6 +2574,174 @@ class EditPanel extends SurfacePanel {
   surface = new Pzr(this);
 }
 
+
+class Keyboard extends Surface {
+
+  static css = css(
+  "Keyboard", `
+    /* Light/Glass (default) */
+    .Keyboard__key        { fill:#d4d4d4aa; stroke:#999; stroke-width:1 }
+    .Keyboard__key.mod    { fill:#aaaa; stroke:#888; stroke-width:1 }
+    .Keyboard__label      { text-anchor:middle; font-size:26px; font-family:system-ui,sans-serif;
+                          pointer-events:none }
+    /* Dark */
+    [data-theme="Dark"] .Keyboard__key        { fill:#3a3a3a; stroke:rgba(255,255,255,0.15); stroke-width:1 }
+    [data-theme="Dark"] .Keyboard__key.mod    { fill:#555;    stroke:rgba(255,255,255,0.15); stroke-width:1 }
+    [data-theme="Dark"] .Keyboard__label      { fill:white; }
+  `) ;
+
+  mods = new Set(['⇧','⌫','↵','INTL','ABC','←','↑','↓','→','Home','End']);
+
+  layers = {
+    lower:  [['`','1','2','3','4','5','6','7','8','9','0','-','='],
+              ['q','w','e','r','t','y','u','i','o','p','[',']','\\'],
+              ['a','s','d','f','g','h','j','k','l',';',"'"],
+              ['⇧','z','x','c','v','b','n','m',',','.','/','⌫'],
+              ['INTL','       ','↵']],
+    upper:   [['~','!','@','#','$','%','^','&','*','(',')','_','+'],
+              ['Q','W','E','R','T','Y','U','I','O','P','{','}','|'],
+              ['A','S','D','F','G','H','J','K','L',':','"'],
+              ['⇧','Z','X','C','V','B','N','M','<','>','?','⌫'],
+              ['INTL','       ','↵']],
+    sym:     [['á','é','í','ó','ú','à','è','ù','â','ê','î'],
+              ['ô','û','ä','ö','↑','ñ','ç','ß','Home'],
+              ['ã','õ','ü','←','↓','→','å','ø','End'],
+              ['æ','œ','ð','¿','¡','«','»','⌫'],
+              ['ABC','       ','↵']],
+  };
+
+  navKeys = {'↑':'ArrowUp','↓':'ArrowDown','←':'ArrowLeft','→':'ArrowRight','Home':'Home','End':'End'};
+  repeats = new Set(['←','→','↑','↓','⌫']);
+
+  content = helm(`<div style="padding:1em;touch-action:none"><svg data-tag="svg" style="height:12em;display:block;overflow:visible" xmlns="http://www.w3.org/2000/svg"/></div>`) ;
+
+  constructor(cell) {
+    super(cell, ScreenPanel) ;
+    this.layer = 'lower';
+    this.keys  = [];  // [{label, x, y, w, h}]
+    this.surface.style.width = this.surface.style.height = "unset" ;
+    Object.assign(this, dataIndex("tag", this.content)) ;
+    this.surface.append(this.content) ;
+    this.surfaceDragElm = this.content ;
+    this.rgen = 0;
+    listen(this.content, "pointerdown", (e) => {
+      e.preventDefault();
+      let pt = this.svg.createSVGPoint();
+      pt.x = e.clientX; pt.y = e.clientY;
+      let {x: px, y: py} = pt.matrixTransform(this.svg.getScreenCTM().inverse());
+      let key = this.keys.find(k => px>=k.x && px<k.x+k.w && py>=k.y && py<k.y+k.h);
+      if (!key) return;
+      this.handle(key.label, e.clientX, e.clientY);
+      if (this.repeats.has(key.label)) {
+        let gen = ++this._rgen;
+        let fire = () => { if (this.rgen != gen) return; this.handle(key.label, e.clientX, e.clientY); schedule(80, fire); };
+        schedule(500, fire);
+      }
+    });
+    listen(document, ["pointerup","pointercancel"], () => this.rgen++);
+
+    this.build();
+  }
+
+  build() {
+    let width = 600;
+    let keyHeight = 42, gap = 4;
+    let rows = this.layers[this.layer];
+    let totalH = rows.length * (keyHeight + gap);
+    this.svg.setAttribute('viewBox', `0 0 ${width} ${totalH}`);
+    this.svg.style.width  = `${width / _pxPerEm_}em`;
+    this.svg.style.height = `${totalH / _pxPerEm_}em`;
+    this.keys = [];
+    let html = "";
+
+    rows.forEach((row, ri) => {
+      let y = ri * (keyHeight + gap);
+      let totalFlex = row.reduce((s, k) => s + this.flex(k), 0);
+      let unitW = (width - (row.length + 1) * gap) / totalFlex;
+      let x = gap;
+      row.forEach(label => {
+        let w = unitW * this.flex(label);
+        if(label !== '') {
+          let mod = this.mods.has(label);
+          this.keys.push({ label, x, y, w, h: keyHeight, mod });
+          html += `<rect class="Keyboard__key${mod?' mod':''}" x="${x}" y="${y}" width="${w}" height="${keyHeight}" rx="${keyHeight/2}"/>`;
+          html += `<text class="Keyboard__label" x="${x+w/2}" y="${y+keyHeight*.65}">${label.trim()}</text>`;
+        }
+        x += w + gap;
+      });
+    });
+    this.svg.innerHTML = html;
+  }
+
+  flex(label) {
+    return { '⇧':1.5,'⌫':1.5,'↵':1.5,'INTL':1.5,'ABC':1.5,'↑':1.5,'↓':1.5,'←':1.5,'→':1.5,'Home':1.5,'End':1.5 }[label]
+      ?? (label.trim() == '' ? 3 : 1);
+  }
+
+  handle(label, x, y) {
+    switch (label) {
+      case '⇧':  this.layer = this.layer == 'upper' ? 'lower' : 'upper'; this.build(); return;
+      case 'INTL': this.layer = 'sym';    this.build(); return;
+      case 'ABC': this.layer = 'lower'; this.build(); return;
+    }
+    let ch = label.trim() == '' ? ' ' : label;
+    this.emitKey(ch);
+    if (this.layer == 'upper') { this.layer = 'lower'; this.build(); }
+  }
+
+  emitKey(ch) {
+    let el = this.target || document.activeElement;
+    if (!el) return;
+    let isText = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA';
+    let dispatch = (event,key) => el.dispatchEvent(new KeyboardEvent(event,{key:key,code:key,bubbles:true})) ;
+    switch (ch) {
+      case '↑': case '↓': case '←': case '→': case 'home': case 'end': {
+        let k = this.navKeys[ch];
+        dispatch('keydown', k); dispatch('keyup', k);
+        break;
+      }
+      case '⌫':
+        dispatch('keydown','Backspace') ;
+        if (isText) {
+          let s = el.selectionStart, e = el.selectionEnd;
+          if (s == e && s > 0) { el.value = el.value.slice(0,s-1) + el.value.slice(s); el.selectionStart = el.selectionEnd = s-1; }
+          else if (s != e)     { el.value = el.value.slice(0,s)   + el.value.slice(e); el.selectionStart = el.selectionEnd = s; }
+          el.dispatchEvent(new InputEvent('input', {bubbles:true}));
+        }
+        dispatch('keyup','Backspace') ;
+        break;
+      case '↵':
+        dispatch('keydown','Enter') ;
+        dispatch('keyup','Enter');
+        break;
+      default:
+        dispatch('keydown', ch);
+        if (isText) {
+          let s = el.selectionStart, e = el.selectionEnd;
+          el.value = el.value.slice(0,s) + ch + el.value.slice(e);
+          el.selectionStart = el.selectionEnd = s + ch.length;
+          el.dispatchEvent(new InputEvent('input', {inputType:'insertText', data:ch, bubbles:true}));
+        }
+        dispatch('keyup', ch) ;
+    }
+  }
+}
+
+class KeyboardPanel extends SurfacePanel {
+
+  constructor(cell) {
+    super(cell);
+    // defeat this.body's stylings: we want the this.surface to add padding/margin so
+    // that it has something to grab for detaching/moving
+    this.body.style.padding = "unset" ;
+    this.body.style.margin = "unset" ;
+    this.body.style.minWidth = "unset";
+    this.surface = new Keyboard(this);
+  }
+}
+
+
+
 class ScreenPanel extends SurfacePanel {
 
   static pzTarget = null;
@@ -3129,6 +3312,7 @@ let panels = window._panels_ = {
   // minus the "Panel" portion, and starting with
   // lowercase. ex: GridPanel -> grid: instance
   Panel,
+  AboutPanel,
   AddPanel,
   BookPanel,
   ClockPanel,
@@ -3137,7 +3321,6 @@ let panels = window._panels_ = {
   DetailsPanel,
   GridPanel,
   HorizontalPanel,
-  AboutPanel,
   MagnifyPanel,
   MergePanel,
   MetronomePanel,
@@ -3145,6 +3328,7 @@ let panels = window._panels_ = {
   NumbersPanel,
   OpenPanel,
   ImportPanel,
+  KeyboardPanel,
   PencilPanel,
   PenPanel,
   PianoPanel,

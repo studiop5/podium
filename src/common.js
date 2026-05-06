@@ -84,7 +84,7 @@ window._gs_ = 618; // golden section (reciprocal) msec (.618 seconds)
 window._gsgs_ = (_gs_ * _gs_) / 1000; // shorter golden section!
 window._longPressMs_ = 750;
 window._sliderPrecision_ = 4; // sensitivity multiplier for slider/pager precision mode
-window._zTop_ = 1000; // continuously incrementing z-index counter for panels, menu, surfaces
+window._zTop_ = 300; // continuously incrementing z-index counter for panels, menu, surfaces
 window._mobile_ = window.matchMedia('(pointer: coarse)').matches;
 window._msPerObj_ = 1; // for pdf printing, see score.toPdf()
 window._pxPerEm_ = 25; // initial document.body's font size value: defines pixels in 1 em
@@ -303,7 +303,10 @@ css( // common css declarations.
     --z-sticky: 20;
     --z-menu: 100;
     --z-modal: 1000;
-    --z-topmost: 10000000000;
+    --z-toast: 9000;
+    --z-shade: 9001;
+    --z-curtain: 9002;
+    --z-topmost: 9003;
   }
 
   /* Dark theme */
@@ -941,7 +944,7 @@ class Curtain {
   level = 60 ;
 
   curtain = helm(`<div data-tag="Curtain" style=
-     "position:fixed;inset:0;pointer-events:none;opacity:0;transition: opacity 1.5s ease;z-index:9999999999">
+     "position:fixed;inset:0;pointer-events:none;opacity:0;transition: opacity 1.5s ease;z-index:var(--z-curtain)">
       </div>`) ; // singleton div
 
   constructor() {
@@ -1269,7 +1272,7 @@ class Shade {
       align-items: center;
       justify-content: center;
       position: absolute;
-      z-index: 999999999;
+      z-index: var(--z-shade);
       }
       .Shade__body {
        font-family: Bravura;
@@ -1597,6 +1600,7 @@ class Surface {
           surface.style.fontSize = panel.elm.style.fontSize;
           surface.style.position = "absolute";
           surface.classList.add("pz"); // this makes it pan-zoomable
+          surface.style.zIndex = panel.elm.style.zIndex;
           _body_.append(surface);
           _pzTarget_ = surface; // this allows pan-zooming without having to reselect
           hide(this.panel.elm, dataIndex("tag", this.panel.cell.elm).cellIcon);
@@ -2437,7 +2441,7 @@ function toast(innerHtml, addClass=null, duration=null) {
   let dur = duration ? duration: _gs_ ;
   let elm = helm(
     `<div style="position:absolute;pointer-events:none;display:flex;justify-content:center;align-items:center;height:100vh;width:100vw;pointer-events:none">
-       <div class="floatingMsg" style="z-index:999999998;position:absolute;width:fit-content;height:fit-content;opacity:0;transition:opacity ${dur}ms ease-in">${innerHtml}</div>
+       <div class="floatingMsg" style="z-index:var(--z-toast);position:absolute;width:fit-content;height:fit-content;opacity:0;transition:opacity ${dur}ms ease-in">${innerHtml}</div>
      </div>`
   );
   if(addClass) elm.firstElementChild.classList.add(addClass) ;
