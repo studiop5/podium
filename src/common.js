@@ -392,6 +392,7 @@ css( // common css declarations.
 
   /* Warm theme (original neutral grey/amber) */
   [data-theme="Warm"] {
+    --bodyColor: #efefef;
     --panTexture: ${panSvgWarm};
 
     /* Menu colors - warm theme */

@@ -408,9 +408,8 @@ class Panel {
             header.classList.remove("Panel__header-selected");
             unlisten(mv);
             if (flung(null, eup)) { // fling detected
-              hide(this.elm, dataIndex("tag", this.cell.elm).cellIcon);
+              this.hide();
               if(this.elm.dataset.tag != "ScreenPanel") ScreenPanel.update(null) ;
-              this.hidden() ;
             }
           },
           { once: true }
@@ -504,6 +503,7 @@ class Panel {
   hide() {
     this.elm.dispatchEvent(new CustomEvent('panelhide'));
     hide(this.elm, dataIndex("tag", this.cell.elm).cellIcon);
+    this.hidden();
   }
 
   setPosition(otherElm) {
@@ -776,7 +776,6 @@ class AddPanel extends Panel {
     this.colorPickerProxy.replaceWith(this.colorPicker.elm);
     this.select = new Select(Object.keys(this.options), stash.size, this) ;
     this.selectProxy.replaceWith(this.select.elm) ;
-    this.select.toggle.style.height = "2em" ;
     this.setupSizeSelection(stash);
   }
 
@@ -2580,14 +2579,17 @@ class Keyboard extends Surface {
   static css = css(
   "Keyboard", `
     /* Light/Glass (default) */
-    .Keyboard__key        { fill:#d4d4d4aa; stroke:#999; stroke-width:1 }
-    .Keyboard__key.mod    { fill:#aaaa; stroke:#888; stroke-width:1 }
+    .Keyboard__key        { fill:#fffa; stroke:#444; }
+    .Keyboard__key.mod    { fill:#aaaa; }
     .Keyboard__label      { text-anchor:middle; font-size:26px; font-family:system-ui,sans-serif;
-                          pointer-events:none }
+                            pointer-events:none }
+    .Keyboard__plate      { border: 1px solid #444;border-radius:var(--borderRadius);padding:1em;touch-action:none }
+
     /* Dark */
-    [data-theme="Dark"] .Keyboard__key        { fill:#3a3a3a; stroke:rgba(255,255,255,0.15); stroke-width:1 }
-    [data-theme="Dark"] .Keyboard__key.mod    { fill:#555;    stroke:rgba(255,255,255,0.15); stroke-width:1 }
+    [data-theme="Dark"] .Keyboard__key        { fill:#444a; stroke:#aaa;}
+    [data-theme="Dark"] .Keyboard__key.mod    { fill:#555a; }
     [data-theme="Dark"] .Keyboard__label      { fill:white; }
+    [data-theme="Dark"] .Keyboard__plate      { border: 1px solid #aaa; }
   `) ;
 
   mods = new Set(['⇧','⌫','↵','INTL','ABC','←','↑','↓','→','Home','End']);
@@ -2613,7 +2615,7 @@ class Keyboard extends Surface {
   navKeys = {'↑':'ArrowUp','↓':'ArrowDown','←':'ArrowLeft','→':'ArrowRight','Home':'Home','End':'End'};
   repeats = new Set(['←','→','↑','↓','⌫']);
 
-  content = helm(`<div style="padding:1em;touch-action:none"><svg data-tag="svg" style="height:12em;display:block;overflow:visible" xmlns="http://www.w3.org/2000/svg"/></div>`) ;
+  content = helm(`<div class="Keyboard__plate"><svg data-tag="svg" style="height:12em;display:block;overflow:visible" xmlns="http://www.w3.org/2000/svg"/></div>`) ;
 
   constructor(cell) {
     super(cell, ScreenPanel) ;
@@ -2624,7 +2626,8 @@ class Keyboard extends Surface {
     this.surface.append(this.content) ;
     this.surfaceDragElm = this.content ;
     this.rgen = 0;
-    listen(this.content, "pointerdown", (e) => {
+    listen(this.svg, "pointerdown", (e) => {
+e.stopPropagation();
       e.preventDefault();
       let pt = this.svg.createSVGPoint();
       pt.x = e.clientX; pt.y = e.clientY;
@@ -2633,7 +2636,7 @@ class Keyboard extends Surface {
       if (!key) return;
       this.handle(key.label, e.clientX, e.clientY);
       if (this.repeats.has(key.label)) {
-        let gen = ++this._rgen;
+        let gen = ++this.rgen;
         let fire = () => { if (this.rgen != gen) return; this.handle(key.label, e.clientX, e.clientY); schedule(80, fire); };
         schedule(500, fire);
       }
@@ -2665,7 +2668,7 @@ class Keyboard extends Surface {
           let mod = this.mods.has(label);
           this.keys.push({ label, x, y, w, h: keyHeight, mod });
           html += `<rect class="Keyboard__key${mod?' mod':''}" x="${x}" y="${y}" width="${w}" height="${keyHeight}" rx="${keyHeight/2}"/>`;
-          html += `<text class="Keyboard__label" x="${x+w/2}" y="${y+keyHeight*.65}">${label.trim()}</text>`;
+          html += `<text class="Keyboard__label" x="${x+w/2}" y="${y+keyHeight*.7}">${label.trim()}</text>`;
         }
         x += w + gap;
       });
@@ -2692,7 +2695,7 @@ class Keyboard extends Surface {
   emitKey(ch) {
     let el = this.target || document.activeElement;
     if (!el) return;
-    let isText = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA';
+    let isText = el.tagName == 'INPUT' || el.tagName == 'TEXTAREA';
     let dispatch = (event,key) => el.dispatchEvent(new KeyboardEvent(event,{key:key,code:key,bubbles:true})) ;
     switch (ch) {
       case '↑': case '↓': case '←': case '→': case 'home': case 'end': {
@@ -2737,6 +2740,32 @@ class KeyboardPanel extends SurfacePanel {
     this.body.style.margin = "unset" ;
     this.body.style.minWidth = "unset";
     this.surface = new Keyboard(this);
+    this.kbFocusListener = null;
+  }
+
+  suppressBrowserKb(el) {
+    if(!el?.matches('input,textarea')) return;
+    if(el.dataset.kbSaved != undefined) return;
+    el.dataset.kbSaved = el.getAttribute('inputmode') ?? '';
+    el.setAttribute('inputmode', 'none');
+    if(document.activeElement === el) { el.blur(); el.focus(); }
+  }
+
+  show(onShown) {
+    this.suppressBrowserKb(document.activeElement);
+    this.kbFocusListener = listen(document, 'focus', (e) => this.suppressBrowserKb(e.target), {capture:true});
+    return super.show(onShown);
+  }
+
+  hidden() {
+    unlisten(this.kbFocusListener);
+    this.kbFocusListener = null;
+    document.querySelectorAll('[data-kb-saved]').forEach(el => {
+      let saved = el.dataset.kbSaved;
+      if(saved) el.setAttribute('inputmode', saved);
+      else el.removeAttribute('inputmode');
+      delete el.dataset.kbSaved;
+    });
   }
 }
 
