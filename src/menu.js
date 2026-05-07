@@ -642,7 +642,7 @@ class Menu {
         theme: { name: "Theme", svgPath: iconPaths["Glass"], stash: { theme: "Glass" }, storage: "local" },
         guide: { name: "Guide", svgPath: iconPaths["Guide"], stash: {} },
         storage: { name: "Storage", svgPath: iconPaths["Storage"], stash: {} },
-        curtain: { name: "Curtain", svgPath: iconPaths["Curtain"], stash: { level: 60 }, storage: "local" },
+        curtain: { name: "Curtain", svgPath: iconPaths["Curtain"], stash: { color:"Black", alpha: 60 }, storage: "local" },
         wakeLock: { name: "Wakelock", svgPath: iconPaths["Wakelock Off"], stash: { on: false }, storage: "local" },
         screen: { name: "Screen", stash: {}, svgPath: iconPaths["Full Screen"], storage: "local" },
         volume: { name: "Volume", svgPath: iconPaths["Volume"], stash: { volume:1}, },
@@ -748,7 +748,7 @@ class Menu {
             replay: 15,  // mimimum replay time in seconds
           },
         },
-        keypad: {
+        keyboard: {
           name: "Keyboard",
           svgPath: iconPaths["Keyboard"],
           stash: {},

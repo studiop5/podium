@@ -94,7 +94,7 @@ window._recentSelectPts_ = 1; // points awarded when a symbol is selected in the
 window._recentInsertPts_ = 4; // points awarded when a symbol is inserted into the score (4:1 ratio
                                // ensures symbols you actually use dominate over ones merely browsed)
 window._voidFunc_ = () => {};
-window._curtain_ = null; // set below: used to dim the screen
+window._curtain_ = null; // set in class Curtain below: used to dim the screen
 
 // svg texture used for all draggable elements
 let panSvgWarm =
@@ -961,17 +961,16 @@ class Curtain {
 
   update () {
     let curtain = this.curtain ;
+    let {color, alpha} = _menu_.rings.app.cells.curtain.stash;
     if(this.on) {
-      let level = _menu_.rings.app.cells.curtain.stash.level;
-      if(level < 101) {
+      if(color == 'Black') {
         curtain.style.background = "#000";
-        curtain.style.opacity = level / 100  * .8; // at most .8 opacity
+        curtain.style.opacity = alpha / 100 * .8;
         curtain.style.mixBlendMode = "normal";
       }
-      else {
+      else { // color == 'Red'
         curtain.style.background = "#A00000";
-        curtain.style.opacity = (201 - level) / 100 ;
-        // blend mode help's with score visibility when using red overlay
+        curtain.style.opacity = alpha / 100;
         curtain.style.mixBlendMode = "multiply";
       }
     }
@@ -1564,8 +1563,20 @@ class Surface {
       width:8em;
       height:8em;
       z-index:100;
-    }`
-  );
+    }
+    /* Some Surface subclasses need an outline */
+    .Surface__outline 
+    { border: 1px solid #444;
+      border-radius:var(--borderRadius);
+      padding:1em;
+      touch-action:none;
+      box-sizing:border-box;
+      background: #4444;
+    }
+    [data-theme="Dark"] .Keyboard__outline
+    { border: 1px solid #aaa;
+    }
+  `);
 
   surface = helm(`<div data-tag="surface" class="Surface"></div>`);
   surfaceDragElm = null; // subclasses must define: this is the part of the surface that reacts to drag gestures

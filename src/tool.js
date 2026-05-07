@@ -1212,7 +1212,7 @@ class Metronome extends Surface {
   secondsPerTick = 1;
 
   constructor(panel) {
-    super(panel);
+    super(panel, ScreenPanel);
     this.beatPattern = this.beatPatterns[0];
     this.volumeStash = _menu_.rings.app.cells.volume.stash;
     [this.actx, this.bus] = Actx.get();

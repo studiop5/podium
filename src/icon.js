@@ -44,6 +44,12 @@ let scissorsD = "M244 518Q244 499 236.5 479.5Q229 460 229 457Q229 439 267 439Q28
 
 const iconPaths = {
 
+"Curtain Black":
+  `<rect x="3" y="5" width="18" height="14" rx="1.5" style="fill:#333"/>`,
+
+"Curtain Red":
+  `<rect x="3" y="5" width="18" height="14" rx="1.5" style="fill:#A00000"/>`,
+
 Alpha:
   `<circle style="fill:#000;" cx="8" cy="12" r="6"/>
    <circle style="fill:#8888;" cx="14" cy="12" r="6"/>`,

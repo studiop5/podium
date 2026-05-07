@@ -224,7 +224,8 @@ class Select {
     }); 
 
     let l3 = listen(list, "keydown", (e) => {
-console.log("keydown") ;
+      if(e.key == "Home") return list.scrollTo({ top: 0, behavior: 'smooth'});
+      if(e.key == "End") return list.scrollTo({ top: Number.MAX_SAFE_INTEGER, behavior: 'smooth'});
       if(e.key == "ArrowDown" || e.key == "ArrowUp") {
         let optionHeight = list.scrollHeight / options.length;
         list.scrollTop += e.key == "ArrowDown" ? optionHeight : -optionHeight;
@@ -2167,10 +2168,6 @@ class ReviewPanel extends Panel {
     this.review.destructor();
   }
 
-  hide() {
-    super.hide();
-    this.av.hide();
-  }
 }
 
 class VolumePanel extends Panel {
@@ -2214,25 +2211,6 @@ class Pzr extends Surface {
        grid-template-rows:repeat(5, 1.6em);
        justify-items:center;
        align-items:center;
-       border-radius:100%;
-       /* Protractor edge: barely visible, just defines the circle */
-       border: 0.05em solid rgba(100,100,120,0.25);
-       /* Specular highlight + edge vignette for curvature illusion */
-       background:
-         radial-gradient(circle at 34% 28%, rgba(222,228,242,0.85) 0%, transparent 32%),
-         radial-gradient(circle at center, rgba(200,208,222,0.22) 0%, rgba(172,184,208,0.45) 100%);
-       /* Drop shadow + glass edge highlights */
-       box-shadow:
-         0 0.2em 0.5em rgba(0,0,0,0.20),
-         inset 0 0.2em 0.5em rgba(255,255,255,0.90),
-         inset 0 -0.15em 0.4em rgba(0,0,0,0.20);
-       width:100%;
-       height:100%;
-       fill:none;
-       stroke:#444;
-       stroke-width:8;
-       stroke-linecap:round;
-       stroke-linejoin:round;
       }
      .Pz__noTarget {
         stroke: #aaa;
@@ -2243,6 +2221,9 @@ class Pzr extends Surface {
       stroke-width: 8;
       stroke-linecap: round;
       stroke-linejoin: round;
+    }
+    [data-theme="Dark"] .Pz__control {
+      stroke: #ccc;
     }
     .Pz__control-active {
        color: #6c6;
@@ -2255,7 +2236,7 @@ class Pzr extends Surface {
   // The last 2 positions are only used in class Pzr
 
   grid = helm(`
-        <div class="Pz">
+        <div class="Pz Surface__outline Pz__control">
           <svg style="grid-row:1;grid-column:3;" viewBox="0 0 100 100"><path d="M10 60L50 10L90 60Q50 40 10 60"/></svg>
           <svg style="grid-row:2;grid-column:3;" data-tag="cw"  viewBox="0 0 100 100">
             <path  d="M50 22 A28 28 0 1 1 30.2 70 M50 14 L50 30 L34 22 Z" transform="translate(100,0) scale(-1, 1)"/>
@@ -2268,14 +2249,10 @@ class Pzr extends Surface {
           <svg style="grid-row:4;grid-column:3;"data-tag="ccw"  viewBox="0 0 100 100">
             <path d="M50 22 A28 28 0 1 1 30.2 70 M50 14 L50 30 L34 22 Z"/>
           </svg>
-
           <svg style="grid-row:5;grid-column:3;" viewBox="0 0 100 100"><path d="M10 40L50 90L90 40Q 50 60 10 40"/></svg> 
         </div>
     `);
 
-  // When selecting icons in this.grid, we don't use listeners for every control...
-  // instead, we'll listen on the grid itself, and compute the grid "slot" as a
-  // 0-based index (L-R,T-B). Not all slots have controls, but these do:
   slots = [2,7,10,11,13,14,17,22] ; 
   targets = [] ;
 
@@ -2283,10 +2260,16 @@ class Pzr extends Surface {
     super(panel, ScreenPanel);
     Object.assign(this, dataIndex("tag", this.grid)) ;
     this.surface.append(this.grid) ;
+    panel.body.style.minWidth = panel.body.style.padding = "unset"; // defeat default body styles
+    this.surface.style.width = this.surface.style.height = "10em" ;
+    this.grid.style.width = this.grid.style.height = "10em" ;
     this.surfaceDragElm = this.grid ;
     this.repeater = new Schedule();
     this.update();
 
+    // When selecting icons in this.grid, we don't use listeners for every control...
+    // instead, we'll listen on the grid itself, and compute the grid "slot" as a
+    // 0-based index (L-R,T-B). Not all slots have controls, but these do:
     this.panel.listeners.push(listen(this.grid, "pointerdown", (e) => {
       let box  = getBox(this.surface) ;
       let row = parseInt((e.clientY - box.y) / box.height * 5) ;
@@ -2340,7 +2323,7 @@ class Pzr extends Surface {
         default: return iconPaths["Edit"] ; // assume activeSelection
       }
     }
-    let tmp = helm(`<svg viewBox="0 0 24 24"
+    let tmp = helm(`<svg viewBox="0 0 24 24" 
       style="grid-column:3;grid-row:3;pointer-events:none;stroke:none;fill:currentColor;">
       ${getIconPath()}</svg>`) ;
     this.iconSvg.replaceWith(tmp) ;
@@ -2428,8 +2411,8 @@ class Pzr extends Surface {
 
 /**
 class Pz
-  This is the detachable body of the ScreenPanel.
-  Subclass of Pz that removes rotation controls and is specialized for editing
+  This is the detachable body of the ScreenPanel...
+  a subclass of Pzr that removes rotation controls and is specialized for editing
   Fabric.js objects with locked aspect ratio.
 */
 class Pz extends Pzr {
@@ -2532,7 +2515,9 @@ class Pz extends Pzr {
 
 }
 
+
 class SurfacePanel extends Panel {
+
   constructor(cell) {
     super(cell);
     this.body.classList.add("centerChild");
@@ -2583,39 +2568,37 @@ class Keyboard extends Surface {
     .Keyboard__key.mod    { fill:#aaaa; }
     .Keyboard__label      { text-anchor:middle; font-size:26px; font-family:system-ui,sans-serif;
                             pointer-events:none }
-    .Keyboard__plate      { border: 1px solid #444;border-radius:var(--borderRadius);padding:1em;touch-action:none }
 
     /* Dark */
     [data-theme="Dark"] .Keyboard__key        { fill:#444a; stroke:#aaa;}
     [data-theme="Dark"] .Keyboard__key.mod    { fill:#555a; }
     [data-theme="Dark"] .Keyboard__label      { fill:white; }
-    [data-theme="Dark"] .Keyboard__plate      { border: 1px solid #aaa; }
   `) ;
 
-  mods = new Set(['⇧','⌫','↵','INTL','ABC','←','↑','↓','→','Home','End']);
+  mods = new Set(['⇧','⌫','↵','⋯','Aa','←','↑','↓','→','Home','End']);
 
   layers = {
     lower:  [['`','1','2','3','4','5','6','7','8','9','0','-','='],
               ['q','w','e','r','t','y','u','i','o','p','[',']','\\'],
               ['a','s','d','f','g','h','j','k','l',';',"'"],
               ['⇧','z','x','c','v','b','n','m',',','.','/','⌫'],
-              ['INTL','       ','↵']],
+              ['⋯','       ','↵']],
     upper:   [['~','!','@','#','$','%','^','&','*','(',')','_','+'],
               ['Q','W','E','R','T','Y','U','I','O','P','{','}','|'],
               ['A','S','D','F','G','H','J','K','L',':','"'],
               ['⇧','Z','X','C','V','B','N','M','<','>','?','⌫'],
-              ['INTL','       ','↵']],
+              ['⋯','       ','↵']],
     sym:     [['á','é','í','ó','ú','à','è','ù','â','ê','î'],
               ['ô','û','ä','ö','↑','ñ','ç','ß','Home'],
               ['ã','õ','ü','←','↓','→','å','ø','End'],
               ['æ','œ','ð','¿','¡','«','»','⌫'],
-              ['ABC','       ','↵']],
+              ['Aa','       ','↵']],
   };
 
   navKeys = {'↑':'ArrowUp','↓':'ArrowDown','←':'ArrowLeft','→':'ArrowRight','Home':'Home','End':'End'};
   repeats = new Set(['←','→','↑','↓','⌫']);
 
-  content = helm(`<div class="Keyboard__plate"><svg data-tag="svg" style="height:12em;display:block;overflow:visible" xmlns="http://www.w3.org/2000/svg"/></div>`) ;
+  content = helm(`<div class="Surface__outline"><svg data-tag="svg" style="height:12em;display:block;overflow:visible" xmlns="http://www.w3.org/2000/svg"/></div>`) ;
 
   constructor(cell) {
     super(cell, ScreenPanel) ;
@@ -2627,12 +2610,12 @@ class Keyboard extends Surface {
     this.surfaceDragElm = this.content ;
     this.rgen = 0;
     listen(this.svg, "pointerdown", (e) => {
-e.stopPropagation();
+      e.stopPropagation();
       e.preventDefault();
       let pt = this.svg.createSVGPoint();
       pt.x = e.clientX; pt.y = e.clientY;
       let {x: px, y: py} = pt.matrixTransform(this.svg.getScreenCTM().inverse());
-      let key = this.keys.find(k => px>=k.x && px<k.x+k.w && py>=k.y && py<k.y+k.h);
+      let key = this.keys.find((k) => px>=k.x && px<k.x+k.w && py>=k.y && py<k.y+k.h);
       if (!key) return;
       this.handle(key.label, e.clientX, e.clientY);
       if (this.repeats.has(key.label)) {
@@ -2677,15 +2660,15 @@ e.stopPropagation();
   }
 
   flex(label) {
-    return { '⇧':1.5,'⌫':1.5,'↵':1.5,'INTL':1.5,'ABC':1.5,'↑':1.5,'↓':1.5,'←':1.5,'→':1.5,'Home':1.5,'End':1.5 }[label]
+    return { '⇧':1.5,'⌫':1.5,'↵':1.5,'⋯':1.5,'Aa':1.5,'↑':1.5,'↓':1.5,'←':1.5,'→':1.5,'Home':1.5,'End':1.5 }[label]
       ?? (label.trim() == '' ? 3 : 1);
   }
 
   handle(label, x, y) {
     switch (label) {
       case '⇧':  this.layer = this.layer == 'upper' ? 'lower' : 'upper'; this.build(); return;
-      case 'INTL': this.layer = 'sym';    this.build(); return;
-      case 'ABC': this.layer = 'lower'; this.build(); return;
+      case '⋯': this.layer = 'sym';    this.build(); return;
+      case 'Aa': this.layer = 'lower'; this.build(); return;
     }
     let ch = label.trim() == '' ? ' ' : label;
     this.emitKey(ch);
@@ -2693,23 +2676,37 @@ e.stopPropagation();
   }
 
   emitKey(ch) {
-    let el = this.target || document.activeElement;
-    if (!el) return;
-    let isText = el.tagName == 'INPUT' || el.tagName == 'TEXTAREA';
-    let dispatch = (event,key) => el.dispatchEvent(new KeyboardEvent(event,{key:key,code:key,bubbles:true})) ;
+    let elm = this.target || document.activeElement;
+    if (!elm) return;
+    let isText = elm.tagName == 'INPUT' || elm.tagName == 'TEXTAREA';
+    let dispatch = (event,key) => elm.dispatchEvent(new KeyboardEvent(event,{key:key,code:key,bubbles:true})) ;
     switch (ch) {
-      case '↑': case '↓': case '←': case '→': case 'home': case 'end': {
+      case '↑': case '↓': case '←': case '→': {
         let k = this.navKeys[ch];
-        dispatch('keydown', k); dispatch('keyup', k);
+        dispatch('keydown', k);
+        if (isText && (ch == '←' || ch == '→')) {
+          let s = elm.selectionStart, e = elm.selectionEnd;
+          let pos = (s == e) ? (ch == '←' ? Math.max(0, s-1) : Math.min(elm.value.length, s+1))
+                             : (ch == '←' ? s : e);
+          elm.selectionStart = elm.selectionEnd = pos;
+        }
+        dispatch('keyup', k);
+        break;
+      }
+      case 'Home': case 'End': {
+        let k = this.navKeys[ch];
+        dispatch('keydown', k);
+        if (isText) elm.selectionStart = elm.selectionEnd = (ch == 'Home') ? 0 : elm.value.length;
+        dispatch('keyup', k);
         break;
       }
       case '⌫':
         dispatch('keydown','Backspace') ;
         if (isText) {
-          let s = el.selectionStart, e = el.selectionEnd;
-          if (s == e && s > 0) { el.value = el.value.slice(0,s-1) + el.value.slice(s); el.selectionStart = el.selectionEnd = s-1; }
-          else if (s != e)     { el.value = el.value.slice(0,s)   + el.value.slice(e); el.selectionStart = el.selectionEnd = s; }
-          el.dispatchEvent(new InputEvent('input', {bubbles:true}));
+          let s = elm.selectionStart, e = elm.selectionEnd;
+          if (s == e && s > 0) { elm.value = elm.value.slice(0,s-1) + elm.value.slice(s); elm.selectionStart = elm.selectionEnd = s-1; }
+          else if (s != e)     { elm.value = elm.value.slice(0,s)   + elm.value.slice(e); elm.selectionStart = elm.selectionEnd = s; }
+          elm.dispatchEvent(new InputEvent('input', {bubbles:true}));
         }
         dispatch('keyup','Backspace') ;
         break;
@@ -2720,10 +2717,10 @@ e.stopPropagation();
       default:
         dispatch('keydown', ch);
         if (isText) {
-          let s = el.selectionStart, e = el.selectionEnd;
-          el.value = el.value.slice(0,s) + ch + el.value.slice(e);
-          el.selectionStart = el.selectionEnd = s + ch.length;
-          el.dispatchEvent(new InputEvent('input', {inputType:'insertText', data:ch, bubbles:true}));
+          let s = elm.selectionStart, e = elm.selectionEnd;
+          elm.value = elm.value.slice(0,s) + ch + elm.value.slice(e);
+          elm.selectionStart = elm.selectionEnd = s + ch.length;
+          elm.dispatchEvent(new InputEvent('input', {inputType:'insertText', data:ch, bubbles:true}));
         }
         dispatch('keyup', ch) ;
     }
@@ -2737,18 +2734,16 @@ class KeyboardPanel extends SurfacePanel {
     // defeat this.body's stylings: we want the this.surface to add padding/margin so
     // that it has something to grab for detaching/moving
     this.body.style.padding = "unset" ;
-    this.body.style.margin = "unset" ;
-    this.body.style.minWidth = "unset";
     this.surface = new Keyboard(this);
     this.kbFocusListener = null;
   }
 
   suppressBrowserKb(el) {
     if(!el?.matches('input,textarea')) return;
-    if(el.dataset.kbSaved != undefined) return;
-    el.dataset.kbSaved = el.getAttribute('inputmode') ?? '';
-    el.setAttribute('inputmode', 'none');
-    if(document.activeElement === el) { el.blur(); el.focus(); }
+    if(elm.dataset.kbSaved != undefined) return;
+    elm.dataset.kbSaved = elm.getAttribute('inputmode') ?? '';
+    elm.setAttribute('inputmode', 'none');
+    if(document.activeElement === el) { elm.blur(); elm.focus(); }
   }
 
   show(onShown) {
@@ -2760,15 +2755,14 @@ class KeyboardPanel extends SurfacePanel {
   hidden() {
     unlisten(this.kbFocusListener);
     this.kbFocusListener = null;
-    document.querySelectorAll('[data-kb-saved]').forEach(el => {
-      let saved = el.dataset.kbSaved;
-      if(saved) el.setAttribute('inputmode', saved);
-      else el.removeAttribute('inputmode');
-      delete el.dataset.kbSaved;
+    document.querySelectorAll('[data-kb-saved]').forEach(elm => {
+      let saved = elm.dataset.kbSaved;
+      if(saved) elm.setAttribute('inputmode', saved);
+      else elm.removeAttribute('inputmode');
+      delete elm.dataset.kbSaved;
     });
   }
 }
-
 
 
 class ScreenPanel extends SurfacePanel {
@@ -2784,7 +2778,6 @@ class ScreenPanel extends SurfacePanel {
 
   surface = new Pz(this);
 }
-
 
 
 class SymbolsPanel extends Panel {
@@ -3280,34 +3273,49 @@ class MagnifyPanel extends Panel {
 
 class CurtainSurface extends Surface {
 
+  content = helm(`
+    <div data-tag="surfaceContent" class="Surface__outline">
+      <div data-tag="sliderProxy"></div>
+      <div data-tag="buttonProxy"></div>
+    </div>`) ;
+
   constructor(panel) {
     super(panel, ScreenPanel);
-    
-    // If dim level is in 0-100, dimmer color is black, opacity = val / 100.
-    // otherwise it in 101 - 201, color is #A0000000 (deep red). opacity = (201 - val) / 100
-    this.slider = new SliderGroup(panel.cell.stash,
-      { level: { min: 0, max: 201, step: 1, throttle: 50, value: 60, msg: (tag,value) => 
-        { if(value < 101) return `Curtain: Black ${Math.trunc(value)}%` ;
-          else return `Curtain: Red ${Math.trunc(201 - value)}%`
-      }}},
-      (e, tag, value) => {
-        panel.cell.stash.level = value;
-        if(!_curtain_.on) _curtain_.toggle() ;
-        _curtain_.update() ;
-    });
+    Object.assign(this, dataIndex("tag", this.content)) ;
+    let stash = panel.cell.stash;
 
-    this.surface.style.width = "13em";
-    this.surface.style.height = "4em";
-    this.surface.style.display = "block";
-    this.slider.elm.style.width = "13em" ;
-    this.surface.append(this.slider.elm);
-    this.surfaceDragElm = this.slider.elm;
-    panel.elm.style.zIndex = this.surface.style.zIndex = _curtain_.curtain.style.zIndex + 1 ;
+    this.colorGroup = new ButtonGroup(stash, {
+      Black: { svg: "Curtain Black", radio: "color" },
+      Red:   { svg: "Curtain Red",   radio: "color" },
+      },
+      (e, prop, val) => {
+        if(!_curtain_.on) _curtain_.toggle();
+        _curtain_.update();
+      }
+    );
+    this.colorGroup.elm.addEventListener('pointerdown', e => e.stopPropagation());
+    this.buttonProxy.replaceWith(this.colorGroup.elm) ;
+
+    this.slider = new SliderGroup(stash,
+      { alpha: { min: 0, max: 100, step: 1, throttle: 50, value: 60, msg: (tag, value) =>
+          `Curtain: ${Math.trunc(value)}%`
+      }},
+      (e, tag, value) => {
+        if(!_curtain_.on) _curtain_.toggle();
+        _curtain_.update();
+      }
+    );
+    this.sliderProxy.replaceWith(this.slider.elm) ;
+    panel.body.style.minWidth = panel.body.style.padding = "unset"; // defeat default body styles
+    this.surface.style.width = this.content.style.width = "10em";
+    this.surface.style.height = this.content.style.height = "10em";
+    this.surface.append(this.content) ;
+    this.surfaceDragElm = this.content ;
+    panel.elm.style.zIndex = this.surface.style.zIndex = getComputedStyle(_curtain_.curtain).zIndex ;
     delay(2, () => this.slider.refresh());
   }
 
 }
-
 
 class CurtainPanel extends Panel {
 
