@@ -964,16 +964,33 @@ class Score {
       let loadingTask = window.pdfjsLib.getDocument(pdfData);
 
       // is this an encrypted pdf?
-      loadingTask.onPassword = (callback, reason) => {
-        let message = reason === 1 ?
-          "Incorrect password. Please try again." :
-          "This PDF is password-protected. You can view and annotate it, but cannot save changes or copy pages.\n\nEnter password:";
-        let password = prompt(message, "");
-        if (password) callback(password);
-        else throw new Error("pdf password failure");
+      loadingTask.onPassword = async (callback, reason) => {
+        let password = await new Promise(resolve => {
+          let msg = reason == 1
+            ? "Incorrect password. Please try again.<br><br><input type='password' style='width:100%' placeholder='Password'>"
+            : "This PDF is password-protected.<br><br><input type='password' style='width:100%' placeholder='Password'>";
+          let buttons = reason == 1
+            ? { Open: { svg: "Open" }, Cancel: { svg: "Cancel" } }
+            : { Open: { svg: "Open" }, Decrypt: { svg: "Export Page" }, Cancel: { svg: "Cancel" } };
+          let dlg = dialog(msg, buttons, (e, prop, tag, args) => {
+            let pw = args.elm.querySelector('input').value;
+            args.close();
+            resolve(tag == "Open" && pw ? pw : tag == "Decrypt" ? null : "");
+          });
+          dlg.addEventListener('cancel', () => resolve(""));
+          setTimeout(() => dlg.querySelector('input')?.focus(), 50);
+        });
+        if (password) { callback(password); return; }
+        if (password === null) { this._decrypting = true; }
+        loadingTask.destroy();
       };
 
-      this.mozDoc = await loadingTask.promise;
+      try {
+        this.mozDoc = await loadingTask.promise;
+      } catch(err) {
+        if (this._decrypting) { this.decrypt(pdfData); throw Object.assign(new Error(""), { handled: true }); }
+        throw err;
+      }
       // Grab pdf metadata's info, if available
       let meta = await this.mozDoc.getMetadata();
       this.pdfInfo = meta ? meta.info : null;
@@ -983,7 +1000,11 @@ class Score {
       let perms = await this.mozDoc.getPermissions();
       if (perms) {
         this.encrypted = true;
-        dialog("This PDF is encrypted. Saving may not be possible.");
+        dialog(
+          "This PDF is encrypted. Saving may not be possible.",
+          { Cancel: { svg: "Cancel" }, Decrypt: { svg: "Export Page" } },
+          (e, prop, tag, args) => { args.close(); if (tag == "Decrypt") this.decrypt(); }
+        );
       }
 
       // Grab podium attachment, if available
@@ -1198,6 +1219,46 @@ class Score {
     } 
     finally {
       _shade_.onCancel = null;
+    }
+  }
+
+  async decrypt(pdfData = null) {
+    _shade_.show("Decrypting...");
+    try {
+      let mozDoc;
+      if (pdfData) {
+        let task = window.pdfjsLib.getDocument({ data: pdfData, ignoreEncryption: true });
+        mozDoc = await task.promise;
+      } else {
+        mozDoc = this.mozDoc;
+      }
+      let numPages = mozDoc.numPages;
+      let dstDoc = await PDFLib.PDFDocument.create();
+
+      for (let i = 1; i <= numPages; i++) {
+        _shade_.update(`Decrypting page ${i} of ${numPages}`);
+        let mozPg = await mozDoc.getPage(i);
+        let vp1 = mozPg.getViewport({ scale: 1 });
+        let vp = mozPg.getViewport({ scale: this.quality });
+        let canvas = document.createElement('canvas');
+        canvas.width = vp.width;
+        canvas.height = vp.height;
+        await mozPg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+        let jpegUrl = canvas.toDataURL('image/jpeg', 0.92);
+        let jpegBytes = Uint8Array.from(atob(jpegUrl.slice(jpegUrl.indexOf(',') + 1)), c => c.charCodeAt(0));
+        let img = await dstDoc.embedJpg(jpegBytes);
+        let pg = dstDoc.addPage([vp1.width, vp1.height]);
+        pg.drawImage(img, { x: 0, y: 0, width: vp1.width, height: vp1.height });
+      }
+
+      _shade_.update("Loading...");
+      let bytes = await dstDoc.save();
+      let name = (this.name || 'score').replace(/\.pdf$/i, '') + ' (decrypted).pdf';
+      await new Score().init(null, null, name, bytes);
+    } catch(err) {
+      dialog(`Decrypt failed: ${err.message}`);
+    } finally {
+      _shade_.hide();
     }
   }
 

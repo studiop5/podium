@@ -25,6 +25,7 @@ export {
   css,
   cssIndex,
   dialog,
+  Fling,
   flung,
   Schedule,
   schedule,
@@ -1632,7 +1633,7 @@ class Surface {
         else if (downTime < _longPressMs_) this.onSurfaceEvent("click");
       }, { once: true });
     }));
-
+g
     delay(2, () => this.build());
   }
 
@@ -1948,6 +1949,77 @@ function flung(emv, eup=null) {
       return velocity > 0.75; // threshold for "flung" 
     }
     return false;
+  }
+}
+
+
+class Fling {
+  jabMaxDuration     = 150;  // ms
+  jabMaxDisplacement = 10;   // px
+  jitterThreshold    = 8;    // px
+  terminalWindow     = 100;  // ms
+  minVelocity        = 0.3;  // px/ms
+  mvBufMax           = 20;   // max pointermove events to retain
+
+  constructor(edown, opts = {}) {
+    Object.assign(this, opts);
+    this.edown    = edown;
+    this.mvBuf    = [edown];
+    this.jab      = false;
+    this.lift     = false;
+    this.duration = 0;
+  }
+
+  mv(e) {
+    this.mvBuf.push(e);
+    if (this.mvBuf.length > this.mvBufMax) this.mvBuf.shift();
+  }
+
+  up(e) {
+    this.duration = e.timeStamp - this.edown.timeStamp;
+    let displacement = Math.hypot(e.clientX - this.edown.clientX, e.clientY - this.edown.clientY);
+    if (this.duration < this.jabMaxDuration && displacement < this.jabMaxDisplacement)
+      { this.jab = true; return this; }
+    if (displacement < this.jitterThreshold)
+      { this.lift = true; return this; }
+    let termBuf = this.mvBuf.filter(ev => e.timeStamp - ev.timeStamp <= this.terminalWindow);
+    if (termBuf.length < 2) { this.lift = true; return this; }
+    let first = termBuf[0], last = termBuf[termBuf.length - 1];
+    let dt = last.timeStamp - first.timeStamp;
+    if (dt == 0) { this.lift = true; return this; }
+    this.vX = (last.clientX - first.clientX) / dt;
+    this.vY = (last.clientY - first.clientY) / dt;
+    this.vXY = Math.hypot(this.vX, this.vY);
+    let d = Math.atan2(this.vY, this.vX);
+    this.dXY = d < 0 ? d + 2 * Math.PI : d;
+    if (this.vXY < this.minVelocity) {
+      let scale = this.minVelocity / this.vXY;
+      this.vX *= scale; this.vY *= scale;
+      this.vXY = this.minVelocity;
+    }
+    this.mvBuf.length = 0;
+    return this;
+  }
+
+  power(exp = 1.5) {
+    // we not using this afaik
+    let apply = v => Math.sign(v) * Math.pow(Math.abs(v), exp);
+    this.vX  = apply(this.vX);
+    this.vY  = apply(this.vY);
+    this.vXY = Math.hypot(this.vX, this.vY);
+    return this;
+  }
+
+  boost(threshold = 0.5, exp = 1.5) {
+    // we not using this afaik
+    let apply = v => {
+      let a = Math.abs(v);
+      return a <= threshold ? v : Math.sign(v) * (threshold + Math.pow(a - threshold, exp));
+    };
+    this.vX  = apply(this.vX);
+    this.vY  = apply(this.vY);
+    this.vXY = Math.hypot(this.vX, this.vY);
+    return this;
   }
 }
 

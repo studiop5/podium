@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, clamp, css, dataIndex, delay, delayMs, flung, fontMap, getBox, helm, hide, listen, mergeRecent, mvmt, Schedule, schedule, toast, unlisten } from "./common.js";
+import { animate, clamp, css, dataIndex, delay, delayMs, Fling, flung, fontMap, getBox, helm, hide, listen, mergeRecent, mvmt, Schedule, schedule, toast, unlisten } from "./common.js";
 import { checkUnsaved, FileSrc } from "./file.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
@@ -916,6 +916,7 @@ class Menu {
       completed: false,
       e: e, // initial event
       emv: null, // lasttest mv event, or initial event if none
+      fling: new Fling(e, { minVelocity:0.1}), 
       moved: false,
       origin: { x: e.clientX, y: e.clientY },
       out: false,
@@ -992,6 +993,7 @@ class Menu {
     let op = this.op;
     if (op.completed) return;
     op.emv = emv;
+    op.fling.mv(emv);
 
     if (op.out)
       return this.notify(`${op.ringKey}/${op.cellKey}/out`); // if cell has panel, then this will pass move operation to it
@@ -1137,6 +1139,7 @@ class Menu {
 
   opUp(eup) {
     let op = this.op;
+    op.fling.up(eup) ;
     op.schedule.cancel();
     unlisten(op.moveListener, op.upListener);
     op.cell && op.cell.elm.classList.remove("Menu__cell-selected");
@@ -1160,30 +1163,33 @@ class Menu {
         break;
       case "grip":
         if(op.moved) {
-          if (flung(null, eup)) { // fling detected
+          if (op.fling.dXY != undefined) {
             if (!this.collapsed) this.collapse();
-            this.elm.style.transition = "left .5s, top .5s";
-            // Calculate direction and position using array lookup
-            let dx = eup.clientX - op.e.clientX;
-            let dy = eup.clientY - op.e.clientY;
-            let angle = Math.atan2(dy, dx);
-            let direction = Math.round(((angle + Math.PI) / (Math.PI /  4))) % 8;
-            // Don't use vw....we need the styles to be in px
-            let wwb2 = innerWidth / 2 + "px";
-            let ww = innerWidth + "px";
-            let whb2 = innerHeight / 2 + "px";
-            let wh = innerHeight + "px";
-            let positions = [
-              [0, whb2],    // left edge
-              [0,0],     // top-left corner
-              [wwb2, 0],    // top edge
-              [ww, 0] ,  // top-right corner
-              [ww, whb2],  // right edge
-              [ww,wh], // bottom-right corner
-              [wwb2,wh],  // bottom edge
-              [0, wh],   // bottom-left corner
+            let dx = Math.cos(op.fling.dXY), dy = Math.sin(op.fling.dXY);
+            let W  = innerWidth,  H  = innerHeight;
+            let mx = this.elm.offsetLeft,  my = this.elm.offsetTop;
+            let tx = dx > 0 ? (W - mx) / dx : dx < 0 ? -mx / dx : Infinity;
+            let ty = dy > 0 ? (H - my) / dy : dy < 0 ? -my / dy : Infinity;
+            let t  = Math.min(tx, ty);
+            let corners = [
+              [W, 0, Math.PI/4 * 7],
+              [0, 0, Math.PI/4 * 5],
+              [0, H, Math.PI/4 * 3],
+              [W, H, Math.PI/4 * 1],
             ];
-            [this.elm.style.left, this.elm.style.top] = positions[direction];
+            let pull = Math.PI / 8;
+            let snapped = corners.find(([,, ca]) => {
+              let diff = Math.abs(((op.fling.dXY - ca + 3*Math.PI) % (2*Math.PI)) - Math.PI);
+              return diff < pull;
+            });
+            let ex = snapped ? snapped[0] : mx + t*dx;
+            let ey = snapped ? snapped[1] : my + t*dy;
+            let dist = Math.hypot(ex - mx, ey - my);
+            op.fling.power(0.5);
+            let dur = clamp(dist / (op.fling.vXY * 1000), 0.1, 3.0).toFixed(2);
+            this.elm.style.transition = `left ${dur}s, top ${dur}s`;
+            this.elm.style.left = ex + "px";
+            this.elm.style.top  = ey + "px";
           }
         }
         else if(eup.timeStamp - op.e.timeStamp < 200) this.notify("up");

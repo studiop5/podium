@@ -1713,7 +1713,7 @@ class LocalFileView {
               Score.visit(score, visitUpdate);
               toast("File opened");
             } catch (error) {
-              dialog(`Error opening file <i>${escapeHtml(file.name)}</i><br>${error.message || error}`);
+              if (!error.handled) dialog(`Error opening file <i>${escapeHtml(file.name)}</i><br>${error.message || error}`);
             }
           }
         }

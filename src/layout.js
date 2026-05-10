@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, getBox, helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, toast, unlisten,} from "./common.js";
+import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, Fling, getBox, helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, toast, unlisten,} from "./common.js";
 import {ScreenPanel } from "./panel.js";
 import { Pg } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
@@ -81,6 +81,8 @@ let NORMAL_PROPS = {
   CLIENTY: "clientY",
   INNERWIDTH: "innerWidth",
   INNERHEIGHT: "innerHeight",
+  VX: "vX",
+  VY: "vY",
   X: "x",
   Y: "y",
 };
@@ -106,6 +108,8 @@ let ORTHO_PROPS = {
   CLIENTY: "clientX",
   INNERWIDTH: "innerHeight",
   INNERHEIGHT: "innerWidth",
+  VX: "vY",
+  VY: "vX",
   X: "y",
   Y: "x",
 };
@@ -857,15 +861,14 @@ class BookLayout extends Layout {
     this.inOp = true;
     this.elm.setPointerCapture(e.pointerId);
     let spineBox = getBox(this.spine);
+
     this.pgFlip(advancing ? pgWidth : -pgWidth, pgHeight / 2, e.clientX - spineBox.x, e.clientY - spineBox.y, advancing);
 
-    // Rolling buffer of recent pointermove events for velocity calculation
-    let mvBuffer = [];
+    let fling = new Fling(e, { minVelocity:0.75 });
 
     let mv = listen(this.elm, "pointermove", (emv) => {
       this.pgMove(emv.clientX - spineBox.x, emv.clientY - spineBox.y, advancing);
-      mvBuffer.push({ x: emv.clientX, t: emv.timeStamp });
-      if (mvBuffer.length > 10) mvBuffer.shift();
+      fling.mv(emv) ;
     });
 
     listen(
@@ -877,20 +880,13 @@ class BookLayout extends Layout {
         let y = eup.clientY - spineBox.y;
         let flipping = (advancing && x <= 0) || (!advancing && x > 0);
         let pace = 100 ; 
-        if(eup.timeStamp - e.timeStamp > 150 || Math.abs(e.clientX - eup.clientX) > 10) { // not a jab
-          let recentBuf = mvBuffer.filter(ev => eup.timeStamp - ev.t <= 150);
-          if (recentBuf.length > 1) {
-            let first = recentBuf[0], last = recentBuf[recentBuf.length - 1];
-            let dt = last.t - first.t;
-            let vel = (last.x - first.x) / dt; // px/ms, signed
-            pace = Math.abs(vel);
-            flipping = advancing ? vel < 0 : vel > 0; // sign determines flip or flop
-          }
-          else pace = null; 
+        fling.up(eup) ;
+        if(fling.jab) flipping = true ;
+        else if(fling.lift) pace = null ;
+        else {
+          flipping = true ;
+          pace = Math.abs(fling[VX]) ;
         }
-        else flipping = true ;
-        // Determine x position of where to move page: flip fully to opposite side
-        // of spine, or flop fully back to initial side.
         let toX = flipping ? (advancing ? -pgWidth : pgWidth) : advancing ? pgWidth : -pgWidth;
         // animate the flip (or flop)
         this.closeFunc = async () => {
@@ -1201,7 +1197,6 @@ class ScrollLayout
 
 
 class ScrollLayout extends Layout {
-///
   // Define svg for "back" of scroll, i.e. visible on the left/right scrollers
   static verso = "url('data:image/svg+xml;base64," + btoa(`
   <!-- leather-worn-amber.svg -->
@@ -1481,36 +1476,32 @@ class ScrollLayout extends Layout {
 
   async onDown(e) {
     if (await super.onDown(e)) return;
-    let { LEFT, CLIENTX, WIDTH, X } = this.props;
+    let { LEFT, CLIENTX, WIDTH, X, VX } = this.props;
     let sashLimit = this.cell.geo.sashLimit;
-
     this.sash.setPointerCapture(e.pointerId);
     let frameBox = getBox(this.frame);
-    let dir = "none"; // drag direction, "none", "left", or "right"
-    e.mv1 = e.mv0 = e;
-    e.mvBuffer = []; // circular buffer for fling velocity calculation
+    let fling = new Fling(e, { minvelocity: 0.01}) ;
 
     let mv = listen(
       this.frame,
       ["pointermove"],
       ((emv) => {
-        e.mv1 = e.mv0;
-        e.mv0 = emv;
-        // Track recent events for fling velocity
-        e.mvBuffer.push({ x: emv[CLIENTX], t: emv.timeStamp });
-        if (e.mvBuffer.length > 5) e.mvBuffer.shift();
         let clientX = emv[CLIENTX];
-        let atStart = this.sashStart == 0; // at start of document
-        let atEnd = sashLimit == Math.round(this.sashStart); // at end of document
         // disallow dragging sash when pointer outside of frame, as it can expose
         // sash locations where no Pg is mounted
         if (clientX < frameBox[X] || clientX > frameBox[X] + frameBox[WIDTH]) return;
-        this.sashStart = clamp(this.sashStart + clientX - e.mv1[CLIENTX], sashLimit, 0);
+        // follow the user's move:
+        let prevSashStart = this.sashStart ;
+        this.sashStart = clamp(this.sashStart + clientX - fling.mvBuf.at(-1)[CLIENTX], sashLimit, 0); // fling.mvBuf.at(-1) is previous mv event
+        if(this.sashStart == prevSashStart) // no motion means were at the start or end
+        { if(!e.alerted) Layout.pgAlert( this.sashStart == 0 ? "start" : "end");
+          e.alerted = true ; // only alert once per incident
+          return ;
+        }
+        e.alerted = false ;
         this.sash.style[LEFT] = toEm(this.sashStart);
         this.spinRollers();
-        dir = clientX > e.mv1[CLIENTX] ? "right" : clientX < e.mv1[CLIENTX] ? "left" : "none";
-        if (dir == "left" && atEnd && !e.alerted) { e.alerted = true; Layout.pgAlert("end"); }
-        else if (dir == "right" && atStart && !e.alerted) { e.alerted = true; Layout.pgAlert("start"); }
+        fling.mv(emv) ;
       }).bind(this)
     );
 
@@ -1519,34 +1510,15 @@ class ScrollLayout extends Layout {
       "pointerup",
       (async (eup) => {
         unlisten(mv);
-        let dwellTime = eup.timeStamp - e.timeStamp;
-        let visStart = Math.max(frameBox[X], 0);
-        let visEnd = Math.min(frameBox[X] + frameBox[WIDTH], window[this.props.INNERWIDTH]);
-        let visSize = visEnd - visStart;
-        let mid = (visStart + visEnd) / 2;
-        if (dwellTime < 150 && Math.abs(eup[CLIENTX] - e[CLIENTX]) < 6) {
-          // quick touch
-          let dir = eup[CLIENTX] > mid ? "left" : "right";
-          return this.pgSnapTo(dir, -1);
+        fling.up(eup) ;
+        if(fling.jab) {
+          let visStart = Math.max(frameBox[X], 0);
+          let visEnd = Math.min(frameBox[X] + frameBox[WIDTH], window[this.props.INNERWIDTH]);
+          let mid = (visStart + visEnd) / 2;
+          return this.pgSnapTo(eup[CLIENTX] > mid ? -1000 : 1000) ; // 1000 (-1000) means "immediately", animate in 1 frame
         }
-        // Calculate fling velocity from event buffer to determine animation speed
-        let vel = 0;
-        let termBuf = e.mvBuffer.filter(ev => eup.timeStamp - ev.t <= 150);
-        let velBuf = termBuf.length >= 2 ? termBuf : e.mvBuffer;
-        if (velBuf.length >= 2) {
-          let first = velBuf[0], last = velBuf[velBuf.length - 1];
-          let dt = last.t - first.t;
-          if (dt > 0) {
-            vel = (first.y - last.y) / dt;
-            let ref = visSize / 100;
-            vel = Math.sign(vel) * Math.pow(Math.abs(vel) / ref, 1.5) * ref;
-          }
-        }
-        // Determine direction from last movement
-        let dir = dwellTime > 200 ? "none" :
-          e.mv0[CLIENTX] > e.mv1[CLIENTX] ? "right" :
-          e.mv0[CLIENTX] < e.mv1[CLIENTX] ? "left" : "none";
-        this.pgSnapTo(dir, Math.abs(vel));
+        else if(fling.lift) return this.pgSnapTo(0);
+        else  return this.pgSnapTo(fling[VX]) ; // or vY, need to figure that one out!
       }).bind(this),
       { once: true }
     );
@@ -1598,15 +1570,15 @@ class ScrollLayout extends Layout {
 
   commitAnimId = 0; // prevent multiple pgCommit animation threads
 
-  async pgCommit(pn, pace) {
-    let { LEFT } = this.props;
+  async pgCommit(pn, pace) { // pace is px/msec
+    let { LEFT, MAXWIDTH } = this.props;
     this.pnPost(pn);
     this.pagerLeft.build();
     this.pagerRight.build();
     await this.pgMount(pn);
     let target = this.sashStart / _pxPerEm_;
     let startLeft = parseFloat(this.sash.style[LEFT]) || 0;
-    let duration = pace * (this.snapStep || 1);
+    let duration = ((this.snapStep || 1) * _score_[MAXWIDTH]) / pace ;
     this.spinRollers(duration);
     let start = performance.now();
     let animId = ++this.commitAnimId;
@@ -1623,9 +1595,11 @@ class ScrollLayout extends Layout {
   async pgOpen(how, bookMarks) {
     if (bookMarks) return super.pgOpen(how);
     let pn = parseInt(_score_.numbers.pn);
+    // convert msec/snap to px/msec:
+    let pxPerMsec =  (this.snapStep || 1) * _score_[this.props.MAXWIDTH] / _score_.layout.pace ;
     switch (how) {
-      case "next": return this.pgSnapTo("right", 1) ;
-      case "prev": return this.pgSnapTo("left", 1) ;
+      case "next": return this.pgSnapTo(-pxPerMsec) ;
+      case "prev": return this.pgSnapTo(pxPerMsec) ;
       case "first": return this.pgGoTo(1) ;
       case "last": return this.pgGoTo(this.score.pgs.length) ;
     }
@@ -1661,9 +1635,15 @@ class ScrollLayout extends Layout {
     return [left, right];
   }
 
-  async pgSnapTo(dir, vel=0) {
-    // dir: "left" (forward), "right" (backward), "none" (snap to nearest — user paused before release)
-    // vel: fling velocity 0..1, or -1 for jab (instant snap)
+  async pgSnapTo(vel) {
+    // move the page to requested snap point, animating at given velocity
+    // vel is given in px/msec, but note:
+    //            vel = 0 means snap to nearest (a no-op if pgSnap == 0)
+    //                > 0 means snap to right
+    //                < 0 means snap to left
+    // (abs(vel) >= 1000) means snap immediately, i.e. no anitmation
+    let pace = Math.abs(vel) ;
+
     let { WIDTH, X, INNERWIDTH } = this.props;
     let { gap, pgSnap, sashLimit } = this.cell.geo;
     let pgWidth = this.cell.geo.pg[WIDTH];
@@ -1685,24 +1665,22 @@ class ScrollLayout extends Layout {
     if (snapWidth > 0) {
       // Snap to nearest boundary, then step one unit in the gesture direction
       let snapIndex = Math.round(-this.sashStart / snapWidth);
-      if (dir == "right") snapIndex--;
-      else if (dir == "left") snapIndex++;
+      if (vel > 0) snapIndex--;
+      else if (vel < 0) snapIndex++;
       this.sashStart = -snapIndex * snapWidth;
       this.snapIndex = snapIndex;
-    } else if (vel > 0.07 && dir != "none") {
+    } else if (pace < 1000) {
       // Free-scroll fling (pgSnap == 0): carry sash by velocity × one visible screen
-      this.sashStart += dir == "left" ? -vel * visSize : vel * visSize;
+      this.sashStart += vel * visSize;
     }
 
     let targetSash = this.sashStart;
     this.sashStart = clamp(this.sashStart, sashLimit, 0);
-    if (targetSash !== this.sashStart)
+    if (targetSash != this.sashStart)
       Layout.pgAlert(targetSash > 0 ? "start" : "end");
     if (snapWidth > 0)
       this.snapIndex = Math.round(-this.sashStart / snapWidth);
-
     let [newPn] = this.snapPns();
-    let pace = vel < 0 ? 0 : _score_.layout.pace; // jab (vel == -1): instant
     await this.pgCommit(newPn, pace);
   }
 
@@ -1718,7 +1696,6 @@ class ScrollLayout extends Layout {
     leftStyle[LEFT] = rightStyle[RIGHT] = "unset";
     let track = () => {
       // rollers and pagers dimensions are px, not ems
-      //      let rollPos = this.sashStart % rollGirth;
       let rollPos = this.sash[OFFSETLEFT] % rollGirth;
       leftStyle[RIGHT] = rollPos + "px";
       rightStyle[LEFT] = -rollPos - rollGirth + "px";

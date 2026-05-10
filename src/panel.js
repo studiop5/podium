@@ -2563,105 +2563,139 @@ class Keyboard extends Surface {
 
   static css = css(
   "Keyboard", `
-    /* Light/Glass (default) */
-    .Keyboard__key        { fill:#fffa; stroke:#444; }
-    .Keyboard__key.mod    { fill:#aaaa; }
-    .Keyboard__label      { text-anchor:middle; font-size:26px; font-family:system-ui,sans-serif;
-                            pointer-events:none }
-
-    /* Dark */
-    [data-theme="Dark"] .Keyboard__key        { fill:#444a; stroke:#aaa;}
-    [data-theme="Dark"] .Keyboard__key.mod    { fill:#555a; }
-    [data-theme="Dark"] .Keyboard__label      { fill:white; }
+    .Keyboard__rows {
+      display:flex;
+      flex-direction:column;
+      gap:0.25em;
+      padding:0.25em;
+      touch-action:none;
+      user-select:none;
+      width:20em;
+      -webkit-user-select:none;
+     }
+    .Keyboard__row {
+      display:flex;
+      gap:0.25em;
+    }
+    .Keyboard__key
+    { flex:1 1 0;
+      border-radius:100vmax;
+      border:1px solid #444;
+      background:#fffa;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:1em;
+      font-family:system-ui,sans-serif;
+    }
+    .Keyboard__key.mod {
+      background:#aaaa;
+    }
+    .Keyboard__key.pressed {
+      background:#8888;
+    }
+    [data-theme="Dark"] .Keyboard__key {
+      background:#444a;
+      border-color:#aaa;
+    }
+    [data-theme="Dark"] .Keyboard__key.mod {
+      background:#555a;
+    }
+    [data-theme="Dark"] .Keyboard__key.pressed {
+      background:#999a;
+    }
   `) ;
 
   mods = new Set(['⇧','⌫','↵','⋯','Aa','←','↑','↓','→','Home','End']);
+  spaceBar = '       ';
 
   layers = {
     lower:  [['`','1','2','3','4','5','6','7','8','9','0','-','='],
               ['q','w','e','r','t','y','u','i','o','p','[',']','\\'],
               ['a','s','d','f','g','h','j','k','l',';',"'"],
               ['⇧','z','x','c','v','b','n','m',',','.','/','⌫'],
-              ['⋯','       ','↵']],
+              ['⋯',this.spaceBar,'↵']],
     upper:   [['~','!','@','#','$','%','^','&','*','(',')','_','+'],
               ['Q','W','E','R','T','Y','U','I','O','P','{','}','|'],
               ['A','S','D','F','G','H','J','K','L',':','"'],
               ['⇧','Z','X','C','V','B','N','M','<','>','?','⌫'],
-              ['⋯','       ','↵']],
+              ['⋯',this.spaceBar,'↵']],
     sym:     [['á','é','í','ó','ú','à','è','ù','â','ê','î'],
               ['ô','û','ä','ö','↑','ñ','ç','ß','Home'],
               ['ã','õ','ü','←','↓','→','å','ø','End'],
               ['æ','œ','ð','¿','¡','«','»','⌫'],
-              ['Aa','       ','↵']],
+              ['Aa',this.spaceBar,'↵']],
   };
 
+  keyWidths = {'⇧':1.5,'⌫':1.5,'↵':1.5,'⋯':1.5,'Aa':1.5,'↑':1.5,'↓':1.5,'←':1.5,'→':1.5,'Home':2,'End':2.2,[this.spaceBar]:3};
   navKeys = {'↑':'ArrowUp','↓':'ArrowDown','←':'ArrowLeft','→':'ArrowRight','Home':'Home','End':'End'};
   repeats = new Set(['←','→','↑','↓','⌫']);
+  repeater = new Schedule(); // implement auto-repeat of repeats keys
 
-  content = helm(`<div class="Surface__outline"><svg data-tag="svg" style="height:12em;display:block;overflow:visible" xmlns="http://www.w3.org/2000/svg"/></div>`) ;
+  content = helm(`<div class="Surface__outline"><div data-tag="plate" class="Keyboard__rows"></div></div>`) ;
 
-  constructor(cell) {
-    super(cell, ScreenPanel) ;
+  constructor(panel) {
+    super(panel, ScreenPanel) ;
+    Object.assign(this, dataIndex("tag", this.content));
     this.layer = 'lower';
-    this.keys  = [];  // [{label, x, y, w, h}]
     this.surface.style.width = this.surface.style.height = "unset" ;
-    Object.assign(this, dataIndex("tag", this.content)) ;
     this.surface.append(this.content) ;
-    this.surfaceDragElm = this.content ;
-    this.rgen = 0;
-    listen(this.svg, "pointerdown", (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      let pt = this.svg.createSVGPoint();
-      pt.x = e.clientX; pt.y = e.clientY;
-      let {x: px, y: py} = pt.matrixTransform(this.svg.getScreenCTM().inverse());
-      let key = this.keys.find((k) => px>=k.x && px<k.x+k.w && py>=k.y && py<k.y+k.h);
-      if (!key) return;
-      this.handle(key.label, e.clientX, e.clientY);
-      if (this.repeats.has(key.label)) {
-        let gen = ++this.rgen;
-        let fire = () => { if (this.rgen != gen) return; this.handle(key.label, e.clientX, e.clientY); schedule(80, fire); };
-        schedule(500, fire);
-      }
-    });
-    listen(document, ["pointerup","pointercancel"], () => this.rgen++);
+    this.surfaceDragElm = this.content;
+    this.panel.listeners.push(
+      listen(this.surface, "pointerdown", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        let key = e.target.closest('.Keyboard__key');
+        if (!key) return;
+        // add a sentinel so that touch users will see the chosen key.
+         // well use it's dom-connectedness to terminate a repeat
+        let sentinel = key.cloneNode(true) ;
+        let style = getComputedStyle(e.target);
+        Object.assign(sentinel.style, {
+          width: style.width,
+          height: style.height,
+          left: e.clientX + "px",
+          top: e.clientY - 50 + "px",
+          zIndex:_zTop_ + 1,
+          fontSize: style.fontSize,
+          position: "absolute",
+          filter: "invert(1)",
+        });
+        _body_.append(sentinel);
+        key.classList.add('pressed');
 
+        this.handle(key.dataset.label, e.clientX, e.clientY);
+        if (this.repeats.has(key.dataset.label)) {
+          let repeat = () => {
+            if (!sentinel.isConnected) return;
+            this.handle(key.dataset.label, e.clientX, e.clientY);
+            this.repeater.run(80) ;
+          };
+          this.repeater.run(500, repeat) ;
+        }
+        listen(document, "pointerup", () => {
+           sentinel.remove();
+           key.classList.remove('pressed');
+        }, {once:true});
+
+      })
+    );
     this.build();
   }
 
   build() {
-    let width = 600;
-    let keyHeight = 42, gap = 4;
-    let rows = this.layers[this.layer];
-    let totalH = rows.length * (keyHeight + gap);
-    this.svg.setAttribute('viewBox', `0 0 ${width} ${totalH}`);
-    this.svg.style.width  = `${width / _pxPerEm_}em`;
-    this.svg.style.height = `${totalH / _pxPerEm_}em`;
-    this.keys = [];
-    let html = "";
-
-    rows.forEach((row, ri) => {
-      let y = ri * (keyHeight + gap);
-      let totalFlex = row.reduce((s, k) => s + this.flex(k), 0);
-      let unitW = (width - (row.length + 1) * gap) / totalFlex;
-      let x = gap;
+    let esc = (s) => s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+    let html = '';
+    this.layers[this.layer].forEach(row => {
+      html += '<div class="Keyboard__row">';
       row.forEach(label => {
-        let w = unitW * this.flex(label);
-        if(label !== '') {
-          let mod = this.mods.has(label);
-          this.keys.push({ label, x, y, w, h: keyHeight, mod });
-          html += `<rect class="Keyboard__key${mod?' mod':''}" x="${x}" y="${y}" width="${w}" height="${keyHeight}" rx="${keyHeight/2}"/>`;
-          html += `<text class="Keyboard__label" x="${x+w/2}" y="${y+keyHeight*.7}">${label.trim()}</text>`;
-        }
-        x += w + gap;
+        let grow = this.keyWidths[label] || 1;
+        let mod  = this.mods.has(label) ? ' mod' : '';
+        html += `<div class="Keyboard__key${mod}" data-label="${esc(label)}" style="flex:${grow} 1 0">${esc(label.trim())}</div>`;
       });
+      html += '</div>';
     });
-    this.svg.innerHTML = html;
-  }
-
-  flex(label) {
-    return { '⇧':1.5,'⌫':1.5,'↵':1.5,'⋯':1.5,'Aa':1.5,'↑':1.5,'↓':1.5,'←':1.5,'→':1.5,'Home':1.5,'End':1.5 }[label]
-      ?? (label.trim() == '' ? 3 : 1);
+    this.plate.innerHTML = html;
   }
 
   handle(label, x, y) {
@@ -2738,16 +2772,15 @@ class KeyboardPanel extends SurfacePanel {
     this.kbFocusListener = null;
   }
 
-  suppressBrowserKb(el) {
-    if(!el?.matches('input,textarea')) return;
+  suppressBrowserKb(elm) {
+    if(!elm?.matches('input,textarea')) return;
     if(elm.dataset.kbSaved != undefined) return;
     elm.dataset.kbSaved = elm.getAttribute('inputmode') ?? '';
     elm.setAttribute('inputmode', 'none');
-    if(document.activeElement === el) { elm.blur(); elm.focus(); }
   }
 
   show(onShown) {
-    this.suppressBrowserKb(document.activeElement);
+    document.querySelectorAll('input,textarea').forEach(elm => this.suppressBrowserKb(elm));
     this.kbFocusListener = listen(document, 'focus', (e) => this.suppressBrowserKb(e.target), {capture:true});
     return super.show(onShown);
   }
