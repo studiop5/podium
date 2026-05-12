@@ -271,44 +271,48 @@ async function main() {
 
   {
     /**
-        This block implements keyboard events
-        They are primarily used to implement external page-turning 
+        This block implements keyboard events. They are primarily used to implement external page-turning 
         devices, but of course they work from regular keyboards
         as well.
      **/
+    let pedalKeys = ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'];
+
     listen(document, "keydown", (e) => {
-      if(e.target.type == "text") return ;  // ignore keydown from a text input
-      let layout = Layout.activeLayout;
-      if (!layout || !_score_) return;
-      let forward = _score_.numbers.forward ;
-      let reverse = _score_?.numbers?.reverse
-      let forwardBookMarks = e.ctrlKey || forward == "Marks";
-      let reverseBookMarks = e.ctrlKey || reverse == "Marks";
-      switch (e.code) {
-        case "ArrowLeft":
-        case "ArrowUp":
-        case "PageUp":
-          e.preventDefault(); // Prevent iOS from scrolling 
-          layout.pgOpen("prev", reverseBookMarks);
-          break;
-        case "ArrowRight":
-        case "ArrowDown":
-        case "PageDown":
-          e.preventDefault(); 
-          layout.pgOpen("next", forwardBookMarks);
-          break;
-        case "Home":
-          e.preventDefault(); 
-          layout.pgOpen("first", e.ctrlKey);
-          break;
-        case "End":
-          e.preventDefault(); 
-          layout.pgOpen("last", e.ctrlKey);
-          break;
-        default:
-          return;
+      if(e.target.tagName == "TEXTAREA" && e.target.hasAttribute("data-fabric-hiddentextarea")) return ;
+      if(e.target.classList.contains("Select__toggle")) return ;
+
+      if (pedalKeys.includes(e.key)) {
+        e.preventDefault();
+        e.stopPropagation();
+        let layout = Layout.activeLayout;
+        if (!layout || !_score_) return;
+        let forward = _score_.numbers.forward ;
+        let reverse = _score_?.numbers?.reverse
+        let forwardBookMarks = e.ctrlKey || forward == "Marks";
+        let reverseBookMarks = e.ctrlKey || reverse == "Marks";
+        switch (e.code) {
+          case "ArrowLeft":
+          case "ArrowUp":
+          case "PageUp":
+            layout.pgOpen("prev", reverseBookMarks);
+            break;
+          case "ArrowRight":
+          case "ArrowDown":
+          case "PageDown":
+            layout.pgOpen("next", forwardBookMarks);
+            break;
+          case "Home":
+            layout.pgOpen("first", e.ctrlKey);
+            break;
+          case "End":
+            layout.pgOpen("last", e.ctrlKey);
+            break;
+          default:
+            return;
+        }
       }
-    });
+    },
+    { capture:true});
   }
 
   let rebuildThrottle = new Schedule();

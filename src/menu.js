@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, clamp, css, dataIndex, delay, delayMs, Fling, flung, fontMap, getBox, helm, hide, listen, mergeRecent, mvmt, Schedule, schedule, toast, unlisten } from "./common.js";
+import { animate, clamp, css, dataIndex, delay, delayMs, Drag, fontMap, getBox, helm, hide, listen, mergeRecent,Schedule, schedule, toast, unlisten } from "./common.js";
 import { checkUnsaved, FileSrc } from "./file.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
@@ -916,7 +916,7 @@ class Menu {
       completed: false,
       e: e, // initial event
       emv: null, // lasttest mv event, or initial event if none
-      fling: new Fling(e, { minVelocity:0.1}), 
+      drag: new Drag(e, { minVelocity:0.1}),
       moved: false,
       origin: { x: e.clientX, y: e.clientY },
       out: false,
@@ -993,8 +993,9 @@ class Menu {
     let op = this.op;
     if (op.completed) return;
     op.emv = emv;
-    op.fling.mv(emv);
+    op.drag.mv(emv);
 
+///
     if (op.out)
       return this.notify(`${op.ringKey}/${op.cellKey}/out`); // if cell has panel, then this will pass move operation to it
 
@@ -1005,11 +1006,10 @@ class Menu {
     op.turn = Math.atan2(dxdy[1] - op.ringRadiusPx, dxdy[0] - op.ringRadiusPx) / (Math.PI * 2) + 1.25;
 
     // Was there significant pointer motion in either ring?
-    op.moved = mvmt(op.e, emv, 15, 15);
-    if(op.moved) op.schedule.cancel();
-    if (op.moved && !op.spun && !op.out) {
+    if(op.drag.moved) op.schedule.cancel();
+    if (op.drag.moved && !op.spun && !op.out) {
       if (op.state == "disk") {
-        op.spun = true; // Significant mvmt in a disk cell is always interpreted as a spin
+        op.spun = true; // Significant movement in a disk cell is always interpreted as a spin
       } else if (op.state == "ring") {
         // Calculate tangent vs radial components of the gesture
         let centerX = this.elm.offsetLeft;
@@ -1055,9 +1055,7 @@ class Menu {
             `rotate(${-rotation * i - op.ring.turn}turn)`));
           this.notify(`${op.ringKey}/${op.cellKey}/spin`);
           op.cell.elm.classList.remove("Menu__cell-selected");
-          op.turnHistory = op.turnHistory || [];
-          op.turnHistory.push({ turn: op.turn, t: emv.timeStamp });
-          if (op.turnHistory.length > 8) op.turnHistory.shift();
+          emv.turn = op.turn;
         }
         break;
       }
@@ -1070,15 +1068,12 @@ class Menu {
             `rotate(${-rotation * i - this.disk.turn}turn)`));
           this.notify(`${op.ringKey}/spin`);
           op.ring.cellElm.classList.remove("Menu__diskCell-selected");
-          op.turnHistory = op.turnHistory || [];
-          op.turnHistory.push({ turn: op.turn, t: emv.timeStamp });
-          if (op.turnHistory.length > 8) op.turnHistory.shift();
+          emv.turn = op.turn;
         }
         break;
       }
       case "grip": {
-        if (!op.moved) return; // insufficient movement
-        flung(emv); // store event for fling detection
+        if (!op.drag.moved) return; // insufficient movement
         // Move the menu while ensuring that the grip cannot be dragged out of the viewport
         this.elm.style.left = clamp(emv.clientX, 0, innerWidth) + "px";
         this.elm.style.top = clamp(emv.clientY, 0, innerHeight) + "px";
@@ -1091,55 +1086,33 @@ class Menu {
   }
 
   spinFling(op) {
-    let history = op.turnHistory;
-    if (!history || history.length < 2) return;
-    let now = history[history.length - 1].t;
-    let recent = history.filter(h => now - h.t <= 150);
+    let buf = op.drag.mvBuf.filter(e => e.turn != undefined);
+    if (buf.length < 2) return;
+    let now = buf[buf.length - 1].timeStamp;
+    let recent = buf.filter(e => now - e.timeStamp <= 150);
     if (recent.length < 2) return;
-    let dT = recent[recent.length - 1].t - recent[0].t;
+    let dT = recent[recent.length - 1].timeStamp - recent[0].timeStamp;
     if (!dT) return;
     let vel = (recent[recent.length - 1].turn - recent[0].turn) / dT; // turns/ms
-    if (Math.abs(vel) < 0.0005) return; // must be a definite fling
-
-    let isRing = op.state === "ring";
+    if (Math.abs(vel) < 0.0005) return;
+    let isRing = op.state == "ring";
     let obj = isRing ? op.ring : this.disk;
     let spinElm = isRing ? op.ring.elm : this.disk;
     let rotation = 1 / spinElm.childElementCount;
-    let children = [...spinElm.children];
-    let lastT = performance.now();
-    let turned = 0;
-
-    if (obj._spinRaf) cancelAnimationFrame(obj._spinRaf);
-
-    const applyTurn = (delta) => {
-      obj.turn += delta;
-      spinElm.style.transform = `rotate(${obj.turn}turn)`;
-      children.forEach((child, i) =>
-        child.firstElementChild.style.transform = `rotate(${-rotation * i - obj.turn}turn)`);
-    };
-
-    const step = (now) => {
-      let dt = now - lastT;
-      lastT = now;
-      vel *= Math.pow(0.5, dt / 500); // half-life ~500ms
-      if (Math.abs(vel) < 0.00006) { obj._spinRaf = null; return; }
-      let delta = vel * dt;
-      let remaining = 1 - Math.abs(turned);
-      if (Math.abs(delta) >= remaining) {
-        applyTurn(Math.sign(delta) * remaining); // land exactly at 1 turn
-        obj._spinRaf = null;
-        return;
-      }
-      turned += delta;
-      applyTurn(delta);
-      obj._spinRaf = requestAnimationFrame(step);
-    };
-    obj._spinRaf = requestAnimationFrame(step);
+    let coast = clamp(Math.abs(vel) * 300, 0.5, 5) * Math.sign(vel); // turns to coast
+    let dur   = clamp(Math.abs(coast / vel / 2), 0.3, 2).toFixed(2); // seconds
+    obj.turn += coast;
+    spinElm.style.transition = `transform ${dur}s ease-out`;
+    spinElm.style.transform  = `rotate(${obj.turn}turn)`;
+    [...spinElm.children].forEach((child, i) => {
+      child.firstElementChild.style.transition = `transform ${dur}s ease-out`;
+      child.firstElementChild.style.transform  = `rotate(${-rotation * i - obj.turn}turn)`;
+    });
   }
 
   opUp(eup) {
     let op = this.op;
-    op.fling.up(eup) ;
+    op.drag.up(eup);
     op.schedule.cancel();
     unlisten(op.moveListener, op.upListener);
     op.cell && op.cell.elm.classList.remove("Menu__cell-selected");
@@ -1147,7 +1120,9 @@ class Menu {
     this.grip.classList.remove("Menu__grip-selected");
     if (op.spun) { this.spinFling(op); return; }
     if(op.out) {
-      if(flung(null, eup)) {
+      if(op.drag.dXY && eup.timeStamp - op.e.timeStamp > 500) {
+        // hide with fling...but only after at least 500 msecs to a quick drag out
+        // gesture won't immediately hide the panel
         let panel = panels[op.cell.name + "Panel"]?.get(op.cell);
         if (panel) hide(panel.elm, dataIndex("tag", op.cell.elm).cellIcon);
       }
@@ -1162,37 +1137,35 @@ class Menu {
         this.notify(`${op.ringKey}/up`);
         break;
       case "grip":
-        if(op.moved) {
-          if (op.fling.dXY != undefined) {
-            if (!this.collapsed) this.collapse();
-            let dx = Math.cos(op.fling.dXY), dy = Math.sin(op.fling.dXY);
-            let W  = innerWidth,  H  = innerHeight;
-            let mx = this.elm.offsetLeft,  my = this.elm.offsetTop;
-            let tx = dx > 0 ? (W - mx) / dx : dx < 0 ? -mx / dx : Infinity;
-            let ty = dy > 0 ? (H - my) / dy : dy < 0 ? -my / dy : Infinity;
-            let t  = Math.min(tx, ty);
-            let corners = [
-              [W, 0, Math.PI/4 * 7],
-              [0, 0, Math.PI/4 * 5],
-              [0, H, Math.PI/4 * 3],
-              [W, H, Math.PI/4 * 1],
-            ];
-            let pull = Math.PI / 8;
-            let snapped = corners.find(([,, ca]) => {
-              let diff = Math.abs(((op.fling.dXY - ca + 3*Math.PI) % (2*Math.PI)) - Math.PI);
-              return diff < pull;
-            });
-            let ex = snapped ? snapped[0] : mx + t*dx;
-            let ey = snapped ? snapped[1] : my + t*dy;
-            let dist = Math.hypot(ex - mx, ey - my);
-            op.fling.power(0.5);
-            let dur = clamp(dist / (op.fling.vXY * 1000), 0.1, 3.0).toFixed(2);
-            this.elm.style.transition = `left ${dur}s, top ${dur}s`;
-            this.elm.style.left = ex + "px";
-            this.elm.style.top  = ey + "px";
-          }
+        if (op.drag.dXY) {
+          if (!this.collapsed) this.collapse();
+          let dx = Math.cos(op.drag.dXY), dy = Math.sin(op.drag.dXY);
+          let iW  = innerWidth,  iH  = innerHeight;
+          let mx = this.elm.offsetLeft,  my = this.elm.offsetTop;
+          let tx = dx > 0 ? (iW - mx) / dx : dx < 0 ? -mx / dx : Infinity;
+          let ty = dy > 0 ? (iH - my) / dy : dy < 0 ? -my / dy : Infinity;
+          let t  = Math.min(tx, ty);
+          let corners = [
+            [iW, 0, Math.PI/4 * 7],
+            [0,  0, Math.PI/4 * 5],
+            [0,  iH, Math.PI/4 * 3],
+            [iW, iH, Math.PI/4 * 1],
+          ];
+          let pull = Math.PI / 8;
+          let snapped = corners.find(([,, ca]) => {
+            let diff = Math.abs(((op.drag.dXY - ca + 3*Math.PI) % (2*Math.PI)) - Math.PI);
+            return diff < pull;
+          });
+          let ex = snapped ? snapped[0] : mx + t*dx;
+          let ey = snapped ? snapped[1] : my + t*dy;
+          let dist = Math.hypot(ex - mx, ey - my);
+          op.drag.power(0.5);
+          let dur = clamp(dist / (op.drag.vXY * 1000), 0.1, 3.0).toFixed(2);
+          this.elm.style.transition = `left ${dur}s, top ${dur}s`;
+          this.elm.style.left = ex + "px";
+          this.elm.style.top  = ey + "px";
         }
-        else if(eup.timeStamp - op.e.timeStamp < 200) this.notify("up");
+       else if(eup.timeStamp - op.e.timeStamp < 200) this.notify("up");
     }
   }
 
@@ -1329,18 +1302,7 @@ class Menu {
     // then moves ths panel's header to pointer location (this.op.e)
     let panel = panels[cell.name + "Panel"]?.get(cell);
     if (!panel) return;
-    if (panel.elm.style.visibility != "visible") {
-       this.op.launched = performance.now();
-       panel.show();
-     }
-
-     // we want the ability to fling-to-close the opened panel using same gesture that
-     // was used to open it, but don't want a quick fling after first open to have it
-     // close immediately, so no fling processing until 1/2 second after launching
-     // panel.
-     if(performance.now() - this.op.launched > 500)
-       flung(this.op.emv);
-
+    if (panel.elm.style.visibility != "visible") panel.show();
     Object.assign(panel.elm.style, {
       left: this.op.emv.clientX - panel.elm.offsetWidth / 2 + "px",
       top: this.op.emv.clientY + panel.panel.offsetHeight / 2 - panel.header.offsetHeight / 2 + "px",

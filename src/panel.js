@@ -31,6 +31,7 @@ import {
   delay,
   delayMs,
   dialog,
+  Drag,
   flung,
   fontMap,
   getBox,
@@ -39,7 +40,6 @@ import {
   iconSvg,
   listen,
   mergeRecent,
-  mvmt,
   pnToString,
   pxToEm,
   reflow,
@@ -54,7 +54,7 @@ import {
 import { iconPaths } from "./icon.js";
 import { escapeHtml, FileSrc, FileListView, FileSystemView, LocalFileView } from "./file.js";
 import { Layout } from "./layout.js";
-import { Pg, Score } from "./score.js";
+import { Score } from "./score.js";
 import { smuflTable } from "./smufl.js";
 import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
 export { Panel, panels, EditPanel, ScreenPanel, CurtainPanel };
@@ -101,71 +101,60 @@ class Select {
       top: calc(50% - .2em);
       line-height:0;
      }
-    .Select__list {
+    .Select__toggle:focus {
+      outline: 3px solid blue;
+    }
+    .Select__frame {
       border-radius:var(--borderRadius);
-      color:black;
       position:absolute;
+      overflow:hidden;
+      z-index: var(--z-modal);
+    }
+    .Select__sash {
+      color:black;
       text-align:left;
       background:white;
       font-family:Bravura;
-      overflow-y:scroll;
-      scrollbar-width:none;
-      z-index: var(--z-modal);
+      position:absolute;
     }
-    /* for older Safri and Firefox */
+    .Select__option {
+      padding: .25em;
+    }
+
+    /* for older Safari and Firefox */
     .Select__list::-webkit-scrollbar {
-      display: none;                                                                                                                                } 
+      display: none; 
+    } 
  `) ;
 
   elm = helm(`
     <div>
      <div data-tag="toggle" class="Select__toggle"></div>
-     <div data-tag="list" class="Select__list" style="visibility:hidden"></div>
+     <div data-tag="frame" class="Select__frame" style="visibility:hidden;">
+       <div class="Select__sash" data-tag="sash"></div>
+     </div>
     </div>`) ;
 
   constructor(options, option=null, panel) {
     Object.assign(this, dataIndex("tag", this.elm));
     Object.assign(this, {options, option, panel}) ;
-    delay(25, () => this.build()) ; // call build after we're confident panel is in the dom
+    delayMs(_gs_ + 1, () => this.build()) ; // call build after we're confident panel has animated (duration _gs_) to its full size
   }
 
   build() {
-    let keyBuf = '';
-    let {options, option, panel, toggle, list} = this ;
-
+    let {frame, options, option, panel, sash, toggle} = this ;
+    toggle.tabIndex = 0 ; // required for sash to be focused 
+    let keyBuf = "" ;
     let toggleStyle = getComputedStyle(toggle);
     let emPerPx = parseFloat(toggleStyle.fontSize) ;
-    toggle.style.width = list.style.width = parseFloat(toggleStyle.width) / emPerPx + "em";
-    list.style.height = ((getBox(panel.body).bottom - getBox(toggle).bottom) / emPerPx) + "em" ;
-
-    for(let option of options) list.append(helm(`<div style="padding:.25em">${option}</div>`)) ;
-
-    // remember the initial list height (in style format, with "px")
-    let listHeight = list.offsetHeight + "px";
-
-    function gage(e, eup, client="clientY", jitter=6) {
-      // Return velocity in px/msec of a user gesture on pointerup as part of (pointerdown(e), pointermove(emv), pointerup(eup) sequence
-      // e.mvBuffer must exist, format: [ {p:...,t:...},...], where p is point (emv.clientX or emv.clientY) and t is emv.timestamp
-      // client set to "clientX" to compute horizontally
-      // jitter: movement < jitter px is not considered
-      // @return vel (+/- shows direction, 0 means moved but stopped, null means never moved (except for jitter)
-      // NOTE: we may eventually want to move this function to common.js and use it to measure user's velocity in layouts too.
-      // That is why we have a "client" argument.
-      let buf = e.mvBuffer;
-      let moved = buf.length? Math.max(...buf.map(ev => Math.abs(ev.p - e[client]))) : Math.abs(eup[client] - e[client]); // max mvm
-      if(moved <= jitter) return null ;  // no mvm
-      if(!buf.length || eup.timeStamp - buf.at(-1).t > 100) return 0 ; // moved but stopped
-      let recent = buf.filter(ev => eup.timeStamp - ev.t <= 150) ;
-      let velBuf = recent.length >=2 ? recent : buf ;
-      if(velBuf.length < 2) return 0 ; // moved but stopped
-      let first = velBuf[0], last = velBuf.at(-1);
-      let dt = last.t - first.t ;
-      return dt > 0 ? (first.p - last.p) / dt : 0 ;
-    }
+    toggle.style.width = frame.style.width = sash.style.width = parseFloat(toggleStyle.width) / emPerPx + "em";
+    let frameHeight = frame.style.height = ((getBox(panel.panel).bottom - getBox(frame).top) / emPerPx) -.5 + "em" ;
+    // Add in all the options:
+    for(let option of options) sash.append(helm(`<div class="Select__option">${option}</div>`)) ;
 
     let selectOption = (option, matched=null) => {
       // called when an option is selected by user, either by clicking the option or by 
-      // matching the option's text through typing. matched, if non-null, contains the
+      // matching the option's text through keyboard input. @matched, if non-null, contains the
       // chars in option that were matched by keyBuf (user's typed chars)
       if(matched) {
         let re =  new RegExp(matched, "i");
@@ -175,94 +164,99 @@ class Select {
       toggle.dispatchEvent(new CustomEvent('SELECTED', { detail:option}));
     }
 
-    list.tabIndex = 0;
-
-    let closeList = () => {
-      if(list.style.visibility == "hidden") return;
-      animate(list, null, {height:0}, "height .35s", () => { list.style.visibility = "hidden"; list.style.height = listHeight; });
+    let closeFrame = () => {
+      if(frame.style.visibility == "hidden") return;
+      animate(frame, null, {height:0}, "height .35s", () => frame.style.visibility = "hidden");
       keyBuf = "";
-      list.blur();
+//      toggle.blur();
     };
 
     let l1 = listen(this.toggle,"pointerdown", (e) => {
-      if(list.style.visibility == "hidden") {
-        list.style.visibility = "visible" ;
-        animate(list, {height:0}, {height:listHeight}, "height .35s", () => list.focus());
+      if(frame.style.visibility == "hidden") {
+        frame.style.visibility = "visible" ;
+        animate(frame, {height:0}, {height:frameHeight}, "height .35s", () => sash.focus());
       }
-      else {
-        closeList();
-      }
+      else closeFrame() ;
     });
 
-    let l2 = listen(list,"pointerdown", (e) => {
-      list.setPointerCapture(e.pointerId);
-      let top = list.scrollTop;
-      e.mvBuffer = []; // buffer for fling velocity calculation
-      let mv = listen(list, "pointermove", (emv) => {
-        e.emv = emv ;
-        e.mvBuffer.push({ p: emv.clientY, t: emv.timeStamp });
-        if (e.mvBuffer.length > 5) e.mvBuffer.shift();
-        list.scrollTop = top + e.clientY - emv.clientY;
-      });
-      listen(list, "pointerup", (eup) => {
-        unlisten(mv);
+    let l2 = listen(sash,"pointerdown", (e) => {
+      let drag = new Drag(e) ;
+      sash.setPointerCapture(e.pointerId);
+      let top = sash.offsetTop;
+      let sashLimit = frame.offsetHeight - sash.offsetHeight ;
 
-      let vel = gage(e, eup) ;
-      switch(vel) {
-        case 0: return ; // moved but not flung
-        case null: // not moved, i.e. jab or click
+      let mv = listen(sash, "pointermove", (emv) => {
+        drag.mv(emv) ;
+        sash.style.top = clamp(top + emv.clientY - e.clientY, sashLimit, 0) + "px" ;
+      });
+
+      listen(sash, "pointerup", (eup) => {
+        drag.up(eup) ;
+        unlisten(mv);
+        if(drag.jab) {
           if(this.target) this.target.style.background = "none" ;
           this.target = e.target ;
           this.target.style.background = "#aaa" ;
-          closeList();
+          closeFrame();
           return selectOption(e.target.textContent) ;
-        default: // flung
-          let abs= Math.abs(vel) ;
-          let screens = abs > 1? 4: abs > .5 ? 2: .8;
-          list.scrollTo({ top:  list.scrollTop + Math.sign(vel) * screens * list.offsetHeight,  behavior: 'smooth' }) ; }
+        }
+        else if (drag.vY) {
+          let { to, dt } = Drag.fling(sash.offsetTop, frame.offsetHeight - sash.offsetHeight, 0, drag.vY);
+          animate(sash, null, { top: to + "px" }, `top ${dt}ms ease-out`);
+        } 
       }, { once:true}) ;
     }); 
 
-    let l3 = listen(list, "keydown", (e) => {
-      if(e.key == "Home") return list.scrollTo({ top: 0, behavior: 'smooth'});
-      if(e.key == "End") return list.scrollTo({ top: Number.MAX_SAFE_INTEGER, behavior: 'smooth'});
-      if(e.key == "ArrowDown" || e.key == "ArrowUp") {
-        let optionHeight = list.scrollHeight / options.length;
-        list.scrollTop += e.key == "ArrowDown" ? optionHeight : -optionHeight;
-        e.stopPropagation();
-        return;
+    let l3 = listen(toggle, "keydown", (e) => {
+      e.stopPropagation();
+
+      let sashTop = null;
+      switch(e.key) {
+        case "Home": sashTop = "0" ; break ;
+        case "End": sashTop = frame.offsetHeight - sash.offsetHeight ; break;
+        case "ArrowDown":
+          if(this.frame.style.visibility == "hidden") return this.frame.style.visibility = "visible" ;
+        case "ArrowUp": 
+          let optionHeight = sash.scrollHeight / options.length;
+          sashTop = sash.offsetTop + (e.key == "ArrowDown" ? optionHeight : -optionHeight);
+          break;
+        case "Backspace":
+        case "Delete": 
+          keyBuf = keyBuf.slice(0,-1) ;
+        default: 
+          if(/^[a-zA-Z0-9 .]$/.test(e.key)) keyBuf += e.key;
+          let lineNumber = 0 ;
+          let opt = options.find((str) => { ++lineNumber ; return new RegExp(keyBuf, "i").test(str);}) ;
+          if(opt) {
+            selectOption(opt, keyBuf) ;
+            sashTop = frame.offsetHeight/2 - sash.offsetHeight * (lineNumber / options.length) ;
+            if(this.target) this.target.style.background = "none" ;
+            this.target = sash.children[lineNumber-1] ;
+            this.target.style.background = "#aaa" ;
+          }
+          else keyBuf = keyBuf.slice(0,-1) ;
       }
-      if(e.key == "Backspace" || e.key == "Delete") keyBuf = keyBuf.slice(0,-1) ;
-      else if(! /^[a-zA-Z0-9 .]$/.test(e.key)) return;
-      else keyBuf += e.key;
-      let lineNumber = 0 ;
-      let opt = options.find((str) => { ++lineNumber ; return new RegExp(keyBuf, "i").test(str);}) ;
-      if(opt) {
-        selectOption(opt, keyBuf) ;
-        list.scrollTo({
-          top: (lineNumber / options.length) * list.scrollHeight - list.offsetHeight / 2,
-          behavior: 'smooth'
-        });
-        if(this.target) this.target.style.background = "none" ;
-        this.target = list.children[lineNumber-1] ;
-        this.target.style.background = "#aaa" ;
+      if(sashTop) {
+        sashTop = clamp(sashTop, frame.offsetHeight - sash.offsetHeight, 0) ;
+        animate(sash, null, { top: sashTop + "px"}, `top ${Drag.scrollDur(sash.offsetTop -sashTop)}ms ease-out`) ;
       }
-      else keyBuf = keyBuf.slice(0,-1) ;
     })
 
-    panel.listeners.push(l1, l2, l3, listen(panel.elm, 'panelhide', closeList)) ;
+    panel.listeners.push(l1, l2, l3) ;
 
     if(option) {
       let lineNumber = 0 ;
       let opt = options.find((str) => { ++lineNumber ; return option == str;}) ;
       if(opt) {
         selectOption(opt, keyBuf) ;
-        list.scrollTop = (lineNumber / options.length) * list.scrollHeight - list.offsetHeight / 2 ;
+        sash.scrollTop = (lineNumber / options.length) * sash.scrollHeight - sash.offsetHeight / 2 ;
         if(this.target) this.target.style.background = "none" ;
-        this.target = list.children[lineNumber-1] ;
+        this.target = sash.children[lineNumber-1] ;
         this.target.style.background = "#aaa" ;
       }
     }
+
+    this.toggle.focus();
   }
 }
 
@@ -423,6 +417,7 @@ class Panel {
           this.constrain();
       }
     }));
+
   }
 
   hidden() { 
@@ -480,17 +475,19 @@ class Panel {
     this.setIcon(this.cell.svgPath);
     this.setTitle(this.cell.name);
     elm.style.visibility = "visible";
-    let fontSize = elm.style.fontSize;
-    elm.style.fontSize = 0;
-    elm.style.transition = "font-size 0.35s";
     if (!elm.isConnected) _body_.append(elm);
-    listen(elm,"transitionend", () => {
-        elm.style.transition = "unset";
-        if(onShown) onShown();
-      },
-      { once:true});
+    let dy = this.header.offsetHeight / 2 - this.panel.offsetHeight / 2;
+    elm.style.transformOrigin = `0px ${dy}px`;
+    elm.style.transform = "scale(0)";
     reflow();
-    elm.style.fontSize = fontSize;
+    elm.style.transition = `transform ${_gs_}ms`;
+    listen(elm, "transitionend", () => {
+        elm.style.transition = "unset";
+        elm.style.transform = "unset";
+        if(onShown) onShown();
+      }, { once: true });
+    reflow();
+    elm.style.transform = "scale(1)";
     _pzTarget_ = elm;
     let clazz = this.constructor.name ;
     if (this != _panels_.screen && clazz != "ScreenPanel") {
@@ -502,7 +499,6 @@ class Panel {
   }
 
   hide() {
-    this.elm.dispatchEvent(new CustomEvent('panelhide'));
     hide(this.elm, dataIndex("tag", this.cell.elm).cellIcon);
     this.hidden();
   }
@@ -2088,6 +2084,7 @@ class RastrumPanel extends PencilPanel {
 }
 
 class TextPanel extends PencilPanel {
+
   slidersDef = {
     size: { min: 1, max: 100, step: 1, value: 1, msg: "Size: {value} px"},
     height: { min: 1, max: 100, step: 1, value: 1, msg: "Spacing: {value} px"},
@@ -2153,6 +2150,7 @@ class TextPanel extends PencilPanel {
       });
     }
   }
+
 }
 
 class ReviewPanel extends Panel {
@@ -2866,7 +2864,7 @@ class SymbolsPanel extends Panel {
 
   content = helm(`
      <div data-tag="body" class="Panel__body">
-       <div class="SymbolsPanel__frame" data-tag="frame">
+       <div class="SymbolsPanel__frame" data-tag="gridFrame">
          <div class="SymbolsPanel__grid" data-tag="grid"></div>
        </div>
       <div style="padding-top: var(--spacing-sm)">Group<div>
@@ -2886,6 +2884,7 @@ class SymbolsPanel extends Panel {
     // Create a Select (similar to an html <select>)
     let select = new Select(Object.keys(smuflTable), stash.group, this) ;
     this.select.replaceWith(select.elm) ;
+    this.select = select ;
 
     listen(select.toggle, "SELECTED", (e) => {
        let key = stash.group = e.detail;
@@ -2901,19 +2900,19 @@ class SymbolsPanel extends Panel {
 
     }) ;
 
-    let l1 = listen(this.frame, "pointerdown", (e) => {
-      this.frame.setPointerCapture(e.pointerId);
+    let l1 = listen(this.gridFrame, "pointerdown", (e) => {
+      this.gridFrame.setPointerCapture(e.pointerId);
       let startY = e.clientY;
-      let startScrollTop = this.frame.scrollTop;
+      let startScrollTop = this.gridFrame.scrollTop;
       let moved = false;
 
-      let mv = listen(this.frame, "pointermove", (emv) => {
+      let mv = listen(this.gridFrame, "pointermove", (emv) => {
         let dy = emv.clientY - startY;
         if (!moved && Math.abs(dy) > 4) moved = true;
-        if (moved) this.frame.scrollTop = startScrollTop - dy;
+        if (moved) this.gridFrame.scrollTop = startScrollTop - dy;
       });
 
-      let l2 = listen(this.frame, "pointerup", (eup) => {
+      let l2 = listen(this.gridFrame, "pointerup", (eup) => {
         unlisten(mv);
         if (!moved) {
           let target = document.elementFromPoint(eup.clientX, eup.clientY)
@@ -2981,6 +2980,12 @@ class SymbolsPanel extends Panel {
       active.canvas.requestRenderAll();
     }
   }
+
+  show() {
+    super.show();
+    this.select.toggle.focus();
+  }
+
 }
 
 class PianoPanel extends Panel {

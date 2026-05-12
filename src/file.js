@@ -21,7 +21,7 @@
 **/
 
 export { checkUnsaved, escapeHtml, FileSrc, FileListView, FileSystemView, LocalFileView };
-import { css, ButtonGroup, clamp, clearChildren, dataIndex, delay, getBox, helm, iconSvg, listen, mvmt, dialog, Schedule, strToHash, toast, unlisten } from "./common.js";
+import { css, ButtonGroup, clamp, clearChildren, dataIndex, delay, Drag, getBox, helm, iconSvg, listen, dialog, Schedule, strToHash, toast, unlisten } from "./common.js";
 import { Score } from "./score.js";
 import { panels } from "./panel.js";
 // -skip
@@ -2035,29 +2035,30 @@ class FileListView {
   }
 
   onListDown(e) {
+
+console.log("add a keyboard nav to this guy") ;
     let elm = this.flvList;
     elm.style.transition = "unset";
     let origin = elm.offsetTop;
     let minTop = this.flvList__frame.offsetHeight - elm.offsetHeight;
     if (this.panel.mode == "save") minTop -= this.fsvSave.offsetHeight;
     elm.setPointerCapture(e.pointerId);
-    e.mv1 = e.mv0 = e;
+    let drag = new Drag(e);
 
     let mv = listen(elm, "pointermove", (emv) => {
-      if (mvmt(e, emv)) elm.style.top = clamp(origin + emv.clientY - e.clientY, minTop, 0) + "px";
-      e.mv1 = e.mv0;
-      e.mv0 = emv;
+      drag.mv(emv) ;      
+      if (drag.moved) elm.style.top = clamp(origin + emv.clientY - e.clientY, minTop, 0) + "px";
     });
 
     listen(
       elm,
       "pointerup",
       async (eup) => {
+        drag.up(eup);
         unlisten(mv);
-        if (mvmt(e, eup)) {
+        if (drag.moved) {
           elm.style.transition = "1s top ease-out";
-          let speed = (e.mv0.clientY - e.mv1.clientY) / Math.max(eup.timeStamp - e.mv0.timeStamp, e.mv0.timeStamp - e.mv1.timeStamp);
-          return (elm.style.top = clamp(elm.offsetTop + speed * 500, minTop, 0) + "px");
+          return (elm.style.top = clamp(elm.offsetTop + drag.vY * 1000, minTop, 0) + "px");
         }
         let fileElm = e.target.closest(".Flv-list__file");
         if (!fileElm) return;
@@ -2300,18 +2301,23 @@ class FileSystemView extends FileListView {
   }
 
   onPathDown(e) {
+console.log("ouch") ;
+    let drag = new Drag(e);
     let elm = this.fsvPath;
     let origin = elm.offsetLeft;
     let minLeft = this.fsv.offsetWidth - elm.offsetWidth;
     elm.setPointerCapture(e.pointerId);
 
     let mv = listen(elm, "pointermove", (emv) => {
-      if(mvmt(e,emv)) elm.style.left = clamp(origin + emv.clientX - e.clientX, minLeft, 0) + "px";
+      drag.mv(emv) ;
+      if(drag.moved) elm.style.left = clamp(origin + emv.clientX - e.clientX, minLeft, 0) + "px";
     });
 
     listen(elm, "pointerup", async (eup) => {
+////
+      drag.up(eup) ;
       unlisten(mv);
-      if (!mvmt(e,eup)) {
+//      if (fling.moved) {
         if(e.target.dataset.tag == "newDir") return await this.putDir(this.path);
         let target = e.target.closest(".Flv-path__dir");
         if (target) {
@@ -2319,7 +2325,7 @@ class FileSystemView extends FileListView {
           await this.setPath(target.dataset.path, refresh);
           if (refresh) toast("Refreshed");
         }
-      }
+//      }
     },
     { once: true });
   }

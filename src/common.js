@@ -25,7 +25,7 @@ export {
   css,
   cssIndex,
   dialog,
-  Fling,
+  Drag,
   flung,
   Schedule,
   schedule,
@@ -982,6 +982,100 @@ class Curtain {
 
 window._curtain_ = new Curtain() ; // create the singleton
 
+/**
+  class Drag
+**/
+
+
+class Drag {
+  jabMaxDuration     = 150;  // ms
+  jabMaxDisplacement = 10;   // px
+  jitterThreshold    = 8;    // px
+  terminalWindow     = 100;  // ms
+  minVelocity        = 0.3;  // px/ms
+  mvBufMax           = 20;   // max pointermove events to retain
+
+  constructor(edown, opts = {}) {
+    Object.assign(this, opts);
+    this.edown    = edown;
+    this.mvBuf    = [edown];
+    this.jab      = false;
+    this.lift     = false;
+    this.moved    = false;
+    this.duration = 0;
+  }
+
+  mv(e) {
+    this.mvBuf.push(e);
+    if (this.mvBuf.length > this.mvBufMax) this.mvBuf.shift();
+    if (!this.moved)
+      this.moved = Math.hypot(e.clientX - this.edown.clientX, e.clientY - this.edown.clientY) > this.jitterThreshold;
+  }
+
+  up(e) {
+    this.duration = e.timeStamp - this.edown.timeStamp;
+    let displacement = Math.hypot(e.clientX - this.edown.clientX, e.clientY - this.edown.clientY);
+    if (this.duration < this.jabMaxDuration && displacement < this.jabMaxDisplacement)
+      { this.jab = true; return this; }
+    if (displacement < this.jitterThreshold)
+      { this.lift = true; return this; }
+    let termBuf = this.mvBuf.filter(ev => e.timeStamp - ev.timeStamp <= this.terminalWindow);
+    if (termBuf.length < 2) { this.lift = true; return this; }
+    let first = termBuf[0], last = termBuf[termBuf.length - 1];
+    let dt = last.timeStamp - first.timeStamp;
+    if (dt == 0) { this.lift = true; return this; }
+    this.vX = (last.clientX - first.clientX) / dt;
+    this.vY = (last.clientY - first.clientY) / dt;
+    this.vXY = Math.hypot(this.vX, this.vY);
+    let d = Math.atan2(this.vY, this.vX);
+    this.dXY = d < 0 ? d + 2 * Math.PI : d;
+    if (this.vXY < this.minVelocity) {
+      let scale = this.minVelocity / this.vXY;
+      this.vX *= scale; this.vY *= scale;
+      this.vXY = this.minVelocity;
+    }
+    return this;
+  }
+
+  power(exp = 1.5) {
+    let apply = v => Math.sign(v) * Math.pow(Math.abs(v), exp);
+    this.vX  = apply(this.vX);
+    this.vY  = apply(this.vY);
+    this.vXY = Math.hypot(this.vX, this.vY);
+    return this;
+  }
+
+  boost(threshold = 0.5, exp = 1.5) {
+    let apply = v => {
+      let a = Math.abs(v);
+      return a <= threshold ? v : Math.sign(v) * (threshold + Math.pow(a - threshold, exp));
+    };
+    this.vX  = apply(this.vX);
+    this.vY  = apply(this.vY);
+    this.vXY = Math.hypot(this.vX, this.vY);
+    return this;
+  }
+
+  // Compute kinematic fling destination and duration using constant deceleration.
+  // vel: drag velocity in px/msec. Usually drag.vX or drag.vY.
+  // pos: current position in px; min/max: clamped bounds for the destination.
+  // k: deceleration constant (px/ms²) — larger = shorter flings.
+  // Returns { to: destination in px, dt: animation duration in ms }.
+  static fling(pos, min, max, vel, k = 0.001) {
+    let dT = clamp(Math.abs(vel) / k, 200, 3000);
+    let d  = vel * dT / 2;
+    let to = clamp(pos + d, min, max);
+    let dt = Math.abs(to - pos) > 1 ? clamp(Math.abs(2 * (to - pos) / vel), 200, 3000) : 0;
+    return { to, dt };
+  }
+
+   // Compute transition duration using an exponential curve.
+  static scrollDur(distance) {
+    return clamp( 80 * Math.pow(Math.abs(distance), 0.45), 60, 650) ;
+  }
+
+
+}
 
 
 /**
@@ -991,6 +1085,7 @@ class PodumSlider
   Podium "wrap" html elements to provide additional functionality, but
   the PodiumSlider and PodiumInput defines a new, "custom" html elements.
 **/
+
 
 class PodiumSlider extends HTMLElement {
   static get observedAttributes() {
@@ -1600,14 +1695,14 @@ class Surface {
       _body_.setPointerCapture(e.pointerId);
       longPresser.run(_longPressMs_, () => this.onSurfaceEvent("press"));
       let dX = e.offsetX, dY = e.offsetY; // warning: e can be gc'ed before mv references it.
+      let fling = new Drag(e);
       let mv = listen(_body_, "pointermove", (emv) => {
-        flung(emv); // store event for fling detection
+        fling.mv(emv) ;
         if (surface.parentElement == _body_) {
           surface.style.left = clamp(emv.clientX - dX, 0, maxLeft) + "px";
           surface.style.top = clamp(emv.clientY - dY, 0, maxTop) + "px";
-          mvmt(e, emv);
         }
-        else if (mvmt(e, emv)) {
+        else if (fling.moved) {
           // attach surface to document body
           longPresser.cancel();
           surface.style.fontSize = panel.elm.style.fontSize;
@@ -1623,17 +1718,17 @@ class Surface {
       });
 
       listen(_body_, "pointerup", (eup) => {
+        fling.up(eup) ;
         longPresser.cancel();
         unlisten(mv);
         let downTime = eup.timeStamp - e.timeStamp;
-        if (flung(null, eup)) { // fling detected
+        if (fling.dXY) { // fling detected
           hide(surface, dataIndex("tag", this.panel.cell.elm).cellIcon);
           if (this.panel.constructor != ScreenPanel) ScreenPanel.update(null);
         }
         else if (downTime < _longPressMs_) this.onSurfaceEvent("click");
       }, { once: true });
     }));
-g
     delay(2, () => this.build());
   }
 
@@ -1778,10 +1873,12 @@ class TabView {
       delay(5, () =>
         this.panel.listeners.push(
           listen(this.sash, "pointerdown", (e) => {
+            let fling = new Drag(e);
             let offsetX = e.clientX - this.sash.offsetLeft;
             let limit = this.sash.offsetWidth - this.frame.offsetWidth;
             let mv = listen(this.sash, "pointermove", (emv) => {
-              if (mvmt(e, emv, 96, 1000))
+              fling.mv(emv) ;
+              if (fling.moved)
                 this.sash.setPointerCapture(e.pointerId);
               this.sash.style.left =
                 clamp(emv.clientX - offsetX, -limit, 0) + "px";
@@ -1953,77 +2050,6 @@ function flung(emv, eup=null) {
 }
 
 
-class Fling {
-  jabMaxDuration     = 150;  // ms
-  jabMaxDisplacement = 10;   // px
-  jitterThreshold    = 8;    // px
-  terminalWindow     = 100;  // ms
-  minVelocity        = 0.3;  // px/ms
-  mvBufMax           = 20;   // max pointermove events to retain
-
-  constructor(edown, opts = {}) {
-    Object.assign(this, opts);
-    this.edown    = edown;
-    this.mvBuf    = [edown];
-    this.jab      = false;
-    this.lift     = false;
-    this.duration = 0;
-  }
-
-  mv(e) {
-    this.mvBuf.push(e);
-    if (this.mvBuf.length > this.mvBufMax) this.mvBuf.shift();
-  }
-
-  up(e) {
-    this.duration = e.timeStamp - this.edown.timeStamp;
-    let displacement = Math.hypot(e.clientX - this.edown.clientX, e.clientY - this.edown.clientY);
-    if (this.duration < this.jabMaxDuration && displacement < this.jabMaxDisplacement)
-      { this.jab = true; return this; }
-    if (displacement < this.jitterThreshold)
-      { this.lift = true; return this; }
-    let termBuf = this.mvBuf.filter(ev => e.timeStamp - ev.timeStamp <= this.terminalWindow);
-    if (termBuf.length < 2) { this.lift = true; return this; }
-    let first = termBuf[0], last = termBuf[termBuf.length - 1];
-    let dt = last.timeStamp - first.timeStamp;
-    if (dt == 0) { this.lift = true; return this; }
-    this.vX = (last.clientX - first.clientX) / dt;
-    this.vY = (last.clientY - first.clientY) / dt;
-    this.vXY = Math.hypot(this.vX, this.vY);
-    let d = Math.atan2(this.vY, this.vX);
-    this.dXY = d < 0 ? d + 2 * Math.PI : d;
-    if (this.vXY < this.minVelocity) {
-      let scale = this.minVelocity / this.vXY;
-      this.vX *= scale; this.vY *= scale;
-      this.vXY = this.minVelocity;
-    }
-    this.mvBuf.length = 0;
-    return this;
-  }
-
-  power(exp = 1.5) {
-    // we not using this afaik
-    let apply = v => Math.sign(v) * Math.pow(Math.abs(v), exp);
-    this.vX  = apply(this.vX);
-    this.vY  = apply(this.vY);
-    this.vXY = Math.hypot(this.vX, this.vY);
-    return this;
-  }
-
-  boost(threshold = 0.5, exp = 1.5) {
-    // we not using this afaik
-    let apply = v => {
-      let a = Math.abs(v);
-      return a <= threshold ? v : Math.sign(v) * (threshold + Math.pow(a - threshold, exp));
-    };
-    this.vX  = apply(this.vX);
-    this.vY  = apply(this.vY);
-    this.vXY = Math.hypot(this.vX, this.vY);
-    return this;
-  }
-}
-
-
 let fontMap = {
   // map pdf font names to html canvas font structures.
   Courier: { fontFamily: "Courier", fontStyle: "normal", fontWeight: "normal" },
@@ -2131,6 +2157,7 @@ function hide(elm, onElm) {
     elm.style.left = left;
     elm.style.top = top;
     elm.style.visibility = "hidden";
+    elm.style.top = "-9999px";
     elm.style.transition = "unset";
     elm.style.fontSize = fontSize;
     elm.hiding = false;
