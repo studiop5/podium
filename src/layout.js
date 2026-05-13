@@ -2077,7 +2077,6 @@ class TableLayout extends Layout {
     }
   }
 
-
   async onDown(e) {
     if (await super.onDown(e)) return;
     this.layout.setPointerCapture(e.pointerId);

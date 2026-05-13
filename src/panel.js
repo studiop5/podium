@@ -1688,7 +1688,7 @@ class MetronomePanel extends Panel {
     super(cell);
     this.body.replaceWith(this.content);
     Object.assign(this, dataIndex("tag", this.content));
-    cell.stash.state = "Pause";
+    cell.stash.state = "Play"; // i.e. show "Play" on launch, metronome will be paused
     this.patterns.value = cell.stash.pattern;
     let metronome = (this.metronome = new Metronome(this));
     Object.assign(metronome, this.cell.stash);
@@ -1702,14 +1702,22 @@ class MetronomePanel extends Panel {
     this.mediaGroup = new ButtonGroup(
       this.cell.stash,
       {
-        Play: { svg: "Play", redo: true, radio: "state" },
-        Pause: { svg: "Pause", redo: true, radio: "state" },
+        Play: { svg: "Play", redo: true, toggle: "state" },
+        Pause: { svg: "Pause", redo: true, toggle: "state" },
+        Show: { svg: "ShowTrace", toggle: "trace" },
+        Hide: { svg: "HideTrace", toggle: "trace" } ,
       },
       (e, prop, tag) => {
-        cell.stash.state = tag;
-        tag == "Play" ? metronome.play(true) : metronome.play(false);
-      }
-    );
+        if(prop == "trace") {
+          cell.stash.trace = (tag == "Show") ? "Hide": "Show" ;
+          metronome.showTrace(tag == "Show") ;
+        }
+        else if(prop == "state") {
+          cell.stash.state = (tag == "Play") ? "Pause":"Play" ;
+          tag == "Play" ? metronome.play(true) : metronome.play(false);
+        }
+        this.mediaGroup.refresh() ;
+    });
     this.content.append(this.mediaGroup.elm);
     this.mediaGroup.refresh();
 
@@ -1757,6 +1765,7 @@ class MetronomePanel extends Panel {
     this.offsetGroup.refresh();
 
     this.metronome.setPattern(cell.stash.pattern);
+    this.metronome.showTrace(cell.stash.Trace);
   }
 
   destructor() {
@@ -3177,7 +3186,7 @@ class StopwatchPanel extends Panel {
         if (tag == "Start") stopWatch.start();
         else if (tag == "Stop") stopWatch.stop();
         else if (tag == "Split") stopWatch.split();
-        else if (tag == "Reset") stopWatch.reset();
+        else if (tag == "Reset") stopWatch.reset(); 
       }
     );
     this.options.replaceWith(this.optionsGroup.elm);

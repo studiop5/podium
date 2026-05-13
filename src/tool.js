@@ -1114,7 +1114,9 @@ class Metronome
 class Metronome extends Surface {
   // svg definition of a baton held in a conductor's hand
 conductor = `<defs>
-  <g transform="scale(3.5 3.5) translate(-25 -25)" id="marker" fill="#eebb99" stroke="#000000" strokeWidth="0.264583px" strokeLinecap="butt" strokeLinejoin="miter" strokeOpacity="1"> <path d="M 25.5,20.4 c 0.3,1.1 1.0,2.1 1.7,3.0 m -0.3,-0.4 z m -1.0,-2.4 z m -1.0,-0.6 c 0.1,0.0 1.2,0.3 0.6,0.1 m 2.1,2.9 c 0.9,0.4 1.7,-0.2 2.4,-0.6 m -1.4,2.4 c 1.1,-1.7 3.0,-3.0 5.1,-2.6 m -7.1,1.7 c -1.6,0.5 -3.1,1.0 -4.7,1.5 -1.8,-2.5 4.1,-3.7 4.6,-1.8 l 0.1,0.2 z m 7.1,-1.4 c -0.3,1.1 -0.6,2.3 -0.9,3.4 M 10.1,18.5 9.4,18.8 8.8,19.1 m 12.3,6.5 c -1.1,2.7 -3.4,3.4 -5.9,4.0 m 12.6,1.2 c -2.5,0.4 -3.9,2.8 -5.2,4.7 m 6.9,-5.3 c -1.7,-1.9 1.2,-6.0 -2.4,-6.3 m -6.2,-4.8 c 0.3,2.4 3.4,3.6 4.5,1.3 l -0.2,-0.5 m -4.8,0.7 c -1.1,3.2 -6.0,0.3 -6.0,0.2 0.3,0.6 0.6,1.2 1.0,1.8 M 27.7,21.3 c 0.4,-0.5 1.2,-1.0 1.7,-0.3 m -7.4,-1.5 c 0.6,-0.1 1.1,-0.3 1.7,-0.4 m -2.2,0.1 c 0.5,-0.6 1.3,-1.0 2.1,-1.0 m -5.9,0.2 c -1.7,0.0 -0.6,2.5 0.3,0.7 l 0.3,0.0 0.7,0.0 m 2.0,0.2 c -1.7,-2.7 -6.0,-5.2 -8.0,-1.7 -0.1,1.4 -0.5,5.7 -1.7,2.2 -1.2,-1.8 0.1,-7.4 -3.6,-5.4 -1.9,3.9 1.7,7.9 1.2,11.9 0.5,5.4 3.9,10.2 3.6,15.8 -0.5,2.9 2.2,6.0 4.5,3.0 3.2,-1.9 7.6,-0.9 10.1,-4.0 3.7,-2.1 7.8,-4.9 8.2,-9.5 0.8,-3.6 -2.9,-6.0 -0.7,-9.5 m -16.3,-5.4 c 1.4,-3.3 6.2,-1.8 6.2,1.6 1.2,2.0 1.1,3.9 -1.6,3.5 -1.6,-1.6 -3.0,-3.5 -4.6,-5.1 z m 7.0,1.3 c 0.2,-4.7 6.6,-3.0 5.9,0.9 0.5,2.3 0.7,7.1 -3.0,5.2 -2.2,-1.2 -2.5,-3.8 -2.9,-6.0 M 93.2,5.7 C 69.4,11.7 45.5,17.7 21.8,23.8 c 0.0,2.6 3.0,0.5 4.4,0.4 C 48.6,18.2 71.0,12.3 93.4,6.3 93.4,6.1 93.3,5.9 93.2,5.7 Z"/>
+  <g transform="scale(3.5 3.5) translate(-25 -25)" id="marker" fill="#eb9" stroke="#aaa" strokeWidth="0.2px" strokeLinecap="butt" strokeLinejoin="miter" strokeOpacity="1"> <path d="M 25.5,20.4 c 0.3,1.1 1.0,2.1 1.7,3.0 m -0.3,-0.4 z m -1.0,-2.4 z m -1.0,-0.6 c 0.1,0.0 1.2,0.3 0.6,0.1 m 2.1,2.9 c 0.9,0.4 1.7,-0.2 2.4,-0.6 m -1.4,2.4 c 1.1,-1.7 3.0,-3.0 5.1,-2.6 m -7.1,1.7 c -1.6,0.5 -3.1,1.0 -4.7,1.5 -1.8,-2.5 4.1,-3.7 4.6,-1.8 l 0.1,0.2 z m 7.1,-1.4 c -0.3,1.1 -0.6,2.3 -0.9,3.4 M 10.1,18.5 9.4,18.8 8.8,19.1 m 12.3,6.5 c -1.1,2.7 -3.4,3.4 -5.9,4.0 m 12.6,1.2 c -2.5,0.4 -3.9,2.8 -5.2,4.7 m 6.9,-5.3 c -1.7,-1.9 1.2,-6.0 -2.4,-6.3 m -6.2,-4.8 c 0.3,2.4 3.4,3.6 4.5,1.3 l -0.2,-0.5 m -4.8,0.7 c -1.1,3.2 -6.0,0.3 -6.0,0.2 0.3,0.6 0.6,1.2 1.0,1.8 M 27.7,21.3 c 0.4,-0.5 1.2,-1.0 1.7,-0.3 m -7.4,-1.5 c 0.6,-0.1 1.1,-0.3 1.7,-0.4 m -2.2,0.1 c 0.5,-0.6 1.3,-1.0 2.1,-1.0 m -5.9,0.2 c -1.7,0.0 -0.6,2.5 0.3,0.7 l 0.3,0.0 0.7,0.0 m 2.0,0.2 c -1.7,-2.7 -6.0,-5.2 -8.0,-1.7 -0.1,1.4 -0.5,5.7 -1.7,2.2 -1.2,-1.8 0.1,-7.4 -3.6,-5.4 -1.9,3.9 1.7,7.9 1.2,11.9 0.5,5.4 3.9,10.2 3.6,15.8 -0.5,2.9 2.2,6.0 4.5,3.0 3.2,-1.9 7.6,-0.9 10.1,-4.0 3.7,-2.1 7.8,-4.9 8.2,-9.5 0.8,-3.6 -2.9,-6.0 -0.7,-9.5 m -16.3,-5.4 c 1.4,-3.3 6.2,-1.8 6.2,1.6 1.2,2.0 1.1,3.9 -1.6,3.5 -1.6,-1.6 -3.0,-3.5 -4.6,-5.1 z m 7.0,1.3 c 0.2,-4.7 6.6,-3.0 5.9,0.9 0.5,2.3 0.7,7.1 -3.0,5.2 -2.2,-1.2 -2.5,-3.8 -2.9,-6.0 "/>
+   <!-- wand -->
+   <path stroke="#fff" stroke-width=".2px" fill="#333" d="M 93.2,5.7 C 69.4,11.7 45.5,17.7 21.8,23.8 c 0.0,2.6 3.0,0.5 4.4,0.4 C 48.6,18.2 71.0,12.3 93.4,6.3 93.4,6.1 93.3,5.9 93.2,5.7 Z" />
    <!-- overlay index finger so it appears on top of the wand-->
    <path d="M 25.3,18.0 c 0.2,-4.7 6.6,-3.0 5.9,0.9 0.5,2.3 0.7,7.1 -3.0,5.2 -2.2,-1.2 -2.5,-3.8 -2.9,-6.0"/> 
    <!-- add index fingernail -->
@@ -1255,7 +1257,7 @@ conductor = `<defs>
     // Define the "marker", i.e.  the object to animate along the conducting paths
     svg += beatPattern.marker;
     // Stroke the conducting paths
-    beatPattern.paths.forEach((path) => (svg += `<path style="fill:none;stroke:#88f8;stroke-width:4" d="${path}"/>`));
+    beatPattern.paths.forEach((path, i) => (svg += `<path data-trace="${i}" style="fill:none;stroke:#88f8;stroke-width:4" d="${path}"/>`));
     // Define each path within <svg><use>  ...</use></svg>
     svg += `<svg><use href="#marker">`;
     // The metronome pattern has a specific center of rotation:
@@ -1293,6 +1295,8 @@ conductor = `<defs>
     // Metronome uses string keys ("left"/"right"), conductor uses numeric indices
     let transforms = dataIndex("transform", svgElm);
     this.pathTransforms = beatPattern.name == "metronome" ? transforms : Object.values(transforms);
+    this.tracePaths = [...svgElm.querySelectorAll("[data-trace]")];
+    if (this.traceVisible === false) this.tracePaths.forEach(p => p.style.stroke = "none");
   }
 
   play(bool) {
@@ -1309,6 +1313,11 @@ conductor = `<defs>
         this.bpm.textContent = Math.floor(this.tempo);
       });
     }
+  }
+
+  showTrace(bool) {
+    this.traceVisible = bool;
+    this.tracePaths?.forEach(p => p.style.stroke = bool ? "#88f8" : "none");
   }
 
   setPattern(name) {

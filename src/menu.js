@@ -721,6 +721,7 @@ class Menu {
           stash: {
             tempo: 60,
             state: "Pause",
+            trace: "Hide", 
             pattern: "metronome",
             tickOffset: 0,
           },
