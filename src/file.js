@@ -1919,7 +1919,7 @@ class FileListView {
 
     </div>`);
 
-  keyBuf = [] ;
+  keyBuf = "" ;
 
   constructor(panel) {
     this.panel = panel;
@@ -1927,12 +1927,10 @@ class FileListView {
     Object.assign(this, dataIndex("tag", this.elm));
     listen(this.elm, "pointerdown", this.onListDown.bind(this));
 
-    /// filelistview
-    delay(50, () => { // delayed so subclass constructor, if any, can run...it might replace this.elm
+    delay(1, () => { // delayed so subclass constructor, if any, can run...it might replace this.elm
       this.elm.tabIndex = 0 ; // required for list to be focused for keydown events
       this.elm.focus({preventScroll:true}) ;
       listen(this.elm, "keydown", this.onKeyDown.bind(this)) ;
-      console.log("set tabindex:", this.constructor.name, document.activeElement) ;
     });
   }
 
@@ -2055,24 +2053,26 @@ class FileListView {
         sashTop = -sash.children[0].offsetHeight + sash.offsetTop ; break ;
       case "ArrowLeft":
         if(this.constructor.name != "FileSystemView") return ;
-         debugger ;
-         this.fsvPath...
-      case "ArrowRight": 
-        if(this.constructor.name != "FileSystemView") return ;
+        let pathLen = this.fsvPath.children.length ;
+        if(pathLen > 2) {
+          let target = this.fsvPath.children[pathLen - 3] ;
+          this.setPath(target.dataset.path);
+        }
+        return ; 
       case "Backspace":
       case "Delete": 
         this.keyBuf = this.keyBuf.slice(0,-1) ;
       default: 
-        if(/^[a-zA-Z0-9 .]$/.test(e.key)) this.keyBuf += e.key;
+        let isNormal = /^[a-zA-Z0-9 .]$/.test(e.key) ; // normal key, not navigational key
+        if(isNormal) this.keyBuf += e.key;
         let options = {};
-         // rem grd...do i need to rebuild this array every time? 
         Array.from(sash.children).forEach((child) => options[child.dataset.name] = child) ;
         let opt = Object.keys(options).find((str) => { return new RegExp(this.keyBuf, "i").test(str);}) ;
         if(opt) {
           let target = options[opt] ;
           sashTop =  frame.offsetHeight / 2 - target.offsetTop - target.offsetHeight / 2 ;
         }
-        else this.keyBuf = this.keyBuf.slice(0,-1) ;
+        else if(isNormal) this.keyBuf = this.keyBuf.slice(0,-1) ; // no match...remove last key
     }
     if(sashTop) sash.style.top = clamp(sashTop, frame.offsetHeight - sash.offsetHeight, 0) + "px" ;
   }
@@ -2506,7 +2506,7 @@ class FileSystemView extends FileListView {
 
   async setPath(path, force = false) {
     if (this.source == "Local") return; // no path for Local files.
-
+    this.keyBuf = "" ; // keyBuf's contents only apply to folder they were typed in
     _shade_.show("Reading folder");
     return new Promise(async (accept, reject) => {
       try {
