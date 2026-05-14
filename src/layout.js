@@ -2120,7 +2120,7 @@ class TableLayout extends Layout {
     );
 
     await this.pgGoTo(pn);
-    built = true;
+    built = true; 
 
     mv = listen(this.layout, "pointermove", (emv) => {
       if(this.score.pgs.length == 1) return; // disallow action on last pg

@@ -1208,9 +1208,9 @@ conductor = `<defs>
   accent1 = 1; // accents;
   accent2 = 0;
   tempo = 90;
-  tickOffset = 0; // ms; positive = audio later, negative = earlier (Bluetooth compensation)
   delta = 0.5; // Schedule-ahead
   gain = 1;
+  latency = 0; // ms; positive = audio later, negative = earlier (Bluetooth compensation)
   ticker = new Schedule();
   tickCount = 0;
   tickTime = 0;
@@ -1263,13 +1263,16 @@ conductor = `<defs>
     // The metronome pattern has a specific center of rotation:
     let cxy = beatPattern.markerCenter ? beatPattern.markerCenter : "";
     if (beatPattern.name == "metronome") {
-      // Metronome uses two separate transforms to avoid iOS rendering bugs
+      // Single continuous oscillation with spline easing; beginElementAt() re-syncs to audio each beat
       svg += `
           <animateMotion data-path="0" calcMode="paced" fill="freeze" path="" dur="0" />
-          <animateTransform data-transform="left" calcMode="paced" fill="freeze"
-            attributeName="transform" type="rotate" from="-45 ${cxy}" to="45 ${cxy}" dur=".1" />
-          <animateTransform data-transform="right" calcMode="paced" fill="freeze"
-            attributeName="transform" type="rotate" from="45 ${cxy}" to="-45 ${cxy}" dur=".1" />`;
+          <animateTransform data-transform="pendulum"
+            begin="indefinite"
+            calcMode="spline" keyTimes="0;0.5;1" keySplines="0.45 0 0.55 1; 0.45 0 0.55 1"
+            fill="freeze" attributeName="transform" type="rotate"
+            values="-45 ${cxy}; 45 ${cxy}; -45 ${cxy}"
+            repeatCount="indefinite" dur="2" />`;
+
     } else {
       beatPattern.paths.forEach((path, index) => {
         svg += `
@@ -1292,7 +1295,7 @@ conductor = `<defs>
     this.surfaceDragElm = svgElm;
     this.surface.prepend(svgElm);
     this.motionPaths = Object.values(dataIndex("path", svgElm));
-    // Metronome uses string keys ("left"/"right"), conductor uses numeric indices
+    // Metronome uses string key ("pendulum"), conductor uses numeric indices
     let transforms = dataIndex("transform", svgElm);
     this.pathTransforms = beatPattern.name == "metronome" ? transforms : Object.values(transforms);
     this.tracePaths = [...svgElm.querySelectorAll("[data-trace]")];
@@ -1302,7 +1305,10 @@ conductor = `<defs>
   play(bool) {
     this.ticker.cancel();
     this.pause.textContent = bool ? "" : "\ue4c0";
+    this.playGen = (this.playGen | 0) + 1;
     if (bool) {
+      this.pathTransforms?.["pendulum"]?.endElement();
+      this.pendulumDur = null;
       this.tickTime = this.actx.currentTime + 0.05;
       this.secondsPerTick = 60 / this.tempo;
       this.tick();
@@ -1312,6 +1318,10 @@ conductor = `<defs>
         this.ticker.run(60000 / this.tempo);
         this.bpm.textContent = Math.floor(this.tempo);
       });
+    } else {
+      this.pathTransforms?.["pendulum"]?.endElement();
+      this.gainNode.gain.cancelScheduledValues(this.actx.currentTime);
+      this.gainNode.gain.setValueAtTime(0.0001, this.actx.currentTime);
     }
   }
 
@@ -1336,16 +1346,13 @@ conductor = `<defs>
     if (this.gain == 0) return;
     let tickPattern = this.beatPattern.ticks;
     let time = this.tickTime;
-    time += 0.16 + (this.tickOffset / 1000); // adjust for skim; tickOffset compensates for audio device latency
-    this.oscillator = new OscillatorNode(this.actx, { frequency: tickPattern[tickCount % tickPattern.length] });
-    // Note: gain value must not be 0
-    this.gainNode.gain.exponentialRampToValueAtTime(Math.max(this.volumeStash.volume, 0.0000001), time + 0.001);
-    this.gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.02);
-    this.oscillator.connect(this.gainNode);
-    this.oscillator.start(time);
-    this.oscillator.stop(time + 0.03);
-    // Schedule next path animation to
+
+    time += 0.16 + (this.latency / 1000); // compensates for audio device latency
+    this.tock(tickPattern[tickCount % tickPattern.length], time) ; // sound the tick
+    // Schedule visual animation to fire at tickTime; gen guard drops stale callbacks after play(false)
+    let gen = this.playGen;
     schedule((this.tickTime - this.actx.currentTime) * 1000, () => {
+      if (this.playGen != gen) return;
       if (this.secondsPerTick != this.animDur) {
         // tempo has changed, so adjust all
         this.animDur = this.secondsPerTick;
@@ -1353,11 +1360,15 @@ conductor = `<defs>
         this.tickCount = 0;
       }
       if (this.beatPattern.name == "metronome") {
-        let left = this.tickCount & 0x01;
-        // Use separate transform elements for left/right to avoid iOS rendering bugs
-        let transform = this.pathTransforms[left ? "left" : "right"];
-        transform.setAttribute("dur", this.animDur);
-        transform.beginElement();
+        let pendulum = this.pathTransforms["pendulum"];
+        let dur = 2 * this.secondsPerTick;
+        if (dur != this.pendulumDur) {
+          this.pendulumDur = dur;
+          pendulum.setAttribute("dur", dur);
+          pendulum.beginElement();
+        } else {
+          pendulum.beginElementAt((this.tickCount & 0x01) ? -this.secondsPerTick : 0);
+        }
         return;
       }
       let beatNumber = this.tickCount % this.beatPattern.paths.length;
@@ -1366,17 +1377,36 @@ conductor = `<defs>
     });
   }
 
+  tock(freq, time) {
+    // Implements the "talking" (== tocking, get it?) part of the tick
+    this.oscillator = new OscillatorNode(this.actx, { frequency: freq });
+    // Note: gain value must not be 0
+    this.gainNode.gain.exponentialRampToValueAtTime(Math.max(this.volumeStash.volume, 0.0000001), time + 0.001);
+    this.gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.02);
+    this.oscillator.connect(this.gainNode);
+    this.oscillator.start(time);
+    this.oscillator.stop(time + 0.03);
+  }
+
   onSurfaceEvent(type) {
-    if (type == "press") this.panel.mediaGroup.fire(this.panel.cell.stash.state == "Play" ? "Pause" : "Play");
+    let stash = this.panel.cell.stash ;
+    if (type == "press") 
+      this.panel.mediaGroup.fire(stash.state) ;
     else if (type == "click") {
       let now = performance.now();
-      let prevClick = this.prevClick || Number.MIN_SAFE_INTEGER;
-      let tempo = 1 / ((now - prevClick) / 60000);
-      if (tempo >= 10 && tempo <= 220) {
+      if(stash.state == "Pause")  this.play(false) ;
+      let prevClick = this.prevClick || now;
+      let dur = now - prevClick ;
+      let tempo = 1 / (dur / 60000);
+      if (tempo >= 30 && tempo <= 220) {
         this.panel.cell.stash.tempo = Math.round(tempo);
         this.bpm.textContent = Math.round(tempo);
         this.panel.tempoGroup.refresh();
         this.tempo = tempo;
+        this.tock(1200,this.actx.currentTime) ;
+        // if not paused (stash.state == "Run" when paused, strange I know, but it represents
+        //  state were going to, not state we're in)...then restart the metronome
+        if(stash.state == "Pause") this.panel.adjuster.run(dur * 1.5) ;
       }
       this.prevClick = now;
     }

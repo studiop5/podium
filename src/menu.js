@@ -723,7 +723,7 @@ class Menu {
             state: "Pause",
             trace: "Hide", 
             pattern: "metronome",
-            tickOffset: 0,
+            latency: 0,
           },
         },
         stopwatch: {

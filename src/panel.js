@@ -32,7 +32,6 @@ import {
   delayMs,
   dialog,
   Drag,
-  flung,
   fontMap,
   getBox,
   helm,
@@ -382,6 +381,7 @@ class Panel {
     );
     this.listeners.push(
       listen(this.header, "pointerdown", (e) => {
+        let drag = new Drag(e) ;
         let { header, elm } = this;
         if(!(this instanceof CurtainPanel)) // CurtainPanel uniquely manages its own z-index
           elm.style.zIndex = ++_zTop_; // move to top of stacking order
@@ -389,20 +389,21 @@ class Panel {
         header.setPointerCapture(e.pointerId);
         let middleX = this.panel.offsetWidth / 2;
         let middleY = this.panel.offsetHeight / 2;
+
         let mv = listen(header, "pointermove", (emv) => {
-          if (e.pointerId != emv.pointerId) return;
-          flung(emv); // store event for fling detection
+          if (e.pointerId != emv.pointerId) return; // rem grd...needed?
+          drag.mv(emv) ;
           elm.style.left = emv.clientX - e.offsetX + middleX + "px";
           elm.style.top = emv.clientY - e.offsetY + middleY + "px";
           this.constrain();
-          e.emv = emv;
         });
 
         listen(header,"pointerup",
           (eup) => {
+            drag.up(eup) ;
             header.classList.remove("Panel__header-selected");
             unlisten(mv);
-            if (flung(null, eup)) { // fling detected
+            if (drag.vXY) { // fling detected
               this.hide();
               if(this.elm.dataset.tag != "ScreenPanel") ScreenPanel.update(null) ;
             }
@@ -1661,46 +1662,45 @@ class MetronomePanel extends Panel {
       { flex-flow:column;
       }
       .Metronome__patterns
-      { border-radius: calc(var(--borderRadius) / 2);
-        font-size: var(--font-size-base);
-        text-align: center;
-        margin: var(--spacing-md) 0;
+      { width: 12em;
+        padding-top:1em;
       }
     }
     `
   );
 
+  options = {
+    "Metronome":"metronome",
+    "One":"one",
+    "Two":"two",
+    "Three":"three",
+    "Four":"four",
+    "Five (3+2)":"five",
+    "Six (3+3)":"six",
+  } ;
+
   content = helm(
-    `<div data-tag="body" class="Panel__body Metronome centerChild">
-      <select data-tag="patterns" class="Metronome__patterns">
-        <option value="metronome" selected>Metronome</option>
-        <option value="one"  >One</option>
-        <option value="two"  >Two</option>
-        <option value="three">Three</option>
-        <option value="four" >Four</option>
-        <option value="five" >Five (3+2)</option>
-        <option value="six"  >Six (3+3)</option>
-      </select>
-     </div>`
+    `<div data-tag="body" class="Panel__body Metronome centerChild"></div>`
   );
 
   constructor(cell) {
     super(cell);
     this.body.replaceWith(this.content);
     Object.assign(this, dataIndex("tag", this.content));
-    cell.stash.state = "Play"; // i.e. show "Play" on launch, metronome will be paused
-    this.patterns.value = cell.stash.pattern;
+    let stash = cell.stash ;
+    stash.state = "Play"; // i.e. always show "Play" on launch, metronome will be paused
+
     let metronome = (this.metronome = new Metronome(this));
-    Object.assign(metronome, this.cell.stash);
+    let stashed = Object.keys(this.options).find(key => this.options[key] == stash.pattern);
+    let patterns = new Select(Object.keys(this.options), stashed, this) ;
+    this.content.append(patterns.elm) ;
+    patterns.elm.classList.add("Metronome__patterns") ;
+    listen(patterns.toggle, "SELECTED",
+       (e) => metronome.setPattern(stash.pattern = this.options[e.detail]));
     delay(2, () => (metronome.bpm.textContent = this.cell.stash.tempo));
 
-    listen(this.patterns, ["input", "change"], (e) => {
-      cell.stash.pattern = e.target.value;
-      metronome.setPattern(e.target.value);
-    });
-
     this.mediaGroup = new ButtonGroup(
-      this.cell.stash,
+      stash,
       {
         Play: { svg: "Play", redo: true, toggle: "state" },
         Pause: { svg: "Pause", redo: true, toggle: "state" },
@@ -1709,11 +1709,11 @@ class MetronomePanel extends Panel {
       },
       (e, prop, tag) => {
         if(prop == "trace") {
-          cell.stash.trace = (tag == "Show") ? "Hide": "Show" ;
+          stash.trace = (tag == "Show") ? "Hide": "Show" ;
           metronome.showTrace(tag == "Show") ;
         }
         else if(prop == "state") {
-          cell.stash.state = (tag == "Play") ? "Pause":"Play" ;
+          stash.state = (tag == "Play") ? "Pause":"Play" ;
           tag == "Play" ? metronome.play(true) : metronome.play(false);
         }
         this.mediaGroup.refresh() ;
@@ -1721,51 +1721,30 @@ class MetronomePanel extends Panel {
     this.content.append(this.mediaGroup.elm);
     this.mediaGroup.refresh();
 
+
+    this.adjuster = new Schedule(100, () => metronome.play(true)) ;
     this.tempoGroup = new SliderGroup(
-      this.cell.stash,
+      stash,
       {
-        tempo: {
-          min: 1,
-          max: 220,
-          step: 1,
-          msg: "Tempo: {value} bpm",
-          value: 60,
-          throttle: 200,
-        },
+        tempo: { min: 1, max: 220, step: 1, msg: "Tempo: {value} bpm", value: 60, },
+        latency: { min: -300, max: 300, step: 10, msg: "Latency: {value}ms", value: 0},
       },
       (e, prop, tag) => {
-        cell.stash.prop = tag;
-        metronome.bpm.textContent = Math.round(tag);
-        Object.assign(metronome, this.cell.stash);
-        metronome.play(cell.stash.state == "Play");
+        stash.prop = tag;
+        let tempo = Math.round(tag) ;
+        metronome.bpm.textContent = tempo ;
+        Object.assign(metronome, stash);
+        if (stash.state == "Pause") {
+          metronome.play(false);
+          this.adjuster.run(Math.max(500, tempo * 1.5)) ; // pause while slider is adjusting, then play
+        }
       }
     );
     this.tempoGroup.elm.style.width = "14em";
     this.content.append(this.tempoGroup.elm);
     this.tempoGroup.refresh();
 
-    this.offsetGroup = new SliderGroup(
-      this.cell.stash,
-      {
-        tickOffset: {
-          min: -300,
-          max: 300,
-          step: 10,
-          msg: "Tick offset: {value}ms",
-          value: 0,
-          throttle: 50,
-        },
-      },
-      (e, prop, tag) => {
-        metronome.tickOffset = tag;
-      }
-    );
-    this.offsetGroup.elm.style.width = "14em";
-    this.content.append(this.offsetGroup.elm);
-    this.offsetGroup.refresh();
-
-    this.metronome.setPattern(cell.stash.pattern);
-    this.metronome.showTrace(cell.stash.Trace);
+    this.metronome.showTrace(stash.Trace);
   }
 
   destructor() {

@@ -714,6 +714,7 @@ class ButtonGroup {
     //      be any object.
     //   @prevTag: iff property is non null, then the previous
     //      value (i.e. tag) of the property
+console.log("handle...") ;
     let path = e.composedPath();
     for (let i = 0; i < path.length; i++) {
       let elm = path[i];
