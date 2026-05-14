@@ -262,7 +262,7 @@ class FileSrc {
     let score = _score_;
     let src = FileSrc.get(score.source);
     // If no source, or source doesn't support saving (like URL/WWW), show the save panel
-    if (!src || typeof src.putFile !== 'function') {
+    if (!src || typeof src.putFile != 'function') {
       let panel = panels[cell.name + "Panel"].get(cell);
       if (panel.elm.style.visibility != "visible") {
         panel.show();
@@ -1160,7 +1160,6 @@ class GDriveSrc extends CachedSrc {
     }
   }
 
-
   async trashFileSrc(path, name, dir, file) {
     let url = this.filesUrl + file.id;
     let fetchPromise = await fetch(url, {
@@ -1614,7 +1613,6 @@ class LocalFileView:
    for involing the Browser's built in load/save file interface,
    including drag/drop.
 **/
-///
 class LocalFileView {
   static css = css(
     "LocalFileView",
@@ -1921,11 +1919,21 @@ class FileListView {
 
     </div>`);
 
+  keyBuf = [] ;
+
   constructor(panel) {
     this.panel = panel;
     this.mode = panel.mode;
     Object.assign(this, dataIndex("tag", this.elm));
-    listen(this.flvList, "pointerdown", this.onListDown.bind(this));
+    listen(this.elm, "pointerdown", this.onListDown.bind(this));
+
+    /// filelistview
+    delay(50, () => { // delayed so subclass constructor, if any, can run...it might replace this.elm
+      this.elm.tabIndex = 0 ; // required for list to be focused for keydown events
+      this.elm.focus({preventScroll:true}) ;
+      listen(this.elm, "keydown", this.onKeyDown.bind(this)) ;
+      console.log("set tabindex:", this.constructor.name, document.activeElement) ;
+    });
   }
 
   // regex to parse off extension via extensionRegex.exec(fileName)[1]
@@ -2034,9 +2042,43 @@ class FileListView {
     return "#" + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
   }
 
-  onListDown(e) {
+  onKeyDown(e) {
+    let frame = this.flvList.parentElement ;
+    let sash = this.flvList ;
+    let sashTop = null ;
+    switch(e.key) {
+      case "Home": sashTop = "0" ; break ;
+      case "End": sashTop = frame.offsetHeight - sash.offsetHeight ; break;
+      case "ArrowDown":
+        sashTop = sash.children[0].offsetHeight + sash.offsetTop ; break ;
+      case "ArrowUp": 
+        sashTop = -sash.children[0].offsetHeight + sash.offsetTop ; break ;
+      case "ArrowLeft":
+        if(this.constructor.name != "FileSystemView") return ;
+         debugger ;
+         this.fsvPath...
+      case "ArrowRight": 
+        if(this.constructor.name != "FileSystemView") return ;
+      case "Backspace":
+      case "Delete": 
+        this.keyBuf = this.keyBuf.slice(0,-1) ;
+      default: 
+        if(/^[a-zA-Z0-9 .]$/.test(e.key)) this.keyBuf += e.key;
+        let options = {};
+         // rem grd...do i need to rebuild this array every time? 
+        Array.from(sash.children).forEach((child) => options[child.dataset.name] = child) ;
+        let opt = Object.keys(options).find((str) => { return new RegExp(this.keyBuf, "i").test(str);}) ;
+        if(opt) {
+          let target = options[opt] ;
+          sashTop =  frame.offsetHeight / 2 - target.offsetTop - target.offsetHeight / 2 ;
+        }
+        else this.keyBuf = this.keyBuf.slice(0,-1) ;
+    }
+    if(sashTop) sash.style.top = clamp(sashTop, frame.offsetHeight - sash.offsetHeight, 0) + "px" ;
+  }
 
-console.log("add a keyboard nav to this guy") ;
+  onListDown(e) {
+    this.elm.focus({ preventScroll: true}) ; // need preventScroll!
     let elm = this.flvList;
     elm.style.transition = "unset";
     let origin = elm.offsetTop;
@@ -2301,7 +2343,6 @@ class FileSystemView extends FileListView {
   }
 
   onPathDown(e) {
-console.log("ouch") ;
     let drag = new Drag(e);
     let elm = this.fsvPath;
     let origin = elm.offsetLeft;
@@ -2314,10 +2355,9 @@ console.log("ouch") ;
     });
 
     listen(elm, "pointerup", async (eup) => {
-////
       drag.up(eup) ;
       unlisten(mv);
-//      if (fling.moved) {
+      if (drag.jab) {
         if(e.target.dataset.tag == "newDir") return await this.putDir(this.path);
         let target = e.target.closest(".Flv-path__dir");
         if (target) {
@@ -2325,7 +2365,7 @@ console.log("ouch") ;
           await this.setPath(target.dataset.path, refresh);
           if (refresh) toast("Refreshed");
         }
-//      }
+      }
     },
     { once: true });
   }

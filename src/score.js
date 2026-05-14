@@ -1054,18 +1054,7 @@ class Score {
     _score_ = this;
     this.numbers = _menu_.rings.page.cells.numbers.stash;
     this.details = _menu_.rings.score.cells.details.stash;
-    if (this.name) {
-      // Show score name in tab, truncated from middle if long, without .pdf extension
-      let name = this.name.replace(/\.pdf$/i, "");
-      const maxLen = 30;
-      if (name.length > maxLen) {
-        let half = (maxLen - 1) >> 1; // -1 for the ellipsis character
-        name = name.slice(0, half) + "\u2026" + name.slice(-half);
-      }
-      document.title = name;
-    } else {
-      document.title = `Podium (${_podId_})`;
-    }
+    this.setTitle();
     // update the _menu_ state for this Score instance:
     _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"]);
     _menu_.enableCells("ink/undo", false); // nothing to undo yet
@@ -1090,136 +1079,6 @@ class Score {
     _menu_.activateRing(_menu_.rings.score) ;
     await Layout.open(cell);
     return this;
-  }
-
-  async toPdf(ink = "stamp", doc = false, pns = null) {
-    // Use PDFLib to create PDF representation of this score.
-    // @ink === none, skip fabric objects entirely (even as attachment??)
-    //      === "stamp" add fabric object as stamp annotation
-    //      === "pdf" add fabric object as pdf object
-    // @doc if true, the PDF-LIB doc object is returned, otherwise the
-    //    pdf bytes that it produces is returned.
-    // @pns array of page numbers (1-based) to include, or null for all pgs
-    try {
-      // When shade is cancelled, set cancelPdf. This will interrupt lib-pdf when
-      // it next calls waitForTick by calling our monkey-patched setTimeout
-      _shade_.onCancel = () => { window.cancelPdf = true; };
-      let srcPLibDoc = null;
-      if (this.mozDoc) {
-        try {
-          // Try loading without ignoreEncryption - getData() should return decrypted data from PDF.js
-          srcPLibDoc = await PDFLib.PDFDocument.load(await this.mozDoc.getData());
-        } catch (err) {
-          if (err.message?.includes('encrypted') || err.message?.includes('Encrypt')) {
-            // Owner-password PDFs: content is viewable but pdf-lib rejects
-            // the Encrypt dict. Retry ignoring encryption since PDF.js
-            // already proved the content is accessible.
-            try {
-              srcPLibDoc = await PDFLib.PDFDocument.load(
-                  await this.mozDoc.getData(), { ignoreEncryption: true }
-              );
-              // Verify pages are readable — AES-256 encrypted streams will
-              // load but produce broken page objects.
-              srcPLibDoc.getPages();
-            } catch (err2) {
-              let msg = pns ? "Due to copy protection, page can't be copied." : "Due to copy protection, score can't be saved.";
-              throw new Error(msg, { cause: "fileSrc" });
-            }
-          } else {
-            throw err; // Re-throw other errors
-          }
-        }
-      }
-
-      // Verify the catalog was parsed correctly
-      if (srcPLibDoc && (!srcPLibDoc.catalog || typeof srcPLibDoc.catalog.Pages !== 'function'))
-          throw new Error("PDF catalog corrupted.<br>File too large?<br>Try splitting into sections.", { cause: "fileSrc"})
-
-      let dstPLibDoc = await PDFLib.PDFDocument.create();
-      dstPLibDoc.registerFontkit(window.fontkit);
-      // Reset the embeddedFonts array: it prevents Pg instances from embedding same font twice.
-      this.embeddedFonts = [];
-      let now = new Date();
-
-      let attachment = {
-        created: this.created,
-        modified: now,
-        maxWidth: this.maxWidth,
-        maxHeight: this.maxHeight,
-        quality: this.quality,
-        pages: {},
-        menu: _menu_.stashToJsonObj("score"),
-      };
-      let pLibPg;
-      pns = pns || Array.from({length: this.pgs.length}, (_, i) => i + 1);
-      for(let j = 0; j < pns.length; j++) {
-        let pn = pns[j]; // 1-based
-        let percent = Math.trunc((j / pns.length) * 100);
-        _shade_.update(`Building page ${j + 1} of ${pns.length} (${percent}%)`);
-        let pg = this.pgs[pn-1];
-        // if pg is "backed" by a page in mozDoc (1-based), copy page to dstDoc, otherwise add a new "empty" page
-        if (pg.mozPn) {
-          pLibPg = dstPLibDoc.addPage((await dstPLibDoc.copyPages(srcPLibDoc, [pg.mozPn-1]))[0]);
-        } else {
-          pLibPg = dstPLibDoc.addPage([pg.width, pg.height]);
-          if (pg.background) {
-            let hex = pg.background.replace("#", "");
-            let r = parseInt(hex.slice(0, 2), 16) / 255;
-            let g = parseInt(hex.slice(2, 4), 16) / 255;
-            let b = parseInt(hex.slice(4, 6), 16) / 255;
-            let a = hex.length > 6 ? parseInt(hex.slice(6, 8), 16) / 255 : 1;
-            pLibPg.drawRectangle({
-              x: 0, y: 0,
-              width: pg.width, height: pg.height,
-              color: PDFLib.rgb(r, g, b),
-              opacity: a,
-            });
-          }
-        }
-        setTimeout(_voidFunc_, 0);
-        // add fabric objects to the page
-        let pgJson = await pg.toPdf(ink, pLibPg);
-        attachment.pages[j+1] = pgJson;
-        if(window.gc) window.gc();
-      }
-
-      // Add the pdf attachment
-      let jsonString = JSON.stringify(attachment);
-      await dstPLibDoc.attach(new TextEncoder().encode(jsonString), "podium", {
-        mimeType: "application/json",
-        description: "podium json metadata",
-        creationDate: now,
-        modificationDate: now,
-      });
-      // set pdf doc metadata
-      dstPLibDoc.setModificationDate(now);
-
-      // If this is an original PDF with metadata, preserve it
-      if (this.pdfInfo) {
-        // Preserve original metadata
-        if (this.pdfInfo.Title) dstPLibDoc.setTitle(this.pdfInfo.Title);
-        if (this.pdfInfo.Author) dstPLibDoc.setAuthor(this.pdfInfo.Author);
-        if (this.pdfInfo.Subject) dstPLibDoc.setSubject(this.pdfInfo.Subject);
-        if (this.pdfInfo.Keywords) dstPLibDoc.setKeywords(
-            Array.isArray(this.pdfInfo.Keywords) ? this.pdfInfo.Keywords : this.pdfInfo.Keywords.split(/[,;]\s*/));
-        if (this.pdfInfo.Producer) dstPLibDoc.setProducer(this.pdfInfo.Producer);
-        if (this.pdfInfo.Creator) dstPLibDoc.setCreator(this.pdfInfo.Creator);
-        if (this.pdfInfo.CreationDate) dstPLibDoc.setCreationDate(new Date(this.pdfInfo.CreationDate));
-      } else {
-        // New score created from scratch - set Podium metadata
-        dstPLibDoc.setCreationDate(now);
-        dstPLibDoc.setCreator("Podium vers." + _podiumVersion_);
-        dstPLibDoc.setProducer("pdf-lib v1.17.1");
-      }
-      if (doc) return dstPLibDoc;
-      _shade_.update("Generating Pdf document");
-      let bytes = await dstPLibDoc.save({objectsPerTick: 250});
-      _shade_.update("PDF Generated");
-      return bytes;   
-    } 
-    finally {
-      _shade_.onCancel = null;
-    }
   }
 
   async decrypt(pdfData = null) {
@@ -1461,11 +1320,152 @@ class Score {
     }} 
   }
 
+  setTitle() {
+    if (!this.name) { document.title = `Podium (${_podId_})`; return; }
+    let name = this.name.replace(/\.pdf$/i, "");
+    const maxLen = 30;
+    if (name.length > maxLen) {
+      let half = (maxLen - 1) >> 1;
+      name = name.slice(0, half) + "…" + name.slice(-half);
+    }
+    document.title = name;
+  }
+
+  async toPdf(ink = "stamp", doc = false, pns = null) {
+    // Use PDFLib to create PDF representation of this score.
+    // @ink === none, skip fabric objects entirely (even as attachment??)
+    //      === "stamp" add fabric object as stamp annotation
+    //      === "pdf" add fabric object as pdf object
+    // @doc if true, the PDF-LIB doc object is returned, otherwise the
+    //    pdf bytes that it produces is returned.
+    // @pns array of page numbers (1-based) to include, or null for all pgs
+    try {
+      // When shade is cancelled, set cancelPdf. This will interrupt lib-pdf when
+      // it next calls waitForTick by calling our monkey-patched setTimeout
+      _shade_.onCancel = () => { window.cancelPdf = true; };
+      let srcPLibDoc = null;
+      if (this.mozDoc) {
+        try {
+          // Try loading without ignoreEncryption - getData() should return decrypted data from PDF.js
+          srcPLibDoc = await PDFLib.PDFDocument.load(await this.mozDoc.getData());
+        } catch (err) {
+          if (err.message?.includes('encrypted') || err.message?.includes('Encrypt')) {
+            // Owner-password PDFs: content is viewable but pdf-lib rejects
+            // the Encrypt dict. Retry ignoring encryption since PDF.js
+            // already proved the content is accessible.
+            try {
+              srcPLibDoc = await PDFLib.PDFDocument.load(
+                  await this.mozDoc.getData(), { ignoreEncryption: true }
+              );
+              // Verify pages are readable — AES-256 encrypted streams will
+              // load but produce broken page objects.
+              srcPLibDoc.getPages();
+            } catch (err2) {
+              let msg = pns ? "Due to copy protection, page can't be copied." : "Due to copy protection, score can't be saved.";
+              throw new Error(msg, { cause: "fileSrc" });
+            }
+          } else {
+            throw err; // Re-throw other errors
+          }
+        }
+      }
+
+      // Verify the catalog was parsed correctly
+      if (srcPLibDoc && (!srcPLibDoc.catalog || typeof srcPLibDoc.catalog.Pages !== 'function'))
+          throw new Error("PDF catalog corrupted.<br>File too large?<br>Try splitting into sections.", { cause: "fileSrc"})
+
+      let dstPLibDoc = await PDFLib.PDFDocument.create();
+      dstPLibDoc.registerFontkit(window.fontkit);
+      // Reset the embeddedFonts array: it prevents Pg instances from embedding same font twice.
+      this.embeddedFonts = [];
+      let now = new Date();
+
+      let attachment = {
+        created: this.created,
+        modified: now,
+        maxWidth: this.maxWidth,
+        maxHeight: this.maxHeight,
+        quality: this.quality,
+        pages: {},
+        menu: _menu_.stashToJsonObj("score"),
+      };
+      let pLibPg;
+      pns = pns || Array.from({length: this.pgs.length}, (_, i) => i + 1);
+      for(let j = 0; j < pns.length; j++) {
+        let pn = pns[j]; // 1-based
+        let percent = Math.trunc((j / pns.length) * 100);
+        _shade_.update(`Building page ${j + 1} of ${pns.length} (${percent}%)`);
+        let pg = this.pgs[pn-1];
+        // if pg is "backed" by a page in mozDoc (1-based), copy page to dstDoc, otherwise add a new "empty" page
+        if (pg.mozPn) {
+          pLibPg = dstPLibDoc.addPage((await dstPLibDoc.copyPages(srcPLibDoc, [pg.mozPn-1]))[0]);
+        } else {
+          pLibPg = dstPLibDoc.addPage([pg.width, pg.height]);
+          if (pg.background) {
+            let hex = pg.background.replace("#", "");
+            let r = parseInt(hex.slice(0, 2), 16) / 255;
+            let g = parseInt(hex.slice(2, 4), 16) / 255;
+            let b = parseInt(hex.slice(4, 6), 16) / 255;
+            let a = hex.length > 6 ? parseInt(hex.slice(6, 8), 16) / 255 : 1;
+            pLibPg.drawRectangle({
+              x: 0, y: 0,
+              width: pg.width, height: pg.height,
+              color: PDFLib.rgb(r, g, b),
+              opacity: a,
+            });
+          }
+        }
+        setTimeout(_voidFunc_, 0);
+        // add fabric objects to the page
+        let pgJson = await pg.toPdf(ink, pLibPg);
+        attachment.pages[j+1] = pgJson;
+        if(window.gc) window.gc();
+      }
+
+      // Add the pdf attachment
+      let jsonString = JSON.stringify(attachment);
+      await dstPLibDoc.attach(new TextEncoder().encode(jsonString), "podium", {
+        mimeType: "application/json",
+        description: "podium json metadata",
+        creationDate: now,
+        modificationDate: now,
+      });
+      // set pdf doc metadata
+      dstPLibDoc.setModificationDate(now);
+
+      // If this is an original PDF with metadata, preserve it
+      if (this.pdfInfo) {
+        // Preserve original metadata
+        if (this.pdfInfo.Title) dstPLibDoc.setTitle(this.pdfInfo.Title);
+        if (this.pdfInfo.Author) dstPLibDoc.setAuthor(this.pdfInfo.Author);
+        if (this.pdfInfo.Subject) dstPLibDoc.setSubject(this.pdfInfo.Subject);
+        if (this.pdfInfo.Keywords) dstPLibDoc.setKeywords(
+            Array.isArray(this.pdfInfo.Keywords) ? this.pdfInfo.Keywords : this.pdfInfo.Keywords.split(/[,;]\s*/));
+        if (this.pdfInfo.Producer) dstPLibDoc.setProducer(this.pdfInfo.Producer);
+        if (this.pdfInfo.Creator) dstPLibDoc.setCreator(this.pdfInfo.Creator);
+        if (this.pdfInfo.CreationDate) dstPLibDoc.setCreationDate(new Date(this.pdfInfo.CreationDate));
+      } else {
+        // New score created from scratch - set Podium metadata
+        dstPLibDoc.setCreationDate(now);
+        dstPLibDoc.setCreator("Podium vers." + _podiumVersion_);
+        dstPLibDoc.setProducer("pdf-lib v1.17.1");
+      }
+      if (doc) return dstPLibDoc;
+      _shade_.update("Generating Pdf document");
+      let bytes = await dstPLibDoc.save({objectsPerTick: 250});
+      _shade_.update("PDF Generated");
+      return bytes;   
+    } 
+    finally {
+      _shade_.onCancel = null;
+    }
+  }
 
   update(props) {
     // Used to update any or all off this.source, this.name, this.path
     // from given object's properties
     Object.assign(this, props);
+    if ('name' in props) this.setTitle();
   }
 
 }

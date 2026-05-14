@@ -1023,6 +1023,8 @@ class Drag {
     let termBuf = this.mvBuf.filter(ev => e.timeStamp - ev.timeStamp <= this.terminalWindow);
     if (termBuf.length < 2) { this.lift = true; return this; }
     let first = termBuf[0], last = termBuf[termBuf.length - 1];
+    if (Math.hypot(last.clientX - first.clientX, last.clientY - first.clientY) < this.jitterThreshold)
+      { this.lift = true; return this; }
     let dt = last.timeStamp - first.timeStamp;
     if (dt == 0) { this.lift = true; return this; }
     this.vX = (last.clientX - first.clientX) / dt;

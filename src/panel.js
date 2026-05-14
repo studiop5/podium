@@ -142,7 +142,7 @@ class Select {
 
   build() {
     let {frame, options, option, panel, sash, toggle} = this ;
-    toggle.tabIndex = 0 ; // required for sash to be focused 
+    toggle.tabIndex = 0 ; // required for toggle to be focused 
     let keyBuf = "" ;
     let toggleStyle = getComputedStyle(toggle);
     let emPerPx = parseFloat(toggleStyle.fontSize) ;
@@ -167,13 +167,12 @@ class Select {
       if(frame.style.visibility == "hidden") return;
       animate(frame, null, {height:0}, "height .35s", () => frame.style.visibility = "hidden");
       keyBuf = "";
-//      toggle.blur();
     };
 
     let l1 = listen(this.toggle,"pointerdown", (e) => {
       if(frame.style.visibility == "hidden") {
         frame.style.visibility = "visible" ;
-        animate(frame, {height:0}, {height:frameHeight}, "height .35s", () => sash.focus());
+        animate(frame, {height:0}, {height:frameHeight}, "height .35s");
       }
       else closeFrame() ;
     });
@@ -929,13 +928,7 @@ class DetailsPanel extends Panel {
         let newName = nameInput.value.trim();
         if (!newName.toLowerCase().endsWith(".pdf")) newName += ".pdf";
         score.name = newName;
-        let title = newName.replace(/\.pdf$/i, "");
-        const maxLen = 30;
-        if (title.length > maxLen) {
-          let half = (maxLen - 1) >> 1;
-          title = title.slice(0, half) + "\u2026" + title.slice(-half);
-        }
-        document.title = title;
+        score.setTitle();
       });
       this.content.append(nameInput);
       let source = score.source

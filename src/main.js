@@ -28,12 +28,11 @@
 // python3 build.py --podium.  All text  between +/- skip fill be stripped out,
 // and all the following // #include files will be  textually included.
 
-import { animate, delay, delayMs, dialog, helm, listen, reflow, schedule, Schedule, toast, unlisten } from "./common.js";
+import { animate, delay, delayMs, helm, listen, schedule, Schedule, unlisten } from "./common.js";
 import "./font.js";
-import { escapeHtml } from "./file.js";
 import { Menu } from "./menu.js";
 import { Layout } from "./layout.js";
-import { Score } from "./score.js";
+import "./score.js";
 import { ScreenPanel } from "./panel.js";
 import { initFabric } from "./canvas.js";
 import { SharedBuffer } from "./sharedBuffer.js";
@@ -272,16 +271,15 @@ async function main() {
   {
     /**
         This block implements keyboard events. They are primarily used to implement external page-turning 
-        devices, but of course they work from regular keyboards
-        as well.
+        devices, but of course they work from regular keyboards as well.
      **/
     let pedalKeys = ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'];
 
     listen(document, "keydown", (e) => {
-      if(e.target.tagName == "TEXTAREA" && e.target.hasAttribute("data-fabric-hiddentextarea")) return ;
-      if(e.target.classList.contains("Select__toggle")) return ;
-
-      if (pedalKeys.includes(e.key)) {
+      // if there is a focused element, let it process the event:
+      if(document.activeElement != _body_) return ;
+      // otherwise let active layout process navigation keys:
+      if (Layout.activeLayout && pedalKeys.includes(e.key)) {
         e.preventDefault();
         e.stopPropagation();
         let layout = Layout.activeLayout;
