@@ -1395,19 +1395,18 @@ conductor = `<defs>
     else if (type == "click") {
       let now = performance.now();
       if(stash.state == "Pause")  this.play(false) ;
-      let prevClick = this.prevClick || now;
+      let prevClick = this.prevClick || now -1;
       let dur = now - prevClick ;
       let tempo = 1 / (dur / 60000);
-      if (tempo >= 30 && tempo <= 220) {
-        this.panel.cell.stash.tempo = Math.round(tempo);
-        this.bpm.textContent = Math.round(tempo);
-        this.panel.tempoGroup.refresh();
-        this.tempo = tempo;
-        this.tock(1200,this.actx.currentTime) ;
-        // if not paused (stash.state == "Run" when paused, strange I know, but it represents
-        //  state were going to, not state we're in)...then restart the metronome
-        if(stash.state == "Pause") this.panel.adjuster.run(dur * 1.5) ;
-      }
+      tempo = clamp(tempo, 20, 220) ;
+      this.panel.cell.stash.tempo = Math.round(tempo);
+      this.bpm.textContent = Math.round(tempo);
+      this.panel.tempoGroup.refresh();
+      this.tempo = tempo;
+      this.tock(1200,this.actx.currentTime) ;
+      // if not paused (stash.state == "Run" when paused, strange I know, but it represents
+      //  state were going to, not state we're in)...then restart the metronome
+      if(stash.state == "Pause") this.panel.adjuster.run(dur * 1.5) ;
       this.prevClick = now;
     }
   }
