@@ -2040,6 +2040,39 @@ class FileListView {
     return "#" + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
   }
 
+
+  // keyState stores state ulsed by the progressive match algorithms implemented by onKeyDown and markSelected.
+  keyState = { keys: "",
+    fileElm: null, // currently target fileElm, if any
+    span: null, // current title <span> node
+    txt: null // previous title text node, if any
+  } ;
+  
+  markSelected(fileElm) {
+    // Helper for the progressive match algorithm implemented in onKeyDown below. It 
+    // marks the "key state" of the given fileElm by replacing the title (file or directory name), which
+    // is a simple text node, by a <span>marked-title</span>. The title itself will have any characters that
+    // match keyState.keys enclosed in <mark>...</mark> tags so user knows how much of the title's
+    // name has matched. 
+    if(this.keyState.span) // then restore previous target's txt
+      this.keyState.span.replaceWith(this.keyState.txt) ; // replace span node with original text node
+    if(!fileElm) {
+      this.keyState.keys = "" ;
+      this.keyState.fileElm = this.keyState.span = this.keyState.txt = null ; 
+      return ;
+    }
+    this.keyState.fileElm = fileElm ;
+    let txt = fileElm.querySelector(".Flv-list__file-header")?.querySelector("svg")?.nextSibling ;
+    if(txt) {
+      this.keyState.txt = txt;
+      let tc = txt.textContent ;
+      let re = new RegExp(this.keyState.keys, "i");
+      let marked = tc.replace(re,`<mark>${tc.match(re)[0]}</mark>`) ;
+      this.keyState.span = helm(`<span>${marked}</span>`) ;
+      txt.replaceWith(this.keyState.span) ;
+    }
+  }
+
   onKeyDown(e) {
     let frame = this.flvList.parentElement ;
     let sash = this.flvList ;
@@ -2047,32 +2080,43 @@ class FileListView {
     switch(e.key) {
       case "Home": sashTop = "0" ; break ;
       case "End": sashTop = frame.offsetHeight - sash.offsetHeight ; break;
-      case "ArrowDown":
+      case "ArrowDown": // down 1 entry
         sashTop = sash.children[0].offsetHeight + sash.offsetTop ; break ;
-      case "ArrowUp": 
+      case "ArrowUp":  // up 1 entry
         sashTop = -sash.children[0].offsetHeight + sash.offsetTop ; break ;
-      case "ArrowLeft":
+      case "ArrowLeft": // up directory (FileSystemView only)
         if(this.constructor.name != "FileSystemView") return ;
         let pathLen = this.fsvPath.children.length ;
-        if(pathLen > 2) {
+        if(pathLen > 2) { // path will always start with root and end with "New": we ignore them
           let target = this.fsvPath.children[pathLen - 3] ;
           this.setPath(target.dataset.path);
         }
         return ; 
+      case "Enter": // open selection
+        if(this.keyState.fileElm) {
+          let { source, name, path, dir } = this.keyState.fileElm.dataset;
+          if (dir && path && name) this.getDir(path, name);
+          else if(source && path && name) this.getFile(source, path, name) ;
+          this.markSelected(null) ; // clear selection
+        }
+        return ;
       case "Backspace":
       case "Delete": 
-        this.keyBuf = this.keyBuf.slice(0,-1) ;
+        this.keyState.keys = this.keyState.keys.slice(0,-1) ;
       default: 
-        let isNormal = /^[a-zA-Z0-9 .]$/.test(e.key) ; // normal key, not navigational key
-        if(isNormal) this.keyBuf += e.key;
-        let options = {};
-        Array.from(sash.children).forEach((child) => options[child.dataset.name] = child) ;
-        let opt = Object.keys(options).find((str) => { return new RegExp(this.keyBuf, "i").test(str);}) ;
-        if(opt) {
-          let target = options[opt] ;
-          sashTop =  frame.offsetHeight / 2 - target.offsetTop - target.offsetHeight / 2 ;
+        let isNormal = /^[a-zA-Z0-9 .]$/.test(e.key) ; // normal key, i.e. not a navigational key
+        if(isNormal) this.keyState.keys += e.key;
+        let names = {}; // maps each file/directory name to containing fileElm
+        Array.from(sash.children).forEach((child) => names[child.dataset.name] = child) ;
+        let firstMatch = Object.keys(names).find((str) => { return new RegExp(this.keyState.keys, "i").test(str);}) ;
+        if(firstMatch) {
+          let fileElm = names[firstMatch] ;
+          sashTop =  frame.offsetHeight / 2 - fileElm.offsetTop - fileElm.offsetHeight / 2 ;
+          this.markSelected(fileElm) ;
         }
-        else if(isNormal) this.keyBuf = this.keyBuf.slice(0,-1) ; // no match...remove last key
+        else {
+          if(isNormal) this.keyState.keys = this.keyState.keys.slice(0,-1) ; // no match...remove last key
+        }
     }
     if(sashTop) sash.style.top = clamp(sashTop, frame.offsetHeight - sash.offsetHeight, 0) + "px" ;
   }
@@ -2480,10 +2524,11 @@ class FileSystemView extends FileListView {
       let listing = await this.src.getDir(this.path, true);
       if (listing.files[name])
         await new Promise((accept, reject) =>
-          dialog(`Confirm. Replace <i>${escapeHtml(name)}</i> ?`, { Replace: { svg: "Replace" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
-            args.close();
-            if (tag == "Cancel") reject(new Error("", { cause: "cancelled" }));
-            accept();
+          dialog(`Confirm. Replace <i>${escapeHtml(name)}</i> ?`,
+            { Replace: { svg: "Replace" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
+              args.close();
+              if (tag == "Cancel") reject(new Error("", { cause: "cancelled" }));
+              accept();
           })
         );
       _shade_.show("Uploading file");
@@ -2506,7 +2551,6 @@ class FileSystemView extends FileListView {
 
   async setPath(path, force = false) {
     if (this.source == "Local") return; // no path for Local files.
-    this.keyBuf = "" ; // keyBuf's contents only apply to folder they were typed in
     _shade_.show("Reading folder");
     return new Promise(async (accept, reject) => {
       try {
