@@ -101,7 +101,8 @@ class Select {
       line-height:0;
      }
     .Select__toggle:focus {
-      outline: 3px solid blue;
+      background-color: #fff;
+      outline: none;
     }
     .Select__frame {
       border-radius:var(--borderRadius);
@@ -205,6 +206,7 @@ class Select {
       }, { once:true}) ;
     }); 
 
+    let opt = null ; // currently selection option, if any
     let l3 = listen(toggle, "keydown", (e) => {
       e.stopPropagation();
 
@@ -221,10 +223,14 @@ class Select {
         case "Backspace":
         case "Delete": 
           keyBuf = keyBuf.slice(0,-1) ;
+        case "Enter":  // clear keyBuf and any option decoration
+          keyBuf = "" ;
+          selectOption(opt);
+          return;
         default: 
           if(/^[a-zA-Z0-9 .]$/.test(e.key)) keyBuf += e.key;
           let lineNumber = 0 ;
-          let opt = options.find((str) => { ++lineNumber ; return new RegExp(keyBuf, "i").test(str);}) ;
+          opt = options.find((str) => { ++lineNumber ; return new RegExp(keyBuf.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i").test(str);}) ;
           if(opt) {
             selectOption(opt, keyBuf) ;
             sashTop = frame.offsetHeight/2 - sash.offsetHeight * (lineNumber / options.length) ;
@@ -234,7 +240,7 @@ class Select {
           }
           else keyBuf = keyBuf.slice(0,-1) ;
       }
-      if(sashTop) {
+      if(sashTop != null) {
         sashTop = clamp(sashTop, frame.offsetHeight - sash.offsetHeight, 0) ;
         animate(sash, null, { top: sashTop + "px"}, `top ${Drag.scrollDur(sash.offsetTop -sashTop)}ms ease-out`) ;
       }
@@ -247,7 +253,7 @@ class Select {
       let opt = options.find((str) => { ++lineNumber ; return option == str;}) ;
       if(opt) {
         selectOption(opt, keyBuf) ;
-        sash.scrollTop = (lineNumber / options.length) * sash.scrollHeight - sash.offsetHeight / 2 ;
+        sash.style.top = clamp(frame.offsetHeight/2 - sash.offsetHeight * (lineNumber / options.length), frame.offsetHeight - sash.offsetHeight, 0) + "px" ;
         if(this.target) this.target.style.background = "none" ;
         this.target = sash.children[lineNumber-1] ;
         this.target.style.background = "#aaa" ;
@@ -604,16 +610,17 @@ for more details.</p>
         </div></div>
          `);
 
-  aboutFace = helm(
+  versionFace = helm(
     `<div style="position:relative;width:100%;height:100%;box-sizing:border-box;">
         <div style="position:absolute;top:35%;left:50%;transform:translate(-50%,-50%);text-align:center;font-size:1.5em;">
           <div>PODIUM: Sheet Music Studio</div>
           ${iconSvg("Podium", { style: "width:8em;" })}
           <div>Version ${_podiumVersion_}</div>
+          <a style="font-size:.6em;" href="https://studiop5.org/release${_podiumVersion_}.html">Release Notes</a><br><br>
           <div style="font-size:.6em;color:#888;">${typeof chrome !== "undefined" && chrome.runtime?.id ? "Browser Extension" : window.matchMedia("(display-mode: standalone)").matches ? "Progressive Web App" : location.protocol + "//" + location.host}</div>
         </div>
         <div style="position:absolute;bottom:2em;left:50%;transform:translateX(-50%);font-size:1.2em;text-align:center;font-variant-emoji:text;">
-           <a href="https://studiop5.org/privacy.html">\u{1F6E1} Privacy</a>&nbsp;
+          <a href="https://studiop5.org/privacy.html">\u{1F6E1} Privacy</a>&nbsp;
           <a href="https://studiop5.org/terms.html">\u00A7 Terms</a><br><br>
           <a href="https://github.com/studiop5/podium">&lt;&sol;&gt; Source</a>&nbsp;
           <a href="https://github.com/studiop5/podium/issues">\u2709\uFE0E Issues</a>
@@ -622,109 +629,20 @@ for more details.</p>
   );
 
 
-  releaseNotesFace = helm(
-    `<div class="AboutPanel__scroll" style="padding:2em;text-align:left;font-size:.8em;">
-      <h2>V2.0.2 April 2026</h2>
-  <ul>
-  <li>Updated SMuFL documentation link.</li>
-  </ul>
-      <h2>V2.0 March 2026</h2>
-  <ul>
-  <li><b>Browser Extension (Chrome, Edge)</b><br>
-  Right-click any PDF link and open it directly in Podium. Includes IMSLP integration for seamless access to the world's largest public domain music library.
-  </li><br>
-  <li><b>Progressive Web App</b><br>
-  Install Podium from your browser for app-like access and offline use.
-  </li><br>
-  <li><b>App Ring</b><br>
-  New ring with About, Theme, Guide, Storage, and Screen cells for managing application settings, appearance, and documentation.
-  </li><br>
-  <li><b>Magnify (Page ring)</b><br>
-  A dedicated magnification tool for zooming into score details. Drag to reposition, pinch or use the slider to adjust zoom level.
-  </li><br>
-  <li><b>Piano Tuner (More ring &rarr; Piano)</b><br>
-  Built-in chromatic tuner integrated into the Piano panel, powered by YIN pitch detection. Use your device's microphone to tune instruments with real-time pitch and confidence display.
-  </li><br>
-  <li><b>Cell Locking</b><br>
-  Long-press supported ink and page ring cells to lock them on, preventing auto-deactivation. Useful for extended annotation or page editing sessions.
-  </li><br>
-  <li><b>Edit Panel (Ink ring &rarr; Edit)</b><br>
-  Precisely adjust the position, size, and rotation of selected annotations by entering exact values for X, Y, width, height, and rotation angle.
-  </li><br>
-  <li><b>Cut, Copy &amp; Paste (Page ring)</b><br>
-  New local cut, copy, and paste cells for moving and duplicating pages within a score. The previous Copy and Paste cells, which share pages between Podium instances, are renamed Export and Import.
-  </li><br>
-  <li><b>Tap to Turn Pages</b><br>
-  In Book, Horizontal, and Vertical layouts, a tap is equivalent to a quick fling.
-  </li><br>
-  <li><b>Guide (App ring)</b><br>
-  Comprehensive new guidebook with 10 chapters, screenshots, embedded video demos, and a searchable keyword index.
-  </li><br>
-  </ul>
-      <h2>V1.1 December 2025</h2>
-  <ul>
-  <li> <b>Shared Copy/Paste Buffer (Page ring)</b><br>
-  Copy and paste pages between different Podium instances. Useful for combining pages from multiple scores,
-  extracting individual movements, or assembling custom practice sets.
-  </li><br>
-  <li><b>Dark Mode (More ring)</b><br>
-  Reduces eye strain during long practice sessions or low-light environments.
-  </li><br>
-  <li><b>Page Expansion (Score ring → Details)</b><br>
-  Pages smaller than the maximum size in a score can now be expanded to fill the available space, providing a more
-  consistent viewing experience.
-  </li><br>
-  <li><b>Page Management (Layout ring → Table)</b><br>
-  Reorder pages by dragging them to a new position. Delete pages by dragging them off the layout.
-  </li><br>
-  <li><b>New Fonts (Ink ring → Text)</b><br>
-  Two new font options: Vercetti and Patrick Hand (a handwritten-style font).
-  </li><br>
-  <li><b>Auto-off Safety Feature</b><br>
-  Page and ink ring cells automatically deactivate after a few seconds of inactivity, preventing accidental deletions or other unintended actions.
-  </li><br>
-  </ul>
-   <h2>V1.0 March 2025</h2>
-   Initial release.
-     </div>
-
-   `);
-
   constructor(cell) {
     super(cell);
-    let tabView = new TabView(this, "Version", "Release Notes", "Credits", "License");
+    let tabView = new TabView(this, "Version", "Credits", "License");
     Object.assign(this.body.style, {
       margin: 0,
-      width: "90vw",
-      maxWidth: "50em",
-      height: "90vh",
-      maxHeight: "40em",
+      width: "32em",
+      height: "38em",
     });
     tabView.frame.style.height = "100%";
     tabView.faces.style.position = "relative";
     tabView.faces.style.top = "0";
-
-    // Version tab
-    tabView.tabs["Version"].face.append(this.aboutFace);
-
-    // Release Notes tab — drag-to-scroll for mouse (touch uses native scrolling)
-    tabView.tabs["Release Notes"].face.append(this.releaseNotesFace);
-    let rnf = this.releaseNotesFace;
-    listen(rnf, "pointerdown", (e) => {
-      if (e.pointerType == "touch") return;
-      let startY = e.clientY;
-      let startScroll = rnf.scrollTop;
-      rnf.setPointerCapture(e.pointerId);
-      let mv = listen(rnf, "pointermove", (emv) => {
-        rnf.scrollTop = startScroll - (emv.clientY - startY);
-      });
-      listen(rnf, "pointerup", () => unlisten(mv), { once: true });
-    });
-
-    // Credits and License tabs
+    tabView.tabs["Version"].face.append(this.versionFace);
     tabView.tabs["Credits"].face.append(this.creditsFace);
     tabView.tabs["License"].face.append(this.licenseFace);
-
     this.body.append(tabView.elm);
     tabView.tabs["Version"].select();
   }
@@ -1699,16 +1617,22 @@ class MetronomePanel extends Panel {
         Pause: { svg: "Pause", redo: true, toggle: "state" },
         Show: { svg: "ShowTrace", toggle: "trace" },
         Hide: { svg: "HideTrace", toggle: "trace" } ,
+        Mute: { svg: "Mute", toggle: "mute" } ,
+        Unmute: { svg: "Unmute", toggle: "mute" } ,
       },
       (e, prop, tag) => {
         if(prop == "trace") {
-          stash.trace = (tag == "Show") ? "Hide": "Show" ;
+          stash.trace = (tag == "Show") ? "Hide":"Show" ;
           metronome.showTrace(tag == "Show") ;
         }
         else if(prop == "state") {
           stash.state = (tag == "Play") ? "Pause":"Play" ;
-          tag == "Play" ? metronome.play(true) : metronome.play(false);
+          metronome.play(tag == "Play") ;
         }
+        else if(prop == "mute") {
+          stash.mute = (tag == "Mute") ? "Unmute":"Mute" ;
+          metronome.setMute(tag == "Mute") ;
+        } 
         this.mediaGroup.refresh() ;
     });
     this.content.append(this.mediaGroup.elm);
@@ -2232,7 +2156,7 @@ class Pzr extends Surface {
         </div>
     `);
 
-  slots = [2,7,10,11,13,14,17,22] ; 
+  slots = [2,7,10,11,12,13,14,17,22] ; 
   targets = [] ;
 
   constructor(panel) {
@@ -2258,7 +2182,6 @@ class Pzr extends Surface {
       _menu_.busy = true ;
       // add active marker. Note: can't add style to <path.../>, must be parent <svg.../>
       let target = e.target.tagName == "path" ? e.target.parentElement : e.target;
-      if (target.tagName != "svg") return;
       if(this.getTargets()) {
         target.classList.add("Pz__control-active") ;
         e.stopPropagation();
@@ -2303,7 +2226,7 @@ class Pzr extends Surface {
       }
     }
     let tmp = helm(`<svg viewBox="0 0 24 24" 
-      style="grid-column:3;grid-row:3;pointer-events:none;stroke:none;fill:currentColor;">
+      style="grid-column:3;grid-row:3;stroke:none;fill:currentColor;">
       ${getIconPath()}</svg>`) ;
     this.iconSvg.replaceWith(tmp) ;
     this.iconSvg = tmp ;
@@ -2321,8 +2244,14 @@ class Pzr extends Surface {
     if (elapsed > 2000) { step = 50; zoomFactor = 0.10; rotStep = 20; }
     else if (elapsed > 1200) { step = 20; zoomFactor = 0.05; rotStep = 5; }
     else if (elapsed > 600) { step = 5; zoomFactor = 0.02; rotStep = 1; }
+///
+    if (pos == 12) { // when center icon select, move to next obj in canvas stacking order
+       let objs = obj.canvas.getObjects();
+       let idx = objs.indexOf(obj) ;
+       obj.canvas.setActiveObject(objs[(idx + 1) % objs.length]) ;
+    }
 
-    if (pos == 11 || pos == 13) { // scale
+    else if (pos == 11 || pos == 13) { // scale
       let multiplier = (pos == 11) ? (1 + zoomFactor) : (1 - zoomFactor);
       let center = obj.getCenterPoint();
       obj.set({

@@ -308,6 +308,14 @@ css( // common css declarations.
     --z-shade: 9001;
     --z-curtain: 9002;
     --z-topmost: 9003;
+
+    mark {
+     background:black;
+     color: white;
+     border-radius: .12em;
+}
+
+
   }
 
   /* Dark theme */
@@ -714,7 +722,6 @@ class ButtonGroup {
     //      be any object.
     //   @prevTag: iff property is non null, then the previous
     //      value (i.e. tag) of the property
-console.log("handle...") ;
     let path = e.composedPath();
     for (let i = 0; i < path.length; i++) {
       let elm = path[i];
@@ -1792,6 +1799,8 @@ class TabView {
        height: 3em;
        background: var(--panel-header-bg);
        background-image: var(--panTexture);
+       -webkit-mask-image: linear-gradient(to right, transparent, black .8em, black calc(100% - .8em), transparent);
+       mask-image: linear-gradient(to right, transparent, black .8em, black calc(100% - .8em), transparent);
     }
     .TabView__sash-edge {
       top: 3.5em;

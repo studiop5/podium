@@ -46,7 +46,7 @@ class Actx {
   constructor() {
     this.actx = new AudioContext();
     let volume = new GainNode(this.actx);
-    volume.gain.setValueAtTime(_menu_.rings.app.cells.volume.stash.volume, this.actx.currentTime);
+    volume.gain.setValueAtTime(_menu_.rings.more.cells.volume.stash.volume, this.actx.currentTime);
     volume.connect(this.actx.destination);    
     listen(_body_, "VOLUME", (e) => volume.gain.setValueAtTime(e.detail, this.actx.currentTime));
     this.bus = new DynamicsCompressorNode(this.actx, {
@@ -804,7 +804,6 @@ class Piano {
       // Use user-adjusted width if set (preserved across fling-hide/reopen),
       // otherwise start with minimum width
       let panelWidth = this.userWidth !== null ? this.userWidth : Math.min(minWidth, maxWidth);
-
       this.panel.panel.style.width = pxToEm(panelWidth, this.panel.elm);
     });
   }
@@ -1211,6 +1210,7 @@ conductor = `<defs>
   delta = 0.5; // Schedule-ahead
   gain = 1;
   latency = 0; // ms; positive = audio later, negative = earlier (Bluetooth compensation)
+  mute = false;
   ticker = new Schedule();
   tickCount = 0;
   tickTime = 0;
@@ -1224,7 +1224,7 @@ conductor = `<defs>
   constructor(panel) {
     super(panel, ScreenPanel);
     this.beatPattern = this.beatPatterns[0];
-    this.volumeStash = _menu_.rings.app.cells.volume.stash;
+    this.volumeStash = _menu_.rings.more.cells.volume.stash;
     [this.actx, this.bus] = Actx.get();
     this.oscillator = null;
     this.gainNode = new GainNode(this.actx);
@@ -1325,10 +1325,16 @@ conductor = `<defs>
     }
   }
 
+
   showTrace(bool) {
     this.traceVisible = bool;
     this.tracePaths?.forEach(p => p.style.stroke = bool ? "#88f8" : "none");
   }
+
+  setMute(bool) {
+    this.mute = bool;
+  }
+
 
   setPattern(name) {
     // Switch to the named beatPattern.
@@ -1379,6 +1385,7 @@ conductor = `<defs>
 
   tock(freq, time) {
     // Implements the "talking" (== tocking, get it?) part of the tick
+    if(this.mute) return ;
     this.oscillator = new OscillatorNode(this.actx, { frequency: freq });
     // Note: gain value must not be 0
     this.gainNode.gain.exponentialRampToValueAtTime(Math.max(this.volumeStash.volume, 0.0000001), time + 0.001);

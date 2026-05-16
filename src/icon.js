@@ -387,8 +387,14 @@ More:
    <text y="12" x="9" font-family="Bravura" font-size="10px">\ue01a\ue01a\ue01a</text>
    <text y="12.125" x="9.75" font-family="Bravura" font-size="10px">\ue050</text>
    <text y="22" x="6" font-size="6px">PDF</text>
-   <path stroke="currentColor" stroke-width=".9" d="M0 0l24 24M24 0l-24 24"/>`
-,
+   <path stroke="currentColor" stroke-width=".9" d="M0 0l24 24M24 0l-24 24"/>`,
+
+///
+Mute:
+   `<text y="16" x="6" stroke="black" stroke-width=".4" paint-order="stroke fill" font-size="16px" font-family="Bravura" fill="currentColor">\ueb26</text>`,
+
+Unmute:
+   `<text y="16" x="6" stroke="black" stroke-width=".4" paint-order="stroke fill" font-size="16px" font-family="Bravura" fill="currentColor">\ueb27</text>`,
 
 Numbers:
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
@@ -500,14 +506,11 @@ Save:
 Score:
   `<path fill="#aaa" stroke="currentColor" stroke-width="0.8" d="m14.309339,12.611855v0m-2.543782,-3.2802594 3.122609,-0.01247M1.6649238,22.289353 21.865783,22.478636M18.366179,22.221781 18.066257,3.5141062 20.086952,3.4646895 20.102136,22.20106Zm-1.51175,0.05511-0.560058,-17.6242436 1.367543,0.014358 0.16507,17.6551636zm-6.050171,-0.19639 0.300854,-16.1871633 4.813427,-0.031453 0.02069,16.3211033zM6.1506929,22.108151 11.756662,2.5432418 8.2865928,1.7325439 2.6529156,20.947044Z"/>`,
 
-///
 ShowTrace:
-  `<path fill="none" stroke="#000" stroke-width="0.5" transform="scale(1.6,1.6) translate(-5,-7)"
-d="M 8.81,14.16 c 1.97,-0.09 2.34,-3.49 3.07,-6.21 l -0.02,8.30 M 11.86,16.24 c 0.14,-2.46 3.70,0.77 3.56,-0.40 M 15.42,15.86 C 14.23,11.41 10.01,17.58 8.30,15.07 M 8.30,15.07 c -0.35,-0.28 -0.59,-0.84 -0.84,-1.34 0.42,0.23 0.87,0.45 1.36,0.42"/>`, 
+  `<path fill="none" stroke="#000" stroke-width="0.7" transform="scale(1.6,1.6) translate(-5,-7)" d="M 8.81,14.16 c 1.97,-0.09 2.34,-3.49 3.07,-6.21 l -0.02,8.30 M 11.86,16.24 c 0.14,-2.46 3.70,0.77 3.56,-0.40 M 15.42,15.86 C 14.23,11.41 10.01,17.58 8.30,15.07 M 8.30,15.07 c -0.35,-0.28 -0.59,-0.84 -0.84,-1.34 0.42,0.23 0.87,0.45 1.36,0.42"/>`, 
 
 HideTrace:
-  `<path fill="none" stroke="#aaa" stroke-width="0.5" transform="scale(1.6,1.6) translate(-5,-7)"
-d="M 8.81,14.16 c 1.97,-0.09 2.34,-3.49 3.07,-6.21 l -0.02,8.30 M 11.86,16.24 c 0.14,-2.46 3.70,0.77 3.56,-0.40 M 15.42,15.86 C 14.23,11.41 10.01,17.58 8.30,15.07 M 8.30,15.07 c -0.35,-0.28 -0.59,-0.84 -0.84,-1.34 0.42,0.23 0.87,0.45 1.36,0.42"/>`, 
+  `<path fill="none" stroke="#aaa" stroke-width="0.7" transform="scale(1.6,1.6) translate(-5,-7)" d="M 8.81,14.16 c 1.97,-0.09 2.34,-3.49 3.07,-6.21 l -0.02,8.30 M 11.86,16.24 c 0.14,-2.46 3.70,0.77 3.56,-0.40 M 15.42,15.86 C 14.23,11.41 10.01,17.58 8.30,15.07 M 8.30,15.07 c -0.35,-0.28 -0.59,-0.84 -0.84,-1.34 0.42,0.23 0.87,0.45 1.36,0.42"/>`, 
 
 Slope:
   `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M5 5l19 19M5 10v-5h5M18 23h5v-5"/>`,

@@ -645,7 +645,6 @@ class Menu {
         curtain: { name: "Curtain", svgPath: iconPaths["Curtain"], stash: { color:"Black", alpha: 60 }, storage: "local" },
         wakeLock: { name: "Wakelock", svgPath: iconPaths["Wakelock Off"], stash: { on: false }, storage: "local" },
         screen: { name: "Screen", stash: {}, svgPath: iconPaths["Full Screen"], storage: "local" },
-        volume: { name: "Volume", svgPath: iconPaths["Volume"], stash: { volume:1}, },
 
       },
       svgPath: iconPaths["Podium"],
@@ -722,6 +721,7 @@ class Menu {
             tempo: 60,
             state: "Pause",
             trace: "Hide", 
+            mute: "Mute",
             pattern: "metronome",
             latency: 0,
           },
@@ -754,7 +754,7 @@ class Menu {
           svgPath: iconPaths["Keyboard"],
           stash: {},
         },
-
+        volume: { name: "Volume", svgPath: iconPaths["Volume"], stash: { volume:1}, },
       },
       name: "More",
       stash: { active: null },

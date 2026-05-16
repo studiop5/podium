@@ -295,7 +295,7 @@ class FileSrc {
         score.setDirty(false);
         toast("File saved.");
       } catch (error) {
-        if (error.name !== 'AbortError') {
+        if (error.name != 'AbortError') {
           errDialog(error, "Error: failed to save file.<br>Details in Console.");
         }
       } finally {
@@ -1610,7 +1610,7 @@ class UrlSrc extends FileSrc {
 class LocalFileView:
    Since browser's give very limited access to the local file
    system, the LocalFileView is nothing more than a mechanism
-   for involing the Browser's built in load/save file interface,
+   for invoking the Browser's built in load/save file interface,
    including drag/drop.
 **/
 class LocalFileView {
@@ -1749,7 +1749,7 @@ class LocalFileView {
       score.setDirty(false);
       toast("File saved");
     } catch (error) {
-      if (error.name !== 'AbortError') {
+      if (error.name != 'AbortError') {
         errDialog(error, "Failed to save file to local storage");
       }
     } finally {
@@ -1773,29 +1773,15 @@ class FileListView {
   static css = css(
     "FileListView",
     `
-    Flv-fade-top {
-      z-index: 1;
-      position: absolute;
-      top: 0px;
-      display: block;
-      width: 100%;
-      height: .8em;
-      background-image: linear-gradient(to top, transparent, var(--panel-bg));
-    }
-    Flv-fade-bottom {
-      z-index: 1;
-      position: absolute;
-      bottom: 0;
-      display: block;
-      width: 100%;
-      height: .8em;
-      background-image: linear-gradient(to bottom, transparent, var(--panel-header-bg) 53%, var(--panel-header-bg));
-    }
     .Flv {
       position: absolute;
       height:100%;
       width:100%;
       color: var(--color-text);
+    }
+    .Flv:focus {
+      outline: none;
+      background-color: #fff;
     }
     .Flv-list {
       position:relative;
@@ -1807,6 +1793,9 @@ class FileListView {
       position:relative;
       overflow:hidden;
       height: calc(100% - 6.5em);
+   -webkit-mask-image: linear-gradient(to bottom, transparent, black .8em, black calc(100% - .8em), transparent);
+    mask-image: linear-gradient(to bottom, transparent, black .8em, black calc(100% - .8em), transparent);            
+
     }
     .Fsv-list__frame {
       height: calc(100% - 10em);
@@ -1852,10 +1841,6 @@ class FileListView {
       height: 3em;
       background-image: var(--panTexture);
       margin-top: .5em;
-    }
-    .Flv-path__sash-edge {
-      top: .5em;
-      height: 10em;
     }
     .Flv-path {
       position:relative;
@@ -1910,13 +1895,10 @@ class FileListView {
   };
 
   elm = helm(`
-      <div class="Flv">
-        <div data-tag="flvList__frame" class="Flv-list__frame">
-          <Flv-fade-top></Flv-fade-top>
-          <div data-tag="flvList" class="Flv-list"></div>
-          <Flv-fade-bottom></Flv-fade-bottom>
-       </div>
-
+    <div class="Flv">
+      <div data-tag="flvList__frame" class="Flv-list__frame">
+        <div data-tag="flvList" class="Flv-list"></div>
+      </div>
     </div>`);
 
   keyBuf = "" ;
@@ -2066,7 +2048,7 @@ class FileListView {
     if(txt) {
       this.keyState.txt = txt;
       let tc = txt.textContent ;
-      let re = new RegExp(this.keyState.keys, "i");
+      let re = new RegExp(this.keyState.keys.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
       let marked = tc.replace(re,`<mark>${tc.match(re)[0]}</mark>`) ;
       this.keyState.span = helm(`<span>${marked}</span>`) ;
       txt.replaceWith(this.keyState.span) ;
@@ -2095,8 +2077,8 @@ class FileListView {
       case "Enter": // open selection
         if(this.keyState.fileElm) {
           let { source, name, path, dir } = this.keyState.fileElm.dataset;
-          if (dir && path && name) this.getDir(path, name);
-          else if(source && path && name) this.getFile(source, path, name) ;
+          if (dir && path !=null && name) this.getDir(path, name); // need !=null because path can be ""
+          else if(source && path !=null && name) this.getFile(source, path, name) ;
           this.markSelected(null) ; // clear selection
         }
         return ;
@@ -2108,17 +2090,17 @@ class FileListView {
         if(isNormal) this.keyState.keys += e.key;
         let names = {}; // maps each file/directory name to containing fileElm
         Array.from(sash.children).forEach((child) => names[child.dataset.name] = child) ;
-        let firstMatch = Object.keys(names).find((str) => { return new RegExp(this.keyState.keys, "i").test(str);}) ;
-        if(firstMatch) {
-          let fileElm = names[firstMatch] ;
+        let match = Object.keys(names).find((str) => { return new RegExp(this.keyState.keys.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i").test(str);}) ;
+        if(match) {
+          let fileElm = names[match] ;
           sashTop =  frame.offsetHeight / 2 - fileElm.offsetTop - fileElm.offsetHeight / 2 ;
-          this.markSelected(fileElm) ;
+          this.markSelected(this.keyState.keys.length > 0 ? fileElm:null) ;
         }
         else {
           if(isNormal) this.keyState.keys = this.keyState.keys.slice(0,-1) ; // no match...remove last key
         }
     }
-    if(sashTop) sash.style.top = clamp(sashTop, frame.offsetHeight - sash.offsetHeight, 0) + "px" ;
+    if(sashTop != null) sash.style.top = clamp(sashTop, frame.offsetHeight - sash.offsetHeight, 0) + "px" ;
   }
 
   onListDown(e) {
@@ -2304,9 +2286,6 @@ class FileSystemView extends FileListView {
       <div data-tag="fsv" class="Flv">
          <![CDATA[currently selected file path, left-to-right]]>
          <div data-tag="fsvPath" class="Flv-path__sash"></div>
-         <div class="Flv-path__sash-edge fadeLeft"></div>
-         <div class="Flv-path__sash-edge fadeRight"></div>
-  
          <![CDATA[text input for save filename (plus button), void for save panel]]>
          <div data-tag="fsvSave" class="void" style="display:flex;width:100%";justify-content:center>
            <input is="pod-input" type="text" data-tag="fsvSave__file" class="Flv-save__file"/>
@@ -2315,9 +2294,7 @@ class FileSystemView extends FileListView {
 
          <![CDATA[list of files, top-to-bottom]]>
          <div data-tag="flvList__frame" class="Flv-list__frame Fsv-list__frame">
-           <Flv-fade-top></Flv-fade-top>
            <div data-tag="flvList" class="Flv-list"></div>
-           <Flv-fade-bottom></Flv-fade-bottom>
          </div>
   
       </div>`);
