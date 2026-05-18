@@ -1303,11 +1303,15 @@ class Menu {
     // then moves ths panel's header to pointer location (this.op.e)
     let panel = panels[cell.name + "Panel"]?.get(cell);
     if (!panel) return;
-    if (panel.elm.style.visibility != "visible") panel.show();
+    if (!panel.elm.isConnected) {
+      panel.elm.style.visibility = "hidden"; // prevent flash at default top:0 before positioning
+      _body_.append(panel.elm);
+    }
     Object.assign(panel.elm.style, {
       left: this.op.emv.clientX - panel.elm.offsetWidth / 2 + "px",
       top: this.op.emv.clientY + panel.panel.offsetHeight / 2 - panel.header.offsetHeight / 2 + "px",
     });
+    if (panel.elm.style.visibility != "visible") panel.show();
     cell.elm.classList.remove("Menu__panel");
     panel.constrain();
   }
