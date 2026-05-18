@@ -2140,23 +2140,37 @@ class Pzr extends Surface {
 
   grid = helm(`
         <div class="Pz Surface__outline Pz__control">
+
+          <!-- translate up, right, down, left: pos 2,14,22,10-->
           <svg style="grid-row:1;grid-column:3;" viewBox="0 0 100 100"><path d="M10 60L50 10L90 60Q50 40 10 60"/></svg>
-          <svg style="grid-row:2;grid-column:3;" data-tag="cw"  viewBox="0 0 100 100">
-            <path  d="M50 22 A28 28 0 1 1 30.2 70 M50 14 L50 30 L34 22 Z" transform="translate(100,0) scale(-1, 1)"/>
-          </svg>
-          <svg style="grid-row:3;grid-column:1;" viewBox="0 0 100 100"><path d="M60 10L10 50L60 90Q 40 50 60 10"/></svg>
-          <svg style="overflow:visible;grid-row:3;grid-column:2;" viewBox="0 0 100 100"><path d="M90 20L-20 50L90 80"/></svg>
-          ${iconSvg("Void", {style:"grid-row:3;grid-column:3;pointer-events:none;opacity:0.5;"})}
-          <svg style="overflow:visible;grid-row:3;grid-column:4;" viewBox="0 0 100 100"><path d="M10 20L120 50L10 80"/></svg>
           <svg style="grid-row:3;grid-column:5;" viewBox="0 0 100 100"><path d="M40 10L90 50L40 90Q 60 40 40 10"/></svg>
-          <svg style="grid-row:4;grid-column:3;"data-tag="ccw"  viewBox="0 0 100 100">
-            <path d="M50 22 A28 28 0 1 1 30.2 70 M50 14 L50 30 L34 22 Z"/>
-          </svg>
           <svg style="grid-row:5;grid-column:3;" viewBox="0 0 100 100"><path d="M10 40L50 90L90 40Q 50 60 10 40"/></svg> 
+          <svg style="grid-row:3;grid-column:1;" viewBox="0 0 100 100"><path d="M60 10L10 50L60 90Q 40 50 60 10"/></svg>
+
+          <!-- rotate conterclockwise, clockwise: pos 6,8-->
+          <svg style="grid-row:2;grid-column:2;"data-tag="ccw"  viewBox="0 0 100 100">
+            <path d="M50 22 A28 28 0 1 1 30.2 70 M50 14 L50 30 L34 22 Z"/></svg>
+          <svg style="grid-row:2;grid-column:4;" data-tag="cw"  viewBox="0 0 100 100">
+            <path  d="M50 22 A28 28 0 1 1 30.2 70 M50 14 L50 30 L34 22 Z" transform="translate(100,0) scale(-1, 1)"/></svg>
+
+
+          <!-- edit prev, next: pos 16,18-->
+          <svg style="grid-row:4;grid-column:2;", data-tag="left" viewBox="0 0 100 100">
+            <path d="M25,18A8,8 0 1,0 25,17.9M32,26L58,60M40,33L25,48L8,48M40,33L55,20L72,33M58,60L38,75L50,94M58,60L76,67L92,64"/></svg>
+          <svg style="grid-row:4;grid-column:4;", data-tag="right" viewBox="0 0 100 100">
+            <path d="M75,18A8,8 0 1,1 75,17.9M68,26L42,60M60,33L75,48L92,48M60,33L45,20L28,33M42,60L62,75L50,94M42,60L24,67L8,64"/></svg>
+
+
+          <!-- scale down, up: pos 11,13 -->
+          <svg style="overflow:visible;grid-row:3;grid-column:4;" viewBox="0 0 100 100"><path d="M10 20L120 50L10 80"/></svg>
+          <svg style="overflow:visible;grid-row:3;grid-column:2;" viewBox="0 0 100 100"><path d="M90 20L-20 50L90 80"/></svg>
+
+          <!-- active object,s pos 12 -->
+          ${iconSvg("Void", {style:"grid-row:3;grid-column:3;pointer-events:none;opacity:0.5;"})}
         </div>
     `);
 
-  slots = [2,7,10,11,12,13,14,17,22] ; 
+  slots = [2,6,8,10,11,12,13,14,16,18,22] ; 
   targets = [] ;
 
   constructor(panel) {
@@ -2233,67 +2247,70 @@ class Pzr extends Surface {
   }
 
   doStep(pos) {
+    let obj = EditPanel.pzrTarget;
+    if(!obj) return;
     let elapsed = performance.now() - this.opStartTime;
-    let obj = EditPanel.pzrTarget ;
-    if(!obj) return ;
 
-    // Progressive step/acceleration
-    let step = 1 / (obj.canvas.getZoom() * window.devicePixelRatio); // initial theoretical minimum
-    let zoomFactor = 0.01;
-    let rotStep = 0.2;
-    if (elapsed > 2000) { step = 50; zoomFactor = 0.10; rotStep = 20; }
-    else if (elapsed > 1200) { step = 20; zoomFactor = 0.05; rotStep = 5; }
-    else if (elapsed > 600) { step = 5; zoomFactor = 0.02; rotStep = 1; }
-///
-    if (pos == 12) { // when center icon select, move to next obj in canvas stacking order
-       let objs = obj.canvas.getObjects();
-       let idx = objs.indexOf(obj) ;
-       obj.canvas.setActiveObject(objs[(idx + 1) % objs.length]) ;
-    }
+    // Warning: unorthodox coding pattern follows: nested switch statements with intentional fallthrough.
+    // Each level tests pos for the cases that diverge at that level; unmatched
+    // cases fall into the default, which sets up shared state and dispatches                                                                        // further. Each value of pos is tested at most once.            
 
-    else if (pos == 11 || pos == 13) { // scale
-      let multiplier = (pos == 11) ? (1 + zoomFactor) : (1 - zoomFactor);
+    // prev/next obj:
+    let step = 1;
+    switch(pos) {
+      case 16: step = -1;
+      case 18: 
+        let objs = obj.canvas.getObjects();
+        let knt = objs.length;
+        let i = (objs.indexOf(obj) + knt + step) % knt;
+        obj.canvas.setActiveObject(objs[i]) ; 
+        break;
+
+    default: { // rotate:
+      // Remaining pos's perform progressive acceleration
+      let a = Object.assign({}, 
+        (elapsed > 2000) ? { rotate:20.0, scale:0.10, translate:50} :
+        (elapsed > 1200) ? { rotate: 5.0, scale:0.05, translate:20} :
+        (elapsed >  600) ? { rotate: 1.0, scale:0.02, translate: 5} :
+                           { rotate: 0.2, scale:0.01, translate: 1});
       let center = obj.getCenterPoint();
-      obj.set({
-        originX: "center", originY: "center",
-        left: center.x, top: center.y,
-        scaleX: Math.max(0.01, obj.scaleX * multiplier),
-        scaleY: Math.max(0.01, obj.scaleY * multiplier)
-      });
-    } else if (pos == 7 || pos == 17) { // rotate
-      let delta = pos == 7 ? rotStep : -rotStep;
-      let center = obj.getCenterPoint();
-      obj.set({
-        originX: "center", originY: "center",
-        left: center.x, top: center.y,
-        angle: (obj.angle + delta) % 360
-      });
-    } else { // translate
-      let dx = 0, dy = 0;
-      if (pos == 2) dy = -step; // up
-      if (pos == 10) dx = -step; // left
-      if (pos == 14) dx = step; // right
-      if (pos == 22) dy = step; // down
-      let newLeft = obj.left + dx;
-      let newTop = obj.top + dy;
+      let p = { originX: "center",
+                originY: "center",
+                left: center.x,
+                top: center.y };
+      switch(pos) { 
+        case 6: a.rotate = -a.rotate;
+        case 8: p.angle = (obj.angle + a.rotate) % 360;
+        break ;
 
-      if (obj.canvas) {
-        // Keep obj's center in the canvas
-        let center = obj.getCenterPoint();
-        let centerDx = center.x - obj.left;
-        let centerDy = center.y - obj.top;
-        newLeft = clamp(newLeft + centerDx, 0, obj.canvas.width) - centerDx;
-        newTop = clamp(newTop + centerDy, 0, obj.canvas.height) - centerDy;
+    default: { // scale:
+      let scale = 1 - a.scale;          
+      switch(pos) {
+        case 11: scale = 1 + a.scale;
+        case 13: p.scaleX = Math.max(0.01, obj.scaleX * scale);
+                 p.scaleY = Math.max(0.01, obj.scaleY * scale);
+        break ;
+
+    default: { // translate:
+      let dx = 0 ;
+      let dy = 0 ;
+      switch(pos) {
+        case 2:  dy = -a.translate; break; // up
+        case 10: dx = -a.translate; break; // left
+        case 14: dx =  a.translate; break; // right
+        case 22: dy =  a.translate; break; // down
       }
+      let centerDx = center.x - obj.left;
+      let centerDy = center.y - obj.top;
+      let minTrans = 1 / (obj.canvas.getZoom() * window.devicePixelRatio); // theoretical minimum translation factor
+      p.left = clamp(obj.left + dx * minTrans + centerDx, 0, obj.canvas.width) - centerDx;
+      p.top = clamp(obj.top + dy * minTrans + centerDy, 0, obj.canvas.height) - centerDy;
 
-      obj.set({
-        left: newLeft,
-        top: newTop
-      });
-    }
-    obj.setCoords();
+    }}}} /* close nested default / switch blocks */ 
+    obj.set(p);
+    }}
     obj.canvas?.requestRenderAll();
-    _menu_.magnifier?.panel?.updateMagnifier() ;
+   _menu_.magnifier?.panel?.updateMagnifier();
   }
 
   getTargets() 

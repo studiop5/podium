@@ -1793,8 +1793,8 @@ class FileListView {
       position:relative;
       overflow:hidden;
       height: calc(100% - 6.5em);
-   -webkit-mask-image: linear-gradient(to bottom, transparent, black .8em, black calc(100% - .8em), transparent);
-    mask-image: linear-gradient(to bottom, transparent, black .8em, black calc(100% - .8em), transparent);            
+      -webkit-mask-image: linear-gradient(to bottom, transparent, black .8em, black calc(100% - .8em), transparent);
+      mask-image: linear-gradient(to bottom, transparent, black .8em, black calc(100% - .8em), transparent);            
 
     }
     .Fsv-list__frame {
