@@ -1635,11 +1635,11 @@ class ScrollLayout extends Layout {
   async pgSnapTo(vel, drag = null) {
     // move the page to requested snap point, animating at given velocity
     // vel is given in px/msec, but note:
-    //            vel = 0 means snap to nearest (a no-op if pgSnap == 0)
-    //                > 0 means snap to right
-    //                < 0 means snap to left
+    //            vel == 0 means snap to nearest (a no-op if pgSnap == 0)
+    //                 > 0 means snap to right
+    //                 < 0 means snap to left
     // (abs(vel) >= 1000) means snap immediately, i.e. no animation
-    let pace = Math.abs(vel) || _score_.layout.pace / _score_[this.props.MAXWIDTH];
+    let pace = Math.abs(vel) || _score_[this.props.MAXWIDTH] / _score_.layout.pace;
 
     let { WIDTH, X, INNERWIDTH } = this.props;
     let { gap, pgSnap, sashLimit } = this.cell.geo;
@@ -1666,15 +1666,11 @@ class ScrollLayout extends Layout {
       else if (vel < 0) snapIndex++;
       this.sashStart = -snapIndex * snapWidth;
       this.snapIndex = snapIndex;
-    } else if (pace < 1000) {
-      // Free-scroll drag (pgSnap == 0): kinematic fling if drag available, else fixed multiplier
-      if (drag) {
+    } else if(drag) {
+        // Free-scroll:  drag defined, and pgSnap == 0: kinematic fling 
         let { to, dt } = Drag.fling(this.sashStart, sashLimit, 0, vel);
         this.sashStart = to;
         pace = _score_[this.props.MAXWIDTH] / dt;  // back-compute pace so pgCommit duration = dt
-      } else {
-        this.sashStart += vel * visSize;
-      }
     }
 
     let targetSash = this.sashStart;
