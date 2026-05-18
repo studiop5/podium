@@ -879,31 +879,26 @@ class BookLayout extends Layout {
         let x = eup.clientX - spineBox.x;
         let y = eup.clientY - spineBox.y;
         let flipping = (advancing && x <= 0) || (!advancing && x > 0);
-        let pace = 100 ; 
         drag.up(eup) ;
-        if(drag.jab) flipping = true ;
-        else if(drag.lift) pace = null ;
-        else {
-          flipping = true ;
-          pace = Math.abs(drag.vX) ;
-        }
+        if(drag.jab || drag.vX) flipping = true ;
         let toX = flipping ? (advancing ? -pgWidth : pgWidth) : advancing ? pgWidth : -pgWidth;
         // animate the flip (or flop)
         this.closeFunc = async () => {
           if (flipping) await this.pgShift(advancing);
           else this.layoutSlots();
         };
-        this.pgFlip(x, y, toX, pgHeight / 2, advancing, this.closeFunc, pace);
+        this.pgFlip(x, y, toX, pgHeight / 2, advancing, this.closeFunc, drag.vX);
       },
       { once: true }
     );
   }
 
   pgFlip(x, y, toX, toY, advancing, func=null, pace=null) {
-    // pace in msec/flip. if null, value from stash (which is in secs/flip) is used
+    // pace in msec/flip. if null, value from stash (which is in secs/flip) is used,
+    // otherwise abs(pace) is used.
     let pgWidth = this.cell.geo.pgWidth;                                                          
     let pxPerFlip = pgWidth * 2;
-    let msecPerFlip = pace == null ? this.cell.stash.pace : pxPerFlip * (1/pace) ; 
+    let msecPerFlip = pace == null ? this.cell.stash.pace : pxPerFlip * (1/ Math.abs(pace)) ; 
     let startFlip  = advancing ? (pgWidth - x)   / pxPerFlip : (x   + pgWidth) / pxPerFlip;           
     let targetFlip = advancing ? (pgWidth - toX)  / pxPerFlip : (toX + pgWidth) / pxPerFlip;          
     let duration = Math.abs(targetFlip - startFlip) * msecPerFlip;       
@@ -1515,7 +1510,9 @@ class ScrollLayout extends Layout {
           let visStart = Math.max(frameBox[X], 0);
           let visEnd = Math.min(frameBox[X] + frameBox[WIDTH], window[this.props.INNERWIDTH]);
           let mid = (visStart + visEnd) / 2;
-          return this.pgSnapTo(eup[CLIENTX] > mid ? -1000 : 1000) ; // 1000 (-1000) means "immediately", animate in 1 frame
+          // convert pace from sec/snap to px/msec:
+          let pace = (this.snapStep || 1) * _score_[this.props.MAXWIDTH] / _score_.layout.pace ;
+          return this.pgSnapTo(eup[CLIENTX] > mid ? -pace : pace) ; 
         }
         else if(drag.lift) return this.pgSnapTo(0);
         else  return this.pgSnapTo(drag[VX], drag);
@@ -1641,8 +1638,8 @@ class ScrollLayout extends Layout {
     //            vel = 0 means snap to nearest (a no-op if pgSnap == 0)
     //                > 0 means snap to right
     //                < 0 means snap to left
-    // (abs(vel) >= 1000) means snap immediately, i.e. no anitmation
-    let pace = Math.abs(vel) ;
+    // (abs(vel) >= 1000) means snap immediately, i.e. no animation
+    let pace = Math.abs(vel) || _score_.layout.pace / _score_[this.props.MAXWIDTH];
 
     let { WIDTH, X, INNERWIDTH } = this.props;
     let { gap, pgSnap, sashLimit } = this.cell.geo;
