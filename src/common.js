@@ -1685,7 +1685,9 @@ class Surface {
   `);
 
   surface = helm(`<div data-tag="surface" class="Surface"></div>`);
-  surfaceDragElm = null; // subclasses must define: this is the part of the surface that reacts to drag gestures
+  // When defined, cicular part of the surface that reacts to drag gestures
+  // ...used by Clock and StopWatch to disallow dragging ouside of circle
+  surfaceDragElm = null; 
 
   constructor(panel, ScreenPanel) {
     this.panel = panel;
@@ -1697,11 +1699,12 @@ class Surface {
     panel.listeners.push(listen(surface, "pointerdown", (e) => {
       // set z-index to bring surface on top (note: Curtain class manages its own z-index)
       if(this.constructor.name != "Curtain" && surface.parentElement == _body_) surface.style.zIndex = ++_zTop_;
-      // Ignore pointerdown outside of circular area enclosed by this.surfaceDragElm
-      let box = getBox(this.surfaceDragElm);
+      let box = getBox(this.surfaceDragElm || surface);
       let maxLeft = window.innerWidth - box.width;
       let maxTop = window.innerHeight - box.height;
-      if (Math.hypot(e.clientX - box.x - box.width / 2, e.clientY - box.y - box.height / 2) > box.width / 2) return;
+      // When this.surfaceDragElm defined, we Ignore pointerdown outside of circular area enclosed by it.
+      // This is used to diable dragging outside of Clock/Stopwatch's circular faces
+      if (this.surfaceDragElm &&  (Math.hypot(e.clientX - box.x - box.width / 2, e.clientY - box.y - box.height / 2) > box.width / 2)) return;
       _body_.setPointerCapture(e.pointerId);
       longPresser.run(_longPressMs_, () => this.onSurfaceEvent("press"));
       let dX = e.offsetX, dY = e.offsetY; // warning: e can be gc'ed before mv references it.
@@ -1721,6 +1724,7 @@ class Surface {
           surface.style.zIndex = panel.elm.style.zIndex;
           _body_.append(surface);
           _pzTarget_ = surface; // this allows pan-zooming without having to reselect
+          ScreenPanel.pzTarget = surface ; /// rem grd
           hide(this.panel.elm, dataIndex("tag", this.panel.cell.elm).cellIcon);
           surface.style.left = emv.clientX - dX + "px";
           surface.style.top = emv.clientY - dY + "px";

@@ -2114,24 +2114,21 @@ class Pzr extends Surface {
        grid-template-rows:repeat(5, 1.6em);
        justify-items:center;
        align-items:center;
-      }
-     .Pz__noTarget {
-        stroke: #aaa;
-    }
-    .Pz__control {
-      fill: none;
-      stroke: #444;
-      stroke-width: 8;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    [data-theme="Dark"] .Pz__control {
-      stroke: #ccc;
-    }
-    .Pz__control-active {
+     }
+     .Pz__control {
+       fill: none;
+       stroke: #444;
+       stroke-width: 8;
+       stroke-linecap: round;
+       stroke-linejoin: round;
+     }
+     [data-theme="Dark"] .Pz__control {
+       stroke: #ccc;
+     }
+     .Pz__control-active {
        color: #6c6;
        transform: scale(1.2);
-    }
+     }
   `) ;
 
   // Positions in the 5x5 ui grid that have svg elements:
@@ -2139,34 +2136,34 @@ class Pzr extends Surface {
   // The last 2 positions are only used in class Pzr
 
   grid = helm(`
-        <div class="Pz Surface__outline Pz__control">
+        <div class="Pz Surface__outline">
 
           <!-- translate up, right, down, left: pos 2,14,22,10-->
-          <svg style="grid-row:1;grid-column:3;" viewBox="0 0 100 100"><path d="M10 60L50 10L90 60Q50 40 10 60"/></svg>
-          <svg style="grid-row:3;grid-column:5;" viewBox="0 0 100 100"><path d="M40 10L90 50L40 90Q 60 40 40 10"/></svg>
-          <svg style="grid-row:5;grid-column:3;" viewBox="0 0 100 100"><path d="M10 40L50 90L90 40Q 50 60 10 40"/></svg> 
-          <svg style="grid-row:3;grid-column:1;" viewBox="0 0 100 100"><path d="M60 10L10 50L60 90Q 40 50 60 10"/></svg>
+          <svg class="Pz__control" style="grid-row:1;grid-column:3;" viewBox="0 0 100 100"><path d="M10 60L50 10L90 60Q50 40 10 60"/></svg>
+          <svg class="Pz__control" style="grid-row:3;grid-column:5;" viewBox="0 0 100 100"><path d="M40 10L90 50L40 90Q 60 40 40 10"/></svg>
+          <svg class="Pz__control" style="grid-row:5;grid-column:3;" viewBox="0 0 100 100"><path d="M10 40L50 90L90 40Q 50 60 10 40"/></svg> 
+          <svg class="Pz__control" style="grid-row:3;grid-column:1;" viewBox="0 0 100 100"><path d="M60 10L10 50L60 90Q 40 50 60 10"/></svg>
 
           <!-- rotate conterclockwise, clockwise: pos 6,8-->
-          <svg style="grid-row:2;grid-column:2;"data-tag="ccw"  viewBox="0 0 100 100">
+          <svg class="Pz__control" style="grid-row:2;grid-column:2;"data-tag="ccw"  viewBox="0 0 100 100">
             <path d="M50 22 A28 28 0 1 1 30.2 70 M50 14 L50 30 L34 22 Z"/></svg>
-          <svg style="grid-row:2;grid-column:4;" data-tag="cw"  viewBox="0 0 100 100">
+          <svg class="Pz__control" style="grid-row:2;grid-column:4;" data-tag="cw"  viewBox="0 0 100 100">
             <path  d="M50 22 A28 28 0 1 1 30.2 70 M50 14 L50 30 L34 22 Z" transform="translate(100,0) scale(-1, 1)"/></svg>
 
 
           <!-- edit prev, next: pos 16,18-->
-          <svg style="grid-row:4;grid-column:2;", data-tag="left" viewBox="0 0 100 100">
+          <svg class="Pz__control" style="grid-row:4;grid-column:2;", data-tag="left" viewBox="0 0 100 100">
             <path d="M25,18A8,8 0 1,0 25,17.9M32,26L58,60M40,33L25,48L8,48M40,33L55,20L72,33M58,60L38,75L50,94M58,60L76,67L92,64"/></svg>
-          <svg style="grid-row:4;grid-column:4;", data-tag="right" viewBox="0 0 100 100">
+          <svg class="Pz__control" style="grid-row:4;grid-column:4;", data-tag="right" viewBox="0 0 100 100">
             <path d="M75,18A8,8 0 1,1 75,17.9M68,26L42,60M60,33L75,48L92,48M60,33L45,20L28,33M42,60L62,75L50,94M42,60L24,67L8,64"/></svg>
 
 
           <!-- scale down, up: pos 11,13 -->
-          <svg style="overflow:visible;grid-row:3;grid-column:4;" viewBox="0 0 100 100"><path d="M10 20L120 50L10 80"/></svg>
-          <svg style="overflow:visible;grid-row:3;grid-column:2;" viewBox="0 0 100 100"><path d="M90 20L-20 50L90 80"/></svg>
+          <svg class="Pz__control" style="overflow:visible;grid-row:3;grid-column:4;" viewBox="0 0 100 100"><path d="M10 20L120 50L10 80"/></svg>
+          <svg class="Pz__control" style="overflow:visible;grid-row:3;grid-column:2;" viewBox="0 0 100 100"><path d="M90 20L-20 50L90 80"/></svg>
 
           <!-- active object,s pos 12 -->
-          ${iconSvg("Void", {style:"grid-row:3;grid-column:3;pointer-events:none;opacity:0.5;"})}
+          ${iconSvg("Void", {class:"Pz__control", style:"grid-row:3;grid-column:3;pointer-events:none;opacity:0.5;"})}
         </div>
     `);
 
@@ -2180,7 +2177,6 @@ class Pzr extends Surface {
     panel.body.style.minWidth = panel.body.style.padding = "unset"; // defeat default body styles
     this.surface.style.width = this.surface.style.height = "10em" ;
     this.grid.style.width = this.grid.style.height = "10em" ;
-    this.surfaceDragElm = this.grid ;
     this.repeater = new Schedule();
     this.update();
 
@@ -2205,16 +2201,16 @@ class Pzr extends Surface {
         this.opStartValues = this.targets.map(item => item[1]);
   
         this.doStep(pos);
+        let loopSpeed = (pos == 16 || pos == 18) ? 350 : 50 ; // back/forward autrepeat slowly
         this.repeater.run(250, () => {
           let loop = () => {
             this.doStep(pos);
-            this.repeater.run(50, loop);
+            this.repeater.run(loopSpeed, loop);
           };
           loop();
         });
       }
       listen(this.grid, "pointerup", () => {
-        this.grid.classList.remove("Pz__noTarget") ;
         target.classList.remove("Pz__control-active") ;
         this.repeater.cancel();
         _menu_.busy = false;
@@ -2228,9 +2224,7 @@ class Pzr extends Surface {
       let type = EditPanel.pzrTarget?.podiumType || EditPanel.pzrTarget?.type ;
       this.grid.classList.remove("Pz__noTarget") ;
       switch(type) {
-        case undefined: 
-          this.grid.classList.add("Pz__noTarget") ;
-          return iconPaths["Void"];
+        case undefined: return iconPaths["Void"];
         case "pencil": return iconPaths["Pencil"] ;
         case "pen": return iconPaths["Pen"] ;
         case "rastrum": return iconPaths["Rastrum"] ;
@@ -2253,7 +2247,8 @@ class Pzr extends Surface {
 
     // Warning: unorthodox coding pattern follows: nested switch statements with intentional fallthrough.
     // Each level tests pos for the cases that diverge at that level; unmatched
-    // cases fall into the default, which sets up shared state and dispatches                                                                        // further. Each value of pos is tested at most once.            
+    // cases fall into the default, which sets up shared state and dispatches
+    // further. Each value of pos is tested at most once.            
 
     // prev/next obj:
     let step = 1;
@@ -2274,17 +2269,14 @@ class Pzr extends Surface {
         (elapsed >  600) ? { rotate: 1.0, scale:0.02, translate: 5} :
                            { rotate: 0.2, scale:0.01, translate: 1});
       let center = obj.getCenterPoint();
-      let p = { originX: "center",
-                originY: "center",
-                left: center.x,
-                top: center.y };
-      switch(pos) { 
+      let p = { originX: "center", originY: "center", left: center.x, top: center.y };
+      switch(pos) {
         case 6: a.rotate = -a.rotate;
         case 8: p.angle = (obj.angle + a.rotate) % 360;
         break ;
 
     default: { // scale:
-      let scale = 1 - a.scale;          
+      let scale = 1 - a.scale;
       switch(pos) {
         case 11: scale = 1 + a.scale;
         case 13: p.scaleX = Math.max(0.01, obj.scaleX * scale);
@@ -2292,21 +2284,20 @@ class Pzr extends Surface {
         break ;
 
     default: { // translate:
-      let dx = 0 ;
-      let dy = 0 ;
+      let dx = 0, dy = 0 ;
       switch(pos) {
         case 2:  dy = -a.translate; break; // up
         case 10: dx = -a.translate; break; // left
         case 14: dx =  a.translate; break; // right
         case 22: dy =  a.translate; break; // down
       }
-      let centerDx = center.x - obj.left;
-      let centerDy = center.y - obj.top;
+      let halfW = obj.getScaledWidth() / 2;
+      let halfH = obj.getScaledHeight() / 2;
       let minTrans = 1 / (obj.canvas.getZoom() * window.devicePixelRatio); // theoretical minimum translation factor
-      p.left = clamp(obj.left + dx * minTrans + centerDx, 0, obj.canvas.width) - centerDx;
-      p.top = clamp(obj.top + dy * minTrans + centerDy, 0, obj.canvas.height) - centerDy;
+      p.left = clamp(center.x + dx * minTrans, halfW, obj.canvas.width - halfW);
+      p.top  = clamp(center.y + dy * minTrans, halfH, obj.canvas.height - halfH);
 
-    }}}} /* close nested default / switch blocks */ 
+    }}}} /* close nested default / switch blocks */
     obj.set(p);
     }}
     obj.canvas?.requestRenderAll();
@@ -2342,7 +2333,7 @@ class Pz
 */
 class Pz extends Pzr {
 
-  slots = [2,10,11,13,14,22] ;
+  slots = [2,10,11,13,14,16,18,22] ;
 
   constructor(panel) {
     super(panel, ScreenPanel);
@@ -2354,17 +2345,15 @@ class Pz extends Pzr {
 
   update() {
     let getIconPath = () => {
-      let tag = ScreenPanel.pzTarget?.dataset.tag ;
-      this.grid.classList.remove("Pz__noTarget") ;
+      let tag = ScreenPanel.pzTarget?.dataset?.tag ;
       switch(tag) {
-        case undefined: 
-          this.grid.classList.add("Pz__noTarget") ;
-          return iconPaths["Void"];
+/*        case undefined: 
+          return iconPaths["Void"]; */
         case "BookLayout":
         case "ScrollLayout":
         case "TableLayout": return iconPaths["Layout"] ;
         case "Menu": return iconPaths["Menu"] ;
-        case "body": return iconPaths["Full Screen"] ;
+        case "Body": return iconPaths["Void"] ;
         default: {
           let key = tag[0].toLowerCase() + tag.slice(1).replace("Panel", "");
           return _panels_[key]?.cell?.svgPath ?? null ;
@@ -2378,57 +2367,64 @@ class Pz extends Pzr {
     this.iconSvg = tmp ;
   }
 
+
   doStep(pos) {
     let elapsed = performance.now() - this.opStartTime;
-    if (pos == 11 || pos == 13) { // scale
-      let zoomFactor = 0.01;
-      if (elapsed > 2000) zoomFactor = 0.10;
-      else if (elapsed > 1200) zoomFactor = 0.05;
-      else if (elapsed > 400) zoomFactor = 0.02;
+    let targets = this.targets;
 
-      let multiplier = (pos == 11) ? (1 + zoomFactor) : (1 - zoomFactor);
-      this.targets.forEach((item) => { 
+
+    // prev/next
+    let step = 1 ;
+    switch(pos) {
+      case(16): step = -1 ;
+      case(18):
+        let target = targets.find(([elm, size, box]) => elm === ScreenPanel.pzTarget);
+        let idx = targets.indexOf(target) + step;
+        if(idx == -2) ScreenPanel.pzTarget = targets[targets.length - 1][0] ;
+        else if(idx == -1 || idx == targets.length) ScreenPanel.pzTarget = _body_ ;
+        else ScreenPanel.pzTarget = targets[idx][0]; 
+        this.update() ;
+        break ;
+
+    default: { // scale
+      let a = Object.assign({}, 
+      (elapsed > 2000) ? { scale:0.10, translate:50} :
+      (elapsed > 1200) ? { scale:0.05, translate:20} :
+      (elapsed >  600) ? { scale:0.02, translate: 5} :
+                         { scale:0.01, translate: 1});
+    let scale = 1 - a.scale ;
+    if(ScreenPanel.pzTarget != _body_) 
+      targets = [targets.find(([pzElm, size, box]) => pzElm === ScreenPanel.pzTarget)] ;
+    switch(pos) { // scale
+      case(11): scale = 1 + a.scale ;
+      case(13): targets.forEach((item) => { 
         let [target] = item;
         let currentSize = parseFloat(target.style.fontSize) || 1;
-        let newSize = Math.max(0.1, currentSize * multiplier);
+        let newSize = Math.max(0.1, currentSize * scale);
         target.style.fontSize = newSize + "em";
         item[1] = newSize; 
       });
-    } else { // translate
-      let dx = 0, dy = 0;
-      let step = 1;
-      if (elapsed > 2000) step = 50;
-      else if (elapsed > 1200) step = 20;
-      else if (elapsed > 400) step = 5;
+      break ;
 
-      if (pos == 2) dy = -step; // up
-      if (pos == 10) dx = -step; // left
-      if (pos == 14) dx = step; //right
-      if (pos == 22) dy = step; // down
-      for (let [target, size, box] of this.targets) {
-        if (target && target != this.panel.elm && target != this.surface) {
-          target.style.left = clamp(target.offsetLeft + dx, 0, window.innerWidth - box.width) + "px";
-          target.style.top = clamp(target.offsetTop + dy, 0, window.innerHeight - box.height) + "px";
-        }
-      }
+    default: { // translate
+      if(ScreenPanel.pzTarget == _body_) return ; // disallow on body
+      let dx = 0, dy = 0 ;
+    switch(pos) {
+      case 2:  dy = -a.translate; break; // up
+      case 10: dx = -a.translate; break; // left
+      case 14: dx =  a.translate; break; // right
+      case 22: dy =  a.translate; break; // down
     }
-  }
+    for (let [target, size, box] of targets) {
+      target.style.left = clamp(target.offsetLeft + dx, 0, window.innerWidth - box.width) + "px";
+      target.style.top = clamp(target.offsetTop + dy, 0, window.innerHeight - box.height) + "px";
+    } }
+  }}}} /* bracket hell, sigh: that's what happens with this coding pattern! */
+
 
   getTargets() {
-    let target = ScreenPanel.pzTarget ;
-    let pzTargets ;
-    if (!target) pzTargets = [] ;
-    else if (target == _body_)
-      pzTargets = [...document.getElementsByClassName("pz")].filter((elm) =>
-       elm != this.surface && elm != this.panel.body && elm.isConnected && elm.style.visibility != "hidden") ;
-    else {
-      if (target.isConnected || target.style.visibility != "hidden") pzTargets = [target] ;
-      else pzTargets = [] ;
-    }
-    if(pzTargets.length == 0) {
-      this.grid.classList.add("Pz__noTarget") ;
-      return false ;
-    }
+    let pzTargets = [...document.getElementsByClassName("pz")].filter((elm) =>
+       elm.isConnected && elm.style.visibility != "hidden") ;
     this.targets.length = 0 ;
     for(let target of pzTargets) {
       let fs = target.style.fontSize;
@@ -2565,7 +2561,6 @@ class Keyboard extends Surface {
     this.layer = 'lower';
     this.surface.style.width = this.surface.style.height = "unset" ;
     this.surface.append(this.content) ;
-    this.surfaceDragElm = this.content;
     this.panel.listeners.push(
       listen(this.surface, "pointerdown", (e) => {
         e.stopPropagation();
@@ -2729,8 +2724,7 @@ class ScreenPanel extends SurfacePanel {
 
   static update(target) {
     // This sets the (static) target for ScreenPanel pan/zoom operations.
-    if(target && target.dataset.tag == "ScreenPanel") return ; // don't let ScreenPanel pan/zoom itself!
-    ScreenPanel.pzTarget = target;
+    ScreenPanel.pzTarget = target || _body_;
     _panels_.screen?.surface.update();
   }
 
@@ -3275,7 +3269,6 @@ class CurtainSurface extends Surface {
     this.surface.style.width = this.content.style.width = "10em";
     this.surface.style.height = this.content.style.height = "10em";
     this.surface.append(this.content) ;
-    this.surfaceDragElm = this.content ;
     panel.elm.style.zIndex = this.surface.style.zIndex = getComputedStyle(_curtain_.curtain).zIndex ;
     delay(2, () => this.slider.refresh());
   }

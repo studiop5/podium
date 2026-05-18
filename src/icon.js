@@ -389,12 +389,9 @@ More:
    <text y="22" x="6" font-size="6px">PDF</text>
    <path stroke="currentColor" stroke-width=".9" d="M0 0l24 24M24 0l-24 24"/>`,
 
-///
 Mute:
    `<text y="16" x="6" stroke="black" stroke-width=".4" paint-order="stroke fill" font-size="16px" font-family="Bravura" fill="currentColor">\ueb26</text>`,
 
-Unmute:
-   `<text y="16" x="6" stroke="black" stroke-width=".4" paint-order="stroke fill" font-size="16px" font-family="Bravura" fill="currentColor">\ueb27</text>`,
 
 Numbers:
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
@@ -549,10 +546,6 @@ Symbols:
 Table:
   `<path fill="#999" stroke="currentColor" stroke-width="0.5" fill-rule="nonzero" d="M22.8,3.78C22.6,4.12 22.3,4.46 22.4,4.8M17,5.25V6.02M2.4,4.17C2.49,3.91 2.22,3.65 2.04,3.39L7.79,2.03 22.9,3.81 17,5.12 2.09,3.45v0M20.5,7.44c-0.4,1.58 0.6,7.66 0.4,11.26 0.2,0.5-0.4,1.2 0.4,1.5 0.5,0.3 0.5,0.7 1.2,-0.4 0.3,-0.4-0.2,-0.7-0.5,-1.5-0.5,-4 1.2,-8 0.4,-11.4M17,6.21 2.41,4.19V6.52M17,8.51 22.4,6.84V4.82L17,6.16ZM14.9,8.26c0.7,0.47 1,1.15 1.1,2.44 0.8,3.6 0.6,7.1 0.7,10.7-0.1,0.7 0.3,0.7 0.7,0.8 0.4,-0.1 0.4,-0.3 0.5,-0.5C17.8,19 17.1,18.3 18.4,10.6 18.5,10.1 18.6,8.88 19,7.91M9.01,7.63C8.45,10 8.51,13.1 8.6,15.8c0,1.1-0.1,1.1-0.76,1C7.46,16.8 7.6,16.1 7.6,15.6 7.39,12.8 7.29,8.91 6.11,6.92M5.09,6.81C4.35,8.45 4.4,13.9 4.39,17.4c0,1.2 0.89,1.2-1.1,1.3-0.37,0-0.55,-0.9 0.18,-1.5C3.8,12.1 1.75,8.65 2.53,6.48l14.37,2.1">`,
 
-Warm:
- `<circle fill="currentColor" cx="12" cy="12" r="4"/>
-   <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M12,2.5v2M12,19.5v2M21.5,12h-2M4.5,12h-2M18.4,5.6l-1.4,1.4M7,17l-1.4,1.4M18.4,18.4l-1.4-1.4M7,7L5.6,5.6"/>`,
-
 Text:
   `<text x="0" y="16" font-size="12px" fill="currentColor">Abc</text>` ,
 
@@ -566,8 +559,14 @@ TuningFork:
 "T-B":
   `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M12 4v21M8 8l4-4l4 4M8 19l4 4l4-4"/>`,
 
+
 Undo:
   `<text font-size="20px" y="16" x="6" fill="currentColor" stroke="currentColor" font-family="Bravura">\uedf0</text>`,
+
+Unmute:
+   `<text y="16" x="6" stroke="black" stroke-width=".4" paint-order="stroke fill" font-size="16px" font-family="Bravura" fill="currentColor">\ueb27</text>`,
+
+
 
 Upload:
   `<path fill="#aaa" stroke="currentColor" stroke-width=".2" d="M12.4,17.9C19.2,1.58 11.5,1.8 11.1,1.02 13.2,4.76 12.3,11.2 11.4,17.9Zm-2.79,0C2.91,1.57 10.7,1.79 11.1,1.02 8.91,4.74 9.71,11.2 10.8,17.9Z" />`,
@@ -577,6 +576,7 @@ Upload:
 
 Void:
    `<path d=""/>`,
+
 
 Volume:
    `<text y="13" x="6" font-size="16px" font-family="Bravura" fill="currentColor">\ue534</text>`,
@@ -603,6 +603,10 @@ Video:
    <path d="M18 20 Q21 20 21 17.5 Q21 15.5 19 15.5 Q17.5 15.5 17.5 17"
      stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 `,
+
+Warm:
+ `<circle fill="currentColor" cx="12" cy="12" r="4"/>
+   <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M12,2.5v2M12,19.5v2M21.5,12h-2M4.5,12h-2M18.4,5.6l-1.4,1.4M7,17l-1.4,1.4M18.4,18.4l-1.4-1.4M7,7L5.6,5.6"/>`,
 
 Wave:
   `<defs><mask id="scope"><rect x="0" y="0" height="24" width="24" fill="white"></rect>

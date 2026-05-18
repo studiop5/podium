@@ -62,6 +62,7 @@ window.pdfjsLib.GlobalWorkerOptions.workerPort = new Worker("pdf.worker.min.mjs"
 // #include src/sharedBuffer.js minified
 async function main() {
 
+  _body_.dataset.tag = "Body" ; // class ScreenPanel wants body to have this
   initFabric();
   // Create the menu. It's fontSize is set s.t. it's outer ring
   // will cover _gsgs_ (_gs_ for mobile) * narrowest screen dimension.
@@ -180,9 +181,10 @@ async function main() {
           tr1.dX = e.clientX - tr1.pz.offsetLeft;
           tr1.dY = e.clientY - tr1.pz.offsetTop;
           _pzTarget_ = tr1.pz ?? _body_; // make target globally available
-          // Unless target is a panel's close button, 
+          // Unless target is a panel's close button, or the ScreenPanel's control buttons,
           // notify ScreenPanel: it implements an alternative to pan/zoom mechanism.
-          if(!e.target.classList.contains("Panel__closer")) ScreenPanel.update(tr1.pz) ;
+          if(!(e.target.closest(".Panel__closer") || e.target.closest(".Pz__control")))
+            ScreenPanel.update(tr1.pz) ;
           tr2 = null;
 
           // ctrl-mouse-down initiates pan (via mouse move)/ zoom (via mouse wheel)
@@ -196,7 +198,7 @@ async function main() {
               "pointermove",
               (emv) => {
                 emv.stopImmediatePropagation();
-                if(tr1.pz == _body_) return ;
+                if(tr1.pz == _body_) return ; // don't translate _body_
                 tr1.pz.style.left = emv.clientX - tr1.dX + "px";
                 tr1.pz.style.top = emv.clientY - tr1.dY + "px";
                 tr1.pz.classList.add("pz-set") ;
