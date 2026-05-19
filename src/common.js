@@ -358,9 +358,9 @@ css( // common css declarations.
     --menu-disk-bg: linear-gradient(135deg, #3a3a3a 0%, #303030 100%);
     --menu-grip-bg: #2e2e2e;
     --menu-grip-selected-bg: #404040;
-    --menu-panel-indicator: #505050;
-    --menu-panel-indicator-highlight: #fff1;
-    --menu-panel-indicator-shadow: #0003;
+    --menu-panel-indicator: #a0a0a0;
+    --menu-panel-indicator-highlight: #fff3;
+    --menu-panel-indicator-shadow: #0002;
     --menu-icon-color: #e5e5e5;
     --menu-drawer-front: #404040;
     --menu-cell-box-shadow: -0.15em -0.15em 0.3em #0004 inset,

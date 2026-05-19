@@ -897,6 +897,7 @@ class Menu {
   opDown(e) {
     if (e.ctrlKey || e.shiftKey) return;
     this.elm.style.zIndex = ++_zTop_;
+    this.clearSpinFling();
     // Cancel any active spin flings on touch
     Object.values(this.rings).forEach(r => {
       if (r._spinRaf) { cancelAnimationFrame(r._spinRaf); r._spinRaf = null; }
@@ -996,7 +997,6 @@ class Menu {
     op.emv = emv;
     op.drag.mv(emv);
 
-///
     if (op.out)
       return this.notify(`${op.ringKey}/${op.cellKey}/out`); // if cell has panel, then this will pass move operation to it
 
@@ -1086,11 +1086,10 @@ class Menu {
     }
   }
 
-  spinFling(op) {
+  spinFling(op, eup) {
     let buf = op.drag.mvBuf.filter(e => e.turn != undefined);
     if (buf.length < 2) return;
-    let now = buf[buf.length - 1].timeStamp;
-    let recent = buf.filter(e => now - e.timeStamp <= 150);
+    let recent = buf.filter(e => eup.timeStamp - e.timeStamp <= op.drag.terminalWindow);
     if (recent.length < 2) return;
     let dT = recent[recent.length - 1].timeStamp - recent[0].timeStamp;
     if (!dT) return;
@@ -1100,7 +1099,7 @@ class Menu {
     let obj = isRing ? op.ring : this.disk;
     let spinElm = isRing ? op.ring.elm : this.disk;
     let rotation = 1 / spinElm.childElementCount;
-    let coast = clamp(Math.abs(vel) * 300, 0.5, 5) * Math.sign(vel); // turns to coast
+    let coast = clamp(Math.abs(vel) * 300, 0.5, 1) * Math.sign(vel); // turns to coast
     let dur   = clamp(Math.abs(coast / vel / 2), 0.3, 2).toFixed(2); // seconds
     obj.turn += coast;
     spinElm.style.transition = `transform ${dur}s ease-out`;
@@ -1109,6 +1108,14 @@ class Menu {
       child.firstElementChild.style.transition = `transform ${dur}s ease-out`;
       child.firstElementChild.style.transform  = `rotate(${-rotation * i - obj.turn}turn)`;
     });
+    this._spinElm = spinElm;
+  }
+
+  clearSpinFling() {
+    if (!this._spinElm) return;
+    this._spinElm.style.transition = "unset";
+    [...this._spinElm.children].forEach(child => child.firstElementChild.style.transition = "unset");
+    this._spinElm = null;
   }
 
   opUp(eup) {
@@ -1119,7 +1126,7 @@ class Menu {
     op.cell && op.cell.elm.classList.remove("Menu__cell-selected");
     op.ring && op.ring.cellElm.classList.remove("Menu__diskCell-selected");
     this.grip.classList.remove("Menu__grip-selected");
-    if (op.spun) { this.spinFling(op); return; }
+    if (op.spun) { this.spinFling(op, eup); return; }
     if(op.out) {
       if(op.drag.dXY && eup.timeStamp - op.e.timeStamp > 500) {
         // hide with fling...but only after at least 500 msecs to a quick drag out
@@ -1417,8 +1424,9 @@ class Menu {
   // menu positioning functions:
 
   center(reset = false) {
+    this.clearSpinFling();
     // move to the center of the current window
-    animate(this.elm, null, { 
+    animate(this.elm, null, {
       left: innerWidth / 2 + "px",
       top: innerHeight / 2 + "px",
     }, ` ${_gs_}ms`);
