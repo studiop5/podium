@@ -133,7 +133,7 @@ class Layout
 
 class Layout {
   static borderSize = 0.1; // in em's
-  static margin = 20 / _dvPxRt_; // default margin between layout and viewport
+  static margin = 5 / _dvPxRt_; // default margin between layout and viewport
   static activeLayout = null;
 
   static recto =
@@ -159,7 +159,7 @@ class Layout {
     .Layout {
       position: absolute;
       box-shadow: var(--layout-shadow);
-      border-radius: var(--borderRadius);
+      border-radius: calc(var(--borderRadius) / 2);
       border: 0.1em solid var(--layout-border-color, #222);
       box-sizing: border-box;
       background-image:
@@ -201,8 +201,6 @@ class Layout {
     _shade_.hide();
     ScreenPanel.update(Layout.activeLayout.elm);
   }
-
-  margin = 12; // in px: initial margin between layout and viewport
 
   constructor(score, cell) {
     Layout.activeLayout = this;
@@ -334,6 +332,7 @@ class Layout {
 
       let pageCell = _menu_.activeRing.activeCell;
       if (!pageCell) return false;
+      e.taken = true;
       let pageKey = pageCell.key;
       let layoutKey = Layout.activeLayout.cell.key;
       let pasteCell = _menu_.rings.page.cells.paste;
@@ -464,6 +463,8 @@ class Layout {
     return false;
   }
 
+  cancelNav() {}
+
   async pgOpen(how) {
     // Subclasses override with logic to open page, where @how is one
     // of "next","prev","first","last".
@@ -580,10 +581,23 @@ class BookLayout extends Layout {
           .BookLayout__spine {
             position:absolute;
             left:50%;
-            width: 0; 
+            width: 0;
             height:0;
             z-index: 1;
            }
+          .BookLayout__spine::before, .BookLayout__spine::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: var(--stitch-w, 0.8em);
+            height: 0.1em;
+            background: radial-gradient(circle, #fff8 45%, transparent 45%);
+            background-size: 0.12em 0.1em;
+            background-repeat: repeat-x;
+          }
+          .BookLayout__spine::before { top: -0.2em; }
+          .BookLayout__spine::after  { top: calc(var(--pg-h) + 0.1em); }
           .BookLayout__binding {
              height:100%; 
              width:1em;
@@ -725,25 +739,28 @@ class BookLayout extends Layout {
     // Layout scroll g((eo)metry) in units of css pixels
     let g = this.cell.geo = (this.cell.geo || {});
     // top/bottom gap and left/right gap, for a border-radius of .8em
-    g.tbGap = .8 * _pxPerEm_;
+    g.tbGap = .15 * _pxPerEm_;
+    g.borderPx = 0.1 * _pxPerEm_ * 2; // top+bottom border included in box-sizing:border-box height
+    g.lrGap = this.pnShow ==  "On"? 0: g.tbGap ;
     // Pager always occupies its own strip (hidden or not), lrGap=0 when pager is present.
     // Hidden pager gets Layout.margin width — narrow but non-overlapping with pages.
-    g.lrGap = 0;
     g.pagerWidth = this.pnShow == "On" ? Pager.width : Layout.margin;
     g.pgCount = this.score.pgs.length;
+    let spineT = Math.min(g.pgCount / 100, 1);
+    g.bindingWidth = (0.5 + spineT) * _pxPerEm_;
 
     if (fit == "none") {
       g.pgWidth = score.maxWidth;
       g.pgHeight = score.maxHeight;
       g.bookWidth = g.lrGap + g.pagerWidth + g.pgWidth + g.pgWidth + g.pagerWidth + g.lrGap;
-      g.bookHeight = g.tbGap + g.pgHeight + g.tbGap;
-    } 
+      g.bookHeight = g.tbGap + g.pgHeight + g.tbGap + g.borderPx;
+    }
 
     if (fit == "auto" || fit == "width") {
       g.bookWidth = innerWidth - Layout.margin - Layout.margin;
       g.pgWidth = (g.bookWidth - g.pagerWidth - g.lrGap - g.lrGap - g.pagerWidth) / 2;
       g.pgHeight = Math.floor(g.pgWidth * (score.maxHeight / score.maxWidth));
-      g.bookHeight = g.tbGap + g.pgHeight + g.tbGap;
+      g.bookHeight = g.tbGap + g.pgHeight + g.tbGap + g.borderPx;
 
       if(fit == "auto") {
         // Check if layout will fit entirely within window. If not, recalculate with fit = HEIGHT;
@@ -753,15 +770,15 @@ class BookLayout extends Layout {
         if(layoutWidth > innerWidth)
           fit = "height";
         else {
-          let layoutHeight = Math.round(Layout.margin * 2 + g.pgHeight + g.tbGap * 2);
+          let layoutHeight = Math.round(Layout.margin * 2 + g.pgHeight + g.tbGap * 2 + g.borderPx);
           if(layoutHeight > innerHeight) fit = "height";
-        } 
+        }
       }
     }
 
     if (fit == "height") {
       g.bookHeight = innerHeight - Layout.margin - Layout.margin;
-      g.pgHeight = g.bookHeight - g.tbGap - g.tbGap;
+      g.pgHeight = g.bookHeight - g.tbGap - g.tbGap - g.borderPx;
       g.pgWidth = Math.floor(g.pgHeight * (score.maxWidth / score.maxHeight));
       g.bookWidth = g.lrGap + g.pagerWidth + g.pgWidth + g.pgWidth + g.pagerWidth + g.lrGap;
     }
@@ -785,8 +802,14 @@ class BookLayout extends Layout {
       width: `calc(${toEm(g.bookWidth)} + ${g.pagerWidth * 2}px - ${toEm(g.pagerWidth * 2)})`,
     });
 
-    // spine...slots attach here.
+    // binding width scales with page count (saturates at 100 pages)
+    this.binding.style.width = toEm(g.bindingWidth);
+    this.binding.style.left = `calc(50% - ${toEm(g.bindingWidth / 2)})`;
+
+    // spine...slots attach here. --stitch-w and --pg-h drive ::before/::after dot strips.
     this.spine.style.top = toEm(g.tbGap);
+    this.spine.style.setProperty('--stitch-w', toEm(g.bindingWidth * 0.8));
+    this.spine.style.setProperty('--pg-h', toEm(g.pgHeight));
 
     // shadow...creates shadow effect across the flipping page
     g.shadowWidth = g.pgWidth / _pxPerEm_;
@@ -862,12 +885,17 @@ class BookLayout extends Layout {
     this.elm.setPointerCapture(e.pointerId);
     let spineBox = getBox(this.spine);
 
-    this.pgFlip(advancing ? pgWidth : -pgWidth, pgHeight / 2, e.clientX - spineBox.x, e.clientY - spineBox.y, advancing);
+    this.navX = e.clientX - spineBox.x;
+    this.navY = e.clientY - spineBox.y;
+    this.navAdvancing = advancing;
+    this.pgFlip(advancing ? pgWidth : -pgWidth, pgHeight / 2, this.navX, this.navY, advancing);
 
     let drag = new Drag(e, { minVelocity:0.75 });
 
-    let mv = listen(this.elm, "pointermove", (emv) => {
-      this.pgMove(emv.clientX - spineBox.x, emv.clientY - spineBox.y, advancing);
+    this.navMv = listen(this.elm, "pointermove", (emv) => {
+      this.navX = emv.clientX - spineBox.x;
+      this.navY = emv.clientY - spineBox.y;
+      this.pgMove(this.navX, this.navY, advancing);
       drag.mv(emv) ;
     });
 
@@ -875,7 +903,8 @@ class BookLayout extends Layout {
       this.elm,
       "pointerup",
       async (eup) =>  {
-        unlisten(mv);
+        unlisten(this.navMv);
+        this.navMv = null;
         let x = eup.clientX - spineBox.x;
         let y = eup.clientY - spineBox.y;
         let flipping = (advancing && x <= 0) || (!advancing && x > 0);
@@ -891,6 +920,16 @@ class BookLayout extends Layout {
       },
       { once: true }
     );
+  }
+
+  cancelNav() {
+    if (!this.navMv) return;
+    unlisten(this.navMv);
+    this.navMv = null;
+    let { pgWidth, pgHeight } = this.cell.geo;
+    let toX = this.navAdvancing ? pgWidth : -pgWidth;
+    this.closeFunc = () => this.layoutSlots();
+    this.pgFlip(this.navX, this.navY, toX, pgHeight / 2, this.navAdvancing, this.closeFunc, null);
   }
 
   pgFlip(x, y, toX, toY, advancing, func=null, pace=null) {
@@ -1477,7 +1516,7 @@ class ScrollLayout extends Layout {
     let frameBox = getBox(this.frame);
     let drag = new Drag(e, { minvelocity: 0.01 });
 
-    let mv = listen(
+    this.navMv = listen(
       this.frame,
       ["pointermove"],
       ((emv) => {
@@ -1504,7 +1543,8 @@ class ScrollLayout extends Layout {
       this.frame,
       "pointerup",
       (async (eup) => {
-        unlisten(mv);
+        unlisten(this.navMv);
+        this.navMv = null;
         drag.up(eup) ;
         if(drag.jab) {
           let visStart = Math.max(frameBox[X], 0);
@@ -1519,6 +1559,13 @@ class ScrollLayout extends Layout {
       }).bind(this),
       { once: true }
     );
+  }
+
+  cancelNav() {
+    if (!this.navMv) return;
+    unlisten(this.navMv);
+    this.navMv = null;
+    this.pgSnapTo(0);
   }
 
   async pgGoTo(pn) {
@@ -2078,7 +2125,7 @@ class TableLayout extends Layout {
     let {pg, pn} = elm;
     let pnElm = elm.querySelector(".TableLayout__pn");
     if(pnElm) {
-      this.bMarkTimer.run(_longPressMs_, () => {
+      this.bMarkTimer.run(_gs_, () => {
         // toggle bookmark for this pg
         if(pg.bookmark) {
           pg.bookmark = null;
@@ -2095,7 +2142,7 @@ class TableLayout extends Layout {
     // pointerup immediately, but it's actually work is delay'ed until
     // built is true, after this.pgGoTo has returned.
     let cursor = null;
-    let mv = null;
+    this.navMv = null;
     let built = false;
 
     listen(this.layout, "pointerup", async (eup) => {
@@ -2103,7 +2150,8 @@ class TableLayout extends Layout {
       let finale = () => {
         if(!built) delay(1, () => finale());
         else {
-          unlisten(mv);
+          unlisten(this.navMv);
+          this.navMv = null;
           if(cursor) cursor.up(eup);
         }
       }
@@ -2113,9 +2161,9 @@ class TableLayout extends Layout {
     );
 
     await this.pgGoTo(pn);
-    built = true; 
+    built = true;
 
-    mv = listen(this.layout, "pointermove", (emv) => {
+    this.navMv = listen(this.layout, "pointermove", (emv) => {
       if(this.score.pgs.length == 1) return; // disallow action on last pg
        mvmt(e, emv);
        if(e.moved) {
@@ -2124,6 +2172,13 @@ class TableLayout extends Layout {
          cursor.mv(emv);
        }
     });
+  }
+
+  cancelNav() {
+    this.bMarkTimer.cancel();
+    if (!this.navMv) return;
+    unlisten(this.navMv);
+    this.navMv = null;
   }
 
   async pgGoTo(pn) {
@@ -2347,7 +2402,7 @@ class Pager {
 
     setCursor(e[CLIENTY], Math.abs(e[CLIENTX] - cursorBox[X] - cursorBox[WIDTH]/2));
 
-    this.bMarkTimer.run(_longPressMs_, () => {
+    this.bMarkTimer.run(_gs_, () => {
       let pn = _score_.numbers.pn;
       let pg = _score_.pgs[pn - 1];
       if (pg.bookmark) {

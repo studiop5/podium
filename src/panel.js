@@ -386,6 +386,7 @@ class Panel {
     );
     this.listeners.push(
       listen(this.header, "pointerdown", (e) => {
+        e.taken = true;
         let drag = new Drag(e) ;
         let { header, elm } = this;
         if(!(this instanceof CurtainPanel)) // CurtainPanel uniquely manages its own z-index
@@ -2347,8 +2348,6 @@ class Pz extends Pzr {
     let getIconPath = () => {
       let tag = ScreenPanel.pzTarget?.dataset?.tag ;
       switch(tag) {
-/*        case undefined: 
-          return iconPaths["Void"]; */
         case "BookLayout":
         case "ScrollLayout":
         case "TableLayout": return iconPaths["Layout"] ;
@@ -2550,8 +2549,7 @@ class Keyboard extends Surface {
 
   keyWidths = {'⇧':1.5,'⌫':1.5,'↵':1.5,'⋯':1.5,'Aa':1.5,'↑':1.5,'↓':1.5,'←':1.5,'→':1.5,'Home':2,'End':2.2,[this.spaceBar]:3};
   navKeys = {'↑':'ArrowUp','↓':'ArrowDown','←':'ArrowLeft','→':'ArrowRight','Home':'Home','End':'End'};
-  repeats = new Set(['←','→','↑','↓','⌫']);
-  repeater = new Schedule(); // implement auto-repeat of repeats keys
+  repeater = new Schedule(); // implement auto-repeat on long press
 
   content = helm(`<div class="Surface__outline"><div data-tag="plate" class="Keyboard__rows"></div></div>`) ;
 
@@ -2567,11 +2565,13 @@ class Keyboard extends Surface {
         e.preventDefault();
         let key = e.target.closest('.Keyboard__key');
         if (!key) return;
+        e.frozen = true ; // disallow dragging if a key is pressed
         // add a sentinel so that touch users will see the chosen key.
-         // well use it's dom-connectedness to terminate a repeat
+        // well use it's dom-connectedness to terminate a repeat
         let sentinel = key.cloneNode(true) ;
         let style = getComputedStyle(e.target);
         Object.assign(sentinel.style, {
+          transform: "scale(1.5)",
           width: style.width,
           height: style.height,
           left: e.clientX + "px",
@@ -2585,14 +2585,14 @@ class Keyboard extends Surface {
         key.classList.add('pressed');
 
         this.handle(key.dataset.label, e.clientX, e.clientY);
-        if (this.repeats.has(key.dataset.label)) {
-          let repeat = () => {
-            if (!sentinel.isConnected) return;
-            this.handle(key.dataset.label, e.clientX, e.clientY);
-            this.repeater.run(80) ;
-          };
-          this.repeater.run(500, repeat) ;
-        }
+        let repeat = () => {
+          if (!sentinel.isConnected) return;
+          this.handle(key.dataset.label, e.clientX, e.clientY);
+          this.repeater.run(80);
+        };
+        this.repeater.run(500, repeat);
+
+
         listen(document, "pointerup", () => {
            sentinel.remove();
            key.classList.remove('pressed');

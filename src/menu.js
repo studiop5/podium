@@ -895,6 +895,7 @@ class Menu {
   // event operation handles:
 
   opDown(e) {
+    e.taken = true; 
     if (e.ctrlKey || e.shiftKey) return;
     this.elm.style.zIndex = ++_zTop_;
     this.clearSpinFling();
@@ -955,7 +956,7 @@ class Menu {
         this.notify(`${ringKey}/${cellKey}/down`);
         // Schedule long press detection for cells
         op.schedule.run(
-          _longPressMs_,
+          _gs_,
           () => {
             op.completed = true;
             this.notify(`${ringKey}/${cellKey}/long`);
@@ -977,7 +978,7 @@ class Menu {
         this.notify("down");
         this.grip.classList.add("Menu__grip-selected");
         op.schedule.run(
-          _longPressMs_,
+          _gs_,
           () => {
             op.completed = true;
             this.notify("long");
@@ -1321,6 +1322,7 @@ class Menu {
     if (panel.elm.style.visibility != "visible") panel.show();
     cell.elm.classList.remove("Menu__panel");
     panel.constrain();
+_pzTarget_ = panel.elm ;
   }
 
   // stash serialization functions:
@@ -1470,7 +1472,7 @@ class Menu {
   }
 
   park() {
-    this.collapse() ;
+    if(!this.collapsed) this.collapse() ;
     this.elm.style.transition = `all ${_gs_}ms ease-in`;
     this.elm.style.left = this.elm.style.top = 0 ;
     schedule(_gs_, () => this.elm.style.transition = "unset");

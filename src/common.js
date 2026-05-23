@@ -75,15 +75,14 @@ Element.prototype["replace"] = function(newElm) {
 // properties defined on the window "global" namespace
 // are distinguished using the convention of leading+trailing underscores:
 
+// window._menu_  // defined in main.js
 window._podiumVersion_ = "2.0.1";
 window._body_ = document.body;
-_body_.dataset.tag = "body";
 window._lastTarget_ = null; // last touched .pz element, excluding EditPanel
 window._dvPxRt_ = 1 + (devicePixelRatio - 1) * 0.3;
 window._frMs_ = 0.06; // initial estimate of number of frames per millisecond (60fps)
 window._gs_ = 618; // golden section (reciprocal) msec (.618 seconds)
 window._gsgs_ = (_gs_ * _gs_) / 1000; // shorter golden section!
-window._longPressMs_ = 750;
 window._sliderPrecision_ = 4; // sensitivity multiplier for slider/pager precision mode
 window._zTop_ = 300; // continuously incrementing z-index counter for panels, menu, surfaces
 window._mobile_ = window.matchMedia('(pointer: coarse)').matches;
@@ -117,7 +116,7 @@ let panSvgCool =
   "url('data:image/svg+xml;base64," + btoa(`
       <svg width='3em' height='3em' viewBox='0 0 175 175' xmlns='http:/\/www.w3.org/2000/svg'>
         <filter id='noiseFilter'>
-          <feTurbulence type='turbulence' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/>
+          <feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/>
           <feColorMatrix type='matrix' values='0.30 0.30 0.30 0 -0.07
                                                0.30 0.30 0.30 0 -0.03
                                                0.30 0.30 0.30 0  0.20
@@ -132,7 +131,7 @@ let panSvgDark =
       <svg width='3em' height='3em' viewBox='0 0 175 175' xmlns='http:/\/www.w3.org/2000/svg'>
         <defs>
           <filter id='noiseFilterDark'>
-            <feTurbulence type='turbulence' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/>
+            <feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/>
             <feComponentTransfer>
               <feFuncA type='linear' slope='0.3'/>
             </feComponentTransfer>
@@ -722,6 +721,7 @@ class ButtonGroup {
     //      be any object.
     //   @prevTag: iff property is non null, then the previous
     //      value (i.e. tag) of the property
+    e.taken = true;
     let path = e.composedPath();
     for (let i = 0; i < path.length; i++) {
       let elm = path[i];
@@ -1175,7 +1175,7 @@ class PodiumSlider extends HTMLElement {
     this.append(this.elm);
 
     listen([this.knob, this.track], "pointerdown", (e) => {
-
+      e.taken = true;
       e.stopImmediatePropagation();
       this.adjusting = true;
       _menu_.busy = true;
@@ -1697,21 +1697,29 @@ class Surface {
     let longPresser = new Schedule();
 
     panel.listeners.push(listen(surface, "pointerdown", (e) => {
+      e.taken = true;
       // set z-index to bring surface on top (note: Curtain class manages its own z-index)
       if(this.constructor.name != "Curtain" && surface.parentElement == _body_) surface.style.zIndex = ++_zTop_;
-      let box = getBox(this.surfaceDragElm || surface);
+
+      let box = getBox(surface) ;
       let maxLeft = window.innerWidth - box.width;
       let maxTop = window.innerHeight - box.height;
       // When this.surfaceDragElm defined, we Ignore pointerdown outside of circular area enclosed by it.
       // This is used to diable dragging outside of Clock/Stopwatch's circular faces
-      if (this.surfaceDragElm &&  (Math.hypot(e.clientX - box.x - box.width / 2, e.clientY - box.y - box.height / 2) > box.width / 2)) return;
+      if(this.surfaceDragElm) {
+        box = getBox(this.surfaceDragElm) ;
+        if (Math.hypot(e.clientX - box.x - box.width / 2, e.clientY - box.y - box.height / 2) > box.width / 2) return;
+      }
       _body_.setPointerCapture(e.pointerId);
-      longPresser.run(_longPressMs_, () => this.onSurfaceEvent("press"));
+      longPresser.run(_gs_, () => this.onSurfaceEvent("press")) ;
       let dX = e.offsetX, dY = e.offsetY; // warning: e can be gc'ed before mv references it.
       let fling = new Drag(e);
       let mv = listen(_body_, "pointermove", (emv) => {
+        // subclasses can set e.frozeon=true to disable move processing
+        // for this event (see, for example, class Keyboard in panel.js)
+        if(e.frozen) return ; 
         fling.mv(emv) ;
-        if (surface.parentElement == _body_) {
+        if (surface.parentElement == _body_ && !e.noMove) {
           surface.style.left = clamp(emv.clientX - dX, 0, maxLeft) + "px";
           surface.style.top = clamp(emv.clientY - dY, 0, maxTop) + "px";
         }
@@ -1740,7 +1748,7 @@ class Surface {
           hide(surface, dataIndex("tag", this.panel.cell.elm).cellIcon);
           if (this.panel.constructor != ScreenPanel) ScreenPanel.update(null);
         }
-        else if (downTime < _longPressMs_) this.onSurfaceEvent("click");
+        else if (downTime < _gs_) this.onSurfaceEvent("click");
       }, { once: true });
     }));
     delay(2, () => this.build());

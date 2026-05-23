@@ -235,6 +235,7 @@ class Pg {
       let stateChanged = false; // flag to indicate canvas state has changed s.t. it needs to be pushed to the undoStack
   
       canvas.on("mouse:down:before", async (opts) => {
+opts.e.taken = true ;
         if(_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell)
           _menu_.pgEvent(opts, this);
       });
