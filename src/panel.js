@@ -2585,12 +2585,14 @@ class Keyboard extends Surface {
         key.classList.add('pressed');
 
         this.handle(key.dataset.label, e.clientX, e.clientY);
-        let repeat = () => {
-          if (!sentinel.isConnected) return;
-          this.handle(key.dataset.label, e.clientX, e.clientY);
-          this.repeater.run(80);
-        };
-        this.repeater.run(500, repeat);
+        if (!['⇧','⋯','Aa'].includes(key.dataset.label)) {
+          let repeat = () => {
+            if (!sentinel.isConnected) return;
+            this.handle(key.dataset.label, e.clientX, e.clientY);
+            this.repeater.run(80);
+          };
+          this.repeater.run(500, repeat);
+        }
 
 
         listen(document, "pointerup", () => {

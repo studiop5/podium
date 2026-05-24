@@ -28,7 +28,7 @@
 // python3 build.py --podium.  All text  between +/- skip fill be stripped out,
 // and all the following // #include files will be  textually included.
 
-import { animate, delay, delayMs, helm, listen, schedule, Schedule, unlisten } from "./common.js";
+import { animate, clamp, delay, delayMs, helm, listen, schedule, Schedule, unlisten } from "./common.js";
 import "./font.js";
 import { Menu } from "./menu.js";
 import { Layout } from "./layout.js";
@@ -99,7 +99,16 @@ class Gestures {
 
   onWheel(e) {
     e.preventDefault();
-    if (!e.ctrlKey) return;
+    if (!e.ctrlKey) {
+      // two-finger drag on trackpad: pan the targets
+      for (let target of this.pzTargets()) {
+        if (target === _body_) continue;
+        target.style.left = clamp((parseFloat(target.style.left) || 0) + e.deltaX, 0, innerWidth  - target.offsetWidth)  + "px";
+        target.style.top  = clamp((parseFloat(target.style.top)  || 0) + e.deltaY, 0, innerHeight - target.offsetHeight) + "px";
+        target.classList.add("pz-set");
+      }
+      return;
+    }
     let dXY = -Math.sign(e.deltaY) / 100;
     if (e.shiftKey) dXY /= 10;
     for (let target of this.pzTargets()) {
