@@ -335,7 +335,7 @@ class Menu {
         (async () => {
           try {
             wakeLockCell._wakeLock = await navigator.wakeLock.request("screen");
-            dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Wakelock Off"];
+            dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Wakelock On"];
           } catch {
             wakeLockCell.stash.on = false;
             toast("Wake lock unavailable.");
@@ -688,12 +688,12 @@ class Menu {
         cell.stash.on = false;
         cell._wakeLock?.release();
         cell._wakeLock = null;
-        cellIcon.innerHTML = iconPaths["Wakelock On"];
+        cellIcon.innerHTML = iconPaths["Wakelock Off"];
       } else {
         try {
           cell._wakeLock = await navigator.wakeLock.request("screen");
           cell.stash.on = true;
-          cellIcon.innerHTML = iconPaths["Wakelock Off"];
+          cellIcon.innerHTML = iconPaths["Wakelock On"];
         } catch {
           toast("Wake lock unavailable.");
         }
@@ -1410,7 +1410,7 @@ _pzTarget_ = panel.elm ;
     let wakeLockCell = this.rings.app.cells.wakeLock;
     wakeLockCell._wakeLock?.release();
     wakeLockCell._wakeLock = null;
-    dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Normal Screen"];
+    dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Wakelock Off"];
 
     // Exit fullscreen
     if (document.fullscreenElement) document.exitFullscreen();
