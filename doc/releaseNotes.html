@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PODIUM: Release Notes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Georgia, 'Times New Roman', serif;
+            line-height: 1.6;
+            color: #333;
+            background: #fff;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin: 1em 0 0.2em;
+            color: #1a1a1a;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            margin-bottom: 2em;
+        }
+
+        h2 {
+            font-size: 2em;
+            margin: 1.5em 0 0.5em;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 0.3em;
+        }
+
+        h3 {
+            font-size: 1.3em;
+            margin: 1.4em 0 0.4em;
+            color: #34495e;
+        }
+
+        p {
+            margin: 0.8em 0;
+            text-align: justify;
+        }
+
+        ul, ol {
+            margin: 0.8em 0 0.8em 2em;
+        }
+
+        li {
+            margin: 0.3em 0;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        nav {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 2em 0;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        nav h2 {
+            border-bottom: none;
+            margin-top: 0;
+            font-size: 1.3em;
+            color: #2c3e50;
+        }
+
+        nav ul {
+            list-style: none;
+            margin: 0.8em 0 0 0;
+        }
+
+        nav li {
+            margin: 0.5em 0;
+        }
+
+        nav .version-date {
+            color: #888;
+            font-size: 0.9em;
+            margin-left: 0.5em;
+        }
+
+        section {
+            margin: 3em 0;
+        }
+
+        .note {
+            background: #fff9e6;
+            border-left: 4px solid #f39c12;
+            padding: 1em;
+            margin: 1em 0;
+        }
+
+        .note::before {
+            content: "Note: ";
+            font-weight: bold;
+        }
+
+        .version-header {
+            display: flex;
+            align-items: baseline;
+            gap: 0.6em;
+        }
+
+        .version-tag {
+            font-size: 0.5em;
+            font-weight: normal;
+            color: #888;
+            vertical-align: middle;
+        }
+
+        .entry {
+            margin: 2em 0;
+            padding-left: 1em;
+            border-left: 3px solid #ecf0f1;
+        }
+
+        .entry h3 {
+            margin-top: 0;
+        }
+
+        .location {
+            font-size: 0.9em;
+            color: #888;
+            font-style: italic;
+            margin-bottom: 0.4em;
+        }
+
+        .guidebook-link {
+            font-size: 0.9em;
+            margin-top: 0.6em;
+        }
+
+        .pending {
+            background: #f0f4ff;
+            border-left: 4px solid #3498db;
+            padding: 1.5em;
+            border-radius: 0 8px 8px 0;
+            margin: 1em 0;
+            color: #555;
+            font-style: italic;
+        }
+
+        @media print {
+            body { max-width: 100%; }
+            nav { display: none; }
+            h2 { page-break-before: always; }
+            h2:first-of-type { page-break-before: avoid; }
+        }
+    </style>
+</head>
+<body>
+
+<h1>PODIUM Release Notes</h1>
+<p class="subtitle">What changed, and why, from version 1.0 onward.</p>
+
+<nav>
+    <h2>Versions</h2>
+    <ul>
+        <li><a href="#v2.1">Version 2.1</a> <span class="version-date">— upcoming</span></li>
+        <li><a href="#v2.0">Version 2.0</a> <span class="version-date">— March 2026</span></li>
+        <li><a href="#v2.0.2">Version 2.0.2</a> <span class="version-date">— April 2026</span></li>
+        <li><a href="#v1.1">Version 1.1</a> <span class="version-date">— December 2025</span></li>
+        <li><a href="#v1.0">Version 1.0</a> <span class="version-date">— March 2025</span></li>
+    </ul>
+    <p style="margin-top:1em; font-size:0.9em;">
+        For detailed usage instructions, see the <a href="Guidebook.html">Guidebook</a>.
+    </p>
+</nav>
+
+
+<!-- ═══════════════════════════════════════════════════════════ V2.1 -->
+<section id="v2.1">
+    <h2>Version 2.1 <span class="version-tag">— upcoming</span></h2>
+
+    <div class="entry">
+        <h3>Keyboard</h3>
+        <p class="location">More ring → Keyboard</p>
+        <p>An on-screen keyboard panel for devices without a physical keyboard. Its main purpose is
+        <strong>progressive search</strong>: as you type, results in the active panel narrow in real time.
+        Progressive search works in the file Open and Save panels (filtering by file name) and in all
+        dropdowns — most usefully the category picker in the Symbols panel (Ink ring → Symbols), which
+        otherwise requires scrolling through a list of roughly 3,500 SMuFL glyphs organized into named
+        categories.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-9-keyboard">§9.8 Keyboard</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Background Gesture Shortcuts</h3>
+        <p class="location">Anywhere on the score background</p>
+        <p>Three new gestures provide quick access to commonly used controls without opening the menu:</p>
+        <ul>
+            <li><strong>Swipe left or right</strong> — toggles full-screen mode on and off. Swipe direction
+                does not matter; either direction performs the toggle.</li>
+            <li><strong>Swipe up or down</strong> — toggles the menu between its parked state (collapsed to
+                the top-left corner) and its default centered, expanded position. Either direction performs
+                the toggle.</li>
+            <li><strong>Long-press anywhere on screen</strong> — summons the menu. In previous releases,
+                long-press only worked when the press started on the score background. It now works
+                everywhere, including on top of score content.</li>
+        </ul>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-3">Chapter 3: Interface Basics</a>
+        </p>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════ V2.0.2 -->
+<section id="v2.0.2">
+    <h2>Version 2.0.2 <span class="version-tag">April 2026</span></h2>
+
+    <div class="entry">
+        <h3>Updated SMuFL Documentation Link</h3>
+        <p>The link to the SMuFL (Standard Music Font Layout) specification in the About panel now points to the current
+        location of that document. SMuFL is the standard that governs the music notation symbols used throughout Podium's
+        annotation palette.</p>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════ V2.0 -->
+<section id="v2.0">
+    <h2>Version 2.0 <span class="version-tag">March 2026</span></h2>
+
+    <div class="entry">
+        <h3>Browser Extension</h3>
+        <p class="location">Chrome, Edge — install once from your browser's extension store</p>
+        <p>The Podium browser extension adds a context-menu item to every PDF link on the web. Right-clicking a link
+        and choosing <em>Open in Podium</em> sends the PDF directly to a Podium tab, skipping the usual
+        download-and-open workflow.</p>
+        <p>The extension also integrates with IMSLP. On any IMSLP score page, a Podium button appears alongside the
+        standard download links. Clicking it opens the score immediately, handling the IMSLP disclaimer and wait
+        automatically.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-2-extension">§2.1 Browser Extension</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Progressive Web App (PWA)</h3>
+        <p class="location">Install from your browser's address bar or browser menu</p>
+        <p>Podium can now be installed as a Progressive Web App. Once installed, it opens in its own window,
+        appears in your operating system's application launcher, and continues to work without an internet
+        connection after its first load. The PWA is updated automatically the next time you launch it while
+        online — no manual update step is needed.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-2-pwa">§2.2 Progressive Web App</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>App Ring</h3>
+        <p class="location">Long-press the center of the menu to open the App ring</p>
+        <p>A new ring provides access to application-level settings that were previously scattered or unavailable.
+        It contains five cells:</p>
+        <ul>
+            <li><strong>About</strong> — version information and links to release notes and the SMuFL specification</li>
+            <li><strong>Storage</strong> — a panel for managing cloud storage connections and reviewing stored data</li>
+            <li><strong>Guide</strong> — opens the Guidebook (this document)</li>
+            <li><strong>Theme</strong> — switches between light and dark color schemes</li>
+            <li><strong>Screen</strong> — toggles full-screen mode</li>
+        </ul>
+        <p>The Theme and Screen cells were previously located on the More ring. Moving them to the App ring keeps
+        the More ring focused on practice tools.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-8">Chapter 8: App Ring</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Magnify</h3>
+        <p class="location">Page ring → Magnify</p>
+        <p>The Magnify cell opens a floating magnification panel that displays an enlarged view of whatever portion
+        of the score it is placed over. Drag the panel to reposition it. On touch screens, pinch within the panel
+        to change the zoom level; a slider is available for pointer-based input. The panel can be left open while
+        turning pages, so you can keep a close-up view of a passage as you read through a score.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-7-magnify">§7.7 Magnify</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Piano Tuner</h3>
+        <p class="location">More ring → Piano → Tuner tab</p>
+        <p>The Piano panel now includes a chromatic tuner. It listens via your device's microphone and uses the
+        YIN pitch-detection algorithm to identify the nearest note, measure the deviation in cents, and rate the
+        detection confidence — all updated in real time. The tuner is available as a tab within the existing
+        Piano panel, so it does not require opening a separate tool.</p>
+        <div class="note">The tuner requires microphone access. Your browser will prompt for permission the first
+        time you open it.</div>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-9-piano">§9.5 Piano</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Cell Locking</h3>
+        <p class="location">Long-press any Ink ring or Page ring cell</p>
+        <p>Ink ring and Page ring cells normally deactivate automatically after a few seconds of inactivity,
+        which prevents accidental operations. When you need to work continuously within one tool — annotating
+        an entire movement, or reorganizing many pages — you can lock a cell on by long-pressing it. A locked
+        cell remains active until you tap it again to unlock it. A visual indicator distinguishes locked cells
+        from unlocked ones.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-3">Chapter 3: Interface Basics</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Edit Panel</h3>
+        <p class="location">Ink ring → Edit</p>
+        <p>The Edit panel provides precise numeric control over the position, size, and rotation of a selected
+        annotation. You can enter exact values for X, Y, width, height, and rotation angle. This is a complement
+        to the freehand drag and resize handles: use the handles for quick adjustments, and the Edit panel when
+        placement accuracy matters — for example, when aligning annotations across pages or matching the
+        dimensions of a staff system.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-6-edit">§6.8 Edit</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Cut, Copy, and Paste (Page Ring)</h3>
+        <p class="location">Page ring → Cut / Copy / Paste</p>
+        <p>Three new cells in the Page ring — Cut, Copy, and Paste — operate on a local clipboard. They let you
+        move pages to a different position within the same score (Cut + Paste) or duplicate them (Copy + Paste),
+        without affecting the clipboard shared between separate Podium instances.</p>
+        <p>The previous Copy and Paste cells, which transfer pages between different browser tabs running Podium,
+        have been renamed <strong>Export</strong> and <strong>Import</strong> to better describe what they do.
+        Their behavior is unchanged.</p>
+        <p class="guidebook-link">
+            See the Guidebook:
+            <a href="Guidebook.html#chapter-7-cut-copy-paste">§7.3 Cut, Copy, Paste</a> and
+            <a href="Guidebook.html#chapter-7-export-import">§7.5 Export, Import</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Tap to Turn Pages</h3>
+        <p class="location">Book, Horizontal Scroll, and Vertical Scroll layouts</p>
+        <p>A short tap on the score in these three layouts now advances one page, in the same direction as a
+        quick fling. This gives an alternative input method for users who prefer tapping over swiping, and is
+        particularly useful when using a stylus or a mouse.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-5-book">§5.1 Book Layout</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Guidebook</h3>
+        <p class="location">App ring → Guide, or <a href="Guidebook.html">Guidebook.html</a></p>
+        <p>A comprehensive in-app reference covering all ten rings and their tools in detail. Each chapter
+        includes annotated screenshots, embedded video demonstrations of key workflows, and usage notes. A
+        keyword index at the end provides a quick path to any topic.</p>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════ V1.1 -->
+<section id="v1.1">
+    <h2>Version 1.1 <span class="version-tag">December 2025</span></h2>
+
+    <div class="entry">
+        <h3>Shared Copy/Paste Buffer</h3>
+        <p class="location">Page ring → Export / Import <em>(renamed Export and Import in V2.0)</em></p>
+        <p>Pages can be copied from one Podium instance and pasted into another running in a different browser
+        tab. A common use: open two scores side by side, copy select pages from each, and paste them into a
+        third score to assemble a custom practice set or extract a single movement. The shared buffer persists
+        for the duration of the browser session.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-7-export-import">§7.5 Export, Import</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Dark Mode</h3>
+        <p class="location">App ring → Theme <em>(More ring → Theme in V1.1)</em></p>
+        <p>A dark color scheme reduces display luminance during low-light practice or extended reading sessions.
+        Switching themes affects the menu, panels, and the area surrounding the score. The score pages themselves
+        remain as rendered from the source PDF. Podium remembers your theme preference across sessions.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-8-theme">§8.4 Theme</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Page Expansion</h3>
+        <p class="location">Score ring → Details</p>
+        <p>Scores sometimes contain pages of varying width — for example, when a landscape-oriented title page
+        is mixed with portrait-oriented score pages. The Page Expansion option in the Details panel scales pages
+        that are narrower than the widest page in the score up to match, producing consistent margins and a more
+        uniform reading experience.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-4-details">§4.4 Score Ring: Details</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Page Management in Table Layout</h3>
+        <p class="location">Layout ring → Table</p>
+        <p>In Table layout, pages can now be reordered by dragging them to a new position, and deleted by
+        dragging them off the edge of the layout. This makes it straightforward to remove blank or unwanted
+        pages, reverse a two-page spread, or reorganize a score's structure directly in the layout view.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-5-table">§5.4 Table Layout</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>New Annotation Fonts</h3>
+        <p class="location">Ink ring → Text</p>
+        <p>Two new fonts are available in the Text annotation tool: <strong>Vercetti</strong>, a proportional
+        serif suitable for formal annotations, and <strong>Patrick Hand</strong>, a casual handwritten-style
+        font. These join the existing font choices and can be selected per text annotation from the Text panel.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-6-text">§6.3 Text</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Auto-Off Safety</h3>
+        <p>Ink ring and Page ring cells now deactivate automatically after a brief period of inactivity. This
+        prevents an annotation or page-management tool from remaining active unintentionally — for example,
+        after you set down your device mid-session. If you need a cell to stay on indefinitely, long-press it
+        to lock it (added in V2.0).</p>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════ V1.0 -->
+<section id="v1.0">
+    <h2>Version 1.0 <span class="version-tag">March 2025</span></h2>
+
+    <p>Initial release. Podium launched as a browser-based PDF viewer purpose-built for music scores, with the
+    following capabilities:</p>
+
+    <ul>
+        <li><strong>Four layout modes</strong> — Book (two-page spreads), Horizontal Scroll, Vertical Scroll,
+            and Table (thumbnail grid for overview and page management)</li>
+        <li><strong>Annotation tools</strong> — pen, pencil, rastrum (staff-line stamp), text labels with
+            music symbols, cut/copy/paste, undo</li>
+        <li><strong>Cloud storage</strong> — open and save scores to Dropbox and Google Drive, in addition to
+            local files</li>
+        <li><strong>Metronome</strong> — configurable tempo with tap-tempo input and accent patterns</li>
+        <li><strong>Stopwatch</strong> — practice timer with lap recording</li>
+        <li><strong>Piano keyboard</strong> — on-screen keyboard with audio playback using sampled piano tones</li>
+        <li><strong>Gesture navigation</strong> — swipe and fling to turn pages; pinch to zoom</li>
+        <li><strong>Circular menu</strong> — rings organized by function (Score, Layout, Ink, Page, More),
+            accessed by a long-press on the score background</li>
+    </ul>
+</section>
+
+</body>
+</html>
