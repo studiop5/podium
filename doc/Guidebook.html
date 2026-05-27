@@ -661,7 +661,7 @@ function closeVideo(event, container) {
 </div>
 
 <div style="font-size:2em;font-weight:600;text-align:center;margin:.25em 0;">Guidebook</div>
-<div class="version">Version 2.0</div>
+<div class="version">Version 2.1</div>
 
 <p style="text-align: center;"><a href="Guidebook.html" target="_blank">Open in new window</a> for convenient side-by-side reading with Podium. | <a href="javascript:window.print()">Print me</a></p>
 
@@ -840,7 +840,7 @@ function closeVideo(event, container) {
         <li><strong>Text:</strong> Add text boxes</li>
         <li><strong>Symbols:</strong> Insert music notation symbols</li>
     </ul>
-    <p>Activate any Ink tool by tapping, then tap or drag on the score to use it. Configure the tool by dragging the corresponding panel from its cell. <strong>Note:</strong> Most Ink tools automatically deactivate after a few seconds of inactivity, so you won't accidentally stay in annotation mode when navigating pages.</p>
+    <p>Activate any Ink tool by tapping, then tap or drag on a score page to use it. Configure the tool by dragging the corresponding panel from its cell.</p>
 
     <figure>
         <div class="video-container" onclick="playVideo(this)">
@@ -853,6 +853,12 @@ function closeVideo(event, container) {
             </video>
         </div>
         <figcaption>Screenshot (dark theme) showing Ink Ring activated with various annotation types visible on a score</figcaption>
+    </figure>
+    <div class="note">Most Ink tools automatically deactivate after four seconds of inactivity, so you won't accidentally add an annotation when you wanted to navigate to a different page. You can override auto deactivation by long pressing on the tool: a small circle will appear in the cell to indicate that it is "locked". Press the cell again (or activate a different cell) to unlock.</div>
+
+    <figure>
+        <img src="assets/quicklock.jpg" alt="Ink Ring's Cut cell with lock indicator">
+        <figcaption>Close-up of the Ink Ring's Cut cell with it's locked state indicated by the small circle. A  locked cell does not auto-deactivate: it stays active until tapped again.</figcaption>
     </figure>
 
     <p><a href="#chapter-6" class="chapter-link">See Chapter 6: Ink Ring</a> for complete annotation tools and techniques</p>
@@ -889,10 +895,10 @@ function closeVideo(event, container) {
     <h4>Resizing and Moving</h4>
     <p>We've just seen that panels can be moved my dragging on their textured header. In addition, everything in Podium—menu, panels, layouts—is resizable and movable using two-finger pinch-and-pan gestures (or Ctrl+mouse/Ctrl+wheel for desktop). <a href="#chapter-3" class="chapter-link">See Chapter 3: Interface Basics</a> for details.</p>
 
-    <h4>Background Gestures:</h4>
+    <h4>Gestures:</h4>
     <ul>
-        <li><strong>Swipe left ⇄ right:</strong> Enter/exit full-screen (on iPhone/iPad, use the Screen button in the App Ring instead)</li>
-        <li><strong>Swipe top ⇅ bottom:</strong> Reset and center menu</li>
+        <li><strong>Swipe left ⇄ right:</strong> Toggle full-screen (on iPhone/iPad, use the Screen button in the App Ring instead)</li>
+        <li><strong>Swipe top ⇅ bottom:</strong> Toggle menu: Reset and center menu / collapse and park menu in upper left.</li>
         <li><strong>Long press:</strong> Summon menu to that location</li>
     </ul>
 
@@ -921,7 +927,8 @@ function closeVideo(event, container) {
         <li><strong>Cut/Copy/Paste:</strong> Rearrange, duplicate, or delete pages within the current score</li>
         <li><strong>Undo:</strong> Undo the last page operation</li>
         <li><strong>Export/Import:</strong> Share pages with other Podium tabs via the shared buffer</li>
-        <li><strong>Merge:</strong> Convert annotations into permanent PDF content</li>
+        <li><strong>Merge:</strong> Merge another score into the current score</li>
+        <li><strong>Flatten:</strong> Convert annotations into permanent PDF content</li>
         <li><strong>Magnify:</strong> Zoom in on page details</li>
     </ul>
     <p><strong>Note:</strong> Like Ink tools, Page tools auto-deactivate after a few seconds of inactivity.</p>
@@ -938,7 +945,7 @@ function closeVideo(event, container) {
                 Your browser does not support the video tag.
             </video>
         </div>
-        <figcaption>Horizontal layout with Page Ring active</figcaption>
+        <figcaption>Horizontal layout with Page Ring active (glass theme)</figcaption>
     </figure>
 
     <div class="note"><strong>Quick tip:</strong> In Table layout, you can reorder pages by simply dragging them to a new location; other pages split apart to show where the page will be inserted. You can also cut pages by dragging them completely out of the layout. This direct manipulation is often faster than using Page Ring tools!</div>
