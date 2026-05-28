@@ -1064,7 +1064,7 @@ class Score {
     _menu_.enableCells("page/undo", this.undoStack.length > 0);
     // clear any pg from paste cell...could be left over from previous score, if any
     _menu_.rings.page.cells.paste.pg = null ;
-    _menu_.enableCells("page/paste", false) ;
+    _menu_.enableCells("page/paste", false);
     this.pgRefresh();
     // Sync quality to stash so InfoPanel slider shows correct value
     _menu_.rings.score.cells.details.stash.quality = this.quality;
@@ -1164,11 +1164,13 @@ class Score {
     for (let i = pgCount - 1; i >= pn; i--) // need highest->lowest
       mergedScore.pgs[i + copyKnt].json = mergedScore.pgs[i].json;
 
+    // clear stale docA json that Score.init assigned to docB's page slots
+    for (let i = pn; i < pn + copyKnt; i++) mergedScore.pgs[i].json = null;
     if(json) {
       // insert new json from docB
       let pageJson = JSON.parse(json).pages;
       for (let i = pn, j = 1; j <= copyKnt; i++, j++) { // i is 0-based, j is 1-based
-        mergedScore.pgs[i].json = pageJson[j]; 
+        mergedScore.pgs[i].json = pageJson[j];
       }
     }
     // Added merged pgs to mergedScore's undo stack

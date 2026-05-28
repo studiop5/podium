@@ -76,7 +76,7 @@ Element.prototype["replace"] = function(newElm) {
 // are distinguished using the convention of leading+trailing underscores:
 
 // window._menu_  // defined in main.js
-window._podiumVersion_ = "2.0.1";
+window._podiumVersion_ = "2.1.0";
 window._body_ = document.body;
 window._lastTarget_ = null; // last touched .pz element, excluding EditPanel
 window._dvPxRt_ = 1 + (devicePixelRatio - 1) * 0.3;

@@ -206,7 +206,7 @@ File:
   `<path fill="currentColor" d="M9,11H15V8L19,12L15,16V13H9V16L5,12L9,8V11M2,20V4H4V20H2M20,20V4H22V20H20Z" />`,
 
 Flatten:
-  `<text transform="rotate(0) skewX(0)" y="11" x="5" font-size="14px" font-family="Bravura" fill="currentColor">\ue1d4</text>
+  `<text y="11" x="5" font-size="14px" font-family="Bravura" fill="currentColor">\ue1d4</text>
    <path stroke="currentColor" fill="#9998" stroke-width=".6" d="M4 12L0 20L24 20L20 12Z"/>
    <path fill="none" stroke="currentColor" stroke-width="0.3" d="M4 12.5L20 12.5M3.5 14L20.5 14M3 15.5L21 15.5M2.5 17L21.5 17M2 18.5L22 18.5M1.5 20L22.5 20"/>
    <text transform="translate(19 16) rotate(130) skewX(40)" y="6px" x="0" font-size="14px" font-family="Bravura" fill="currentColor">\ue1d4</text>`,

@@ -338,13 +338,13 @@ class Layout {
       let pasteCell = _menu_.rings.page.cells.paste;
       let pg, pn;
       let score = this.score;
-      // The add/paste/import/splice  ops insert before page when event is in left (or top) half of e.target,
+      // The add/paste/import/merge ops insert before page when event is in left (or top) half of e.target,
       // and after page when clicked in right (or bottom) half. We use left/right for
       // for most layouts, but VerticalLayout uses top/bottom. 
       pg = e.target.pg || e.target.closest(".canvas-container")?.pg;
       if (!pg) return true;
       pn = score.pnOf(pg);
-      if (["add", "paste", "import", "splice"].includes(pageKey)) {
+      if (["add", "paste", "import", "merge"].includes(pageKey)) {
         let box = getBox(e.target);
         if (layoutKey == "vertical" && e.clientY - box.top > box.height / 2) pn++;
         else if (e.clientX - box.x > box.width / 2) pn++;
@@ -427,13 +427,28 @@ class Layout {
           let mergeCell = _menu_.rings.page.cells.merge;
           if (!mergeCell.pdfData) break;
           let pdfData = mergeCell.pdfData;
+          let wasLocked = mergeCell.locked;
           _shade_.show("Merging...", 50);
+          _menu_.busy = true;
           _menu_.activateCell(null);
           try {
             let mergedScore = await _score_.bindScore(pdfData, pn);
             await mergedScore.activate();
           } finally {
             _shade_.hide();
+          }
+          // activate() leaves score ring active; restore page ring with merge
+          // cell active so the user can tap another page without re-loading.
+          _menu_.activateRing(_menu_.rings.page);
+          mergeCell.pdfData = pdfData;
+          _menu_.activateCell(mergeCell);
+          _menu_.busy = false;
+          if (wasLocked) {
+            mergeCell.locked = true;
+            mergeCell.elm.classList.add("Menu__cell-locked");
+            _menu_.autoOff.cancel();
+          } else {
+            _menu_.autoOff.run(4000 + _gs_ * 3.5);
           }
           break;
         }

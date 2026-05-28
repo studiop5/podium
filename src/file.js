@@ -58,6 +58,41 @@ let errDialog = (error, msg) => {
 };
 
 
+let checkMergePdf = async (data) => {
+  // Try loading pdfData with pdf-lib before storing it for merge.
+  // Returns data if loadable, null if rejected by user or unreadable.
+  let { PDFDocument } = PDFLib;
+  try {
+    await PDFDocument.load(data);
+    return data;
+  } catch (err) {
+    if (!(err.message?.includes('encrypted') || err.message?.includes('Encrypt'))) throw err;
+    let readable = false;
+    try { let doc = await PDFDocument.load(data, { ignoreEncryption: true }); doc.getPages(); readable = true; } catch {}
+    if (!readable) {
+      dialog("This PDF is write-protected and cannot be merged.",
+        { OK: { svg: "Cancel" } }, (e, prop, tag, args) => args.close());
+      return null;
+    }
+    return await new Promise(resolve => {
+      let dlg = dialog(
+        "This PDF has copy protection. Merging may not preserve all content.",
+        { Merge: { svg: "Merge" }, Cancel: { svg: "Cancel" } },
+        (e, prop, tag, args) => { args.close(); resolve(tag == "Merge" ? data : null); }
+      );
+      dlg.addEventListener('cancel', () => resolve(null));
+    });
+  }
+};
+
+let activateMerge = (pdfData) => {
+  let mergeCell = _menu_.rings.page.cells.merge;
+  mergeCell.pdfData = pdfData;
+  if (_menu_.rings.page.activeCell !== mergeCell) _menu_.activateCell(mergeCell);
+  _menu_.autoOff.run(4000 + _gs_ * 3.5);
+  toast("Tap score to merge");
+};
+
 let checkUnsaved = async (msg = "Warning: current score has unsaved changes. Open anyway?", close = false) => {
   // Display a confirm dialog if there is a dirty _score_ that would be overriden
   // without saving by opening a new Score. Return promise that resolves to true iff user clicks "Open".
@@ -1699,10 +1734,9 @@ class LocalFileView {
           toast("File opened");
         }
         else if (this.mode == "merge") {
-          let mergeCell = _menu_.rings.page.cells.merge;
-          mergeCell.pdfData = await file.arrayBuffer();
-          _menu_.activateCell(mergeCell);
-          toast("Tap score to merge");
+          let data = await checkMergePdf(await file.arrayBuffer());
+          if (!data) return;
+          activateMerge(data);
         }
         else {
           if(await checkUnsaved()) {
@@ -2158,19 +2192,20 @@ class FileListView {
           if (ext) {
             _menu_.setPasteObj(await bytesToBase64DataUrl(data, this.mimeTypes[ext]), this.mimeTypes[ext]);
             Score.visit({ source, name, path }, visitUpdate);
+            toast("File downloaded");
           }
         } else if (this.panel.mode == "merge") {
-          let mergeCell = _menu_.rings.page.cells.merge;
-          mergeCell.pdfData = data;
-          _menu_.activateCell(mergeCell);
-          Score.visit({ source, name, path }, visitUpdate);
-          toast("Tap score to merge");
+          let checked = await checkMergePdf(data);
+          if (checked) {
+            Score.visit({ source, name, path }, visitUpdate);
+            activateMerge(checked);
+          }
         } else {
           let score = await new Score().init(source, path, name, data);
           if (fileHandle) score.fileHandle = fileHandle;
           Score.visit(score, visitUpdate);
+          toast("File downloaded");
         }
-        toast("File downloaded");
       } catch (error) {
         if (!error.handled) errDialog(error, "Error: failed to download file from cloud server.");
       } finally {

@@ -629,6 +629,17 @@ class Menu {
     this.listen(paths.map((path) => path + "long"), (cell) => this.toggleLock(cell));
     this.listen(["page/numbers/","page/import/","page/add/","page/magnify/","page/merge/"].map((path) => path + "out"), (cell) =>  this.openPanel(cell));
 
+    this.listen("page/merge/long", (cell) => {
+      this.toggleLock(cell);
+      if (cell.locked) this.openPanel(cell);
+    });
+
+    this.listen("page/merge/up", (cell) => {
+      if (rings.page.activeCell === cell) { this.activateCell(null); return; }
+      if (cell.pdfData) { this.activateCell(cell); return; }
+      this.openPanel(cell);
+    });
+
     this.listen("page/undo/up", async () => {
        _score_.pgUndo();
        await Layout.activeLayout.build(false);
@@ -918,7 +929,7 @@ class Menu {
       cellKey: cellKey,
       completed: false,
       e: e, // initial event
-      emv: null, // lasttest mv event, or initial event if none
+      emv: e, // latest mv event, or initial event if none
       drag: new Drag(e, { minVelocity:0.1}),
       moved: false,
       origin: { x: e.clientX, y: e.clientY },
@@ -1226,8 +1237,11 @@ class Menu {
         ring.activeCell.locked = false;
         ring.activeCell.elm.classList.remove("Menu__cell-locked");
       }
-      // Discard loaded merge data when merge cell deactivates
-      if (ring.activeCell.key == "merge") ring.activeCell.pdfData = null;
+      // Discard loaded merge data when merge cell deactivates; reset autoOff delta
+      if (ring.activeCell.key == "merge") {
+        ring.activeCell.pdfData = null;
+        this.autoOff.delta = 4000;
+      }
     }
     if (cell) {
       cell.elm.classList.add("Menu__cell-active");

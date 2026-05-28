@@ -983,6 +983,11 @@ class CopyPanel extends OpenPanel {
 
 class MergePanel extends OpenPanel {
   mode = "merge";
+
+  hidden() {
+    // If the panel closes without a file being selected, deactivate (and unlock) the cell
+    if (!this.cell.pdfData) _menu_.activateCell(null);
+  }
 }
 
 
@@ -2505,7 +2510,7 @@ class Keyboard extends Surface {
       display:flex;
       align-items:center;
       justify-content:center;
-      font-size:1em;
+      font-size:.8em;
       font-family:system-ui,sans-serif;
     }
     .Keyboard__key.mod {
