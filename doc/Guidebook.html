@@ -914,12 +914,7 @@ function closeVideo(event, container) {
         </div>
         <figcaption>Screenshot (dark theme) showing Ink Ring activated with various annotation types visible on a score</figcaption>
     </figure>
-    <div class="note">Most Ink tools automatically deactivate after four seconds of inactivity, so you won't accidentally add an annotation when you wanted to navigate to a different page. You can override auto deactivation by long pressing on the tool: a small circle will appear in the cell to indicate that it is "locked". Press the cell again (or activate a different cell) to unlock.</div>
-
-    <figure>
-        <img src="assets/quicklock.jpg" alt="Ink Ring's Cut cell with lock indicator">
-        <figcaption>Close-up of the Ink Ring's Cut cell with it's locked state indicated by the small circle. A  locked cell does not auto-deactivate: it stays active until tapped again.</figcaption>
-    </figure>
+    <div class="note">Most Ink tools <a href="#chapter-3-auto-deactivation" class="chapter-link">automatically deactivate</a> after four seconds of inactivity, so you won't accidentally add an annotation when you wanted to navigate to a different page. You can override this by <a href="#chapter-3-cell-locking" class="chapter-link">locking the cell</a>: long-press it and a small circle will appear on its outer edge. Press the cell again (or activate a different cell) to unlock.</div>
 
     <p><a href="#chapter-6" class="chapter-link">See Chapter 6: Ink Ring</a> for complete annotation tools and techniques</p>
 
@@ -1008,7 +1003,7 @@ function closeVideo(event, container) {
         <figcaption>Horizontal layout with Page Ring active (glass theme)</figcaption>
     </figure>
 
-    <div class="note"><strong>Quick tip:</strong> In Table layout, you can reorder pages by simply dragging them to a new location; other pages split apart to show where the page will be inserted. You can also cut pages by dragging them completely out of the layout. This direct manipulation is often faster than using Page Ring tools!</div>
+    <div class="note"><strong>Quick tip:</strong> In <a href="#chapter-5-table-reorder" class="chapter-link">Table layout</a>, you can reorder pages by simply dragging them to a new location; other pages split apart to show where the page will be inserted. You can also cut pages by dragging them completely out of the layout. This direct manipulation is often faster than using Page Ring tools!</div>
 
     <p><a href="#chapter-7" class="chapter-link">See Chapter 7: Page Ring</a> for complete page management features</p>
 
@@ -1228,11 +1223,11 @@ function closeVideo(event, container) {
 
     <p>Unavailable cells are grayed out. On launch, only the Score and More cells (inner ring) and Open and New cells (outer ring) are available.</p>
 
-    <h4>Cell Auto-Deactivation</h4>
+    <h4 id="chapter-3-auto-deactivation">Cell Auto-Deactivation</h4>
 
     <p>Cells in the Ink Ring and Page Ring automatically deactivate after 4 seconds of inactivity, returning control to normal page navigation. This is an important feature: when an Ink or Page cell is active, touch gestures on score pages are intercepted by that cell's action rather than being interpreted as page navigation. Auto-deactivation ensures you won't accidentally draw on a page or delete it when you intended to simply turn the page.</p>
 
-    <h4>Cell Locking</h4>
+    <h4 id="chapter-3-cell-locking">Cell Locking</h4>
 
     <p>To prevent a cell from auto-deactivating, long-press it. A locked cell displays a circle around its outer edge and remains active indefinitely. Long-press the cell again, or select a different cell, to unlock it. Cell locking is supported by all Ink Ring cells and most Page Ring cells (except Numbers).</p>
 
@@ -1634,7 +1629,7 @@ function closeVideo(event, container) {
 
     <div class="note">You cannot add annotations to a page in Table layout unless it is current. See the <a href="#chapter-6" class="chapter-link">Ink Ring</a> chapter for details on annotations.</div>
 
-    <p><strong>Reordering pages:</strong> Touch-drag a page to a new location. As you drag the page across the layout, other pages will split apart showing you where the page will be inserted if you release the drag. This effect works best when pages are not too extensively overlapped using negative values for the Vertical and Horizontal Gap sliders in the layout panel.</p>
+    <p id="chapter-5-table-reorder"><strong>Reordering pages:</strong> Touch-drag a page to a new location. As you drag the page across the layout, other pages will split apart showing you where the page will be inserted if you release the drag. This effect works best when pages are not too extensively overlapped using negative values for the Vertical and Horizontal Gap sliders in the layout panel. Watch the video associated with the preceding figure for a brief demonstration.</p>
 
     <p><strong>Cutting pages:</strong> Dragging pages out of the layout cuts them from the score. This can also be accomplished using the Cut cell of the menu's Page Ring.</p>
 

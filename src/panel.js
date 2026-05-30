@@ -2195,6 +2195,7 @@ class Pzr extends Surface {
     // instead, we'll listen on the grid itself, and compute the grid "slot" as a
     // 0-based index (L-R,T-B). Not all slots have controls, but these do:
     this.panel.listeners.push(listen(this.grid, "pointerdown", (e) => {
+      e.taken = true;
       let box  = getBox(this.surface) ;
       let row = parseInt((e.clientY - box.y) / box.height * 5) ;
       let col = parseInt((e.clientX - box.x) / box.width * 5) ;
