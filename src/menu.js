@@ -1336,7 +1336,7 @@ class Menu {
     if (panel.elm.style.visibility != "visible") panel.show();
     cell.elm.classList.remove("Menu__panel");
     panel.constrain();
-_pzTarget_ = panel.elm ;
+    _pzTarget_ = panel.elm ;
   }
 
   // stash serialization functions:

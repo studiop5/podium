@@ -1330,9 +1330,12 @@ class LayoutPanel extends Panel {
 
     let handler = (e, tag, value, props) => {
       if (tag == "fit") this.cell.pz = null; // reset pz-set marker so layout will use fit setting
-      if (tag == "pace") return;
+      if (tag == "pace") return; // no rebuild required
       if (_score_ && this.cell == Layout.activeLayout.cell) {
-        Layout.activeLayout.build();
+        if(tag == "pgSnap") // no rebuild, but must update
+          Layout.activeLayout.cell.geo.pgSnap = value ;
+        else
+          Layout.activeLayout.build(); // rebuild
       }
     };
 
@@ -1349,7 +1352,7 @@ class LayoutPanel extends Panel {
         if (value == 0) return "Snap: 1/2 page";
         return "Snap: " + value + (value == 1 ? " page." : " pages");
       } else if(tag == "gap") return `Gap: ${value}%`;
-      else if(tag == "pace") return `Pace: ${(value/1000).toFixed(1)} sec/snap`
+      else if(tag == "pace") return `Pace: ${(value/1000).toFixed(2)} sec/snap`
     };
 
     // defs for scroll/slider groups
@@ -1359,23 +1362,25 @@ class LayoutPanel extends Panel {
       Width:  { svg: "Fit Width",  radio: "fit", redo: true},
       Height: { svg: "Fit Height", radio: "fit", redo: true},
     };
+
     let bookSlidersGroupDef = {
-      pace: { min: 0, max: 1500, step: 100, throttle: 750,
-              msg: (tag,value) => `Pace: ${(value/1000).toFixed(1)} sec/flip`},
-    }
+      pace: { min: 0, max: 1500, step: 10, curve:2, msg: (tag,value) =>
+         `Pace: ${(value/1000).toFixed(2)} sec/flip`}}
+
     let horzSlidersGroupDef = {
       pgShow: { min: 1, max: 8, step: 1, throttle: 750, row:1, col:1, msg: msgCallback},
       // values <= 0  are reinterpreted: see msgCallback
-      pgSnap: { min: -4, max: 8,     step: 1,   throttle: 750, row:1, col:2, msg: msgCallback},
+      pgSnap: { min: -4, max: 8,     step: 1,                  row:1, col:2, msg: msgCallback},
       gap:    { min: 0,  max: 100,   step: 0.5, throttle: 750, row:2, col:1, msg: msgCallback},
-      pace:   { min: 0,  max: 10000, step: 100, throttle: 750, row:2, col: 2, msg: msgCallback},
+      pace:   { min: 0,  max: 10000, step: 1,   curve: 2,      row:2, col: 2, msg: msgCallback},
     };
+
     // Horizontal layout uses a 2-column grid: pgShow/pgSnap on row 1, gap/pace on row 2
     let vertSlidersGroupDef = {
       pgShow: { min: 1,  max: 8,     step: 1,   throttle: 750, col: 1, row: 1, msg: msgCallback},
-      pgSnap: { min: -4, max: 8,     step: 1,   throttle: 750, col: 2, row: 1, msg: msgCallback},
+      pgSnap: { min: -4, max: 8,     step: 1,                  col: 2, row: 1, msg: msgCallback},
       gap:    { min: 0,  max: 100,   step: 0.5, throttle: 750, col: 1, row: 2, msg: msgCallback},
-      pace:   { min: 0,  max: 10000, step: 100, throttle: 750, col: 2, row: 2, msg: msgCallback},
+      pace:   { min: 0,  max: 10000, step: 1,   curve: 2,      col: 2, row: 2, msg: msgCallback},
     };
 
     let pnGroupDef = {

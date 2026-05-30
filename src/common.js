@@ -1048,6 +1048,7 @@ class Drag {
   }
 
   power(exp = 1.5) {
+    // experimental: currenly unused
     let apply = v => Math.sign(v) * Math.pow(Math.abs(v), exp);
     this.vX  = apply(this.vX);
     this.vY  = apply(this.vY);
@@ -1056,6 +1057,7 @@ class Drag {
   }
 
   boost(threshold = 0.5, exp = 1.5) {
+    // apply a power curve to velocity calculation, but with a minimum threshold
     let apply = v => {
       let a = Math.abs(v);
       return a <= threshold ? v : Math.sign(v) * (threshold + Math.pow(a - threshold, exp));
@@ -1099,7 +1101,7 @@ class PodumSlider
 
 class PodiumSlider extends HTMLElement {
   static get observedAttributes() {
-    return ["min", "max", "value", "step", "dilate"];
+    return ["min", "max", "value", "step", "curve"];
   }
 
   static css = css(
@@ -1158,6 +1160,7 @@ class PodiumSlider extends HTMLElement {
 
   adjusting = false;
   pos = 0; // in [0,1]
+  curve = 1; // 1 = linear; >1 = more resolution at low end
   sliderBox;
   knobBox;
 
@@ -1168,7 +1171,7 @@ class PodiumSlider extends HTMLElement {
       (this[key] = this.hasAttribute(key)
         ? parseFloat(this.getAttribute(key))
         : this[key]);
-    ["min", "max", "value", "step"].forEach((attr) => setAttr(attr));
+    ["min", "max", "value", "step", "curve"].forEach((attr) => setAttr(attr));
     this.disabled = this.hasAttribute("disabled") ? true : this.disabled;
 
     Object.assign(this, dataIndex("tag", this.elm));
@@ -1188,12 +1191,12 @@ class PodiumSlider extends HTMLElement {
       let prevX = e.clientX;
       // frac accumulates continuously so sub-step progress isn't lost when
       // setPos snaps to the nearest step each frame.
-      let frac = (this.value - this.min) / (this.max - this.min);
+      let frac = this.pos;
       let set = (clientX, delta) => {
         let dx = clientX - prevX;
         prevX = clientX;
         let t = Math.max(0, delta / knobBox.height - 0.5);
-        let unitsPerPx = (this.max - this.min) / sliderBox.width / this.step;
+        let unitsPerPx = this.curve * (this.max - this.min) * Math.pow(Math.max(frac, 0.001), this.curve - 1) / sliderBox.width / this.step;
         let sensitivity = 1 + t * unitsPerPx * _sliderPrecision_;
         frac = clamp(frac + (dx / sliderBox.width) / sensitivity, 0, 1);
         this.setPos(frac);
@@ -1250,7 +1253,8 @@ class PodiumSlider extends HTMLElement {
     if (which != "value") {
       this[which] = parseFloat(is);
     } else {
-      let pos = clamp((is - this.min) / (this.max - this.min), 0, 1);
+      let t = clamp((is - this.min) / (this.max - this.min), 0, 1);
+      let pos = this.curve == 1 ? t : Math.pow(t, 1 / this.curve);
       this.setPos(pos);
     }
   }
@@ -1258,7 +1262,7 @@ class PodiumSlider extends HTMLElement {
   setPos(pos) {
     // set the pos, which represents slider position in [0,1]
     this.pos = pos;
-    let value = pos * (this.max - this.min) + this.min;
+    let value = (this.max - this.min) * Math.pow(pos, this.curve) + this.min;
     let snapped = Math.round(value / this.step) * this.step;
     this.value = Number.isInteger(snapped) ? snapped : parseFloat(snapped.toPrecision(6)); // discrete-ize value in this.step
     // Position knob as % of track width minus half the knob's fixed 2.8em width.
@@ -1522,6 +1526,7 @@ class SliderGroup {
           max: 1,
           step: 1,
           value: 1,
+          curve: 1,
           disabled: false,
           throttle: -1,
         },
@@ -1533,7 +1538,7 @@ class SliderGroup {
           tag
         )}
              <pod-slider class="SliderGroup__SliderBlock__Slider" data-tag="${tag}_slider"
-               min="${tagDef.min}" max="${tagDef.max}" step="${tagDef.step}" value="${tagDef.value}">
+               min="${tagDef.min}" max="${tagDef.max}" step="${tagDef.step}" value="${tagDef.value}" curve="${tagDef.curve}">
           </pod-slider></div>`
       );
       if (tagDef.fullWidth) elm.style.gridColumn = "1 / -1";
