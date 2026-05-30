@@ -1372,7 +1372,7 @@ class LayoutPanel extends Panel {
       // values <= 0  are reinterpreted: see msgCallback
       pgSnap: { min: -4, max: 8,     step: 1,                  row:1, col:2, msg: msgCallback},
       gap:    { min: 0,  max: 100,   step: 0.5, throttle: 750, row:2, col:1, msg: msgCallback},
-      pace:   { min: 0,  max: 10000, step: 1,   curve: 2,      row:2, col: 2, msg: msgCallback},
+      pace:   { min: 0,  max: 10000, step: 1,   curve: 2,      row:2, col:2, msg: msgCallback},
     };
 
     // Horizontal layout uses a 2-column grid: pgShow/pgSnap on row 1, gap/pace on row 2
@@ -1389,9 +1389,9 @@ class LayoutPanel extends Panel {
     };
 
     let tableSlidersGroupDef = {
-      pages:         { min: 1,    max: 50,  step: 1, throttle: 750, msg: "Pages per row: {value}"},
-      horizontalGap: { min: -100, max: 100, step: 1, throttle: 750, msg: "Horizontal Gap: {value} %"},
-      verticalGap:   { min: -100, max: 100, step: 1, throttle: 750, msg: "Vertical Gap: {value} %"},
+      pages:         { min: 1,    max: 50,  step: 1, throttle: 750, fullWidth:true, msg: "Pages per row: {value}"},
+      horizontalGap: { min: -100, max: 100, step: 1, throttle: 750, row:2, col:1, msg: "Horizontal Gap: {value} %"},
+      verticalGap:   { min: -100, max: 100, step: 1, throttle: 750, row:2, col:2, msg: "Vertical Gap: {value} %"},
     };
 
     // build faces. Note: both BottonGroup and SliderGroup modify their defs element, so we

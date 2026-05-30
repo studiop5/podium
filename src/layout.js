@@ -949,7 +949,7 @@ class BookLayout extends Layout {
   }
 
   pgFlip(x, y, toX, toY, advancing, func=null, pace=null) {
-    // pace in msec/flip. if null, value from stash (which is in secs/flip) is used,
+    // pace in msec/flip. if null, value from stash (which is in msec/flip) is used,
     // otherwise abs(pace) is used.
     let pgWidth = this.cell.geo.pgWidth;                                                          
     let pxPerFlip = pgWidth * 2;
@@ -1593,7 +1593,8 @@ class ScrollLayout extends Layout {
     this.sashStart = clamp(-(pn - 1) * pgSpan, sashLimit, 0);
     this.snapStep = 1;       // whole-page; pgSnapTo corrects for snap setting on next gesture
     this.snapIndex = pn - 1;
-    await this.pgCommit(pn, _score_.layout.pace);
+    let pace = _score_[this.props.MAXWIDTH] / _score_.layout.pace;
+    await this.pgCommit(pn, pace);
   }
 
   async pgMount(pn) {
@@ -2404,10 +2405,12 @@ class Pager {
 
     let ptrDiv = ptrMsg(e,(e,div) => this.formatFunc(_score_.numbers, true, div) && false, `width: ${cursor.style.width};`);
     let prevPos = e[CLIENTY];
-    let cursorTop = cursorBox[Y] - pagerBox[Y];
+    let cursorTop = clamp(e[CLIENTY] - pagerBox[Y] - cursorBox[HEIGHT] / 2, 0, pagerBox[HEIGHT] - cursorBox[HEIGHT]);
+
+let cursorOffset = pagerBox[Y] + cursorBox.height ;
 
     let setCursor = (clientPos, delta) => {
-      let dPos = clientPos - prevPos;
+      let dPos = clientPos - prevPos ;
       prevPos = clientPos;
       let t = Math.max(0, delta / pagerBox[WIDTH] - 0.5);
       let unitsPerPx = pgCount / pagerBox[HEIGHT];
@@ -2426,7 +2429,7 @@ class Pager {
       this.formatFunc(_score_.numbers, true, this.cursor);
     };
 
-    setCursor(e[CLIENTY], Math.abs(e[CLIENTX] - cursorBox[X] - cursorBox[WIDTH]/2));
+    setCursor(e[CLIENTY], 0) ;
 
     this.bMarkTimer.run(_gs_, () => {
       let pn = _score_.numbers.pn;
@@ -2449,11 +2452,14 @@ class Pager {
     let mv = listen(pager, "pointermove", (emv) => {
       drag.mv(emv) ;
       if(drag.moved) this.bMarkTimer.cancel();
-      setCursor(emv[CLIENTY], Math.abs(emv[CLIENTX] - cursorBox[X] - cursorBox[WIDTH] / 2));
+      setCursor(emv[CLIENTY], Math.abs(emv[CLIENTX] - cursorBox[X] - cursorBox[WIDTH]/2));
     });
 
     listen(pager, "pointerup", (eup) => {
+        setCursor(eup[CLIENTY], Math.abs(eup[CLIENTX] - cursorBox[X] - cursorBox[WIDTH]/2));
         unlisten(mv);
+
+
         this.cursor.classList.remove("Pager__cursor-active");
         this.bMarkTimer.cancel();
         this.buildCursor();
