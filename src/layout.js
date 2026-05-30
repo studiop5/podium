@@ -925,6 +925,7 @@ class BookLayout extends Layout {
         let flipping = (advancing && x <= 0) || (!advancing && x > 0);
         drag.up(eup) ;
         if(drag.jab || drag.vX) flipping = true ;
+        if(drag.vX) drag.boost(1.5, 2) ;
         let toX = flipping ? (advancing ? -pgWidth : pgWidth) : advancing ? pgWidth : -pgWidth;
         // animate the flip (or flop)
         this.closeFunc = async () => {
@@ -1565,9 +1566,12 @@ class ScrollLayout extends Layout {
           let visStart = Math.max(frameBox[X], 0);
           let visEnd = Math.min(frameBox[X] + frameBox[WIDTH], window[this.props.INNERWIDTH]);
           let mid = (visStart + visEnd) / 2;
-          // convert pace from sec/snap to px/msec:
-          let pace = (this.snapStep || 1) * _score_[this.props.MAXWIDTH] / _score_.layout.pace ;
-          return this.pgSnapTo(eup[CLIENTX] > mid ? -pace : pace) ; 
+          // convert pace from sec/snap to px/msec, reading pgSnap directly to avoid stale snapStep:
+          let snap = this.cell.geo.pgSnap;
+          let step = snap < 1 ? (this.snapMap[snap] ?? 0) : snap;
+          if (step === "visible") step = 0;
+          let pace = (step || 1) * _score_[this.props.MAXWIDTH] / _score_.layout.pace ;
+          return this.pgSnapTo(eup[CLIENTX] > mid ? -pace : pace) ;
         }
         else if(drag.lift) return this.pgSnapTo(0);
         else  return this.pgSnapTo(drag[VX], drag);
@@ -1654,8 +1658,11 @@ class ScrollLayout extends Layout {
   async pgOpen(how, bookMarks) {
     if (bookMarks) return super.pgOpen(how);
     let pn = parseInt(_score_.numbers.pn);
-    // convert msec/snap to px/msec:
-    let pxPerMsec =  (this.snapStep || 1) * _score_[this.props.MAXWIDTH] / _score_.layout.pace ;
+    // convert msec/snap to px/msec, reading pgSnap directly to avoid stale snapStep:
+    let pgSnap = this.cell.geo.pgSnap;
+    let pgSnapStep = pgSnap < 1 ? (this.snapMap[pgSnap] ?? 0) : pgSnap;
+    if (pgSnapStep === "visible") pgSnapStep = 0;
+    let pxPerMsec = (pgSnapStep || 1) * _score_[this.props.MAXWIDTH] / _score_.layout.pace ;
     switch (how) {
       case "next": return this.pgSnapTo(-pxPerMsec) ;
       case "prev": return this.pgSnapTo(pxPerMsec) ;
@@ -1685,6 +1692,7 @@ class ScrollLayout extends Layout {
     if (ss >= 1) {
       // integer snap: each step is ss full pages, product is always exact
       let left = si * ss + 1;
+      left = Math.min(left, pgCount - pgShow + 1) ; 
       return [left, Math.min(left + pgShow - 1, pgCount)];
     }
     // fractional snap: each step is 1/q pages — use integer division throughout
@@ -2350,7 +2358,8 @@ class Pager {
     let { HEIGHT, WIDTH, TOP } = this.props;
     let pagerBox = getBox(this.pager);
     let cursorHeight = pagerBox[WIDTH]; // cursor height matches pager width
-    this.cursor.style[HEIGHT] = this.cursor.style.lineHeight = cursorHeight + "px";
+    this.cursor.style[HEIGHT] = cursorHeight + "px";
+    this.cursor.style.lineHeight = this.cursor.style.fontSize ;
     // The cursor is positioned s.t. pg 1 is always at the top of the pager, and the max page is always at the bottom
     // of the pager.  Its Position is expressed as a percentage so that when a layout is scaled by adjusting
     // the font size of its pz element, the pager position will automatically adjust.
@@ -2382,7 +2391,9 @@ class Pager {
   }
 
   onDown(e) {
+    e.taken = true ;
     e.stopImmediatePropagation(); // don't let event propagate to the layout
+    let drag = new Drag(e) ;
     let { TOP, WIDTH, HEIGHT, CLIENTX, CLIENTY, X, Y } = this.props;
     let { cursor, pager } = this;
     let pgCount = _score_.pgs.length;
@@ -2403,8 +2414,8 @@ class Pager {
       let sensitivity = 1 + t * unitsPerPx * _sliderPrecision_;
       cursorTop = clamp(cursorTop + dPos / sensitivity, 0, pagerBox[HEIGHT] - cursorBox[HEIGHT]);
       cursor.style[TOP] = cursorTop + "px";
-      let midPos = cursorTop + cursorBox[HEIGHT] / 2;
-      _score_.numbers.pn = clamp(Math.floor((midPos / pagerBox[HEIGHT]) * pgCount) + 1, 1, pgCount);
+      // pn calculation will equal pgCount at last pixel of slider, so we need Math.min
+      _score_.numbers.pn = Math.min(Math.floor(pgCount * cursorTop / (pagerBox[HEIGHT] - cursorBox[HEIGHT])) + 1, pgCount);
       // are we at a bookmark? 
       let bkCl = _score_.pgs[_score_.numbers.pn -1].bookmark;
       cursor.style.color = bkCl || "";
@@ -2436,12 +2447,12 @@ class Pager {
     });
 
     let mv = listen(pager, "pointermove", (emv) => {
-      let moved = mvmt(e, emv, 6, 6);
-      if(moved) this.bMarkTimer.cancel();
+      drag.mv(emv) ;
+      if(drag.moved) this.bMarkTimer.cancel();
       setCursor(emv[CLIENTY], Math.abs(emv[CLIENTX] - cursorBox[X] - cursorBox[WIDTH] / 2));
     });
 
-    listen(pager, "pointerup", (e) => {
+    listen(pager, "pointerup", (eup) => {
         unlisten(mv);
         this.cursor.classList.remove("Pager__cursor-active");
         this.bMarkTimer.cancel();
