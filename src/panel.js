@@ -601,8 +601,8 @@ for more details.</p>
           © 2010-2012 Patrick Wagesreiter<br>
           SIL OPEN FONT LICENSE Version 1.1
         </div><div class="Credit">
-          <a href="https://github.com/mozilla/pdf.js">pdf.js</a> Version 5.6.205<br>
-          © 2023 Mozilla Foundation<br>
+          <a href="https://github.com/mozilla/pdf.js">pdf.js</a> Version 4.10.38<br>
+          © 2024 Mozilla Foundation<br>
           APACHE LICENSE Version 2.0<br>
         </div><div class="Credit">
           <a href="https://github.com/Hopding/pdf-lib">pdf-lib.js</a> Version 1.17.1<br>
