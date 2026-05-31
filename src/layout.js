@@ -178,12 +178,12 @@ class Layout {
   // Toast shown when user tries to navigate before the first or past the last page.
   static pgAlert(which) {
     toast(which == "start"
-      ? `<div style="position:absolute;font:2em/1 Bravura;top:42px;left:33px;">\ue033</div>
-         <div style="position:absolute;font:2em/1 Bravura;top:42px;left:33px;">\ue01a</div>`
+      ? `<div style="position:absolute;font:2em/.2 Bravura;top:42px;left:33px;">\ue033</div>
+         <div style="position:absolute;font:2em/.2 Bravura;top:42px;left:33px;">\ue01a</div>`
       : `<div style="position:absolute;top:5px;left:28px;font:italic bold 0.9em/1 'Times New Roman',serif";>Fine</div>
-         <div style="position:absolute;font:2em/1 Bravura;left:33px;top:50px;">\ue01a</div>
-         <div style="position:absolute;font:2em/1 Bravura;left:57px;top:50px;">\ue032</div>`,
-      "Layout__alert", 150) ;
+         <div style="position:absolute;font:2em/.4 Bravura;left:33px;top:50px;">\ue01a</div>
+         <div style="position:absolute;font:2em/.4 Bravura;left:55px;top:50px;">\ue032</div>`,
+      "Layout__alert", 300) ;
 
   }
 

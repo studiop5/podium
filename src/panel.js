@@ -171,6 +171,7 @@ class Select {
     };
 
     let l1 = listen(this.toggle,"pointerdown", (e) => {
+      e.taken = true ;
       if(frame.style.visibility == "hidden") {
         frame.style.visibility = "visible" ;
         animate(frame, {height:0}, {height:frameHeight}, "height .35s");
@@ -179,6 +180,7 @@ class Select {
     });
 
     let l2 = listen(sash,"pointerdown", (e) => {
+      e.taken = true;
       let drag = new Drag(e) ;
       sash.setPointerCapture(e.pointerId);
       let top = sash.offsetTop;
@@ -190,9 +192,9 @@ class Select {
       });
 
       listen(sash, "pointerup", (eup) => {
-        drag.up(eup) ;
         unlisten(mv);
-        if(drag.jab) {
+        drag.up(eup) ;
+        if(!drag.moved) {
           if(this.target) this.target.style.background = "none" ;
           this.target = e.target ;
           this.target.style.background = "#aaa" ;
@@ -246,7 +248,12 @@ class Select {
       }
     })
 
-    panel.listeners.push(l1, l2, l3) ;
+    let l4 = listen(frame, "wheel", (e) => {
+      if (frame.style.visibility != "hidden") 
+        sash.style.top = clamp(sash.offsetTop - e.deltaY, frame.offsetHeight - sash.offsetHeight, 0) + "px";
+    });
+
+    panel.listeners.push(l1, l2, l3, l4) ;
 
     if(option) {
       let lineNumber = 0 ;
@@ -301,6 +308,7 @@ class Panel {
       height: 3em;
       width: 100%;
       color: var(--color-text);
+position:relative ;
     }
     .Panel__header-selected {
       background: var(--panel-header-selected-bg);
@@ -424,6 +432,7 @@ class Panel {
           this.constrain();
       }
     }));
+
 
   }
 
@@ -931,6 +940,12 @@ class FilePanel extends Panel {
       height: "90vh",
       maxHeight: "30em",
     });
+    // overflow:hidden doesn't prevent programmatic scrollTop changes — browser extensions
+    // (e.g. password managers) can cause Panel__elm to scroll by injecting/removing elements
+    // from body. Panel__elm should never scroll intentionally, so reset immediately.
+    this.listeners.push(
+      listen(this.panel, "scroll", () => this.panel.scrollTop = 0)
+    );
   }
 
   show() {

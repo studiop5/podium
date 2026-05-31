@@ -1941,12 +1941,16 @@ class FileListView {
     this.panel = panel;
     this.mode = panel.mode;
     Object.assign(this, dataIndex("tag", this.elm));
-    listen(this.elm, "pointerdown", this.onListDown.bind(this));
+    panel.listeners.push(listen(this.elm, "pointerdown", this.onListDown.bind(this)));
 
     delay(1, () => { // delayed so subclass constructor, if any, can run...it might replace this.elm
       this.elm.tabIndex = 0 ; // required for list to be focused for keydown events
       this.elm.focus({preventScroll:true}) ;
-      listen(this.elm, "keydown", this.onKeyDown.bind(this)) ;
+      let l1 = listen(this.elm, "keydown", this.onKeyDown.bind(this)) ;
+      let l2 = listen(this.elm, "wheel", (e) => {
+        this.flvList.style.top = 
+             clamp(this.flvList.offsetTop + e.deltaY, this.flvList__frame.offsetHeight - this.flvList.offsetHeight, 0) + "px";}) ;
+      panel.listeners.push(l1, l2) ;
     });
   }
 
@@ -2002,7 +2006,7 @@ class FileListView {
     let input = dataIndex("tag", dialog).input;
     listen(input, "keyup", (e) => {
       if (e.key == "Enter") dialog.buttonsElm.self.fire(tag);
-    }, { once:true});
+    });
   }; 
 
   async makeFileElm(properties) {
@@ -2138,6 +2142,7 @@ class FileListView {
   }
 
   onListDown(e) {
+    e.taken = true; 
     this.elm.focus({ preventScroll: true}) ; // need preventScroll!
     let elm = this.flvList;
     elm.style.transition = "unset";
@@ -2324,9 +2329,8 @@ class FileSystemView extends FileListView {
          <![CDATA[text input for save filename (plus button), void for save panel]]>
          <div data-tag="fsvSave" class="void" style="display:flex;width:100%";justify-content:center>
            <input is="pod-input" type="text" data-tag="fsvSave__file" class="Flv-save__file"/>
-           <div data-tag="uploadButton"></div>
+           <div data-tag="uploadButton"></div>  
          </div>
-
          <![CDATA[list of files, top-to-bottom]]>
          <div data-tag="flvList__frame" class="Flv-list__frame Fsv-list__frame">
            <div data-tag="flvList" class="Flv-list"></div>

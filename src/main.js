@@ -60,6 +60,7 @@ window.pdfjsLib.GlobalWorkerOptions.workerPort = new Worker("pdf.worker.min.mjs"
 // #include src/yin.js minified
 // #include src/tool.js minified
 // #include src/sharedBuffer.js minified
+
 /**
     class Gestures implements global pan/zoom (pz) operations:
 
@@ -73,6 +74,7 @@ window.pdfjsLib.GlobalWorkerOptions.workerPort = new Worker("pdf.worker.min.mjs"
     - bottom->top swipe:   park menu
     - long press:          move menu to pointer location and expand
 **/
+
 class Gestures {
   tr1 = null;
   tr2 = null;
@@ -99,16 +101,7 @@ class Gestures {
 
   onWheel(e) {
     e.preventDefault();
-    if (!e.ctrlKey) {
-      // two-finger drag on trackpad: pan the targets
-      for (let target of this.pzTargets()) {
-        if (target === _body_) continue;
-        target.style.left = clamp((parseFloat(target.style.left) || 0) + e.deltaX, 0, innerWidth  - target.offsetWidth)  + "px";
-        target.style.top  = clamp((parseFloat(target.style.top)  || 0) + e.deltaY, 0, innerHeight - target.offsetHeight) + "px";
-        target.classList.add("pz-set");
-      }
-      return;
-    }
+    if (!e.ctrlKey) return;
     let dXY = -Math.sign(e.deltaY) / 100;
     if (e.shiftKey) dXY /= 10;
     for (let target of this.pzTargets()) {
@@ -119,6 +112,7 @@ class Gestures {
 
   onDown(e) {
     if (e.target.dataset.midi) return; // piano keys are polyphonic
+    if (e.button != 0) return;        // ignore right-click / middle-click
 
     if (e.isPrimary) {
       this.tr2 = null;
@@ -339,11 +333,6 @@ async function main() {
         });
       }
     }) ;
-  });
-
-  // don't allow context menu to appear
-  document.addEventListener("contextmenu", function (e) {
-    e.preventDefault();
   });
 
   {
