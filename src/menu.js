@@ -1598,11 +1598,11 @@ class Menu {
         };
         Object.assign(config, fontMap[font]);
         let textbox = addObj(new fabric.Textbox("Abc", config));
-        // Handle double-click on the textbox to enter editing mode
-        textbox.on('mousedblclick', function() {
-          this.enterEditing();
-          this.selectAll();
-        });
+        canvas.setActiveObject(textbox);
+        textbox.enterEditing();
+        textbox.hiddenTextarea?.focus();
+        textbox.selectAll();
+        canvas.renderAll();
         return textbox;
       }
 

@@ -1812,6 +1812,11 @@ class FileListView {
       height:100%;
       width:100%;
       color: var(--color-text);
+
+       -webkit-mask-image: linear-gradient(to right, transparent, black .8em, black calc(100% - .8em), transparent);
+       mask-image: linear-gradient(to right, transparent, black .8em, black calc(100% - .8em), transparent);
+
+
     }
     .Flv:focus {
       outline: none;
@@ -1829,7 +1834,6 @@ class FileListView {
       height: calc(100% - 6.5em);
       -webkit-mask-image: linear-gradient(to bottom, transparent, black .8em, black calc(100% - .8em), transparent);
       mask-image: linear-gradient(to bottom, transparent, black .8em, black calc(100% - .8em), transparent);            
-
     }
     .Fsv-list__frame {
       height: calc(100% - 10em);

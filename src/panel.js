@@ -308,7 +308,6 @@ class Panel {
       height: 3em;
       width: 100%;
       color: var(--color-text);
-position:relative ;
     }
     .Panel__header-selected {
       background: var(--panel-header-selected-bg);
@@ -1936,7 +1935,7 @@ class PenPanel extends PencilPanel {}
 class RastrumPanel extends PencilPanel {
   slidersDef = {
     gap: {
-      throttle: 250, min: 5, max: 40, step: 1, value: 8, fullWidth:true, msg: "Staff Space: {value}px" },
+      throttle: 250, min: 1, max: 40, step: .5, value: 8, fullWidth:true, msg: "Staff Space: {value}px" },
     lines: {
       throttle: 250, min: 1, max: 60, step: 1, value: 5, row:2, col:1, msg: "Lines: {value}"},
     width: {
@@ -2017,8 +2016,8 @@ class RastrumPanel extends PencilPanel {
 class TextPanel extends PencilPanel {
 
   slidersDef = {
-    size: { min: 1, max: 100, step: 1, value: 1, msg: "Size: {value} px"},
-    height: { min: 1, max: 100, step: 1, value: 1, msg: "Spacing: {value} px"},
+    size: { min: 1, max: 100, step: 1, value: 1, row:1, col:1, msg: "Size: {value} px"},
+    height: { min: 1, max: 100, step: 1, value: 1, row:1, col:2, msg: "Spacing: {value} px"},
   };
 
   buttonsDef = null;
@@ -2901,7 +2900,7 @@ class SymbolsPanel extends Panel {
     this.picker.replaceWith(picker.elm);
 
     let staffSpace = new SliderGroup(
-      stash,  { size: { min: 5, max: 40, step: 1, value: 8, msg: "Staff Space: {value}px" }},
+      stash,  { size: { min: 1, max: 40, step: .5, value: 8, msg: "Staff Space: {value}px" }},
       (e, tag, value) => {
         stash[tag] = value;
         this.update();
