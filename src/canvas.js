@@ -45,7 +45,7 @@ function initFabric() {
     this.contextCache = this.cacheCanvasEl.getContext("2d", { willReadFrequently: true });
   };
 
-  fabric.Object.NUM_FRACTION_DIGITS = 2;
+  fabric.Object.NUM_FRACTION_DIGITS = 8;
   fabric.Object.prototype.transparentCorners = false;
   fabric.Object.prototype.cornerSize = _mobile_ ? 32:16; // Large touch target
   fabric.Object.prototype.cornerStyle = "circle";

@@ -265,6 +265,7 @@ class Pg {
             fabric.charWidthsCache = {} ; // clear this cache
             e.target.initDimensions() ;
             e.target.setCoords();
+            e.target.selectionStart = e.target.selectionStart;
           }
         });
 
@@ -449,7 +450,11 @@ class Pg {
   toJson() {
     // @return string, the JSON representation of the fabricjs canvas encapsulation.
     if (!this.inflated) return null; // only call this on inflated pg's
-    return this.canvas.toJSON();
+    let oldPrecision = fabric.Object.NUM_FRACTION_DIGITS;
+    fabric.Object.NUM_FRACTION_DIGITS = 2;
+    let json = this.canvas.toJSON();
+    fabric.Object.NUM_FRACTION_DIGITS = oldPrecision;
+    return json;
   }
 
   async undo( ) {
