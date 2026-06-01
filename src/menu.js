@@ -1526,11 +1526,16 @@ class Menu {
 
     if (!activeCell) return;
 
+    let target = opts.target;
+    let key = activeCell.key ;
+
+    // If the user taps on an already-editing textbox while in text mode,
+    // let Fabric handle the cursor repositioning — don't create a new textbox.
+    if (key == "text" && target?.type == "textbox" && target.isEditing) return target;
+
     if(this.checkEditing()) return;
 
     this.newlyCreated = null;
-    let target = opts.target;
-    let key = activeCell.key ;
 
     switch (key) {
 
@@ -1594,6 +1599,7 @@ class Menu {
           cursorColor: "black",
           left: opts.absolutePointer.x,
           top: opts.absolutePointer.y,
+          objectCaching: false, ///
           hasControls: false,
         };
         Object.assign(config, fontMap[font]);
@@ -1730,7 +1736,7 @@ class Menu {
     // When called, this method checks if we are currently editing a fabric text object. If so, it
     // deactivates editing.
     // @return true iff editing was deactivated
-    if(this.newlyCreated && this.newlyCreated.podiumType == "text" && this.newlyCreated.isEditing) {
+    if(this.newlyCreated?.isEditing) {
       this.newlyCreated.exitEditing();
       this.newlyCreated = null;
       return true;

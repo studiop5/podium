@@ -261,6 +261,11 @@ async function main() {
     let pedalKeys = ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'];
 
     listen(document, "keydown", (e) => {
+      if (e.target.nodeName === 'TEXTAREA' || e.target.nodeName === 'INPUT') {
+        // we don't want to process inputs to fabricjs text boxes or other text input sources
+        _menu_.autoOff.run() ; // keep cell from de-activating 
+        return ;
+      }
       // if there is a focused element, let it process the event:
       if(document.activeElement != _body_) return ;
       // otherwise let active layout process navigation keys:
@@ -377,7 +382,6 @@ async function main() {
     };
   }
 }
-
 
 { // pointer-event watchdog — prevents stuck pointers from freezing UI
   let period = 7000; // watchdog interval: nothing magic here: just a heuristic

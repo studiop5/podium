@@ -235,13 +235,12 @@ class Pg {
       let stateChanged = false; // flag to indicate canvas state has changed s.t. it needs to be pushed to the undoStack
   
       canvas.on("mouse:down:before", async (opts) => {
-opts.e.taken = true ;
+        opts.e.taken = true ;
         if(_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell)
           _menu_.pgEvent(opts, this);
       });
   
       canvas.on("mouse:up", opts => {
-
         if(stateChanged) pushState();
         stateChanged = false;
         if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) _menu_.pgUpEvent(opts, this); 
@@ -259,6 +258,15 @@ opts.e.taken = true ;
             pg.canvas.requestRenderAll();
           }
         }
+
+        canvas.on('text:editing:entered', (e) => {
+          // text box's cursor can be misaligned without this:
+          if(e.target && e.target.type == 'textbox') {
+            fabric.charWidthsCache = {} ; // clear this cache
+            e.target.initDimensions() ;
+            e.target.setCoords();
+          }
+        });
 
         if (_menu_.activeRing.key == "ink" && ["cut","copy","edit"].includes(_menu_.activeRing.activeCell.key))
          _menu_.pgEvent(opts, this);

@@ -2311,7 +2311,7 @@ function unlisten(...listenerArgs) {
 function mergeRecent(existing, incoming) {
   let merged = (existing && typeof existing === 'object') ? { ...existing } : {};
   for (let [cp, count] of Object.entries(incoming))
-    merged[cp] = (merged[cp] || 0) + count;
+    if ([...cp].length <= 2) merged[cp] = (merged[cp] || 0) + count;
   if (Object.values(merged).some(v => v >= _maxRecent_ * 4)) {
     for (let k in merged) {
       merged[k] = Math.floor(merged[k] / 2);

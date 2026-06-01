@@ -589,7 +589,7 @@ for more details.</p>
           <a href="https://codepen.io/zastrow/details/kxdYdk">CSS Piano</a><br>
           © 2026 Philip Zastrow
         </div><div class="Credit">
-          <a href="https://github.com/fabricjs">fabric.js</a> Version 5.2.1<br>
+          <a href="https://github.com/fabricjs">fabric.js</a> Version 5.3.0 (2023)<br>
           © 2008-2015 Printio (Juriy Zaytsev, Maxim Chernyak)<br>
           MIT LICENSE
         </div><div class="Credit">
@@ -2066,16 +2066,19 @@ class TextPanel extends PencilPanel {
     if (active && active.type == "textbox") {
       let color = fabric.Color.fromHex(rgb);
       color.setAlpha(alpha);
-      active.canvas.requestRenderAll();
       active.fill = color.toRgba();
       active.fontSize = size - 1;
       active.lineHeight = height / size;
       Object.assign(active, fontMap[font]);
+      active.initDimensions();
+      active.setCoords();
       active.canvas.requestRenderAll();
       delay(1, () => {
         // work around as fabricjs bug...fill doesn't change
         // unless/until fontsize changes, (or some such breakage)
         active.fontSize = size;
+        active.initDimensions();
+        active.setCoords();
         active.canvas.requestRenderAll();
       });
     }
