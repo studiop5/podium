@@ -24,7 +24,7 @@ import { animate, clamp, css, dataIndex, delay, delayMs, Drag, fontMap, getBox, 
 import { checkUnsaved, FileSrc } from "./file.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
-import { panels } from "./panel.js";
+import { panels, EditPanel } from "./panel.js";
 import { Grid, Score } from "./score.js";
 
 export { Menu };
@@ -1540,10 +1540,10 @@ class Menu {
     switch (key) {
 
       case "edit":
-        if(target && !target.hasControls) {
-          target.hasControls = true;
-          canvas.requestRenderAll();
-        }
+        if(target && !target.hasControls) target.hasControls = true;
+        else if (!target && !canvas.getActiveObject() && canvas.getObjects().length > 0)
+          delay(1, () => canvas.setActiveObject(canvas.getObjects().at(-1)));
+        canvas.requestRenderAll();
         return;
 
       case "undo":
@@ -1583,6 +1583,7 @@ class Menu {
         this.newlyCreated = new fabric.RastrumBrush(canvas, activeCell.stash, rgba);
         canvas.freeDrawingBrush = this.newlyCreated;
         return (canvas.isDrawingMode = true);
+
       }
 
       case "text": { // actually, a fabric textbox obj
@@ -1715,6 +1716,7 @@ class Menu {
       }
       return;
      }
+
     }
   }
 
@@ -1726,7 +1728,7 @@ class Menu {
       if (this.newlyCreated && this.newlyCreated.podiumType == "text") {
         // For text objects, immediately enter editing:
         this.newlyCreated.enterEditing();
-        this.newlyCreated.selectAll(); 
+        this.newlyCreated.selectAll();
       }
     }
     for (let pg of _score_.pgs) if (pg.inflated) pg.canvas.isDrawingMode = false;

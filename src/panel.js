@@ -2151,7 +2151,7 @@ class Pzr extends Surface {
        stroke-linejoin: round;
      }
      [data-theme="Dark"] .Pz__control {
-       stroke: #ccc;
+       stroke: #888 ;
      }
      .Pz__control-active {
        color: #6c6;
@@ -2212,12 +2212,12 @@ class Pzr extends Surface {
     // instead, we'll listen on the grid itself, and compute the grid "slot" as a
     // 0-based index (L-R,T-B). Not all slots have controls, but these do:
     this.panel.listeners.push(listen(this.grid, "pointerdown", (e) => {
-      e.taken = true;
       let box  = getBox(this.surface) ;
       let row = parseInt((e.clientY - box.y) / box.height * 5) ;
       let col = parseInt((e.clientX - box.x) / box.width * 5) ;
       let pos = row * 5 + col ;
       if(!this.slots.includes(pos)) return ; // no control at this location
+//      e.taken = true;
       _menu_.busy = true ;
       // add active marker. Note: can't add style to <path.../>, must be parent <svg.../>
       let target = e.target.tagName == "path" ? e.target.parentElement : e.target;
@@ -2257,6 +2257,7 @@ class Pzr extends Surface {
         case "pencil": return iconPaths["Pencil"] ;
         case "pen": return iconPaths["Pen"] ;
         case "rastrum": return iconPaths["Rastrum"] ;
+        case "symbols": return iconPaths["Symbols"] ;
         case "textbox": return iconPaths["Text"] ;
         case "text": return iconPaths["Symbols"] ;
         default: return iconPaths["Edit"] ; // assume activeSelection
@@ -2354,12 +2355,6 @@ class Pzr extends Surface {
   }
 }
 
-/**
-class Pz
-  This is the detachable body of the ScreenPanel...
-  a subclass of Pzr that removes rotation controls and is specialized for editing
-  Fabric.js objects with locked aspect ratio.
-*/
 class Pz extends Pzr {
 
   slots = [2,10,11,13,14,16,18,22] ;

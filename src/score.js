@@ -247,7 +247,6 @@ class Pg {
       });
   
       let onSelection = opts => {
-        EditPanel.update(this.canvas.getActiveObject()) ;
         // Allow dragging selection by clicking anywhere in bounding box, not just pixels
         canvas.perPixelTargetFind = false;
 
@@ -271,8 +270,7 @@ class Pg {
 
         if (_menu_.activeRing.key == "ink" && ["cut","copy","edit"].includes(_menu_.activeRing.activeCell.key))
          _menu_.pgEvent(opts, this);
-         // This dispatch must be delayed so that any  OBJTOUCHED dispatch event arising from a cleared
-         // active object is processed before this one.
+        EditPanel.update(this.canvas.getActiveObject()) ;
       };
 
       canvas.on("selection:created", onSelection);
