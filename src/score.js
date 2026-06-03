@@ -258,16 +258,6 @@ class Pg {
           }
         }
 
-        canvas.on('text:editing:entered', (e) => {
-          // text box's cursor can be misaligned without this:
-          if(e.target && e.target.type == 'textbox') {
-            fabric.charWidthsCache = {} ; // clear this cache
-            e.target.initDimensions() ;
-            e.target.setCoords();
-            e.target.selectionStart = e.target.selectionStart;
-          }
-        });
-
         if (_menu_.activeRing.key == "ink" && ["cut","copy","edit"].includes(_menu_.activeRing.activeCell.key))
          _menu_.pgEvent(opts, this);
         EditPanel.update(this.canvas.getActiveObject()) ;
@@ -275,6 +265,16 @@ class Pg {
 
       canvas.on("selection:created", onSelection);
       canvas.on("selection:updated", onSelection);
+
+      canvas.on('text:editing:entered', (e) => {
+        // text box's cursor can be misaligned without this:
+        if(e.target && e.target.type == 'textbox') {
+          fabric.charWidthsCache = {} ; // clear this cache
+          e.target.initDimensions() ;
+          e.target.setCoords();
+          e.target.selectionStart = e.target.selectionStart;
+        }
+      });
 
       canvas.on("selection:cleared", () => {
         canvas.perPixelTargetFind = true;
@@ -382,12 +382,14 @@ class Pg {
 
       // create object URL for fabric canvas
       let fabCanvas = this.canvas.toCanvasElement(scale * this.stretch);
+      if (this.fabUrl) URL.revokeObjectURL(this.fabUrl);
       this.fabUrl = URL.createObjectURL(await new Promise((res) => fabCanvas.toBlob((b) => res(b))));
 
       if(this.mozCanvas) {
         // create obj URL for mozCanvas (from mozilla pdf src);
         let pdfCanvas = helm(`<canvas width="${maxW}" height="${maxH}"></canvas>`);
         pdfCanvas.getContext("2d").drawImage(this.mozCanvas, 0, 0, maxW, maxH);
+        if (this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
         this.pdfUrl = URL.createObjectURL(await new Promise((res) => pdfCanvas.toBlob((b) => res(b))));
         // set both fabricCanvas (annotations) and pdfCanvas (pdf image) as background to thumbElm
         this.thumbElm.style.backgroundImage = "url('" + this.fabUrl + "'), url('" + this.pdfUrl + "')";

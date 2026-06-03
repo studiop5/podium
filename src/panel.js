@@ -1244,7 +1244,7 @@ class ImportPanel extends Panel {
     buttons.elm.style.borderTop = ".02em solid var(--color-border)";   
     this.buttons.replaceWith(buttons.elm);
 
-    listen(_body_, "SHAREDBUFFER", async (e) => {
+    this.listeners.push(listen(_body_, "SHAREDBUFFER", async (e) => {
       _shade_.show("Building...");
       let score = await _podPb_.getScore();
       let thumbs = [];
@@ -1275,7 +1275,7 @@ class ImportPanel extends Panel {
         buttons.defs.Clear.disabled = true;
       }
       buttons.refresh() ;
-    })
+    }));
   }
 
   show() {
@@ -1764,12 +1764,10 @@ class NumbersPanel extends Panel {
     );
     this.reverse.replaceWith(this.reverseGroup.elm);
 
-
-
-    listen(_body_, "NUMBERS", (e) => {
+    this.listeners.push(listen(_body_, "NUMBERS", (e) => {
       if (e.detail.sender === this) return;
-      this.refresh(); 
-    });
+      this.refresh();
+    }));
   }
 
   refresh() {
@@ -3073,13 +3071,13 @@ class PrintPanel extends Panel {
       last: {min:1, max:props.last, step:1, value:props.last,  msg: msgCallback},
     });
     this.last.replaceWith(this.lastSlider.elm);
-    listen(_body_, "NUMBERS", (e) => {
+    this.listeners.push(listen(_body_, "NUMBERS", (e) => {
       this.firstSlider.defs.first.max = this.lastSlider.defs.last.max = _score_.pgs.length;
       props.last  = Math.min(_score_.pgs.length, props.last);
       props.first  = Math.min(_score_.pgs.length, props.first);
       this.firstSlider.refresh();
       this.lastSlider.refresh();
-    });
+    }));
   }
 
 }
