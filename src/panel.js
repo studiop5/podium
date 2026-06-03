@@ -60,19 +60,6 @@ export { Panel, panels, EditPanel, ScreenPanel, CurtainPanel };
 
 // -skip
 
-/**
- * class Select
- * 
- * Re-implementation of html select list for panels, featuring progressive selection
- * of an option by typing by typing a case-insensitive match string.
- * @param button   - Trigger button element
- * @param options  - list of strings, options to display
- * @param option   - string, initial option, if any
- * @param  panel   - panel using the Select object
- *
- * Dispatches "SELECTED" on the button if/when an option is
- * picked...picked option is value of event.detail.
- */
 class Select {
 
   static css = css(
@@ -2190,12 +2177,15 @@ class Pzr extends Surface {
           <svg class="Pz__control" style="overflow:visible;grid-row:3;grid-column:4;" viewBox="0 0 100 100"><path d="M10 20L120 50L10 80"/></svg>
           <svg class="Pz__control" style="overflow:visible;grid-row:3;grid-column:2;" viewBox="0 0 100 100"><path d="M90 20L-20 50L90 80"/></svg>
 
-          <!-- active object,s pos 12 -->
+          <!-- active object, pos 12 -->
           ${iconSvg("Void", {class:"Pz__control", style:"grid-row:3;grid-column:3;pointer-events:none;opacity:0.5;"})}
+
+          <!-- cut, pos 4 -->
+          ${iconSvg("Cut", {class:"Pz__control", style:"transform:translateY(-3px);grid-row:1;grid-column:5;fill:currentColor;stroke:none;", tag:"cutBtn"})}
         </div>
     `);
 
-  slots = [2,6,8,10,11,12,13,14,16,18,22] ; 
+  slots = [2,4,6,8,10,11,12,13,14,16,18,22] ;
   targets = [] ;
 
   constructor(panel) {
@@ -2274,6 +2264,12 @@ class Pzr extends Surface {
     let obj = EditPanel.pzrTarget;
     if(!obj) return;
     let elapsed = performance.now() - this.opStartTime;
+
+    if (pos == 4) {
+      this.repeater.cancel();
+      _menu_.cutCopyObject(obj, obj.canvas, true);
+      return;
+    }
 
     // Warning: unorthodox coding pattern follows: nested switch statements with intentional fallthrough.
     // Each level tests pos for the cases that diverge at that level; unmatched

@@ -1533,6 +1533,16 @@ class Menu {
     // let Fabric handle the cursor repositioning — don't create a new textbox.
     if (key == "text" && target?.type == "textbox" && target.isEditing) return target;
 
+    if (key == "text" && target?.type == "textbox" && !target.isEditing) {
+      this.checkEditing();
+      this.newlyCreated = target;
+      canvas.setActiveObject(target);
+      target.enterEditing();
+      target.hiddenTextarea?.focus();
+      canvas.renderAll();
+      return target;
+    }
+
     if(this.checkEditing()) return;
 
     this.newlyCreated = null;
@@ -1635,41 +1645,10 @@ class Menu {
 
       case "cut":
       case "copy": {
-        // Handle both single click (target) and rectangle selection (opts.selected)
         let targets = opts.selected || (target ? [target] : []);
         if (targets.length == 0) return;
-
-        // Create target for cloning - single object or ActiveSelection
-        let cloneSource = targets.length == 1  ? targets[0] : new fabric.ActiveSelection(targets, { canvas });
-
-        cloneSource.clone((clone) => this.pasteObj = this.newlyCreated = clone);
-        this.enableCells("ink/paste", true);
-
-        // Animate operation
-        if (opts.e) {
-          let emWidth = cloneSource.getScaledWidth() / _pxPerEm_;
-          let bounds = cloneSource.getBoundingRect();
-          let canvasRect = canvas.lowerCanvasEl.getBoundingClientRect();
-          let left = canvasRect.left + bounds.left + bounds.width / 2;
-          let top = canvasRect.top + bounds.top + bounds.height / 2;
-          let elm = helm(`<img src=${cloneSource.toDataURL()} style=
-             "width:${emWidth}em;height:auto;z-index:1000;left:${left}px;top:${top}px;position:absolute;"></img>`);
-          _body_.append(elm);
-          hide(elm, dataIndex("tag", _menu_.rings.ink.cells.paste.elm).cellIcon);
-          delayMs(500, () => elm.remove());
-        }
-
-        if (activeCell.key == "cut") {
-          delay(1, () => {
-            targets.forEach(obj => canvas.remove(obj));
-            canvas.discardActiveObject();
-            canvas.requestRenderAll();
-          });
-        } else {
-          // For copy, just discard selection
-          canvas.discardActiveObject();
-          canvas.requestRenderAll();
-        }
+        let obj = targets.length == 1 ? targets[0] : new fabric.ActiveSelection(targets, { canvas });
+        this.cutCopyObject(obj, canvas, activeCell.key == "cut");
         return;
       }
 
@@ -1717,6 +1696,48 @@ class Menu {
       return;
      }
 
+    }
+  }
+
+  cutCopyObject(obj, canvas, isCut) {
+    if (this.cutting) return;
+    this.cutting = true;
+    obj.clone((clone) => { this.pasteObj = this.newlyCreated = clone; });
+    this.enableCells("ink/paste", true);
+    // Animate: object image flies to paste cell icon
+    let zoom = canvas.pg.zoom ; // account for "additional" pg zoom
+    let emWidth = obj.getScaledWidth() * zoom / _pxPerEm_;
+    let objBox = obj.getBoundingRect();
+    let canvasBox = getBox(canvas.lowerCanvasEl) ;
+    let left = canvasBox.left + objBox.left * zoom;
+    let top  = canvasBox.top  + objBox.top * zoom;
+    let elm = helm(`<img src=${obj.toDataURL()} style=
+       "border:1px solid red;width:${emWidth}em;height:auto;z-index:1000;left:${left}px;top:${top}px;position:absolute;"></img>`);
+    _body_.append(elm);
+    hide(elm, dataIndex("tag", this.rings.ink.cells.paste.elm).cellIcon);
+    delayMs(500, () => elm.remove());
+
+    if (isCut) {
+      // Remove object(s) and auto-select next
+      let members = obj.type === 'activeSelection' ? [...obj._objects] : [obj];
+      let objs = canvas.getObjects();
+      let idxArr = members.map(o => objs.indexOf(o)).filter(i => i >= 0);
+      let idx = idxArr.length > 0 ? Math.min(...idxArr) : 0;
+      delay(1, () => {
+        members.forEach(o => canvas.remove(o));
+        let remaining = canvas.getObjects();
+        if (remaining.length > 0)
+          canvas.setActiveObject(remaining[Math.min(idx, remaining.length - 1)]);
+        else
+          canvas.discardActiveObject();
+        this.cutting = false;
+        canvas.requestRenderAll();
+        _score_.setDirty(true);
+      });
+    } else {
+      this.cutting = false;
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
     }
   }
 

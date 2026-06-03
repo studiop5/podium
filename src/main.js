@@ -268,6 +268,15 @@ async function main() {
       }
       // if there is a focused element, let it process the event:
       if(document.activeElement != _body_) return ;
+      // cut selected annotation (recoverable via paste):
+      if ((e.key == "Delete" || e.key == "Backspace") && _score_) {
+        let active = _score_.getActiveObject();
+        if (active) {
+          e.preventDefault();
+          _menu_.cutCopyObject(active, active.canvas, true);
+          return;
+        }
+      }
       // otherwise let active layout process navigation keys:
       if (Layout.activeLayout && pedalKeys.includes(e.key)) {
         e.preventDefault();

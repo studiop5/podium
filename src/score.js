@@ -152,7 +152,6 @@ class Pg {
       this.deferred = true;
       this.canvas = helm(`<div style="text-align:center;color:#eee;background:white;font-family:Bravura"><div style="font-size:5em;">\uE4C4<div></div>`);
       this.elm = this.canvas;
-      this.elm.pg = this; // convenience for accesing pg from dom
       this.style = this.elm.style; // convenient shorthand
       this.inflatePromise = this.inflateAux(render).catch(err => {
         if(err.name == 'AbortError') return; // no error: expected
@@ -232,6 +231,7 @@ class Pg {
         this.deferred = false;
       }
       this.canvas = canvas;
+      this.canvas.pg = this; // convenience for fetching Pg from it's canvas
       let stateChanged = false; // flag to indicate canvas state has changed s.t. it needs to be pushed to the undoStack
   
       canvas.on("mouse:down:before", async (opts) => {
