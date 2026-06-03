@@ -527,7 +527,7 @@ if args.guide:
         "File System Access API": ["chapter-4-open-save"],
         "Firefox settings": ["firefox-settings"],
         "Fling gesture": ["chapter-3", "chapter-5-page-turning"],
-        "Footpedal": ["chapter-2-footpedal", "chapter-7-numbers"],
+        "Foot pedal": ["chapter-2-foot-pedal", "chapter-7-numbers"],
         "Full screen": ["chapter-8-screen", "chapter-3"],
         "Gestures": ["chapter-3"],
         "Google Drive": ["chapter-4-open-save"],

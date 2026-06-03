@@ -1702,7 +1702,7 @@ class NumbersPanel extends Panel {
   content = helm(`
      <div data-tag="body" class="Panel__body">
        <div data-tag="sliders"></div>
-       <div style="font-size: var(--font-size-sm); margin-top: calc(var(--spacing-md) + 1em); margin-bottom: 0.1em">Footpedal Keys</div>
+       <div style="font-size: var(--font-size-sm); margin-top: calc(var(--spacing-md) + 1em); margin-bottom: 0.1em">Foot Pedal Keys</div>
        <div style="margin: 0 var(--spacing-md)">
          <div style="display: flex; align-items: center; gap: 0.5em; margin-bottom: 0.5em">
            <div style="min-width: 4em; text-align: left; font-size: 0.9em">Next (\u21e7/\u21e8):</div>
