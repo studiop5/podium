@@ -2369,6 +2369,7 @@ class Pz extends Pzr {
     // modify the grid, replacing the central icon and removing clockwise and counter-clockwise svg's
     this.cw.remove() ;
     this.ccw.remove() ;
+    this.cutBtn.remove() ;
     this.update();
   }
 
