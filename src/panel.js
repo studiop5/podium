@@ -363,6 +363,7 @@ class Panel {
 
   cell = null;
   listeners = [];
+  lastTapTime = 0;
 
   constructor(cell) {
     Object.assign(this, dataIndex("tag", this.elm));
@@ -381,6 +382,14 @@ class Panel {
     this.listeners.push(
       listen(this.header, "pointerdown", (e) => {
         e.taken = true;
+        let now = performance.now();
+        if (now - this.lastTapTime < 300) {
+          let path = this.cell.ring?.key + "/" + this.cell.key;
+          _menu_.notify(path + "/up");
+          let longPressTimer = setTimeout(() => _menu_.notify(path + "/long"), 500);
+          listen(this.header, "pointerup", () => clearTimeout(longPressTimer), { once: true });
+        }
+        this.lastTapTime = now;
         let drag = new Drag(e) ;
         let { header, elm } = this;
         if(!(this instanceof CurtainPanel)) // CurtainPanel uniquely manages its own z-index
