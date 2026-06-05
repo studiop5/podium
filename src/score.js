@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { clamp, clearChildren, delay, dialog, fontUnmap, helm, inflate, rotatePoint } from "./common.js";
+import { clamp, clearChildren, delay, dialog, fontUnmap, helm, inflate, rotatePoint, toast } from "./common.js";
 import { Grid } from "./canvas.js";
 import { Layout } from "./layout.js";
 import { panels, EditPanel } from "./panel.js";
@@ -119,11 +119,33 @@ class Pg {
     this.mozCanvas = mozCanvas;
     let ctx = mozCanvas.getContext("2d", { willReadFrequently: true });
     await mozPg.render({
-      // render *without* annotations
       annotationMode: pdfjsLib.AnnotationMode.DISABLE,
       canvasContext: ctx,
       viewport: viewport,
     }).promise;
+
+    // After rendering page 1, detect silently-broken PDFs: their content streams
+    // decode fine (non-trivial operator list) but resources (fonts, images) use
+    // non-standard compression, so operators reference unloadable objects and the
+    // page renders blank. A legitimately blank page has few or no operators,
+    // so gating the canvas check on fnArray.length avoids that false positive.
+    if (this.mozPn === 1 && !this.score._blankPageChecked) {
+      this.score._blankPageChecked = true;
+      let opList = await mozPg.getOperatorList();
+      if (opList.fnArray.length > 5) {
+        let tmp = document.createElement('canvas');
+        tmp.width = tmp.height = 10;
+        let tctx = tmp.getContext('2d');
+        tctx.drawImage(mozCanvas, 0, 0, 10, 10);
+        let d = tctx.getImageData(0, 0, 10, 10).data;
+        let blank = true;
+        for (let i = 0; i < d.length && blank; i += 4)
+          if (d[i+3] > 0 && (d[i] < 250 || d[i+1] < 250 || d[i+2] < 250)) blank = false;
+        if (blank)
+          setTimeout(() => toast("This PDF's pages appear blank — it does not conform to the PDF standard."), _gs_ * 3.5);
+      }
+    }
+
     this.rendering = false;
     this.setZoom(this.zoom);
   }
@@ -922,7 +944,8 @@ class Score {
   created = this.now;
   modified = this.now;
   pdfInfo = null; // meta-info extracted from pdf src
-  encrypted = false; // true if PDF has an encryption dictionary
+  encrypted = false;    // true if PDF has an encryption dictionary
+  permissions = null;   // array of allowed PermissionFlag values, or null if no encrypt dict
 
   embeddedFonts = null; // Used by this.toPDF() to prevent fonts from being embedded more than once
   maxHeight = -1; // maxHeight among all pg's in score
@@ -983,42 +1006,32 @@ class Score {
           let msg = reason == 1
             ? "Incorrect password. Please try again.<br><br><input type='password' style='width:100%' placeholder='Password'>"
             : "This PDF is password-protected.<br><br><input type='password' style='width:100%' placeholder='Password'>";
-          let buttons = reason == 1
-            ? { Open: { svg: "Open" }, Cancel: { svg: "Cancel" } }
-            : { Open: { svg: "Open" }, Decrypt: { svg: "Export Page" }, Cancel: { svg: "Cancel" } };
-          let dlg = dialog(msg, buttons, (e, prop, tag, args) => {
+          let dlg = dialog(msg, { Open: { svg: "Open" }, Cancel: { svg: "Cancel" } }, (e, prop, tag, args) => {
             let pw = args.elm.querySelector('input').value;
             args.close();
-            resolve(tag == "Open" && pw ? pw : tag == "Decrypt" ? null : "");
+            resolve(tag == "Open" && pw ? pw : "");
           });
           dlg.addEventListener('cancel', () => resolve(""));
           setTimeout(() => dlg.querySelector('input')?.focus(), 50);
         });
         if (password) { callback(password); return; }
-        if (password === null) { this._decrypting = true; }
         loadingTask.destroy();
       };
 
-      try {
-        this.mozDoc = await loadingTask.promise;
-      } catch(err) {
-        if (this._decrypting) { this.decrypt(pdfData); throw Object.assign(new Error(""), { handled: true }); }
-        throw err;
-      }
+      this.mozDoc = await loadingTask.promise;
       // Grab pdf metadata's info, if available
       let meta = await this.mozDoc.getMetadata();
       this.pdfInfo = meta ? meta.info : null;
 
       // Check for encryption — permissions array means an Encrypt dict exists.
-      // Warn early so user knows before spending time annotating.
       let perms = await this.mozDoc.getPermissions();
+      this.permissions = perms;
       if (perms) {
         this.encrypted = true;
-        dialog(
-          "This PDF is encrypted. Saving may not be possible.",
-          { Cancel: { svg: "Cancel" }, Decrypt: { svg: "Export Page" } },
-          (e, prop, tag, args) => { args.close(); if (tag == "Decrypt") this.decrypt(); }
-        );
+        // Warn only when modification-relevant bits (Modify=8, Annotate=32) are denied.
+        // Delayed so it shows after any "File downloaded" toast has cleared.
+        if (!perms.includes(8) || !perms.includes(32))
+          setTimeout(() => toast("This PDF restricts modifications — saving annotations may not be possible."), _gs_ * 3.5);
       }
 
       // Grab podium attachment, if available
@@ -1095,45 +1108,7 @@ class Score {
     return this;
   }
 
-  async decrypt(pdfData = null) {
-    _shade_.show("Decrypting...");
-    try {
-      let mozDoc;
-      if (pdfData) {
-        let task = window.pdfjsLib.getDocument({ data: pdfData, ignoreEncryption: true });
-        mozDoc = await task.promise;
-      } else {
-        mozDoc = this.mozDoc;
-      }
-      let numPages = mozDoc.numPages;
-      let dstDoc = await PDFLib.PDFDocument.create();
 
-      for (let i = 1; i <= numPages; i++) {
-        _shade_.update(`Decrypting page ${i} of ${numPages}`);
-        let mozPg = await mozDoc.getPage(i);
-        let vp1 = mozPg.getViewport({ scale: 1 });
-        let vp = mozPg.getViewport({ scale: this.quality });
-        let canvas = document.createElement('canvas');
-        canvas.width = vp.width;
-        canvas.height = vp.height;
-        await mozPg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-        let jpegUrl = canvas.toDataURL('image/jpeg', 0.92);
-        let jpegBytes = Uint8Array.from(atob(jpegUrl.slice(jpegUrl.indexOf(',') + 1)), c => c.charCodeAt(0));
-        let img = await dstDoc.embedJpg(jpegBytes);
-        let pg = dstDoc.addPage([vp1.width, vp1.height]);
-        pg.drawImage(img, { x: 0, y: 0, width: vp1.width, height: vp1.height });
-      }
-
-      _shade_.update("Loading...");
-      let bytes = await dstDoc.save();
-      let name = (this.name || 'score').replace(/\.pdf$/i, '') + ' (decrypted).pdf';
-      await new Score().init(null, null, name, bytes);
-    } catch(err) {
-      dialog(`Decrypt failed: ${err.message}`);
-    } finally {
-      _shade_.hide();
-    }
-  }
 
   async bindScore(pdfData, pn = null) {
     // bind all pages from a given score to this score: i.e. given some score's

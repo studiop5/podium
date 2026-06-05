@@ -865,12 +865,32 @@ class DetailsPanel extends Panel {
             score.size
           ).toLocaleString()} B</div>`
         : "";
+      const PERM_FLAGS = [
+        [4,    "Print"],
+        [16,   "Copy"],
+        [8,    "Modify"],
+        [32,   "Annotate"],
+        [1024, "Assemble"],
+      ];
+      let permVal;
+      if (score.permissions === null) {
+        permVal = "No restrictions";
+      } else {
+        let denied = PERM_FLAGS
+          .filter(([f]) => !score.permissions.includes(f))
+          .map(([, n]) => n);
+        permVal = denied.length == 0
+          ? "All allowed"
+          : `<span style="color:#c44">Restricted: ${denied.join(", ")}</span>`;
+      }
+      let permHtml = `<div style="text-align:right;">Permissions:&nbsp;</div><div>${permVal}</div>`;
       this.content.append(
         helm(`<div style="display:grid;grid-template-columns:40% 60%;font-size:.8em;">
           ${source} ${path} ${size}
           <div style="text-align:right;">Pages:&nbsp;</div><div>${
             score.pgs.length
           }</div>
+          ${permHtml}
           <div style="text-align:right;">Created:&nbsp;</div><div>${
             score.created ? new Date(score.created).toLocaleString() : "?"
           }</div>
@@ -2214,7 +2234,7 @@ class Pzr extends Surface {
       let col = parseInt((e.clientX - box.x) / box.width * 5) ;
       let pos = row * 5 + col ;
       if(!this.slots.includes(pos)) return ; // no control at this location
-//      e.taken = true;
+      e.taken = true;
       _menu_.busy = true ;
       // add active marker. Note: can't add style to <path.../>, must be parent <svg.../>
       let target = e.target.tagName == "path" ? e.target.parentElement : e.target;
@@ -3243,12 +3263,23 @@ class MagnifyPanel extends Panel {
     );
 
     // Draw from upper canvas (selections, active drawing)
+    // Draw from upper canvas (selections, active drawing)
     ctx.drawImage(
       canvas.upperCanvasEl,
       fabX - fabSourceW/2, fabY - fabSourceH/2,
       fabSourceW, fabSourceH,
       0, 0, destW, destH
     );
+
+    // Draw touch point indicator (crosshair at center of panel)
+    ctx.strokeStyle = "rgba(255, 0, 0, 0.5)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(destW / 2 - 10, destH / 2);
+    ctx.lineTo(destW / 2 + 10, destH / 2);
+    ctx.moveTo(destW / 2, destH / 2 - 10);
+    ctx.lineTo(destW / 2, destH / 2 + 10);
+    ctx.stroke();
   }
 
   destructor() {
