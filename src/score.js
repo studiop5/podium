@@ -124,25 +124,14 @@ class Pg {
       viewport: viewport,
     }).promise;
 
-    // After rendering page 1, detect silently-broken PDFs: their content streams
-    // decode fine (non-trivial operator list) but resources (fonts, images) use
-    // non-standard compression, so operators reference unloadable objects and the
-    // page renders blank. A legitimately blank page has few or no operators,
-    // so gating the canvas check on fnArray.length avoids that false positive.
-    if (this.mozPn === 1 && !this.score._blankPageChecked) {
-      this.score._blankPageChecked = true;
-      let opList = await mozPg.getOperatorList();
-      if (opList.fnArray.length > 5) {
-        let tmp = document.createElement('canvas');
-        tmp.width = tmp.height = 10;
-        let tctx = tmp.getContext('2d');
-        tctx.drawImage(mozCanvas, 0, 0, 10, 10);
-        let d = tctx.getImageData(0, 0, 10, 10).data;
-        let blank = true;
-        for (let i = 0; i < d.length && blank; i += 4)
-          if (d[i+3] > 0 && (d[i] < 250 || d[i+1] < 250 || d[i+2] < 250)) blank = false;
-        if (blank)
-          setTimeout(() => toast("This PDF's pages appear blank — it does not conform to the PDF standard."), _gs_ * 3.5);
+    // Detect silently-broken PDFs (e.g. non-standard compression or missing fonts).
+    // These trigger the onUnsupportedFeature callback during loading or rendering.
+    if (this.mozPn == 1 && !this.score._brokenPDFWarned && this.score._unsupportedFeatures?.size > 0) {
+      let unsupported = window.pdfjsLib.UNSUPPORTED_FEATURES;
+      let fatal = [unsupported?.font, unsupported?.jbig2, unsupported?.jpeg2000].filter(v => v !== undefined);
+      if (Array.from(this.score._unsupportedFeatures).some(f => fatal.includes(f))) {
+        this.score._brokenPDFWarned = true;
+        dialog("Warning: This PDF uses advanced features (e.g. non-native compression or fonts) that may not be fully supported in a web browser and may not render correctly.", { OK: { svg: "OK" } });
       }
     }
 
@@ -958,6 +947,8 @@ class Score {
   numbers = null ; // reference to numbers menu cell stash
   details = null ; // reference to details menu cell stash
   layout = null ; // reference to active layout's menu cell stash
+  _unsupportedFeatures = null; // Set of feature IDs reported by PDF.js
+  _brokenPDFWarned = false; // true if user has been notified about broken rendering
 
   constructor() {
     // Since constructing a score calls async functions, and since a constructor
@@ -1000,6 +991,12 @@ class Score {
 
       let loadingTask = window.pdfjsLib.getDocument(pdfData);
 
+      // detect non-standard or missing features (fonts, non-standard compression, etc)
+      loadingTask.onUnsupportedFeature = (featureId) => {
+        if (!this._unsupportedFeatures) this._unsupportedFeatures = new Set();
+        this._unsupportedFeatures.add(featureId);
+      };
+
       // is this an encrypted pdf?
       loadingTask.onPassword = async (callback, reason) => {
         let password = await new Promise(resolve => {
@@ -1029,9 +1026,8 @@ class Score {
       if (perms) {
         this.encrypted = true;
         // Warn only when modification-relevant bits (Modify=8, Annotate=32) are denied.
-        // Delayed so it shows after any "File downloaded" toast has cleared.
         if (!perms.includes(8) || !perms.includes(32))
-          setTimeout(() => toast("This PDF restricts modifications — saving annotations may not be possible."), _gs_ * 3.5);
+          dialog("This PDF restricts modifications — saving annotations or other changes may not be possible.", { OK: { svg: "OK" } });
       }
 
       // Grab podium attachment, if available
@@ -1314,7 +1310,7 @@ class Score {
   setTitle() {
     if (!this.name) { document.title = `Podium (${_podId_})`; return; }
     let name = this.name.replace(/\.pdf$/i, "");
-    const maxLen = 30;
+    let maxLen = 30;
     if (name.length > maxLen) {
       let half = (maxLen - 1) >> 1;
       name = name.slice(0, half) + "…" + name.slice(-half);
@@ -1353,7 +1349,10 @@ class Score {
               srcPLibDoc.getPages();
             } catch (err2) {
               let msg = pns ? "Due to copy protection, page can't be copied." : "Due to copy protection, score can't be saved.";
-              throw new Error(msg, { cause: "fileSrc" });
+              let err = new Error(msg, { cause: "fileSrc" });
+              // If full document, attach original data for potential fallback save
+              if (pns == null) err.originalData = await this.mozDoc.getData();
+              throw err;
             }
           } else {
             throw err; // Re-throw other errors
@@ -1460,3 +1459,4 @@ class Score {
   }
 
 }
+window._Score_ = Score;

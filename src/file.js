@@ -330,7 +330,27 @@ class FileSrc {
         score.setDirty(false);
         toast("File saved.");
       } catch (error) {
-        if (error.name != 'AbortError') {
+        if (error.originalData) {
+          dialog(`${error.message}<br><br>Save original PDF instead (without Podium modifications)?`,
+            { Save: { svg: "Save" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
+              args.close();
+              if (tag == "Save") {
+                try {
+                  _shade_.show("Saving original file");
+                  let data = error.originalData;
+                  await src.putFile(score.path, score.name, data, handle);
+                  Score.visit(score, { size: data.length, modified: Date.now() });
+                  score.setDirty(false);
+                  toast("Original file saved.");
+                } catch (err) {
+                  errDialog(err, "Failed to save original file");
+                } finally {
+                  _shade_.hide();
+                }
+              }
+            }
+          );
+        } else if (error.name != 'AbortError') {
           errDialog(error, "Error: failed to save file.<br>Details in Console.");
         }
       } finally {
@@ -1768,14 +1788,17 @@ class LocalFileView {
   async putFile() {
     let score = _score_;
     try {
-      // Get file handle immediately while still in user gesture
-      let handle = await this.src.getFileHandle(score.name);
-
       _shade_.show("Saving file");
       _shade_.onCancel = () => { throw new Error() };
 
       score.source = Score.sources.local;
       let data = await score.toPdf();
+
+      // Get file handle. MUST be called from a user gesture context.
+      // Although toPdf is async, it usually completes quickly enough to 
+      // preserve the gesture for the file picker.
+      let handle = await this.src.getFileHandle(score.name);
+
       let { name, modified } = await this.src.putFile(score.path, score.name, data, handle);
       score.fileHandle = handle; // remember for future quick-saves
       score.update({ source: this.source, name: name, path: null });
@@ -1783,7 +1806,31 @@ class LocalFileView {
       score.setDirty(false);
       toast("File saved");
     } catch (error) {
-      if (error.name != 'AbortError') {
+      if (error.originalData) {
+        dialog(`${error.message}<br><br>Save original PDF instead (without Podium modifications)?`,
+          { Save: { svg: "Save" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
+            args.close();
+            if (tag == "Save") {
+              try {
+                _shade_.show("Saving original file");
+                let data = error.originalData;
+                // Since toPdf failed, we never got a handle. Request one now.
+                let handle = await this.src.getFileHandle(score.name);
+                let { name, modified } = await this.src.putFile(score.path, score.name, data, handle);
+                score.fileHandle = handle;
+                score.update({ source: this.source, name: name, path: null });
+                Score.visit(score, { size: data.length, modified: modified });
+                score.setDirty(false);
+                toast("Original file saved");
+              } catch (err) {
+                errDialog(err, "Failed to save original file to local storage");
+              } finally {
+                _shade_.hide();
+              }
+            }
+          }
+        );
+      } else if (error.name != 'AbortError') {
         errDialog(error, "Failed to save file to local storage");
       }
     } finally {
@@ -2562,7 +2609,32 @@ class FileSystemView extends FileListView {
 
       toast("File uploaded");
     } catch (error) {
-      errDialog(error, "Error: failed to upload file to cloud server.<br>Details in Console.");
+      if (error.originalData) {
+        dialog(`${error.message}<br><br>Upload original PDF instead (without Podium modifications)?`,
+          { Upload: { svg: "Upload" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
+            args.close();
+            if (tag == "Upload") {
+              try {
+                _shade_.show("Uploading original file");
+                let data = error.originalData;
+                await this.src.putFile(this.path, name, data);
+                let score = _score_;
+                score.update({ source: this.source, name: name, path: this.path });
+                Score.visit(score, { size: data.length, modified: Date.now() });
+                score.setDirty(false);
+                await this.setPath(this.path, true);
+                toast("Original file uploaded");
+              } catch (err) {
+                errDialog(err, "Failed to upload original file to cloud server");
+              } finally {
+                _shade_.hide();
+              }
+            }
+          }
+        );
+      } else {
+        errDialog(error, "Error: failed to upload file to cloud server.<br>Details in Console.");
+      }
     } finally {
       _shade_.hide();
       this.panel.hide();
@@ -2610,3 +2682,4 @@ class FileSystemView extends FileListView {
     });
   }
 }
+window._FileSrc_ = FileSrc; window._CachedSrc_ = CachedSrc;

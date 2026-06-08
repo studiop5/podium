@@ -1362,8 +1362,6 @@ function closeVideo(event, container) {
 
     <p><strong>Drag and Drop (Desktop):</strong> On desktop browsers, you can drag a PDF file directly from your file manager onto the Local tab to open it in Podium.</p>
 
-    <p><strong>Password-Protected PDFs:</strong> Podium can open password-protected PDF files. You will be prompted to enter the password. Once opened, you can view and annotate the score, but you cannot save changes or copy pages from a protected PDF.</p>
-
     <h4>Saving Scores</h4>
 
     <p>The Save Panel has a widget for editing the file name. Inside the widget there is an Upload button: tap it to save the current score, with the given name, to the selected folder.</p>
@@ -1394,6 +1392,12 @@ function closeVideo(event, container) {
     <div class="note">Firefox on Android, iPhone, and iPad is not recommended for use with Podium. On these devices, use Chrome (Android) or Safari (iPhone/iPad) for the best experience.</div>
 
     <p>On platforms that don't allow specifying the file name during save, edit the score name first in the Details Panel (Score Ring &rarr; Details). The .pdf extension is not required&mdash;it's added automatically on save if not present.</p>
+
+    <h4>Copy Protection and Restricted PDFs</h4>
+
+    <p>Podium automatically detects PDF files that use advanced features (such as JBIG2 or JPEG 2000 compression) that are not natively supported by web browsers. It also detects files with security restrictions that prevent modifications. When such a file is opened, Podium will display a warning dialog.</p>
+
+    <p>While you can still view and annotate these restricted files within Podium, the PDF standard may prevent Podium from saving your annotations, metadata, or page changes (like insertions or deletions) back to the file. If you attempt to save a protected document, Podium will offer you the option to save a "clean," original copy of the PDF instead. This fallback save ensures you can still back up the document to your local or cloud storage, even if your Podium modifications cannot be preserved.</p>
 
     <h3 id="chapter-4-new">4.2 Score Ring: New<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-score"/></svg></h3>
 

@@ -88,7 +88,10 @@ window._zTop_ = 300; // continuously incrementing z-index counter for panels, me
 window._mobile_ = window.matchMedia('(pointer: coarse)').matches;
 window._msPerObj_ = 1; // for pdf printing, see score.toPdf()
 window._pxPerEm_ = 25; // initial document.body's font size value: defines pixels in 1 em
+window._Score_ = null; // current active score class (assigned in score.js)
 window._score_ = null; // current active score instance
+window._FileSrc_ = null; // base file source class (assigned in file.js)
+window._CachedSrc_ = null; // base cached source class (assigned in file.js)
 window._maxRecent_ = 72;      // SymbolsPanel recent-list size (multiple of 6); see mergeRecent below
 window._recentSelectPts_ = 1; // points awarded when a symbol is selected in the panel
 window._recentInsertPts_ = 4; // points awarded when a symbol is inserted into the score (4:1 ratio
@@ -166,7 +169,7 @@ function cssIndex(name = null, selector = null, key = null) {
   let sheets = document.styleSheets;
   if (!name) return sheets;
   for (let sheet of sheets) {
-    if (sheet.ownerNode.dataset.tag == name) {
+    if (sheet.ownerNode.dataset.style == name) {
       if (!selector) return sheet;
       for (let rule of sheet.rules) {
         if (rule.selectorText == selector)
@@ -180,7 +183,7 @@ let css = (name, rules) => {
   // define a named css style sheet
   document.head.insertAdjacentHTML(
     "beforeend",
-    `<style data-tag="${name}">` + rules + "</style>"
+    `<style data-style="${name}">` + rules + "</style>"
   );
   return cssIndex(name);
 };
