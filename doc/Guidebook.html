@@ -1554,7 +1554,15 @@ function closeVideo(event, container) {
     <p>Display the score as a continuous, horizontally-scrollable flow of pages.</p>
 
     <figure>
-        <img src="assets/layouthorizontal.jpg" alt="Horizontal layout">
+        <div class="video-container" onclick="playVideo(this)">
+            <img src="assets/layouthorizontal.jpg" alt="Horizontal layout">
+            <div class="play-overlay"></div>
+            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+                <source src="assets/layouthorizontal.webm" type="video/webm">
+                Your browser does not support the video tag.
+            </video>
+        </div>
         <figcaption>Horizontal layout (glass theme) with pages and panel</figcaption>
     </figure>
 
