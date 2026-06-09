@@ -1157,12 +1157,6 @@ class Score {
         mergedScore.pgs[i].json = pageJson[j];
       }
     }
-    // Added merged pgs to mergedScore's undo stack
-    for(let i = 0; i < copyKnt; i++) {
-      let pg = mergedScore.pgs[pn + i];
-      pg.undoPn = pn + i + 1;
-      mergedScore.undoStack.push(pg);
-    }
     mergedScore.pgRefresh();
     mergedScore.setDirty();
     return mergedScore;

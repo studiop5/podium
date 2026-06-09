@@ -143,8 +143,8 @@ class Select {
       // called when an option is selected by user, either by clicking the option or by 
       // matching the option's text through keyboard input. @matched, if non-null, contains the
       // chars in option that were matched by keyBuf (user's typed chars)
-      if(matched) {
-        let re =  new RegExp(matched, "i");
+      if(matched && matched.length > 0) {
+        let re =  new RegExp(matched.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
         toggle.innerHTML = "<div>" + option.replace(re,`<mark>${option.match(re)[0]}</mark>`) + "</div>";
       }
       else toggle.textContent = option;
@@ -212,12 +212,18 @@ class Select {
         case "Backspace":
         case "Delete": 
           keyBuf = keyBuf.slice(0,-1) ;
-        case "Enter":  // clear keyBuf and any option decoration
-          keyBuf = "" ;
-          selectOption(opt);
-          return;
+          // fall through to search logic in default
+        case "Enter": 
+          if(e.key == "Enter") {
+             keyBuf = "" ;
+             selectOption(opt);
+             return;
+          }
         default: 
-          if(/^[a-zA-Z0-9 .]$/.test(e.key)) keyBuf += e.key;
+          if (e.key != "Backspace" && e.key != "Delete") {
+            if(/^[a-zA-Z0-9 .]$/.test(e.key)) keyBuf += e.key;
+            else return;
+          }
           let lineNumber = 0 ;
           opt = options.find((str) => { ++lineNumber ; return new RegExp(keyBuf.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i").test(str);}) ;
           if(opt) {
@@ -227,7 +233,7 @@ class Select {
             this.target = sash.children[lineNumber-1] ;
             this.target.style.background = "#aaa" ;
           }
-          else keyBuf = keyBuf.slice(0,-1) ;
+          else if (e.key != "Backspace" && e.key != "Delete") keyBuf = keyBuf.slice(0,-1) ;
       }
       if(sashTop != null) {
         sashTop = clamp(sashTop, frame.offsetHeight - sash.offsetHeight, 0) ;

@@ -413,12 +413,19 @@ class Layout {
 
         case "import": {
           // paste from  _podPb_
-          _shade_.show("Importing...", 50);
-          _menu_.activateCell(null);
-          await _podPb_.pgPaste(pn);
-          _shade_.hide();
-          _menu_.activateRing(_menu_.rings.page);
-          _menu_.activateCell(_menu_.rings.page.cells.import);
+          dialog(`Confirm: Import pages from shared buffer?<br>(clears undo history and cannot be undone)`,
+            { Import: { svg: "Import Page" }, Cancel: { svg: "Cancel" } },
+            async (_e, _prop, tag, args) => {
+              if (tag == "Import") {
+                _shade_.show("Importing...", 50);
+                _menu_.activateCell(null);
+                await _podPb_.pgPaste(pn);
+                _shade_.hide();
+                _menu_.activateRing(_menu_.rings.page);
+                _menu_.activateCell(_menu_.rings.page.cells.import);
+              }
+              args.close();
+            });
           break;
         }
 
@@ -428,28 +435,35 @@ class Layout {
           if (!mergeCell.pdfData) break;
           let pdfData = mergeCell.pdfData;
           let wasLocked = mergeCell.locked;
-          _shade_.show("Merging...", 50);
-          _menu_.busy = true;
-          _menu_.activateCell(null);
-          try {
-            let mergedScore = await _score_.bindScore(pdfData, pn);
-            await mergedScore.activate();
-          } finally {
-            _shade_.hide();
-          }
-          // activate() leaves score ring active; restore page ring with merge
-          // cell active so the user can tap another page without re-loading.
-          _menu_.activateRing(_menu_.rings.page);
-          mergeCell.pdfData = pdfData;
-          _menu_.activateCell(mergeCell);
-          _menu_.busy = false;
-          if (wasLocked) {
-            mergeCell.locked = true;
-            mergeCell.elm.classList.add("Menu__cell-locked");
-            _menu_.autoOff.cancel();
-          } else {
-            _menu_.autoOff.run(4000 + _gs_ * 3.5);
-          }
+          dialog(`Confirm: Merge entire PDF into score?<br>(clears undo history and cannot be undone)`,
+            { Merge: { svg: "Merge" }, Cancel: { svg: "Cancel" } },
+            async (_e, _prop, tag, args) => {
+              if (tag == "Merge") {
+                _shade_.show("Merging...", 50);
+                _menu_.busy = true;
+                _menu_.activateCell(null);
+                try {
+                  let mergedScore = await _score_.bindScore(pdfData, pn);
+                  await mergedScore.activate();
+                } finally {
+                  _shade_.hide();
+                }
+                // activate() leaves score ring active; restore page ring with merge
+                // cell active so the user can tap another page without re-loading.
+                _menu_.activateRing(_menu_.rings.page);
+                mergeCell.pdfData = pdfData;
+                _menu_.activateCell(mergeCell);
+                _menu_.busy = false;
+                if (wasLocked) {
+                  mergeCell.locked = true;
+                  mergeCell.elm.classList.add("Menu__cell-locked");
+                  _menu_.autoOff.cancel();
+                } else {
+                  _menu_.autoOff.run(4000 + _gs_ * 3.5);
+                }
+              }
+              args.close();
+            });
           break;
         }
 

@@ -461,6 +461,9 @@
   <symbol id="gb-new-score" viewBox="0 0 24 24">
     <path fill="none" stroke="currentColor" stroke-width=".4" stroke-linecap="square" d="m8.45,15.1v0.2m0,0.8v0.2M6.12,15.7c-0.68,0.4-0.68,-1.1 0.48,-0.9 0.83,0 0.96,0.4 1.04,0.9 0.13,1-0.9,2-2.1,2.6v0M6.79,9.67c0.8,-0.2 1.3,-0.8 0.9,-1.6-0.5,-0.8-1.1,-0.7-1.6,-0.3-0.7,0.6-0.1,1.3 0.2,1.3v0M5.69,11c0.3,1.3 1.3,0.8 1.3,0-0.2,-2.03-0.4,-3.93-0.4,-5.93 0,-0.4 0.3,-0.9 0.5,-1 0.9,0.2 0.4,1.9-0.5,2.3-2.3,1-2.2,3.2 0.3,3.3M2.82,18.7c19.98,0 19.98,0 19.98,0v-0.1 0M2.82,17.7c19.98,0 19.98,0 19.98,0v-0.1 0M2.82,16.8c19.98,0 19.98,0 19.98,0v-0.2 0M2.82,15.7c19.98,0 19.98,0 19.98,0v-0.2 0M2.82,14.7c19.98,0 19.98,0 19.98,0v-0.2 0M3.04,9.57c19.76,0 19.76,0 19.76,0v-0.11 0M3.03,8.75c19.77,0 19.77,0 19.77,0v-0.29 0M3.03,7.65c19.77,0 19.77,0 19.77,0v-0.21 0M3.03,6.6c19.77,0 19.77,0 19.77,0v-0.21 0M3.03,5.51c19.77,0 19.77,0 19.77,0v-0.19 0m-19.71,0c0,13.38 0,13.38 0,13.38H2.97v0M2.12,4.72c-1.795,2.14 0.76,3.34-0.86,7.68 1.6,4.5-0.859,6.3 1.03,7.5" />
   </symbol>
+  <symbol id="gb-close" viewBox="0 0 24 24">
+    <path fill="#aaa" stroke="currentColor" stroke-width="0.6" d="M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z"/>
+  </symbol>
   <symbol id="gb-print" viewBox="0 0 24 24">
     <path fill="#aaa" stroke="currentColor" stroke-width=".5" d="m14.3,12h2.2M18.6,15.6 17.5,13M6.18,12H7.97M3.37,15.6 5.17,13M11.1,1.96h1M10.7,3.13 11.4,2.57 11.1,2M11.8,3.12 12.4,2.53 12.1,1.96M11.1,6.91 10.6,6.28 11.2,5.88 10.6,5.19 11.1,4.75 10.7,4.18M12.4,6.86 12,6.23 12.6,5.82 12,5.13 12.4,4.69 12.1,4.12m0.8,2.85H9.85V8.83H12.9V8.28L20.8,8.15V7.69L12.9,7.58ZM7.02,8.82H15.7V10.3H7.01ZM8.19,11.6 6.63,14.4H15.3L14.1,11.6ZM3.56,22.9V15.6H18.4V23H16.5V18.6H15.6V17H6.03v1.6H5.14v4.3zM16.6,8.23V13h0.9L17.6,8.24ZM5.14,13V2.1H6.16V3.15H16.6v-1.1h1.1l-0.1,5.57h-1V4.09H6.16V13Z" />
   </symbol>
@@ -714,7 +717,7 @@ function closeVideo(event, container) {
 </div>
 
 <div style="font-size:2em;font-weight:600;text-align:center;margin:.25em 0;">Guidebook</div>
-<div class="version">Version 2.1</div>
+<div class="version">Version 2.1.x</div>
 
 <p style="text-align: center;"><a href="Guidebook.html" target="_blank">Open in new window</a> for convenient side-by-side reading with Podium. | <a href="javascript:window.print()">Print me</a></p>
 
@@ -736,8 +739,9 @@ function closeVideo(event, container) {
             <ul>
                 <li><a href="#chapter-4-open-save">4.1 Open, Save</a> — <span style="color:#777">Open and save PDF score files</span></li>
                 <li><a href="#chapter-4-new">4.2 New</a> — <span style="color:#777">Create new, empty scores</span></li>
-                <li><a href="#chapter-4-print">4.3 Print</a> — <span style="color:#777">Print with or without annotations</span></li>
-                <li><a href="#chapter-4-details">4.4 Details</a> — <span style="color:#777">Score information and metadata</span></li>
+                <li><a href="#chapter-4-close">4.3 Close</a> — <span style="color:#777">Close the current score</span></li>
+                <li><a href="#chapter-4-print">4.4 Print</a> — <span style="color:#777">Print with or without annotations</span></li>
+                <li><a href="#chapter-4-details">4.5 Details</a> — <span style="color:#777">Score information and metadata</span></li>
             </ul>
         </li>
         <li><a href="#chapter-5">Chapter 5: Layout Ring</a> — <span style="color:#777">Determine how scores are displayed</span>
@@ -820,7 +824,7 @@ function closeVideo(event, container) {
     <p><strong>...with input devices:</strong></p>
     <ul>
         <li>S-Pen, Apple Pencil, USI styli, fingers and thumbs</li>
-        <li>Mouse, track pad, keyboard, foot pedal page turners</li>
+        <li>Mouse, trackpad, keyboard, foot pedal page turners</li>
     </ul>
     <p><strong>...and practice tools:</strong></p>
     <ul>
@@ -1039,7 +1043,7 @@ function closeVideo(event, container) {
 <section id="chapter-2">
     <h2>Chapter 2: Running Podium</h2>
 
-    <p>The simplest way to use Podium is to launch it directly from the URL. No installation required. Just open <a href="https://www.studiop5.org/podium.html">studiop5.org/podium.html</a> in your browser and start using it immediately. There is no registration, login, or onboarding of any kind.</p>
+    <p>The simplest way to use Podium is to launch it directly from the URL. No installation required. Just open <a href="https://studiop5.org/podium">studiop5.org/podium</a> in your browser and start using it immediately. There is no registration, login, or onboarding of any kind.</p>
 
     <p>However, installation may be desirable in certain situations, especially when using Podium in performance where internet connectivity cannot be assumed.</p>
 
@@ -1068,7 +1072,7 @@ function closeVideo(event, container) {
         <figcaption>Right-click context menu showing "Open with Podium" option on IMSLP</figcaption>
     </figure>
 
-    <div class="note">Podium's extension is not available on iPhone or iPad, but can be installed as a progressive web app, see below. On Android, Chrome does not support extensions, but Edge for Android has Beta support for extensions as of this writing.</div>
+    <div class="note">Podium's extension is not available on iPhone or iPad, but can be installed as a progressive web app, see below. On Android, Chrome does not support extensions. Edge for Android has limited Beta support for extensions as of Podium's 2.1 release.</div>
 
     <h3 id="chapter-2-pwa">2.2 Progressive Web App (PWA)</h3>
 
@@ -1200,7 +1204,7 @@ function closeVideo(event, container) {
     <h3>Background Gestures</h3>
     <ul>
         <li><strong>Swipe left ⇄ right:</strong> Toggle full-screen (entering full-screen is not available on iPhone/iPad; use the Screen button instead)</li>
-        <li><strong>Swipe top ⇅ bottom:</strong> Reset and center menu</li>
+        <li><strong>Swipe top ⇅ bottom:</strong> Toggle menu: Reset and center menu / collapse and park menu in upper left</li>
         <li><strong>Long press:</strong> Summon menu to that spot</li>
     </ul>
 
@@ -1418,7 +1422,15 @@ function closeVideo(event, container) {
         <li><strong>Background Opacity:</strong> Adjust the opacity of the background color</li>
     </ul>
 
-    <h3 id="chapter-4-print">4.3 Score Ring: Print<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-print"/></svg></h3>
+    <h3 id="chapter-4-close">4.3 Score Ring: Close<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-close"/></svg></h3>
+
+    <p>Close the current score.</p>
+
+    <p>In normal use, simply opening a new score is sufficient — Podium automatically closes the current one. Close is provided as a convenience for users who want to use Podium's practice tools without a score open.</p>
+
+    <p>If the current score has unsaved changes, a confirmation dialog appears before closing.</p>
+
+    <h3 id="chapter-4-print">4.4 Score Ring: Print<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-print"/></svg></h3>
 
     <p>Print the current score with or without annotations.</p>
 
@@ -1438,7 +1450,7 @@ function closeVideo(event, container) {
 
     <div class="note">Large scores or scores with particularly dense or poorly encoded, unoptimized PDF content can fail while printing. If you encounter printing failures, try printing the score in several smaller sections by specifying different page ranges.</div>
 
-    <h3 id="chapter-4-details">4.4 Score Ring: Details<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></h3>
+    <h3 id="chapter-4-details">4.5 Score Ring: Details<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></h3>
 
     <p>The Details Panel displays comprehensive information about the currently open score.</p>
 
@@ -1531,7 +1543,7 @@ function closeVideo(event, container) {
 
     <p>After initial layout, use 2 fingers to pinch-pan-zoom the score to move/resize as desired. Mouse users: Ctrl-drag/Ctrl-wheel (Ctrl-Shift-wheel for extra precision).</p>
 
-    <p>The Panel's <strong>Pace:</strong> slider determines how quickly pages turn when tapped or dragged.<p>
+    <p>The Panel's <strong>Pace:</strong> slider determines how quickly pages turn when tapped or dragged.</p>
 
     <p>Page numbers can be turned on or off in the Book Panel. Current page numbers are shown at the left and right sides of the layout: drag the page number to quickly flip to other pages.</p>
 
@@ -1558,7 +1570,7 @@ function closeVideo(event, container) {
 
     <p>The Panel's <strong>Show:</strong> slider determines how many pages are visible at a time (from 1-8)</p>
 
-    <p>The Panel's <strong>Snap:</strong> slider determines how many pages the scroll advances when a page is tapped, dragged, or flung, ensuring that after a scroll, the leftmost and rightmost pages align with the left and right scrollers. Move the Snap: slider all the way to the left to completely disable page snapping. You can also set the slider to snap to 1/2, 1/3, or 1/2 page boundaries.</p>
+    <p>The Panel's <strong>Snap:</strong> slider determines how many pages the scroll advances when a page is tapped, dragged, or flung, ensuring that after a scroll, the leftmost and rightmost pages align with the left and right scrollers. Move the Snap: slider all the way to the left to completely disable page snapping. You can also set the slider to snap to 1/2, 1/3, or 1/4 page boundaries.</p>
 
     <p>The Panel's <strong>Gap:</strong> slider determines how much space to leave around each page, as a percentage of the page's width.</p>
 
@@ -1585,7 +1597,7 @@ function closeVideo(event, container) {
 
     <p>Settings for this layout function identically to the Horizontal Layout, see previous section.</p>
 
-    <div class="note">If you have a foot pedal, try using a very slow <strong>Pace:</strong> setting with Vertical Layout. If you set the <strong>pgSnap:</strong> value to, say 1/2 a page, and use a pace around 8 seconds/snap, then a foot pedal press will cause the page to scroll upward gradually as you read it, allowing you to easily read across the boundary between one page and the next. This technique is illustrated in the video above.</div>
+    <div class="note">If you have a foot pedal, try using a very slow <strong>Pace:</strong> setting with Vertical Layout. If you set the <strong>Snap:</strong> value to, say 1/2 a page, and use a pace around 8 seconds/snap, then a foot pedal press will cause the page to scroll upward gradually as you read it, allowing you to easily read across the boundary between one page and the next. This technique is illustrated in the video above.</div>
 
     <div class="note"><strong>Try disabling Snap.</strong> Slide the Snap slider all the way to the left to turn it off. With snapping disabled, pages scroll freely and continuously, letting you position the score exactly where you need it. You can line up the bottom of one page directly above the top of the next, eliminating the visual interruption between pages. </div>
 
@@ -1625,7 +1637,7 @@ function closeVideo(event, container) {
 
     <p>The Panel's <strong>Pages per row:</strong> slider determines how many pages are shown in each row.</p>
 
-    <p>The Panel's <strong>Horizontal Gap</strong> slider determines the horizontal gap between neighbouring pages, as a percentage of the page's width. Setting this to a negative value causes the pages to be displayed overlapping each other, much like playing cards.</p>
+    <p>The Panel's <strong>Horizontal Gap</strong> slider determines the horizontal gap between neighboring pages, as a percentage of the page's width. Setting this to a negative value causes the pages to be displayed overlapping each other, much like playing cards.</p>
 
     <p>The Panel's <strong>Vertical Gap</strong> slider determines the vertical gap between neighbouring pages, as a percentage of the page's height. Setting this to a negative value causes the pages to be displayed overlapping each other, much like playing cards.</p>
 
@@ -1785,7 +1797,7 @@ function closeVideo(event, container) {
 
     <p>The Copy cell has an associated Open Panel that can be used to select an external PNG or JPEG image file from digital storage. Drag out the panel and select the desired image file. Then use the Paste cell to paste the image as an annotation object into a score page.</p>
 
-    <div class="note">If you have a PNG or JPEG of a score page, for example a photo you've taken with your camera, you can incorporate it into your score as a permanent PDF page: open the image from the Copy cell's Open Panel, then use the Page Ring's Add cell to add a blank page. Paste the image onto that page using the Ink Ring's Paste cell, and resize or reposition it as needed using the Edit tool. Finally, use the Page Ring's Merge command to bake the image into the PDF, giving you a new score page with your image embedded.</div>
+    <div class="note">If you have a PNG or JPEG of a score page, for example a photo you've taken with your camera, you can incorporate it into your score as a permanent PDF page: open the image from the Copy cell's Open Panel, then use the Page Ring's Add cell to add a blank page. Paste the image onto that page using the Ink Ring's Paste cell, and resize or reposition it as needed using the Edit tool. Finally, use the Page Ring's Flatten command to bake the image into the PDF, giving you a new score page with your image embedded.</div>
 
     <p><strong>Deleting annotations:</strong> To delete an annotation object, activate the Cut cell and tap the object. If you don't subsequently paste the object elsewhere, it is effectively deleted from the score.</p>
 
@@ -1799,7 +1811,7 @@ function closeVideo(event, container) {
 
     <h3 id="chapter-6-grid">6.7 Ink Ring: Grid<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-grid"/></svg></h3>
 
-    <p>Draw a 2-d guide grid for measuring and layout.</p>
+    <p>Draw a 2D guide grid for measuring and layout.</p>
 
     <figure>
         <div class="video-container" onclick="playVideo(this)">
@@ -1917,7 +1929,7 @@ function closeVideo(event, container) {
 
     <p><strong>Paste:</strong> Insert the page from the local clipboard at a new location in the current score.</p>
 
-    <p><strong>Undo:</strong> Undo the last page operation (cut, copy, or paste).</p>
+    <p><strong>Undo:</strong> Undo the last page operation (cut or paste).</p>
 
     <p><strong>Export:</strong> Copy a page to the shared buffer, making it available to other Podium tabs.</p>
 
@@ -2021,9 +2033,9 @@ function closeVideo(event, container) {
 
     <p>Undo the last page operation.</p>
 
-    <p>To undo a page operation (cut, paste, or import), activate the Undo cell. The most recent operation will be immediately reversed. The Page Ring maintains an undo history of the last 10 operations.</p>
+    <p>To undo a page operation (cut or paste), activate the Undo cell. The most recent operation will be immediately reversed. The Page Ring maintains an undo history of the last 10 operations.</p>
 
-    <div class="note">Undo does not modify the shared buffer: if you undo an import operation, the imported pages are removed from the score but remain available in the buffer for importing again. To undo an export, use the Import panel's Undo or Clear buttons.</div>
+    <div class="note">The <strong>Import</strong> and <strong>Merge</strong> operations cannot be undone and will clear the score's entire undo history. Because of this, you'll be prompted to confirm these operations before they are performed.</div>
 
     <div class="note">Unlike the Ink Ring's per-page undo stack, the Page Ring undo operates on page-level operations across the entire score.</div>
 
@@ -2041,6 +2053,8 @@ function closeVideo(event, container) {
     <p><strong>Export:</strong> Activate the Export cell, then tap a page. The page is appended to the shared buffer. The original page remains in the score.</p>
 
     <p><strong>Import:</strong> Activate the Import cell, then tap a page in the score. All pages in the shared buffer are inserted at that position, before the page if you tap on the left half (top half for Vertical Layout) or after if you tap the right half (bottom half for Vertical Layout).</p>
+
+    <div class="note">Because an import operation cannot be undone and will clear the score's undo history, you'll be prompted to confirm before the operation is performed.</div>
 
     <p>The Import Panel shows you a horizontally draggable view of thumbnails of the shared buffer, along with two management buttons:</p>
 
@@ -2062,6 +2076,9 @@ function closeVideo(event, container) {
     <p>Merge an entire PDF score into the current score at a chosen page position.</p>
 
     <p>Tap the Merge cell to open the file panel, then select any PDF. The cell activates and a toast message confirms the file is loaded and ready. Tap any page in the current score to insert the chosen PDF before that page. The merge preserves page order from the source file and carries over any Ink annotations saved within it.</p>
+
+    <div class="note">Because a merge operation cannot be undone and will clear the score's undo history, you'll be prompted to confirm before the operation is performed.</div>
+
 
     <p>After each merge the cell stays active, so you can tap additional pages to insert the same source PDF at multiple positions without reloading it. The cell deactivates automatically after a few seconds, or immediately when you tap it again.</p>
 
@@ -2091,7 +2108,7 @@ function closeVideo(event, container) {
 
     <h4>Common Use Cases:</h4>
 
-    <p><strong>Adding smartphone photos to a score:</strong> If you've photographed score pages with your smartphone, you can incorporate them as permanent PDF pages. See the <a href="#chapter-6-cut-copy-paste" class="chapter-link">Ink Ring: Cut, Copy, Paste</a> section for the full workflow — Merge is the final step that bakes the image into the PDF.</p>
+    <p><strong>Adding smartphone photos to a score:</strong> If you've photographed score pages with your smartphone, you can incorporate them as permanent PDF pages. See the <a href="#chapter-6-cut-copy-paste" class="chapter-link">Ink Ring: Cut, Copy, Paste</a> section for the full workflow — Flatten is the final step that bakes the image into the PDF.</p>
 
     <p><strong>Preventing accidental edits:</strong> Suppose you've used the Ink Ring's Rastrum tool to draw a staff on a page, and you want to use the Pencil and Pen tools to draw on that staff. The drawing will be much easier to edit if you first Flatten the staff into the background layer. That way, you'll be able to perform edits without accidentally selecting and editing the staff itself.</p>
 
@@ -2264,8 +2281,6 @@ function closeVideo(event, container) {
     </ul>
 
     <p>To change the target, simply touch or interact with the desired object. Alternatively, use the <strong>running stick-figure</strong> icons on the panel to step to the next or previous Podium object in stacking order. Stacking order is determined by interaction history: the most recently touched or moved object sits at the front of the stack.</p>
-
-    <p>When the Edit Panel is open, clicking on an empty spot on a page&mdash;where there is no annotation&mdash;will automatically select the most recently selected annotation on that page.</p>
 
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
@@ -2458,7 +2473,7 @@ function closeVideo(event, container) {
     <p>To reenter Live mode, drag the scrubber to the right, or simply wait until Playback ends. Then tap the Play Button to restart recording. Any previous recording will be lost.</p>
 
     <h4>Waveform Tab:</h4>
-    <p>Displays the waveform of the input from the microphone overlaid on a waterfall spectrum. Mostly useful as just something to look at when practicing scales and arpeggios!</p>
+    <p>Displays the waveform of the mike input overlaid on a waterfall spectrum: useful for sound visualization.</p>
 
     <figure>
         <img src="assets/morereviewwave.jpg" alt="Review waveform tab">
@@ -2493,14 +2508,22 @@ function closeVideo(event, container) {
 
     <ul>
         <li><strong>Text annotation</strong> — enter text for the Ink Ring's <a href="#chapter-6-text" class="chapter-link">Text</a> annotation tool.</li>
-        <li><strong>Progressive search</strong> — as you type, the result in the active changes to show only the first matching item. Progressive search is available in file panels (Open and Save) and in any dropdown, most usefully the category picker in the <a href="#chapter-6-symbols" class="chapter-link">Symbols panel</a>.</li>
+        <li><strong>Progressive search</strong> — as you type, the result in the active field changes to show only the first matching item. Progressive search is available in file panels (Open and Save) and in any dropdown, most usefully the category picker in the <a href="#chapter-6-symbols" class="chapter-link">Symbols panel</a>.</li>
     </ul>
 
     <p>The key labeled "<strong>…</strong>" switches the keyboard to its <strong>special keys</strong> layout, which includes international characters, cursor arrow keys, and the Home and End keys. The key labeled "<strong>Aa</strong>" switches back to the normal letter keys. The arrow keys are also useful for testing your <a href="#chapter-7-numbers" class="chapter-link">Bluetooth foot pedal configuration</a> without needing the physical pedal nearby.</p>
 
 
     <figure>
-        <!-- TODO: video of progressive search in symbols dropdown -->
+        <div class="video-container" onclick="playVideo(this)">
+            <img src="assets/moreprogressive.jpg" alt="Progressive search narrowing the Symbols category list">
+            <div class="play-overlay"></div>
+            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+                <source src="assets/moreprogressive.webm" type="video/webm">
+                Your browser does not support the video tag.
+            </video>
+        </div>
         <figcaption>Progressive search narrowing the Symbols category list</figcaption>
     </figure>
 
@@ -2554,18 +2577,19 @@ function closeVideo(event, container) {
     <div class="idx-letter">B</div>
     <dl>
         <dt>Book<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-book"/></svg></dt><dd> &mdash; <a href="#chapter-5-book">5.1</a></dd>
-        <dt>Bookmarks</dt><dd> &mdash; <a href="#chapter-5-bookmarks">4.1</a></dd>
+        <dt>Bookmarks</dt><dd> &mdash; <a href="#chapter-5-bookmarks">Ch.5</a></dd>
         <dt>Bravura font</dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
         <dt>Browser extension</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
         <dt>Browser tab naming</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
     </dl>
     <div class="idx-letter">C</div>
     <dl>
-        <dt>Cell Auto-Deactivation</dt><dd> &mdash; <a href="#chapter-3-auto-deactivation">4.1</a></dd>
-        <dt>Cell auto-deactivation</dt><dd> &mdash; <a href="#chapter-3-auto-deactivation">4.1</a></dd>
+        <dt>Cell Auto-Deactivation</dt><dd> &mdash; <a href="#chapter-3-auto-deactivation">Ch.3</a></dd>
+        <dt>Cell auto-deactivation</dt><dd> &mdash; <a href="#chapter-3-auto-deactivation">Ch.3</a></dd>
         <dt>Cell Locking</dt><dd> &mdash; <a href="#chapter-3-cell-locking">4.1</a></dd>
         <dt>Cell locking</dt><dd> &mdash; <a href="#chapter-3-cell-locking">4.1</a>, <a href="#chapter-6">chapter-6</a></dd>
         <dt>Clock<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-clock"/></svg></dt><dd> &mdash; <a href="#chapter-9-clock">9.4</a></dd>
+        <dt>Close<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-close"/></svg></dt><dd> &mdash; <a href="#chapter-4-close">4.3</a></dd>
         <dt>Cloud storage</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
         <dt>Color chooser</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a>, <a href="#chapter-7-add">7.2</a></dd>
         <dt>Conducting patterns</dt><dd> &mdash; <a href="#chapter-9-metronome">9.2</a></dd>
@@ -2580,8 +2604,8 @@ function closeVideo(event, container) {
         <dt>Dark theme</dt><dd> &mdash; <a href="#chapter-8-theme">8.2</a></dd>
         <dt>Delcamp</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
         <dt>Detached Panels</dt><dd> &mdash; <a href="#chapter-9-detached">9.1</a></dd>
-        <dt>Details<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></dt><dd> &mdash; <a href="#chapter-4-details">4.4</a></dd>
-        <dt>Display quality</dt><dd> &mdash; <a href="#chapter-4-details">4.4</a></dd>
+        <dt>Details<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
+        <dt>Display quality</dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
         <dt>Drag and drop</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
         <dt>Dropbox</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
     </dl>
@@ -2590,7 +2614,7 @@ function closeVideo(event, container) {
         <dt>E-reader</dt><dd> &mdash; <a href="#overture">Overture</a></dd>
         <dt>Edit<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-edit"/></svg></dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
         <dt>Equal temperament</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
-        <dt>Expand mode</dt><dd> &mdash; <a href="#chapter-4-details">4.4</a></dd>
+        <dt>Expand mode</dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
         <dt>Export</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
     </dl>
     <div class="idx-letter">F</div>
@@ -2598,7 +2622,7 @@ function closeVideo(event, container) {
         <dt>File System Access API</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
         <dt>Firefox settings</dt><dd> &mdash; <a href="#firefox-settings">4.1</a></dd>
         <dt>Flatten<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-flatten"/></svg></dt><dd> &mdash; <a href="#chapter-7-flatten">7.7</a></dd>
-        <dt>Fling gesture</dt><dd> &mdash; <a href="#chapter-5-page-turning">4.1</a>, <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Fling gesture</dt><dd> &mdash; <a href="#chapter-5-page-turning">4.1</a>, <a href="#chapter-3">Ch.5</a></dd>
         <dt>Foot pedal</dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a>, <a href="#chapter-2-foot-pedal">chapter-2-foot-pedal</a></dd>
         <dt>Full screen</dt><dd> &mdash; <a href="#chapter-8-screen">8.7</a>, <a href="#chapter-3">Ch.3</a></dd>
     </dl>
@@ -2645,7 +2669,7 @@ function closeVideo(event, container) {
         <dt>Manuscript paper</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a>, <a href="#chapter-7-merge">7.6</a></dd>
         <dt>Merge</dt><dd> &mdash; <a href="#chapter-7-merge">7.6</a></dd>
         <dt>Merge<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-merge"/></svg></dt><dd> &mdash; <a href="#chapter-7-merge">7.6</a></dd>
-        <dt>Metadata</dt><dd> &mdash; <a href="#chapter-4-details">4.4</a></dd>
+        <dt>Metadata</dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
         <dt>Metronome<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-metronome"/></svg></dt><dd> &mdash; <a href="#chapter-9-metronome">9.2</a></dd>
         <dt>Microphone</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a>, <a href="#chapter-9-review">9.6</a></dd>
         <dt>Mouse controls</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
@@ -2670,11 +2694,11 @@ function closeVideo(event, container) {
     <dl>
         <dt>Page numbers</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-7-numbers">7.1</a></dd>
         <dt>Page ordering</dt><dd> &mdash; <a href="#chapter-5-table">5.4</a></dd>
-        <dt>Page range</dt><dd> &mdash; <a href="#chapter-4-print">4.3</a></dd>
-        <dt>Page sizing</dt><dd> &mdash; <a href="#chapter-4-details">4.4</a></dd>
-        <dt>Page turn</dt><dd> &mdash; <a href="#chapter-5-page-turning">4.1</a></dd>
-        <dt>Page Turning</dt><dd> &mdash; <a href="#chapter-5-page-turning">4.1</a></dd>
-        <dt>Pager</dt><dd> &mdash; <a href="#chapter-5-page-turning">4.1</a></dd>
+        <dt>Page range</dt><dd> &mdash; <a href="#chapter-4-print">4.4</a></dd>
+        <dt>Page sizing</dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
+        <dt>Page turn</dt><dd> &mdash; <a href="#chapter-5-page-turning">Ch.5</a></dd>
+        <dt>Page Turning</dt><dd> &mdash; <a href="#chapter-5-page-turning">Ch.5</a></dd>
+        <dt>Pager</dt><dd> &mdash; <a href="#chapter-5-page-turning">Ch.5</a></dd>
         <dt>Password-protected PDF</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
         <dt>Paste buffer</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
         <dt>Paste<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut"/></svg><svg class="gb-icon"><use href="#gb-copy"/></svg><svg class="gb-icon"><use href="#gb-paste"/></svg></dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a></dd>
@@ -2688,8 +2712,8 @@ function closeVideo(event, container) {
         <dt>Playback</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Practice scores</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
         <dt>Precision sliders</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
-        <dt>Print</dt><dd> &mdash; <a href="#chapter-4-print">4.3</a></dd>
-        <dt>Print<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-print"/></svg></dt><dd> &mdash; <a href="#chapter-4-print">4.3</a></dd>
+        <dt>Print</dt><dd> &mdash; <a href="#chapter-4-print">4.4</a></dd>
+        <dt>Print<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-print"/></svg></dt><dd> &mdash; <a href="#chapter-4-print">4.4</a></dd>
         <dt>Privacy</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a>, <a href="#chapter-8-storage">8.4</a></dd>
         <dt>Progressive Web App</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
     </dl>
