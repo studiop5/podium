@@ -195,6 +195,74 @@
     <h2>Version 2.1 <span class="version-tag">— upcoming</span></h2>
 
     <div class="entry">
+        <h3>Symbols Panel</h3>
+        <p class="location">Ink ring → Symbols</p>
+        <p>The Symbols panel has been substantially revised:</p>
+        <ul>
+            <li><strong>Vertical scrolling grid</strong> — the symbol preview now scrolls vertically
+                instead of horizontally, displaying significantly more symbols at once and making it
+                easier to scan a group at a glance.</li>
+            <li><strong>Recent group</strong> — a new group at the top of the list shows your most
+                frequently used symbols, updated automatically as you work. Starts empty on first use.</li>
+            <li><strong>Basic group</strong> — a hand-picked selection of commonly used symbols spanning
+                clefs, noteheads, accidentals, rests, dynamics, and articulations. Useful when you don't
+                know which SMuFL group a symbol belongs to.</li>
+            <li><strong>Signatures group</strong> — pre-composed key and time signatures, each as a
+                single ready-to-place symbol. Key signatures cover all major and minor keys (e.g.
+                C♯ major as one symbol rather than seven individual sharps); time signatures cover all
+                common meters.</li>
+        </ul>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-6-symbols">§6.4 Symbols</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Page Turn Speed (Pace)</h3>
+        <p class="location">Book, Horizontal Scroll, and Vertical Scroll layout panels</p>
+        <p>A <strong>Pace</strong> slider in each layout's panel controls the speed of tap- and drag-driven page turns.
+        For Book layout the value is in seconds/flip; for Horizontal and Vertical it is seconds/snap. In all cases a lower setting produces a faster turn. Fling-driven turns
+        are unaffected — their speed is determined by the fling itself.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-5-page-turning">§5 Page Turning</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Merge (Page Ring)</h3>
+        <p class="location">Page ring → Merge</p>
+        <p>A new <strong>Merge</strong> cell in the Page Ring lets you insert an entire PDF score into the current score at any page position. Tap Merge to open the file panel and select a source PDF; the cell activates and a brief message confirms the file is ready. Tap any page to insert the source PDF before that page. The cell stays active after each merge, so you can insert the same file at multiple positions without reloading it. Long-press the cell to lock it, keeping it active indefinitely for repeated use across many pages.</p>
+        <div class="note"><strong>Rename notice:</strong> The previous <em>Merge</em> operation — which baked Ink annotations into the PDF — has been renamed <strong>Flatten</strong>. Its functionality is unchanged; only the name is new. In this release, <em>Merge</em> refers exclusively to the new PDF-combining operation described above.</div>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-7-merge">§7.6 Merge</a>, <a href="Guidebook.html#chapter-7-flatten">§7.7 Flatten</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Edit Panel (Ink Ring)</h3>
+        <p class="location">Ink ring → Edit → drag out</p>
+        <p>The Edit cell now opens an <strong>Edit panel</strong> when dragged out, providing precise controls for fine-tuning the position, size, and rotation of annotation objects. Especially useful when touch handles are too coarse for accurate adjustment, or when working with a stylus. This panel replaces the previous precision sliders.</p>
+        <p>The center of the panel shows the icon of the current target annotation. Touch any annotation to make it the target, or use the running stick-figure icons to step through annotations in stacking order. Four arrow buttons move the target; crescendo and decrescendo buttons enlarge or shrink it; and two rotation buttons rotate it clockwise or counterclockwise.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-6-edit">§6.8 Edit</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Keyboard</h3>
+        <p class="location">More ring → Keyboard</p>
+        <p>An on-screen keyboard panel for devices without a physical keyboard. Its main purpose is
+        <strong>progressive search</strong>: as you type, results in the active panel narrow in real time.
+        Progressive search works in the file Open and Save panels (filtering by file name) and in all
+        dropdowns — most usefully the category picker in the Symbols panel (Ink ring → Symbols), which
+        otherwise requires scrolling through a list of roughly 3,500 SMuFL glyphs organized into named
+        categories.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-9-keyboard">§9.7 Keyboard</a>
+        </p>
+    </div>
+
+    <div class="entry">
         <h3>Metronome Enhancements</h3>
         <p class="location">More ring → Metronome</p>
         <p>Three new controls have been added to the Metronome panel:</p>
@@ -205,6 +273,45 @@
         </ul>
         <p class="guidebook-link">
             See the Guidebook: <a href="Guidebook.html#chapter-9-metronome">§9.2 Metronome</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Background Gesture Shortcuts</h3>
+        <p class="location">Anywhere on the score background</p>
+        <p>Updates to gestures that provide quick access to commonly used controls without opening the menu:</p>
+        <ul>
+            <li><strong>Swipe left or right</strong> — toggles full-screen mode on and off. Now swipe direction
+                does not matter; either direction performs the toggle.</li>
+            <li><strong>Swipe up or down</strong> — toggles the menu between its parked state (collapsed to
+                the top-left corner) and its default centered, expanded position. Either direction performs
+                the toggle.</li>
+            <li><strong>Long-press anywhere on screen</strong> — summons the menu at the pointer
+                position. Previously, long-press only worked on the score background; it now works
+                everywhere, including directly on score content. Without lifting the pointer, you can
+                immediately drag the menu to any position, or fling it to park it at the nearest
+                edge — all in one continuous gesture.</li>
+        </ul>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-3">Chapter 3: Interface Basics</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Double-Tap Panel Header to Activate Cell</h3>
+        <p class="location">Any panel → header</p>
+        <p>Double-tapping any panel's textured header now activates its corresponding menu cell&mdash;exactly as if you had tapped the cell in the ring. This is a convenient shortcut for re-activating a tool from its open panel, without reaching for the menu. If the second tap is held for about half a second (a long press), the cell is also locked.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-3-panels">§3 Panels</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Wakelock (App Ring)</h3>
+        <p class="location">App ring → Wakelock</p>
+        <p>A new <strong>Wakelock</strong> cell prevents the screen from automatically dimming or locking while Podium is in the foreground. Tap to toggle it on and off. The candle icon appears lit when Wakelock is active.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-8-wakelock">§8.6 Wakelock</a>
         </p>
     </div>
 
@@ -231,15 +338,6 @@
     </div>
 
     <div class="entry">
-        <h3>Wakelock (App Ring)</h3>
-        <p class="location">App ring → Wakelock</p>
-        <p>A new <strong>Wakelock</strong> cell prevents the screen from automatically dimming or locking while Podium is in the foreground. Tap to toggle it on and off. The candle icon appears lit when Wakelock is active.</p>
-        <p class="guidebook-link">
-            See the Guidebook: <a href="Guidebook.html#chapter-8-wakelock">§8.6 Wakelock</a>
-        </p>
-    </div>
-
-    <div class="entry">
         <h3>Screen Panel (App Ring)</h3>
         <p class="location">App ring → Screen → drag out</p>
         <p>The Screen cell now opens a <strong>Screen panel</strong> when dragged out, providing precise controls for moving and resizing Podium objects — the menu, score, or any open panel. This is especially useful when pinch-zoom is too coarse for accurate positioning, or when working with a stylus.</p>
@@ -253,104 +351,6 @@
         <h3>Release Notes Moved Out of App</h3>
         <p class="location">App ring → About → About tab</p>
         <p>The Release Notes tab has been removed from the About panel. In its place, the About tab now includes a link to the release notes on the Podium website. This allows maintaining much more extensive and useful release notes than was practical to display inside the app.</p>
-    </div>
-
-    <div class="entry">
-        <h3>Merge (Page Ring)</h3>
-        <p class="location">Page ring → Merge</p>
-        <p>A new <strong>Merge</strong> cell in the Page Ring lets you insert an entire PDF score into the current score at any page position. Tap Merge to open the file panel and select a source PDF; the cell activates and a brief message confirms the file is ready. Tap any page to insert the source PDF before that page. The cell stays active after each merge, so you can insert the same file at multiple positions without reloading it. Long-press the cell to lock it, keeping it active indefinitely for repeated use across many pages.</p>
-        <div class="note"><strong>Rename notice:</strong> The previous <em>Merge</em> operation — which baked Ink annotations into the PDF — has been renamed <strong>Flatten</strong>. Its functionality is unchanged; only the name is new. In this release, <em>Merge</em> refers exclusively to the new PDF-combining operation described above.</div>
-        <p class="guidebook-link">
-            See the Guidebook: <a href="Guidebook.html#chapter-7-merge">§7.6 Merge</a>, <a href="Guidebook.html#chapter-7-flatten">§7.7 Flatten</a>
-        </p>
-    </div>
-
-    <div class="entry">
-        <h3>Edit Panel (Ink Ring)</h3>
-        <p class="location">Ink ring → Edit → drag out</p>
-        <p>The Edit cell now opens an <strong>Edit panel</strong> when dragged out, providing precise controls for fine-tuning the position, size, and rotation of annotation objects. Especially useful when touch handles are too coarse for accurate adjustment, or when working with a stylus. This panel replaces the previous precision sliders.</p>
-        <p>The center of the panel shows the icon of the current target annotation. Touch any annotation to make it the target, or use the running stick-figure icons to step through annotations in stacking order. Four arrow buttons move the target; crescendo and decrescendo buttons enlarge or shrink it; and two rotation buttons rotate it clockwise or counterclockwise.</p>
-        <p class="guidebook-link">
-            See the Guidebook: <a href="Guidebook.html#chapter-6-edit">§6.8 Edit</a>
-        </p>
-    </div>
-
-    <div class="entry">
-        <h3>Double-Tap Panel Header to Activate Cell</h3>
-        <p class="location">Any panel → header</p>
-        <p>Double-tapping any panel's textured header now activates its corresponding menu cell&mdash;exactly as if you had tapped the cell in the ring. This is a convenient shortcut for re-activating a tool from its open panel, without reaching for the menu. If the second tap is held for about half a second (a long press), the cell is also locked.</p>
-        <p class="guidebook-link">
-            See the Guidebook: <a href="Guidebook.html#chapter-3-panels">§3 Panels</a>
-        </p>
-    </div>
-
-    <div class="entry">
-        <h3>Symbols Panel</h3>
-        <p class="location">Ink ring → Symbols</p>
-        <p>The Symbols panel has been substantially revised:</p>
-        <ul>
-            <li><strong>Vertical scrolling grid</strong> — the symbol preview now scrolls vertically
-                instead of horizontally, displaying significantly more symbols at once and making it
-                easier to scan a group at a glance.</li>
-            <li><strong>Recent group</strong> — a new group at the top of the list shows your most
-                frequently used symbols, updated automatically as you work. Starts empty on first use.</li>
-            <li><strong>Basic group</strong> — a hand-picked selection of commonly used symbols spanning
-                clefs, noteheads, accidentals, rests, dynamics, and articulations. Useful when you don't
-                know which SMuFL group a symbol belongs to.</li>
-            <li><strong>Signatures group</strong> — pre-composed key and time signatures, each as a
-                single ready-to-place symbol. Key signatures cover all major and minor keys (e.g.
-                C♯ major as one symbol rather than seven individual sharps); time signatures cover all
-                common meters.</li>
-        </ul>
-        <p class="guidebook-link">
-            See the Guidebook: <a href="Guidebook.html#chapter-6-symbols">§6.4 Symbols</a>
-        </p>
-    </div>
-
-    <div class="entry">
-        <h3>Keyboard</h3>
-        <p class="location">More ring → Keyboard</p>
-        <p>An on-screen keyboard panel for devices without a physical keyboard. Its main purpose is
-        <strong>progressive search</strong>: as you type, results in the active panel narrow in real time.
-        Progressive search works in the file Open and Save panels (filtering by file name) and in all
-        dropdowns — most usefully the category picker in the Symbols panel (Ink ring → Symbols), which
-        otherwise requires scrolling through a list of roughly 3,500 SMuFL glyphs organized into named
-        categories.</p>
-        <p class="guidebook-link">
-            See the Guidebook: <a href="Guidebook.html#chapter-9-keyboard">§9.7 Keyboard</a>
-        </p>
-    </div>
-
-    <div class="entry">
-        <h3>Background Gesture Shortcuts</h3>
-        <p class="location">Anywhere on the score background</p>
-        <p>Updates to gestures that provide quick access to commonly used controls without opening the menu:</p>
-        <ul>
-            <li><strong>Swipe left or right</strong> — toggles full-screen mode on and off. Now swipe direction
-                does not matter; either direction performs the toggle.</li>
-            <li><strong>Swipe up or down</strong> — toggles the menu between its parked state (collapsed to
-                the top-left corner) and its default centered, expanded position. Either direction performs
-                the toggle.</li>
-            <li><strong>Long-press anywhere on screen</strong> — summons the menu at the pointer
-                position. Previously, long-press only worked on the score background; it now works
-                everywhere, including directly on score content. Without lifting the pointer, you can
-                immediately drag the menu to any position, or fling it to park it at the nearest
-                edge — all in one continuous gesture.</li>
-        </ul>
-        <p class="guidebook-link">
-            See the Guidebook: <a href="Guidebook.html#chapter-3">Chapter 3: Interface Basics</a>
-        </p>
-    </div>
-
-    <div class="entry">
-        <h3>Page Turn Speed (Pace)</h3>
-        <p class="location">Book, Horizontal Scroll, and Vertical Scroll layout panels</p>
-        <p>A <strong>Pace</strong> slider in each layout's panel controls the speed of tap- and drag-driven page turns.
-        For Book layout the value is in seconds/flip; for Horizontal and Vertical it is seconds/snap. In all cases a lower setting produces a faster turn. Fling-driven turns
-        are unaffected — their speed is determined by the fling itself.</p>
-        <p class="guidebook-link">
-            See the Guidebook: <a href="Guidebook.html#chapter-5-page-turning">§5 Page Turning</a>
-        </p>
     </div>
 </section>
 
