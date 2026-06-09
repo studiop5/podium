@@ -37,7 +37,6 @@ src/video.js
 .eslintrc.json
 eslint.config.js
 jsconfig.json
-doc/assets/*.webm
 
 # Unminified library copies
 lib/fabric.js
