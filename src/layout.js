@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, Drag, getBox, helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, toast, unlisten,} from "./common.js";
+import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, Drag, getBox, helm, listen, pnToDiv, ptrMsg, rotatePoint, Schedule, toast, unlisten,} from "./common.js";
 import {ScreenPanel } from "./panel.js";
 import { Pg } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
@@ -2179,6 +2179,7 @@ class TableLayout extends Layout {
     // pg "becomes" the active pg before the move. For this reason, we register
     // pointerup immediately, but it's actually work is delay'ed until
     // built is true, after this.pgGoTo has returned.
+    let drag = new Drag(e) ;
     let cursor = null;
     this.navMv = null;
     let built = false;
@@ -2203,8 +2204,8 @@ class TableLayout extends Layout {
 
     this.navMv = listen(this.layout, "pointermove", (emv) => {
       if(this.score.pgs.length == 1) return; // disallow action on last pg
-       mvmt(e, emv);
-       if(e.moved) {
+      drag.mv(emv) ;
+       if(drag.moved) {
          this.bMarkTimer.cancel();
          if(!cursor) cursor = new this.Organizer(e, this);
          cursor.mv(emv);

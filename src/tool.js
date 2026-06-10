@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, flung, getBox, helm, hide, iconSvg, listen, mvmt, schedule, Schedule, SliderGroup, Surface, TabView, toast, unlisten, pxToEm,} from "./common.js";
+import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, Drag, getBox, helm, hide, iconSvg, listen, schedule, Schedule, SliderGroup, Surface, TabView, toast, unlisten, pxToEm,} from "./common.js";
 import { pianoSamples } from "./sample.js";
 import { panels, ScreenPanel } from "./panel.js";
 import { Yin } from "./yin.js";
@@ -353,6 +353,7 @@ class Piano {
           this.optionsView.elm.style.visibility = "hidden";
         } else {
           this.optionsButton.firstElementChild.classList.add("Piano__button-active");
+          this.optionsView.elm.style.top = "" ; 
           this.optionsView.elm.style.left = "calc(50% - 13.5em);";
           this.optionsView.elm.style.visibility = "visible";
         }
@@ -597,17 +598,18 @@ class Piano {
         optionsView.sash.classList.add("Panel__header-selected");
         let offsetX = e.clientX - optionsView.frame.offsetLeft;
         let limit = this.body.offsetWidth - optionsView.frame.offsetWidth;
+        let drag = new Drag(e) ;
         let mv = listen(optionsView.frame, "pointermove", (emv) => {
-          mvmt(e,emv) ;
-          if(e.moved) {
-            flung(emv);
+          drag.mv(emv) ;
+          if(drag.moved) {
             if(emv.movementX) optionsView.sash.setPointerCapture(e.pointerId);
             optionsView.frame.style.left = clamp(emv.clientX - offsetX, 0, limit) + "px";
             e.emv = emv;
           }
         });
         listen(optionsView.sash, "pointerup", (eup) => {
-          if(flung(null, eup)) {
+          drag.up(eup) ;
+          if(!drag.lift && !drag.jab && drag.vXY > 0.75) {
             hide(elm, this.optionsButton);
             delay(10, () => this.optionsButton.firstElementChild.classList.remove("Piano__button-active"));
           }

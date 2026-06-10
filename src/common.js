@@ -43,7 +43,6 @@ export {
   iconSvg,
   inflate,
   listen,
-  mvmt,
   pnToDiv,
   pnToString,
   reflow,
@@ -2178,16 +2177,16 @@ function hide(elm, onElm) {
   let fontSize = elm.style.fontSize; // this MUST come from style, NOT from getComputedStyle
   elm.style.left = left;
   elm.style.top = top;
-  elm.style.transition = "top 0.5s, left 0.5s,font-size 0.5s, opacity 2.5s";
+  elm.style.transition = "top 0.5s, left 0.5s,font-size 0.5s, opacity 0.5s";
   reflow();
   let elmBox = getBox(elm);
   let onElmBox = getBox(onElm);
-  elm.style.left = onElmBox.x + onElmBox.width / 2 + "px";
-  elm.style.top = onElmBox.y + onElmBox.height / 2 + "px";
+  let offsetParentBox = elm.offsetParent ? getBox(elm.offsetParent) : { x: 0, y: 0 };
+  elm.style.left = (onElmBox.x + onElmBox.width / 2 - offsetParentBox.x) + "px"; 
+  elm.style.top = (onElmBox.y + onElmBox.height / 2 - offsetParentBox.y) + "px";  
   elm.style.fontSize = 0;
   schedule(500, () => {
     elm.style.left = left;
-    elm.style.top = top;
     elm.style.visibility = "hidden";
     elm.style.top = "-9999px";
     elm.style.transition = "unset";
@@ -2326,22 +2325,6 @@ function mergeRecent(existing, incoming) {
   );
 }
 
-function mvmt(e, emv, xLimit = 48, yLimit = 36) {
-  // Helper function used when dragging div's: purpose is to ignore
-  // jitter that occurs when a user uses a finger or stylus as a pointer.
-  // It takes two events: a down event @e, and a move event @emv,
-  // and sets e.moved to true when the total of movement in either
-  // x or y exceeds the corresponding limit.
-  // @xLimit in CSS px (default 48 works well for touch/stylus/mouse)
-  // @yLimit in CSS px (default 36 works well for touch/stylus/mouse)
-
-  if (!e.moved) {
-    e.sumX = (e.sumX || 0) + Math.abs(emv.movementX);
-    e.sumY = (e.sumY || 0) + Math.abs(emv.movementY);
-    e.moved = e.sumX > xLimit || e.sumY > yLimit;
-  }
-  return e.moved;
-}
 
 function pnToDiv(pn, div, autoSize = true) {
   // Standard way to display a page number in a div using Bravura font,
