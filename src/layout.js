@@ -191,15 +191,20 @@ class Layout {
   static async open(cell) {
     if (!_score_) return;
     _shade_.show("Formatting");
-    let score = _score_; // assumes there is an activeScore
-    Layout.activeLayout?.destructor();
-    _score_.layout = cell.stash;
-    if (cell.key == "book") await new BookLayout(_score_, cell).build();
-    else if (cell.key == "horizontal" || cell.key == "vertical") await new ScrollLayout(_score_, cell).build();
-    else if (cell.key == "table") await new TableLayout(_score_, cell).build();
-    _menu_.rings.layout.stash.active = cell.key;
-    _shade_.hide();
-    ScreenPanel.update(Layout.activeLayout.elm);
+    // try/finally guarantees the Shade is released even if a build throws —
+    // otherwise an exception between show() and hide() orphans the overlay,
+    // leaving the user with a permanent "Formatting" screen.
+    try {
+      Layout.activeLayout?.destructor();
+      _score_.layout = cell.stash;
+      if (cell.key == "book") await new BookLayout(_score_, cell).build();
+      else if (cell.key == "horizontal" || cell.key == "vertical") await new ScrollLayout(_score_, cell).build();
+      else if (cell.key == "table") await new TableLayout(_score_, cell).build();
+      _menu_.rings.layout.stash.active = cell.key;
+    } finally {
+      _shade_.hide();
+    }
+    if (Layout.activeLayout) ScreenPanel.update(Layout.activeLayout.elm);
   }
 
   constructor(score, cell) {
@@ -308,6 +313,7 @@ class Layout {
       let pg = e.target.pg || e.target.closest(".canvas-container")?.pg;
       if (pg) {
         let updateMag = (ev) => {
+          if (!pg.elm) return; // pg can be released/recycled mid-gesture
           let box = pg.elm.getBoundingClientRect();
           // Calculate position as fraction of displayed size (0 to 1)
           let fracX = (ev.clientX - box.left) / box.width;
@@ -2144,7 +2150,8 @@ class TableLayout extends Layout {
       Object.assign(this.active.style, { pointerEvents: "auto", opacity: "1", zIndex: 2});
       // put each thumbElm into its correct grid location
       for(let {left, pn, top} of this.layout.gridCoords) {
-        let elm = score.pgs[pn-1].thumbElm;
+        let elm = score.pgs[pn-1]?.thumbElm;
+        if (!elm) continue; // unbuilt thumbnail (e.g. cancelled build): nothing to re-place
         let pnElm = elm.querySelector(".TableLayout__pn");
         if(pnElm) pnToDiv(pn, pnElm, false);
         elm.pn = pn;
@@ -2222,10 +2229,14 @@ class TableLayout extends Layout {
 
   async pgGoTo(pn) {
     if (this.active?.pn == pn) return pn; // active page was reselected, noop
+    // After a cancelled build, thumbnails beyond the cancel point don't
+    // exist; navigating to one (e.g. End key) is a noop rather than a crash.
+    let elm = this.grid.children.item(pn - 1);
+    if (!elm) return pn;
     this.inOp = true;
     this.pnPost(pn);
     // turn elm at pn into an active (full) pg
-    await this.buildPgActive(pn, this.grid.children.item(pn - 1));
+    await this.buildPgActive(pn, elm);
     this.inOp = false;
     return pn;
   }

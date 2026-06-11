@@ -26,7 +26,6 @@ export {
   cssIndex,
   dialog,
   Drag,
-  flung,
   Schedule,
   schedule,
   clamp,
@@ -2046,41 +2045,6 @@ function dialog(
   return elm;
 }
 
-let _moveEvents_ = [];
-let _maxMoveEvents_ = 5;
-function flung(emv, eup=null) {
-  // flung(eup) (past tense of fling!) is used to decide
-  // when user has "flung" a div.
-  // Assumes caller populates _moveEvents_ with pointermove events from
-  // same pointerdown/pointermove/pointerup sequence as eup.
-  // @emv is a movement event that, when non-null, is pushed onto the _moveEvents_ array,
-  //    to be used in a subsequent call to flung.
-  // @eup: pointerup event. When non-null, triggers logic to determine if this
-  //     was a user fling.
-
-  if(emv) {
-    _moveEvents_.push(emv);
-    if(_moveEvents_.length > _maxMoveEvents_) _moveEvents_.shift();
-    return;
-  }
-
-  // Calculate velocity over the last 150ms window
-  let recent = _moveEvents_.filter(e => eup.timeStamp - e.timeStamp <= 150);
-  _moveEvents_.length = 0; // done with _moveEvents, so clear
-  if (recent.length > 1) {
-    let last = recent[recent.length - 1];
-    let first = recent[0];
-    let dT = last.timeStamp - first.timeStamp;
-    if (dT) {
-      let dXY = Math.hypot(last.clientX - first.clientX, last.clientY - first.clientY);
-      let velocity = dXY / dT; // pixels per ms
-      return velocity > 0.75; // threshold for "flung" 
-    }
-    return false;
-  }
-}
-
-
 let fontMap = {
   // map pdf font names to html canvas font structures.
   Courier: { fontFamily: "Courier", fontStyle: "normal", fontWeight: "normal" },
@@ -2371,10 +2335,10 @@ function pnToString(pn, useSMuFL = false) {
   //  @pn, into a string for displaying to the user, potentially
   //   converting the pn to a Roman Numberal.
   //
-  // If pn is 0 or negative, flip its sign and add 1, then return the
-  // resulting number's representation as a lower-case roman number.
-  // Design purpose is to allow prelim "front matter" pages to be
-  //  presented as is traditionally done in book publishing.
+  // Pages 1..prelim are presented as lower-case roman numerals, as is
+  // traditionally done for "front matter" pages in book publishing.
+  // A pn of 0 or below (transient values can occur mid-gesture, e.g.
+  // overscroll) is clamped to 0 and renders as an empty string.
   //
   // @useSMuFL when true, resulting string is designed to be
   // displayed using a SMuFL compliant font using "time signature"
@@ -2389,6 +2353,7 @@ function pnToString(pn, useSMuFL = false) {
   first = parseInt(first);
   let str = "";
   if (pn <= prelim) {
+    if (pn < 0) pn = 0; // negative q would make repeat() below throw
     let roman = {
       m: 1000,
       cm: 900,

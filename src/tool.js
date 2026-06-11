@@ -394,10 +394,38 @@ class Piano {
           this.yin.stop();
         } else {
           this.pitchButton.firstElementChild.classList.add("Piano__button-active");
-          this.yin.start(this.cell.stash.a4);
+          // A mike can be present but unusable (permission denied, claimed by
+          // another app): revert the button and tell the user.
+          this.yin.start(this.cell.stash.a4).catch((err) => {
+            this.pitchButton.firstElementChild.classList.remove("Piano__button-active");
+            toast(err.name == "NotAllowedError"
+              ? "Microphone access denied"
+              : "No usable microphone found");
+          });
         }
       })
     );
+
+    // Disable the pitch detector when no microphone is present. devicechange
+    // fires on hot-(un)plug, so the button enables the moment a mike is
+    // connected, and detection stops cleanly if the mike disappears mid-use.
+    let updateMicAvailability = async () => {
+      let hasMic = false;
+      try {
+        let devices = await navigator.mediaDevices.enumerateDevices();
+        hasMic = devices.some((d) => d.kind == "audioinput");
+      } catch (e) {} // no mediaDevices API: stay disabled
+      this.pitchButton.style.opacity = hasMic ? "" : "0.35";
+      this.pitchButton.style.pointerEvents = hasMic ? "" : "none";
+      if (!hasMic && this.pitchButton.firstElementChild.classList.contains("Piano__button-active")) {
+        this.pitchButton.firstElementChild.classList.remove("Piano__button-active");
+        this.marker.remove();
+        this.yin?.stop();
+      }
+    };
+    updateMicAvailability();
+    if (navigator.mediaDevices?.addEventListener)
+      this.panel.listeners.push(listen(navigator.mediaDevices, "devicechange", updateMicAvailability));
 
     this.marker = helm(`<div style="z-index:1000;position:relative;top:50%;left:calc(50% - 1.75em);width:3.5em;
         display:flex;flex-direction:column;align-items:center;pointer-events:none;">
@@ -681,8 +709,9 @@ class Piano {
       tags.a4.replace(a4Group.elm);
 
       this.panel.listeners.push(listen(tags.options, "pointerup", (e) => {
-        optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active"));
         let active = e.target.closest(".Piano__options__option");
+        if (!active) return;
+        optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active"));
         active.classList.add("Piano__options__option-active");
         this.cell.stash.a4 = hzToCents(active.dataset.hz);
         a4Group.refresh();
@@ -721,8 +750,9 @@ class Piano {
       let optionElms = Object.values(dataIndex("temper", tags.options));
 
       this.panel.listeners.push(listen(tags.options, "pointerup", (e) => {
-        optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active"));
         let active = e.target.closest(".Piano__options__option");
+        if (!active) return;
+        optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active"));
         active.classList.add("Piano__options__option-active");
         this.cell.stash.temperament = active.dataset.temper;
       }));

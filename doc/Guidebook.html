@@ -2414,6 +2414,8 @@ function closeVideo(event, container) {
 
     <div class="note">The pitch detector is monophonic: it works best with a single note at a time. When multiple pitches or unpitched sounds (such as speech or noise) are present in the microphone input, the detector will produce unreliable results.</div>
 
+    <div class="note">The Pitch Detector button is disabled (greyed out) when no microphone is present, and enables automatically the moment one is connected. If a microphone exists but can't be used — for example, when the browser has been denied microphone access — tapping the button shows a brief message explaining why.</div>
+
     <div class="note"><strong>iPhone/iPad:</strong> Due to audio system constraints on these devices, the microphone indicator will remain active after the pitch detector is turned off. This is expected behavior — the microphone is kept open in the background to prevent interruption of piano and metronome audio. The microphone is fully released when the Piano panel is closed.</div>
 
     <figure>
