@@ -2652,7 +2652,7 @@ class Keyboard extends Surface {
         }
 
 
-        listen(document, "pointerup", () => {
+        listen(document, "pointerup", () => { // must be on document, not surface
            sentinel.remove();
            key.classList.remove('pressed');
         }, {once:true});

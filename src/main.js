@@ -394,33 +394,69 @@ async function main() {
 
 { // pointer-event watchdog — prevents stuck pointers from freezing UI
   let period = 7000; // watchdog interval: nothing magic here: just a heuristic
+  // pointerId -> { target, lastMove, clientX, clientY, pointerType, isPrimary }.
+  // lastMove is per-pointer so a stuck pointer is reclaimed even while another
+  // keeps moving (multi-touch); the coords are remembered so the synthetic
+  // pointerup carries the pointer's last known position rather than (0,0).
   let activePointers = new Map();
 
+  let upEvent = (id, p) => new PointerEvent("pointerup", {
+    pointerId: id,
+    pointerType: p.pointerType,
+    isPrimary: p.isPrimary,
+    clientX: p.clientX,
+    clientY: p.clientY,
+    bubbles: true,
+    cancelable: true
+  });
+
+  let cancel = (id, p) => {
+    p.target.dispatchEvent(upEvent(id, p));
+    // A detached target can't bubble to document/window, so up listeners
+    // registered there (rather than on the element itself) would be missed.
+    if (!p.target.isConnected) document.dispatchEvent(upEvent(id, p));
+  };
+
   let cancelAll = () => {
-    for (let [id, target] of activePointers) {
-      target.dispatchEvent(new PointerEvent("pointerup", {
-        pointerId: id,
-        bubbles: true,
-        cancelable: true
-      }));
-    }
+    for (let [id, p] of activePointers) cancel(id, p);
     activePointers.clear();
   };
 
-  let lastMoveTime = 0;
-  listen(document, ["pointermove", "pointerdown"], () => lastMoveTime = performance.now(), { capture: true });
-  listen(document, "pointerdown",   (e) => activePointers.set(e.pointerId, e.target), { capture: true });
-  listen(document, "pointerup",     (e) => activePointers.delete(e.pointerId), { capture: true });
-  // Don't delete on pointercancel: let lostpointercapture fire cancelAll, which dispatches a
-  // synthetic pointerup so app-level handlers (opUp, unlisten(mv), etc.) can clean up properly.
+  // Surgically release a single pointer (by id) — used for events that name the
+  // pointer that was lost, so other simultaneous pointers (e.g. a piano chord)
+  // are left untouched.
+  let cancelOne = (e) => {
+    let p = activePointers.get(e.pointerId);
+    if (p) { cancel(e.pointerId, p); activePointers.delete(e.pointerId); }
+  };
 
+  let track = (e) => {
+    let p = activePointers.get(e.pointerId);
+    if (p) { p.lastMove = performance.now(); p.clientX = e.clientX; p.clientY = e.clientY; }
+  };
+
+  listen(document, "pointerdown", (e) => activePointers.set(e.pointerId, {
+    target: e.target, lastMove: performance.now(),
+    clientX: e.clientX, clientY: e.clientY,
+    pointerType: e.pointerType, isPrimary: e.isPrimary
+  }), { capture: true });
+  listen(document, "pointermove", track, { capture: true });
+  listen(document, "pointerup",   (e) => activePointers.delete(e.pointerId), { capture: true });
+  // pointercancel (system gesture, scroll, native drag) and lostpointercapture both
+  // name the lost pointer, so release just that one with a synthetic pointerup — this
+  // runs the app's own cleanup (opUp, unlisten(mv), etc.) without a bare delete that
+  // would orphan those listeners, and without disturbing other live pointers.
+  listen(document, "pointercancel",      cancelOne, { capture: true });
+  listen(document, "lostpointercapture", cancelOne, { capture: true });
+
+  // These give no pointerId and mean every pointer is gone, so clear them all.
   listen(document, "visibilitychange",   cancelAll, { capture: true });
-  listen(document, "lostpointercapture", cancelAll, { capture: true });
   listen(window,   "blur", cancelAll);
 
   let watchdogLoop = () => {
-    if (activePointers.size > 0 && performance.now() - lastMoveTime > period)
-      cancelAll();
+    let now = performance.now();
+    for (let [id, p] of [...activePointers])
+      if (now - p.lastMove > period) { cancel(id, p); activePointers.delete(id); }
     delayMs(period, watchdogLoop);
   };
   delayMs(-1);
