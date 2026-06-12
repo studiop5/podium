@@ -563,7 +563,7 @@ class Layout {
     // It will stash the pn and fire a NUMBERS event.
     // @param pn 1-based
     // @param force post pn even if it hasn't changed
-    if (!_score_.numbers) return; // stale flip callback can land mid score-swap, before init
+    if (!_score_?.numbers) return; // stale flip callback can land mid score-swap (_score_ null or pre-init)
     if (_score_.numbers.pn != pn || force) {
       _score_.numbers.pn = pn;
       _body_.dispatchEvent(new CustomEvent("NUMBERS", { detail: {sender:this} }));
