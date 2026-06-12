@@ -2138,7 +2138,13 @@ class FileListView {
       this.keyState.txt = txt;
       let tc = txt.textContent ;
       let re = new RegExp(this.keyState.keys.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
-      let marked = tc.replace(re,`<mark>${tc.match(re)[0]}</mark>`) ;
+      // The filename is attacker-influenced (cloud/downloaded files), so each
+      // segment must be HTML-escaped before going into innerHTML; only the
+      // <mark> wrapper around the matched run is literal markup.
+      let m = tc.match(re) ;
+      let marked = m
+        ? escapeHtml(tc.slice(0, m.index)) + `<mark>${escapeHtml(m[0])}</mark>` + escapeHtml(tc.slice(m.index + m[0].length))
+        : escapeHtml(tc) ;
       this.keyState.span = helm(`<span>${marked}</span>`) ;
       txt.replaceWith(this.keyState.span) ;
     }

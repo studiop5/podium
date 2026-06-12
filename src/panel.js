@@ -145,7 +145,11 @@ class Select {
       // chars in option that were matched by keyBuf (user's typed chars)
       if(matched && matched.length > 0) {
         let re =  new RegExp(matched.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
-        toggle.innerHTML = "<div>" + option.replace(re,`<mark>${option.match(re)[0]}</mark>`) + "</div>";
+        let m = option.match(re) ;
+        let inner = m
+          ? escapeHtml(option.slice(0, m.index)) + `<mark>${escapeHtml(m[0])}</mark>` + escapeHtml(option.slice(m.index + m[0].length))
+          : escapeHtml(option) ;
+        toggle.innerHTML = "<div>" + inner + "</div>";
       }
       else toggle.textContent = option;
       toggle.dispatchEvent(new CustomEvent('SELECTED', { detail:option}));
