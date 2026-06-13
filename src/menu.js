@@ -1628,6 +1628,11 @@ class Menu {
 
       case "symbols": { // actually, a fabric text obj
         let { alpha, codePoint, height, rgb, size } = activeCell.stash;
+        // No symbol selected (the panel deselects to null, see SymbolsPanel):
+        // tell the user and insert nothing, rather than building a
+        // fabric.Text(null), which throws in _splitTextIntoLines and takes down
+        // the whole canvas.
+        if (!codePoint) { toast("No symbol selected."); return; }
         let color = fabric.Color.fromHex(rgb);
         color.setAlpha(alpha);
         let rgba = color.toRgba();
