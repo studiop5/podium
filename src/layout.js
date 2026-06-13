@@ -474,7 +474,7 @@ class Layout {
         }
 
         case "flatten": {
-          dialog(`Confirm: Flatten all annotations on this page?<br>(cannot be undone)`, 
+          dialog(`Confirm: Flatten all annotations on this page?<br>(cannot be undone)`,
             { Flatten: { svg: "Flatten" }, Cancel: { svg: "Cancel" } },
             (_e, _prop, tag, args) => {
               if(tag == "Flatten") pg.flattenObjects();

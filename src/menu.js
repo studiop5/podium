@@ -1550,9 +1550,12 @@ class Menu {
     switch (key) {
 
       case "edit":
-        if(target && !target.hasControls) target.hasControls = true;
-        else if (!target && !canvas.getActiveObject() && canvas.getObjects().length > 0)
-          delay(1, () => canvas.setActiveObject(canvas.getObjects().at(-1)));
+        if(target && !target.flatten && !target.hasControls) target.hasControls = true;
+        else if (!target && !canvas.getActiveObject()) {
+          // select the most-recent *editable* object (skip frozen/flattened ones)
+          let editable = canvas.getObjects().filter(o => !o.flatten);
+          if (editable.length) delay(1, () => canvas.setActiveObject(editable.at(-1)));
+        }
         canvas.requestRenderAll();
         return;
 
