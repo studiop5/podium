@@ -1917,7 +1917,7 @@ class TableLayout extends Layout {
     let yStep = pgHeight * vStep;
     let pgCount = score.pgs.length;
     for (let pn = 1, top = 0; pn <= pgCount; top += yStep) {
-      for (let col = 0, left = 0; col < pages && pn <= pgCount; pn++, col++, left += xStep) 
+      for (let col = 0, left = 0; col < pages && pn <= pgCount; pn++, col++, left += xStep)
           this.gridCoords.push({pn, top,  left});
     }
 
@@ -1974,8 +1974,14 @@ class TableLayout extends Layout {
       animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
         this.cell.pz, `left, top, font-size ${_gs_}ms`);
     else { 
-      if(this.fit == "Height") // reduce fontSize so layout fits window's height
-        this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / this.layout.offsetHeight  + "em";
+      if(this.fit == "Height") { // reduce fontSize so layout fits window's height
+        // Guard the division: a collapsed layout (offsetHeight 0, e.g. when the
+        // vertical-gap slider stacks every row at top 0) would set fontSize to
+        // "Infinityem" — invalid, so the page would misrender. Only refit when
+        // the measured height is finite and positive.
+        let h = this.layout.offsetHeight;
+        if (h > 0) this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / h + "em";
+      }
       if(this.animated)
         animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
           this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}ms`);
