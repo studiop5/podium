@@ -54,6 +54,16 @@ class Menu {
       will-change: transform; /* fix for ipad compositing */
       border-radius: 50%;
       overflow: hidden;
+      /* clip-path (unlike border-radius/overflow) clips hit-testing too, so the
+         corners — and the cell clip-path triangles, which extend to the bbox
+         corners — are not hittable outside the circle. */
+      clip-path: circle(50%);
+      /* border-radius clips the corners visually but NOT for hit-testing, so a
+         pointerdown in a rounded-off bbox corner would otherwise land on this
+         rectangular container (which carries no data-key) and opDown's
+         dataset.key-or-grip fallback would treat it as a grip. Make the
+         containers non-hittable; the interactive cells/grip opt back in below. */
+      pointer-events: none;
     }
     .Menu__ring {
       position: absolute;
@@ -66,6 +76,7 @@ class Menu {
       background: var(--menu-cell-bg);
       color: var(--menu-icon-color);
       box-shadow: var(--menu-cell-box-shadow);
+      pointer-events: auto; /* opt back in: the holder above is pointer-events:none */
     }
     .Menu__cell-contents {
       margin-top: var(--spacing-sm);
@@ -110,6 +121,7 @@ class Menu {
       position: absolute;
       background: var(--menu-disk-bg);
       color: var(--menu-icon-color);
+      pointer-events: auto; /* opt back in: the holder above is pointer-events:none */
     }
     .Menu__cell-disabled {
       color: var(--color-text-muted);
