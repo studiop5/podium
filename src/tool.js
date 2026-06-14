@@ -562,8 +562,9 @@ class Piano {
 
     // piano key press handler
     this.panel.listeners.push(listen(this.keyboard, "pointerdown", (e) => {
-      e.target.setPointerCapture(e.pointerId);
       let midiOffset = e.target.dataset.sample;
+      if (!midiOffset) return; // pointerdown landed between keys / on a non-key element
+      e.target.setPointerCapture(e.pointerId);
       noteOn(midiOffset);
       listen(e.target, "pointerup", (e) => {
         noteOff(midiOffset);

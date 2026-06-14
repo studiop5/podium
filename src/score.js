@@ -272,7 +272,7 @@ class Pg {
           }
         }
 
-        if (_menu_.activeRing.key == "ink" && ["cut","copy","edit"].includes(_menu_.activeRing.activeCell.key))
+        if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell && ["cut","copy","edit"].includes(_menu_.activeRing.activeCell.key))
          _menu_.pgEvent(opts, this);
         EditPanel.update(this.canvas.getActiveObject()) ;
       };
@@ -499,6 +499,7 @@ class Pg {
     // and — at save time — baked into the page as ordinary PDF content rather
     // than an editable stamp annotation (see toPdf / objToPdf). The objects stay
     // on the canvas, visually unchanged; they're just frozen. Cannot be undone.
+    if (!this.canvas) return; // page not inflated (e.g. flatten fired during a layout transition)
     for (let obj of this.canvas.getObjects()) Pg.freeze(obj);
     this.canvas.discardActiveObject();
     this.canvas.requestRenderAll();
