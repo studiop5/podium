@@ -451,6 +451,7 @@ css( // common css declarations.
   *:not(input):not(textarea) {
     -webkit-user-select: none;  /* disable selection/Copy of UIWebView */
     -webkit-touch-callout: none; /* disable the IOS popup when long-press on a link */
+    -webkit-tap-highlight-color: transparent; /* iOS tap-flash; set on every element (not just keys) so delegated handlers on a container can't paint it */
   }
   hr {
     border: .12em solid white;

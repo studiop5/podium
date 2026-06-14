@@ -298,6 +298,11 @@ class Panel {
       box-shadow: var(--panel-inset-shadow);
       background: var(--panel-bg);
       z-index: 90;
+      /* Never let a panel exceed the viewport (dvh/dvw track the iOS URL bar).
+         Oversized panels are capped here; ones that want their overflow to
+         scroll (e.g. AboutPanel) cap their body to the viewport too. */
+      max-width: calc(100vw - 1em);
+      max-height: calc(100dvh - 1em);
     }
     .Panel__header {
       background: var(--panel-header-bg);
@@ -651,6 +656,11 @@ for more details.</p>
       margin: 0,
       width: "32em",
       height: "38em",
+      // Cap to the viewport (leaving room for the 3em header) so the panel
+      // always fits on screen at full font size; the body keeps a definite
+      // height, so the face cascade below can scroll the overflow.
+      maxWidth: "calc(100vw - 2em)",
+      maxHeight: "calc(100dvh - 4.5em)",
     });
     tabView.frame.style.height = "100%";
     tabView.faces.style.position = "relative";
@@ -658,6 +668,10 @@ for more details.</p>
     tabView.tabs["Version"].face.append(this.versionFace);
     tabView.tabs["Credits"].face.append(this.creditsFace);
     tabView.tabs["License"].face.append(this.licenseFace);
+    // Touch-drag scroll (no visible scrollbar) for any tab whose content
+    // exceeds the viewport-capped face — Credits most often.
+    for (let t of ["Version", "Credits", "License"])
+      tabView.tabs[t].face.classList.add("AboutPanel__scroll");
     this.body.append(tabView.elm);
     tabView.tabs["Version"].select();
   }

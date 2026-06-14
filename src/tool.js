@@ -604,7 +604,7 @@ class Piano {
       let clazz = noteName.includes("s") ? "Piano__key-black" : "Piano__key-white" + " " + noteName;
       let realMidiNumber = midiTable[midi0][0] + octave;
       let midiOffset = realMidiNumber + "/" + midiTable[midi0][1];
-      keyHtml += `<div data-sample="${midiOffset}" data-midi=${"" + midi} class="${clazz}"}></div>\n`;
+      keyHtml += `<div data-sample="${midiOffset}" data-midi=${"" + midi} class="${clazz}"></div>\n`;
     }
     // last high f taken from lower d2 + 200 cents
     keyHtml += `<div data-sample="87/200" class="Piano__key-white f"></div>`;
@@ -1657,12 +1657,15 @@ class Review {
       -webkit-transform:rotateY(180deg); /* Safari and Chrome */
       -moz-transform:rotateY(180deg); /* Firefox */
     }
+    .Review__videoControls
+    { height: 5.5em; /* tall enough for scrubber, including time readout */
+    }
     .Review__mediaControls
     { width:30%;
       padding: 1em 0em 0em 1em;
       position:absolute;
       left: 0;
-      bottom: 0;      
+      bottom: .8em;      
     }
     .Review__scrubber
     { width:65%;
@@ -1737,8 +1740,11 @@ class Review {
            <div data-tag="spectrogram" class="Review__spectrogram"></div>
            <canvas height="256" width="${this.bufSize}" data-tag="waveform" class="Review__waveform"></canvas>
          </div>
-         <div data-tag="scrubberElm"></div>
-         <div data-tag="mediaControlsElm"></div>
+
+         <div data-tag="videoControls" class="Review__videoControls">
+           <div data-tag="mediaControlsElm"></div>
+           <div data-tag="scrubberElm"></div>
+         </div>
        </div>
 
        <!--  Options Panel -->
@@ -1963,6 +1969,7 @@ class Review {
         }
       }
     });
+
     this.mediaControlsElm.replace(this.mediaControls.elm);
     this.mediaControls.elm.classList.add("Review__mediaControls");
 
@@ -1996,15 +2003,15 @@ class Review {
 
     listen(this.video, ["loadedmetadata"],() => {
       // After video first loads, resize this.elm and its children to
-      // accomodate the video's aspect 
-      let controlsHeight = getBox(this.controls.elm).height;
-      let mediaControlsHeight = getBox(this.mediaControls.elm).height;
-      let videoHeight = getBox(this.video).height;
+      // accomodate the video's aspect reatio
+      let controlsHeight = this.controls.elm.offsetHeight;
+      let videoControlsHeight = this.videoControls.offsetHeight ;
+      let videoHeight = this.video.offsetHeight;
       this.waveview.style.height = pxToEm(videoHeight, this.panel.elm);
-      this.viewer.style.height = this.options.style.height = pxToEm(mediaControlsHeight + videoHeight, this.panel.elm);
-      this.elm.style.height = pxToEm(controlsHeight + mediaControlsHeight + videoHeight, this.panel.elm);
-      this.buildWave(); },
-      { once: true }
+      this.viewer.style.height = this.options.style.height = pxToEm(videoControlsHeight + videoHeight, this.panel.elm);
+      this.elm.style.height = pxToEm(videoHeight + videoControlsHeight + controlsHeight, this.panel.elm);
+      this.buildWave(); 
+      }, { once: true }
     );
 
     this.panel.listeners.push(
