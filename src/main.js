@@ -69,10 +69,10 @@ window.pdfjsLib.GlobalWorkerOptions.workerPort = new Worker("pdf.worker.min.mjs"
 
     ...and background swipe/long-press gestures:
 
-    - left or right swipe: toggle fullscreen
-    - top->bottom swipe:   center and expand menu
-    - bottom->top swipe:   park menu
-    - long press:          move menu to pointer location and expand
+    - bottom->top swipe (up):   toggle menu (center/expand <-> park)
+    - top->bottom swipe (down): toggle fullscreen (the app/fullscreen cell does the same;
+                                it's the only way in on iOS, which refuses fullscreen-by-swipe)
+    - long press:               move menu to pointer location and expand
 **/
 
 class Gestures {
@@ -96,7 +96,10 @@ class Gestures {
   toggleFullscreen() {
     document.fullscreenElement
       ? document.exitFullscreen()
-      : document.documentElement.requestFullscreen();
+      // iOS refuses requestFullscreen outside a direct tap (no transient
+      // activation from a swipe handler); swallow the rejection so it stays a
+      // clean no-op there. Entry on iOS is via the app/fullscreen menu cell.
+      : document.documentElement.requestFullscreen().catch(() => {});
   }
 
   onWheel(e) {
@@ -162,11 +165,14 @@ class Gestures {
       this.timer.cancel();
       if (e.timedOut) return;
       if (!onBody) return;   // swipe gestures only from background
-      let dX = eup.clientX - e.clientX;
       let dY = eup.clientY - e.clientY;
-      if (Math.abs(dX) > gestureDelta) this.toggleFullscreen();
-      else if (Math.abs(dY) > gestureDelta)
-        delay(1, () => _menu_.collapsed ? _menu_.center(true) : _menu_.park());
+      if (Math.abs(dY) > gestureDelta) {
+        if (dY < 0) // bottom->top (swipe up): toggle the menu (center/expand <-> park)
+          delay(1, () => _menu_.collapsed ? _menu_.center(true) : _menu_.park());
+        else        // top->bottom (swipe down): toggle fullscreen
+          this.toggleFullscreen();
+      }
+      // horizontal swipes are unused (iPad reserves them to dismiss fullscreen)
     }, { once: true, capture: true });
   }
 

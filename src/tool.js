@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, Drag, getBox, helm, hide, iconSvg, listen, schedule, Schedule, SliderGroup, Surface, TabView, toast, unlisten, pxToEm,} from "./common.js";
+import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, Drag, helm, hide, iconSvg, listen, schedule, Schedule, SliderGroup, Surface, TabView, toast, unlisten, pxToEm,} from "./common.js";
 import { pianoSamples } from "./sample.js";
 import { panels, ScreenPanel } from "./panel.js";
 import { Yin } from "./yin.js";
@@ -121,7 +121,6 @@ class Piano {
       background:linear-gradient(to bottom,#eee 0%,#fff 100%);
       touch-action: manipulation; 
       user-select: none;
-      -webkit-tap-highlight-color: transparent;
     }
     .Piano__key-white:active {
       border-top:.06em solid #777;
@@ -144,7 +143,6 @@ class Piano {
       background:linear-gradient(45deg,#222 0%,#555 100%);
       touch-action: manipulation;
       user-select: none;
-      -webkit-tap-highlight-color: transparent;
     }
     .Piano__key-black:active {
       box-shadow:-.06em -.06em .18em rgba(255,255,255,0.2) inset,0 -.18em .18em 3px rgba(0,0,0,0.6) inset,0 .06em .18em rgba(0,0,0,0.5);

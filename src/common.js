@@ -1704,6 +1704,7 @@ class Surface {
     let longPresser = new Schedule();
 
     panel.listeners.push(listen(surface, "pointerdown", (e) => {
+      if(surface.style.parentElement === _body_) surface.style.zIndex = ++_zTop_; // move to top of stacking order
       e.taken = true;
       // set z-index to bring surface on top (note: Curtain class manages its own z-index)
       if(this.constructor.name != "Curtain" && surface.parentElement == _body_) surface.style.zIndex = ++_zTop_;

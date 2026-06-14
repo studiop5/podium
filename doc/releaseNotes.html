@@ -281,17 +281,23 @@
         <p class="location">Anywhere on the score background</p>
         <p>Updates to gestures that provide quick access to commonly used controls without opening the menu:</p>
         <ul>
-            <li><strong>Swipe left or right</strong> — toggles full-screen mode on and off. Now swipe direction
-                does not matter; either direction performs the toggle.</li>
-            <li><strong>Swipe up or down</strong> — toggles the menu between its parked state (collapsed to
-                the top-left corner) and its default centered, expanded position. Either direction performs
-                the toggle.</li>
+            <li><strong>Swipe up</strong> — toggles the menu between its parked state (collapsed to
+                the top-left corner) and its default centered, expanded position.</li>
+            <li><strong>Swipe down</strong> — toggles full-screen mode. On iPhone and iPad, entering
+                full-screen by swipe isn't possible (WebKit only permits it from a direct tap), so use
+                the <strong>Screen</strong> button in the App Ring to enter; the downward swipe still exits.</li>
             <li><strong>Long-press anywhere on screen</strong> — summons the menu at the pointer
                 position. Previously, long-press only worked on the score background; it now works
                 everywhere, including directly on score content. Without lifting the pointer, you can
                 immediately drag the menu to any position, or fling it to park it at the nearest
                 edge — all in one continuous gesture.</li>
         </ul>
+        <div class="note"><strong>Why these directions:</strong> full-screen now lives on the vertical
+            (downward) swipe and the menu on the upward swipe, instead of full-screen on a horizontal
+            swipe. On iPadOS, WebKit reserves the sideways and downward "flick-away" gestures for
+            exiting full-screen and won't let go of them — which clashed with the old mapping. Moving
+            both actions onto the vertical axis lets the same gesture mean the same thing across WebKit
+            (Safari), Blink (Chrome/Edge), and Gecko (Firefox).</div>
         <p class="guidebook-link">
             See the Guidebook: <a href="Guidebook.html#chapter-3">Chapter 3: Interface Basics</a>
         </p>
