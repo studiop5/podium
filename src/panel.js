@@ -1697,14 +1697,18 @@ class MetronomePanel extends Panel {
         tempo: { min: 1, max: 220, step: 1, msg: "Tempo: {value} bpm", value: 60, },
         latency: { min: -300, max: 300, step: 10, msg: "Latency: {value}ms", value: 0},
       },
-      (e, prop, tag) => {
-        stash.prop = tag;
-        let tempo = Math.round(tag) ;
-        metronome.bpm.textContent = tempo ;
-        Object.assign(metronome, stash);
+      (e, prop, value) => {
+        // Push only the numeric slider values onto the metronome. The old code
+        // did Object.assign(metronome, stash), which also copied the stash's
+        // `mute`/`state`/`trace` strings — and a truthy string landing in the
+        // boolean metronome.mute silenced it on every slider move (see tock()).
+        // (SliderGroup has already written Number(value) into stash[prop].)
+        metronome.tempo = stash.tempo;
+        metronome.latency = stash.latency;
+        if (prop == "tempo") metronome.bpm.textContent = Math.round(stash.tempo);
         if (stash.state == "Pause") {
           metronome.play(false);
-          this.adjuster.run(Math.max(500, tempo * 1.5)) ; // pause while slider is adjusting, then play
+          this.adjuster.run(Math.max(500, metronome.tempo * 1.5)) ; // pause while slider is adjusting, then play
         }
       }
     );
