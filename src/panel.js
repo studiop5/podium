@@ -2314,7 +2314,7 @@ class Pzr extends Surface {
         default: return iconPaths["Edit"] ; // assume activeSelection
       }
     }
-    let tmp = helm(`<svg viewBox="0 0 24 24" 
+    let tmp = helm(`<svg viewBox="0 0 24 24" width="1.6em" height="1.6em"
       style="grid-column:3;grid-row:3;stroke:none;fill:currentColor;">
       ${getIconPath()}</svg>`) ;
     this.iconSvg.replaceWith(tmp) ;
