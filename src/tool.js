@@ -1278,7 +1278,7 @@ conductor = `<defs>
     let beatPattern = this.beatPattern || this.beatPatterns[0];
     // Outermost svg tag. Transforms at this level effect entire surface. Note: the svg transform tag doesn't
     // work on ios devices, so we use the css style version instead
-    let svg = `<svg style="transform:scale(1.75, 1.75);position:relative;pointer-events:none;" viewBox="0 0 1024 1024">`;
+    let svg = `<svg style="width:100%;height:100%;transform:scale(1.75, 1.75);position:relative;pointer-events:none;" viewBox="0 0 1024 1024">`;
     // Display the background
     svg += beatPattern.background;
     // pause indicator at top of metronome
