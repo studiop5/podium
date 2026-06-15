@@ -2086,8 +2086,8 @@ class FileListView {
              ${modified ? "Modified: "+ modified + "<br>" : ""}
            </div>
            <div>
-             ${source == "Local" ? "" : this.mode == "copy" ? "" : iconSvg("Pencil", {tag: "rename", style: "width:2.75em;padding:.5em;"})}
-             ${source == "Local" ? "" : this.mode == "copy" ? "" : iconSvg("Trash", {tag: "trash", style: "width:3em;padding:.5em;"})} </div>
+             ${source == "Local" ? "" : this.mode == "copy" ? "" : iconSvg("Pencil", {tag: "rename", size: "2.75em", style: "padding:.5em;"})}
+             ${source == "Local" ? "" : this.mode == "copy" ? "" : iconSvg("Trash", {tag: "trash", size: "3em", style: "padding:.5em;"})} </div>
            </div>
        </div>`);
     elm.style.background = color;
@@ -2440,7 +2440,7 @@ class FileSystemView extends FileListView {
 
       dirElm = helm(
         `<div dir-source="${escapeHtml(this.source)}" data-path="${escapeHtml(path)}" style="background:${background}"{ class="Flv-path__dir">
-         ${iconSvg(icon, { style: "width:1.5em;" })}&nbsp${escapeHtml(dir)}&nbsp/</div>`
+         ${iconSvg(icon, { size: "1.5em" })}&nbsp${escapeHtml(dir)}&nbsp/</div>`
       );
       elm.append(dirElm);
     });

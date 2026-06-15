@@ -634,7 +634,7 @@ for more details.</p>
     `<div style="position:relative;width:100%;height:100%;box-sizing:border-box;">
         <div style="position:absolute;top:35%;left:50%;transform:translate(-50%,-50%);text-align:center;font-size:1.5em;">
           <div>PODIUM: Sheet Music Studio</div>
-          ${iconSvg("Podium", { style: "width:8em;" })}
+          ${iconSvg("Podium", { size: "8em" })}
           <div>Version ${_podiumVersion_}</div>
           <a style="font-size:.6em;" href="https://studiop5.org/release${_podiumVersion_}.html">Release Notes</a><br><br>
           <div style="font-size:.6em;color:#888;">${typeof chrome !== "undefined" && chrome.runtime?.id ? "Browser Extension" : window.matchMedia("(display-mode: standalone)").matches ? "Progressive Web App" : location.protocol + "//" + location.host}</div>

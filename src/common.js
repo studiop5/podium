@@ -2165,19 +2165,26 @@ function iconSvg(iconName, props = {}) {
   // Returns a string that can be included in html to display an icon whose path is defined
   // in the icon.js iconPaths object.
   // @iconName key in the iconPaths object.
-  // @props option object that contain overrides of the default properties defined here:
+  // @props option object that contain overrides of the default properties defined here.
+  //   Note: the (square) icon size comes from `size`, emitted as width/height ATTRIBUTES,
+  //   NOT from `style`. Attributes sit below class/style in the cascade, so a caller can
+  //   still override the size via `class` or `style`, but can never accidentally drop it.
+  //   Previously the size lived in the default `style`, so any caller that passed its own
+  //   `style` wiped it out, leaving a dimensionless <svg> — which renders at the 300x150
+  //   replaced-element default on WebKit/iOS (Blink/Gecko shrink it to fit). Pass `size`
+  //   (e.g. size:"3em") to resize.
   props = Object.assign(
     {
-      style: "width:2em;height:2em;",
+      size: "2em",
       viewBox: "0 0 24 24",
       class: "",
       type: "",
       tag: "iconSvg",
+      style: "",
     },
     props
   );
-  // return svg tag do display named icon  (assumed to be square) at given size.
-  return `<svg viewBox="${props.viewBox}" class="${props.class}" style="${props.style}" data-tag="${props.tag}" >
+  return `<svg viewBox="${props.viewBox}" width="${props.size}" height="${props.size}" class="${props.class}" style="${props.style}" data-tag="${props.tag}" >
           ${iconPaths[iconName]}</svg>`;
 }
 
