@@ -2186,6 +2186,12 @@ class Pzr extends Surface {
        align-items:center;
      }
      .Pz__control {
+       /* Explicit size: an inline <svg viewBox=...> with no width/height falls
+          back to the 300x150 replaced-element default on WebKit/iOS (Blink and
+          Gecko shrink it to the grid cell), which blew the controls up ~10x.
+          Pin it to the 1.6em grid cell. */
+       width: 1.6em;
+       height: 1.6em;
        fill: none;
        stroke: #444;
        stroke-width: 8;
