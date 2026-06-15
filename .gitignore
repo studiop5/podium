@@ -3,6 +3,10 @@ pdftests/
 GH
 cert.pem
 key.pem
+devCA.pem
+devCA-key.pem
+devCA.srl
+devCA.crt
 notes
 .aider*
 CLAUDE.md

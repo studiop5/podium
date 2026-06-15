@@ -13,7 +13,7 @@ import sys
 import subprocess
 
 if len(sys.argv) == 1:
-   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, yin=True, guide=True, cert=False, clean=False) ;
+   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, yin=True, guide=True, cert=False, clean=False, cert_host='') ;
 else:
   parser = argparse.ArgumentParser()
   parser.add_argument('-s','--sample', action='store_true', help='(re)build build/sample.js')
@@ -21,7 +21,8 @@ else:
   parser.add_argument('-p','--podium', action='store_true', help='(re)build build/podium.html')
   parser.add_argument('-y','--yin', action='store_true', help='(re)build build/yin.js')
   parser.add_argument('-g','--guide', action='store_true', help='(re)build guidebook keyword index')
-  parser.add_argument('--certificate', action='store_true', dest='cert', help='(re)build certificate')
+  parser.add_argument('--certificate', '--cert', action='store_true', dest='cert', help='(re)build certificate')
+  parser.add_argument('--cert-host', dest='cert_host', default='', help='comma-separated extra SAN hosts (IPs and/or names) to add to the dev certificate')
   parser.add_argument('-c','--clean', action='store_true', help='clean build artifacts from build/')
   parser.add_argument('-v','--verbose', action='store_true')
   args = parser.parse_args()
@@ -469,22 +470,52 @@ if args.podium:
 if(args.cert):
     if shutil.which('openssl') == None:
          sys.exit("Fatal error: creating certificate requires openssl executable in your path.") ;
-    # Discover all LAN IP addresses for the SAN field
-    import subprocess, re
-    lan_ips = set()
+    import subprocess, re, socket
+    # Build the SAN list entirely at runtime, so nothing host-specific is committed:
+    #   - localhost / 127.0.0.1 (always)
+    #   - this machine's short hostname and its <hostname>.local mDNS name
+    #     (an iPad on the same network can resolve .local, and it's stable across DHCP)
+    #   - every current LAN IPv4 address
+    #   - anything passed via --cert-host (comma-separated IPs and/or names)
+    dns_names = {"localhost"}
+    ip_addrs  = {"127.0.0.1"}
+    host = socket.gethostname().split('.')[0]
+    if host: dns_names |= {host, host + ".local"}
     try:
-        result = subprocess.run(['ip', '-4', '-o', 'addr', 'show'], capture_output=True, text=True)
-        for match in re.finditer(r'inet (\d+\.\d+\.\d+\.\d+)', result.stdout):
-            lan_ips.add(match.group(1))
+        out = subprocess.run(['ip', '-4', '-o', 'addr', 'show'], capture_output=True, text=True).stdout
+        ip_addrs |= set(re.findall(r'inet (\d+\.\d+\.\d+\.\d+)', out))
     except: pass
-    lan_ips -= {'127.0.0.1'}
-    san = "DNS:localhost,IP:127.0.0.1" + "".join(f",IP:{ip}" for ip in sorted(lan_ips))
+    for entry in filter(None, (h.strip() for h in args.cert_host.split(','))):
+        (ip_addrs if re.fullmatch(r'\d+\.\d+\.\d+\.\d+', entry) else dns_names).add(entry)
+    san = ",".join([f"DNS:{n}" for n in sorted(dns_names)] + [f"IP:{ip}" for ip in sorted(ip_addrs)])
     print(f"  Certificate SAN: {san}")
-    os.system('openssl req -newkey rsa:2048 -new -nodes -x509 -days 825 '
-               '-keyout key.pem -out cert.pem '
-               '-subj "/CN=Podium Dev Server" '
-              f'-addext "subjectAltName={san}" '
-               '-addext "extendedKeyUsage=serverAuth"') ;
+
+    # Persistent local development CA. Install devCA.pem on each test device ONCE
+    # (iPad: get the file onto it, then Settings > General > VPN & Device Management
+    # to install the profile, and Settings > General > About > Certificate Trust
+    # Settings to enable full trust). The leaf below is signed by it, so you can
+    # re-run --cert any time (new IP, new --cert-host) WITHOUT re-touching the device.
+    if not (os.path.exists('devCA.pem') and os.path.exists('devCA-key.pem')):
+        print("  Creating local dev CA -> devCA.pem  (install this on your test devices)")
+        os.system('openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -sha256 '
+                  '-keyout devCA-key.pem -out devCA.pem -subj "/CN=Podium Dev CA" '
+                  '-addext "basicConstraints=critical,CA:true" '
+                  '-addext "keyUsage=critical,keyCertSign,cRLSign"') ;
+
+    # Leaf cert, signed by the CA. iOS Safari rejects TLS server certs valid for
+    # more than 398 days, so keep it short.
+    with open('cert.ext', 'w') as f:
+        f.write(f"subjectAltName={san}\n"
+                "basicConstraints=critical,CA:false\n"
+                "keyUsage=critical,digitalSignature,keyEncipherment\n"
+                "extendedKeyUsage=serverAuth\n")
+    os.system('openssl req -newkey rsa:2048 -nodes -keyout key.pem -out cert.csr '
+              '-subj "/CN=Podium Dev Server"') ;
+    os.system('openssl x509 -req -in cert.csr -CA devCA.pem -CAkey devCA-key.pem '
+              '-CAcreateserial -days 397 -sha256 -out cert.pem -extfile cert.ext') ;
+    for tmp in ('cert.csr', 'cert.ext'):
+        if os.path.exists(tmp): os.remove(tmp)
+    print("  Wrote cert.pem + key.pem (leaf signed by devCA.pem).")
 
 if args.guide:
     #####################################################
