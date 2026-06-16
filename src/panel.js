@@ -1383,7 +1383,7 @@ class LayoutPanel extends Panel {
     };
 
     let handler = (e, tag, value, props) => {
-      if (tag == "fit") this.cell.pz = null; // reset pz-set marker so layout will use fit setting
+      if (tag == "fit") this.cell.stash.pz = null; // reset pz-set marker so layout will use fit setting
       if (tag == "pace") return; // no rebuild required
       if (_score_ && this.cell == Layout.activeLayout.cell) {
         if(tag == "pgSnap") // no rebuild, but must update
