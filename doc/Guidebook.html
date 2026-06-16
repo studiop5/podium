@@ -1197,7 +1197,7 @@ function closeVideo(event, container) {
         <li>If both fingers are on the background, all objects in the workspace resize together</li>
     </ul>
 
-    <p><strong>Two-finger drag gestures:</strong> Drag, using two fingers, to move the object under the first finger that touches the screen.</p>
+    <p><strong>Two-finger drag gestures:</strong> Drag, using two fingers, to move the object under the first finger that touches the screen (or all objects, if both touches are on the background).</p>
 
     <p><strong>Mouse alternative:</strong> Hold Ctrl and drag to move. Hold Ctrl and scroll the mouse wheel to resize. For greater accuracy, hold Ctrl+Shift while scrolling.</p>
 
@@ -1492,6 +1492,10 @@ function closeVideo(event, container) {
     </ul>
 
     <p>By default, scores open with the last used layout on the current browser/platform or, if none, Book. The layout can be changed any time by tapping the desired cell. Whenever a score is saved, its last layout is stored as metadata in the PDF file, as well as in browser local storage.</p>
+
+    <p><strong>Remembered view:</strong> However you pan and zoom a layout — for instance, dragging and pinching the score to fill the screen on a tablet — Podium remembers that position and size. Each layout keeps its own view, so switching layouts and back restores each one as you left it. Your view is also saved with the score, so reopening the file returns to exactly where you left off.</p>
+
+    <div class="note">A remembered view is tied to the screen size it was captured on. If you reopen a score on a device with a differently sized window — or simply rotate a tablet between portrait and landscape — Podium ignores the saved position and falls back to the default fit, so the score can never end up positioned off-screen.</div>
 
     <div class="note">In a Podium Layout, all pages must be the same size. Whenever a score file is opened, the maximum page width and height are first determined. Then, if any pages are smaller than this maximum, they are by default centered and padded with a gray border on all sides. Alternatively, smaller pages can be expanded: the score is scaled so its largest dimension fills the page, then centered in the other dimension. See the <a href="#chapter-4-details" class="chapter-link">Details Panel</a> to configure this behavior.</div>
 

@@ -180,12 +180,23 @@ class Gestures {
     _menu_.op.schedule.cancel();
     this.timer.cancel();
     e.stopImmediatePropagation();
+    // Pan the grabbed element, or ALL pz elements when the drag starts on the
+    // background (mirrors the two-finger background pan). pzTargets() already
+    // returns [grabbed] or all-pz based on _pzTarget_. Snapshot start positions,
+    // then translate by the pointer delta, clamping each 0x0 anchor on-screen.
+    let startX = e.clientX, startY = e.clientY;
+    let starts = new Map();
+    for (let target of this.pzTargets())
+      if (target !== _body_)
+        starts.set(target, { left: parseFloat(target.style.left) || 0, top: parseFloat(target.style.top) || 0 });
     let mv = listen(_body_, "pointermove", emv => {
       emv.stopImmediatePropagation();
-      if (this.tr1.pz === _body_) return;
-      this.tr1.pz.style.left = emv.clientX - this.tr1.dX + "px";
-      this.tr1.pz.style.top  = emv.clientY - this.tr1.dY + "px";
-      this.tr1.pz.classList.add("pz-set");
+      let dx = emv.clientX - startX, dy = emv.clientY - startY;
+      for (let [target, { left, top }] of starts) {
+        target.style.left = clamp(left + dx, 0, innerWidth) + "px";
+        target.style.top  = clamp(top + dy, 0, innerHeight) + "px";
+        target.classList.add("pz-set");
+      }
     }, { capture: true });
     listen(_body_, "pointerup", eup => {
       eup.captured = true;
@@ -194,6 +205,7 @@ class Gestures {
   }
 
   startPinch(e) {
+    this.pinchEnd?.();   // clear any pinch left dangling (e.g. torn down by a tab-blur synthetic up)
     this.tr2 = { e, pz: e.target.closest(".pz") || _body_ };
     let mid0X = (this.tr1.e.clientX + this.tr2.e.clientX) / 2;
     let mid0Y = (this.tr1.e.clientY + this.tr2.e.clientY) / 2;
@@ -206,6 +218,7 @@ class Gestures {
         top:  parseFloat(target.style.top)  || 0,
       });
     let mv = listen(_body_, "pointermove", emv => {
+      if (!this.tr1 || !this.tr2) return;   // pinch already ended
       emv.stopImmediatePropagation();
       if (emv.pointerId === this.tr1.e.pointerId) this.tr1.e = emv;
       else this.tr2.e = emv;
@@ -216,17 +229,35 @@ class Gestures {
       for (let [target, { fontSize, left, top }] of targets) {
         target.style.fontSize = Math.max(fontSize * ratio, this.minEmSize) + "em";
         if (target !== _body_) {
-          target.style.left = midX - (mid0X - left) * ratio + "px";
-          target.style.top  = midY - (mid0Y - top)  * ratio + "px";
+          // Clamp the 0x0 anchor into the viewport so a zoom/translate can't shove
+          // the element off-screen. Every .pz is a 0x0 div with its content flex-
+          // centered on it, so keeping the anchor on-screen keeps the content's
+          // center visible (same rule the menu/panel one-finger drag use).
+          target.style.left = clamp(midX - (mid0X - left) * ratio, 0, innerWidth) + "px";
+          target.style.top  = clamp(midY - (mid0Y - top)  * ratio, 0, innerHeight) + "px";
         }
         target.classList.add("pz-set");
       }
     }, { capture: true });
-    listen(_body_, "pointerup", eup => {
+    // End the pinch ONLY on a real finger lift. When both fingers land on the
+    // same surface, iOS/Android WebKit/Blink fire a spurious `pointercancel` for
+    // the captured first pointer as the second finger joins; the pointer-watchdog
+    // turns that into a SYNTHETIC `pointerup` — which would abort the pinch even
+    // though both fingers are still physically down (the reported "doesn't work
+    // unless the fingers straddle layout+background" bug). Synthetic events have
+    // isTrusted=false, so ignore them; the pinch survives and the still-moving
+    // finger keeps driving the zoom. (Not `once`, so an ignored up doesn't consume it.)
+    let up = listen(_body_, "pointerup", eup => {
+      if (!eup.isTrusted) return;
       eup.stopImmediatePropagation();
+      this.pinchEnd();
+    }, { capture: true });
+    this.pinchEnd = () => {
       unlisten(mv);
+      unlisten(up);
+      this.pinchEnd = null;
       this.tr1 = this.tr2 = null;
-    }, { capture: true, once: true });
+    };
   }
 }
 

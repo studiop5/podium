@@ -464,17 +464,18 @@ class Menu {
       cells: {
         book: {
           name: "Book",
-          pz: null, // when set, the pz (pan-zoom) structures format is always { left:"0px",top:"0px",fontSize:"2em"} 
+          storage: "score", // layout settings (incl. pz pan-zoom) persist per-score, not as a global localStorage default
           stash: {
             fit: "Auto", // "Auto","Width","Height","None",
             pnShow: "On", // "On" or "Off"
             pace: 85, // pace: animation speed in %, 0 means no animation
+            pz: null, // user pan-zoom saved with the score. When set: { left, top, fontSize, w, h }; applied only when w/h match the current viewport (see Layout.userPz)
           },
           svgPath: iconPaths["Book"],
         },
         horizontal: {
           name: "Horizontal",
-          pz: null,
+          storage: "score",
           stash: {
             fit: "Auto", // "Auto", "Width","Height","None"
             gap: 0.2, // [0,10]% of fit dimension
@@ -482,12 +483,13 @@ class Menu {
             pgShow: 2,
             pgSnap: 2,
             pace: 500, // msec/snap
+            pz: null, // see book cell
           },
           svgPath: iconPaths["Horizontal Scroll"],
         },
         vertical: {
           name: "Vertical",
-          pz: null,
+          storage: "score",
           stash: {
             fit: "Auto", // "Auto", "Width","Height","None"
             gap: 0.2, // [0,10]% of fit dimension
@@ -495,18 +497,20 @@ class Menu {
             pgShow: 1, // [1,_score_.pages.length)
             pgSnap: 0, // 0 = disabled
             pace: 500, // msec/snap
+            pz: null, // see book cell
           },
           svgPath: iconPaths["Vertical Scroll"],
         },
         table: {
           name: "Table",
-          pz: null,
+          storage: "score",
           stash: {
             fit: "Auto", // "Auto", "Width","Height" (note: no "None")
             pages: 15, // [2,_score_.pages.length)
             horizontalGap: 0, // [-100,100]%
             verticalGap: 0, // [-100,100]%
             pnShow: "On",
+            pz: null, // see book cell
           },
           svgPath: iconPaths["Table"],
         },

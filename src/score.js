@@ -1061,6 +1061,13 @@ class Score {
     this.undoStack = [];
     this.maxUndo = 10;
 
+    // Each score starts with no saved pan-zoom; the score's own (if it saved one)
+    // is restored below by stashFromJsonObj. Clearing here — before that restore,
+    // and before the active layout's destructor runs (which is too late, since the
+    // restore has already happened) — prevents a previous score's pz from carrying
+    // over while letting this score's own restored pz survive.
+    if (activate)
+      for (let c of Object.values(_menu_.rings.layout.cells)) c.stash.pz = null;
 
     if (pdfData) {
       this.size = pdfData.byteLength;
@@ -1454,6 +1461,9 @@ class Score {
       this.embeddedFonts = [];
       let now = new Date();
 
+      // Snapshot the active layout's current pan-zoom into its cell stash so the save
+      // captures the on-screen view (pz is otherwise only written on layout teardown).
+      if (this == _score_) Layout.activeLayout?.capturePz();
       let attachment = {
         created: this.created,
         modified: now,

@@ -133,7 +133,7 @@ class Layout
 
 class Layout {
   static borderSize = 0.1; // in em's
-  static margin = 5 / _dvPxRt_; // default margin between layout and viewport
+  static margin = 1.5 / _dvPxRt_; // default margin between layout and viewport
   static activeLayout = null;
 
   static recto =
@@ -160,7 +160,7 @@ class Layout {
       position: absolute;
       box-shadow: var(--layout-shadow);
       border-radius: calc(var(--borderRadius) / 2);
-      border: 0.1em solid var(--layout-border-color, #222);
+      border: 0.025em solid var(--layout-border-color, #222);
       box-sizing: border-box;
       background-image:
         var(--layout-gradient),
@@ -228,17 +228,35 @@ class Layout {
 
   destructor() {
     // Called when layout is about to be replaced by another. Subclasses should call super().
-    if(this.score == _score_) { // When changing layouts for same score, remember user's pz changes, if any:
-      if (this.elm.classList.contains("pz-set")) {
-        let styles = getComputedStyle(this.elm);
-        this.cell.pz = { left: styles.left, top: styles.top, fontSize: (parseFloat(styles.fontSize) / _pxPerEm_) + "em" };
-      }
-    }
-    else // layout for new score: clear any user pz changes
-      for(let cell of Object.values(_menu_.rings.layout.cells)) cell.pz = null ;
-    for(let pg of this.score.pgs) pg.deflate(); 
+    this.capturePz(); // remember user's pan-zoom across a same-score layout switch
+    // (A different score's stale pz is cleared at score-load time, before that
+    //  score's own saved pz is restored — see Score.open. Doing it here would
+    //  wipe the pz that load already restored, since this destructor runs after.)
+    for(let pg of this.score.pgs) pg.deflate();
     unlisten(this.pnListener);
     this.elm.remove();
+  }
+
+  capturePz() {
+    // Snapshot the current pan-zoom into cell.stash.pz (which persists with the saved
+    // score). Stamped with the viewport so userPz only re-applies it at the same size.
+    // Called on a same-score layout switch (destructor) AND before a score save — pz
+    // isn't otherwise written until teardown, so a save would miss the current view.
+    if (this.score == _score_ && this.elm.classList.contains("pz-set")) {
+      let styles = getComputedStyle(this.elm);
+      this.cell.stash.pz = { left: styles.left, top: styles.top, fontSize: (parseFloat(styles.fontSize) / _pxPerEm_) + "em", w: innerWidth, h: innerHeight };
+    }
+  }
+
+  userPz() {
+    // The user's saved pan-zoom for this layout's cell, but only if it was captured
+    // at the current viewport size; otherwise null, so the default fit is used.
+    // (left/top/fontSize are absolute, so re-applying them at a different window
+    //  size — another device, or a rotated tablet — could land the score off-screen.)
+    let pz = this.cell.stash.pz;
+    return pz && pz.w == innerWidth && pz.h == innerHeight
+      ? { left: pz.left, top: pz.top, fontSize: pz.fontSize }
+      : null;
   }
 
   build() {
@@ -666,6 +684,11 @@ class BookLayout extends Layout {
             height: 125%; /* extra is clipped off */
             pointer-events: none;
           }
+          .BookLayout__castShadow {
+            position:absolute;
+            pointer-events: none;
+            overflow: hidden; /* clip the path to the page box (the curl can overhang) like the slot does; the CSS drop-shadow still spills past */
+          }
        `
   );
 
@@ -700,6 +723,7 @@ class BookLayout extends Layout {
           <div data-slot="E" class="BookLayout__slot"></div>
           <div data-slot="F" class="BookLayout__slot"></div>
           <div data-tag="shadow" class="BookLayout__shadow"></div>
+          <svg data-tag="castShadow" class="BookLayout__castShadow"><path fill="#fff"></path></svg>
         </div>
       </div>
      </div>
@@ -775,8 +799,8 @@ class BookLayout extends Layout {
     // Layout scroll g((eo)metry) in units of css pixels
     let g = this.cell.geo = (this.cell.geo || {});
     // top/bottom gap and left/right gap, for a border-radius of .8em
-    g.tbGap = .15 * _pxPerEm_;
-    g.borderPx = 0.1 * _pxPerEm_ * 2; // top+bottom border included in box-sizing:border-box height
+    g.tbGap = .2 * _pxPerEm_; /// .15
+    g.borderPx = 0.025 * _pxPerEm_ * 2; // top+bottom border included in box-sizing:border-box height
     g.lrGap = this.pnShow ==  "On"? 0: g.tbGap ;
     // Pager always occupies its own strip (hidden or not), lrGap=0 when pager is present.
     // Hidden pager gets Layout.margin width — narrow but non-overlapping with pages.
@@ -851,6 +875,7 @@ class BookLayout extends Layout {
     g.shadowWidth = g.pgWidth / _pxPerEm_;
     this.shadow.style.width = toEm(g.shadowWidth);
     this.shadow.remove(); // initially not visible
+    this.castShadow.remove();
 
     // slots
     for (let slot of this.slots) {
@@ -875,9 +900,10 @@ class BookLayout extends Layout {
     //
     let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
 
-    if(this.cell.pz)  // custom user-set size/position
-      animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0}, this.cell.pz, `left, top, font-size ${_gs_}ms`);
-    else animate(this.elm, 
+    let pz = this.userPz();
+    if(pz)  // custom user-set size/position
+      animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0}, pz, `left, top, font-size ${_gs_}ms`);
+    else animate(this.elm,
        {left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
        this.centerLT({ fontSize: "1em"}),
       `left, top, font-size ${_gs_}ms`);
@@ -1035,7 +1061,7 @@ class BookLayout extends Layout {
     //  @advancing when true: the page in slot 3 is pulled to the left,
     //   so advancing toward end of book. This page is the "leader", while
     //   slot 4 is the "follower".
-    let { shadow } = this;
+    let { shadow, castShadow } = this;
     let { pgWidth, pgHeight, shadowWidth } = this.cell.geo;
     let zoom = parseFloat(this.elm.style.fontSize);
     pgWidth *= zoom;
@@ -1084,7 +1110,39 @@ class BookLayout extends Layout {
       shadow.style.left = "unset";
 
       let alpha = Math.min((x + pgWidth) / shadowWidth, 1);
-      follower.style.filter = `drop-shadow(rgba(0, 0, 0, ${alpha * 0.3}) 2em 1em 1.5em)  drop-shadow(rgba(0, 0, 0, ${alpha * 0.15}) 0.5em 0.5em 0.5em) drop-shadow(rgba(0, 0, 0, ${alpha *  0.08}) 0px 0px 1em)`;
+      // CAST SHADOW — keeps the *real* feathered drop-shadow on iOS. The page
+      // itself can't be filtered (its clip-path descendant makes WebKit drop the
+      // shadow), so this <svg> caster carries the curl as an opaque <path> (no
+      // clip-path anywhere), takes the drop-shadow, and sits *behind* the opaque
+      // page so only its shadow shows. Same look as the old follower.filter on
+      // Blink/Gecko; iOS is the bet — verify on device.
+      this.spine.append(castShadow);
+      Object.assign(castShadow.style, {
+        width: pgWidth + "px",
+        height: pgHeight + "px",
+        top: "0",
+        right: "unset",
+        left: follower.style.left,
+        transformOrigin: follower.style.transformOrigin,
+        transform: follower.style.transform,   // coincident with the page
+        zIndex: 1,                             // behind the page (follower z=2)
+        // iOS SEAM FIX: a single large blur (the old 1.5em / 1em terms) gets
+        // tiled by Core Animation at ~512 device-px and blurs each tile in
+        // isolation, producing the hard light->dark seam ~halfway down the page.
+        // So keep every blur radius SMALL (<=0.5em, confirmed seam-free) and get
+        // the shadow's REACH from larger offsets instead (offsets just translate,
+        // they don't make the blur kernel cross a tile). A ramp of offset shadows
+        // at decreasing distance fakes the old soft falloff; the final 0-offset
+        // halo gives direction-independent coverage so BOTH the curl and the
+        // leading edge are shaded regardless of advancing/receding.
+        filter: `drop-shadow(rgba(0, 0, 0, ${alpha * 0.08}) 2.4em 1.2em 0.45em)
+          drop-shadow(rgba(0, 0, 0, ${alpha * 0.10}) 1.6em 0.8em 0.4em)
+          drop-shadow(rgba(0, 0, 0, ${alpha * 0.12}) 0.9em 0.45em 0.4em)
+          drop-shadow(rgba(0, 0, 0, ${alpha * 0.13}) 0.35em 0.18em 0.3em)
+          drop-shadow(rgba(0, 0, 0, ${alpha * 0.07}) 0 0 0.5em)`,
+      });
+      castShadow.setAttribute("viewBox", `0 0 ${pgWidth} ${pgHeight}`);
+      castShadow.firstElementChild.setAttribute("d", follower.firstChild ? follower.firstChild.style.clipPath.replace(/^path\(["']?|["']?\)$/g, "") : "");
       shadow.style.opacity = alpha;
       shadow.style.right = pgWidth - pullingEdgeWidth + "px";
       shadow.style.transform = `rotate(${pulledAngle - pullingAngle}rad)`;
@@ -1128,7 +1186,34 @@ class BookLayout extends Layout {
       follower.append(shadow);
       shadow.style.right = "unset";
       let alpha = Math.min((pgWidth - x) / shadowWidth, 1);
-      follower.style.filter = `drop-shadow(rgba(0, 0, 0, ${alpha * 0.3}) 2em 1em 1.5em)  drop-shadow(rgba(0, 0, 0, ${alpha * 0.15}) 0.5em 0.5em 0.5em) drop-shadow(rgba(0, 0, 0, ${alpha *  0.08}) 0px 0px 1em)`;
+      // CAST SHADOW — see the note above in the advancing branch.
+      this.spine.append(castShadow);
+      Object.assign(castShadow.style, {
+        width: pgWidth + "px",
+        height: pgHeight + "px",
+        top: "0",
+        right: "unset",
+        left: follower.style.left,
+        transformOrigin: follower.style.transformOrigin,
+        transform: follower.style.transform,   // coincident with the page
+        zIndex: 0,                             // behind the page
+        // iOS SEAM FIX: a single large blur (the old 1.5em / 1em terms) gets
+        // tiled by Core Animation at ~512 device-px and blurs each tile in
+        // isolation, producing the hard light->dark seam ~halfway down the page.
+        // So keep every blur radius SMALL (<=0.5em, confirmed seam-free) and get
+        // the shadow's REACH from larger offsets instead (offsets just translate,
+        // they don't make the blur kernel cross a tile). A ramp of offset shadows
+        // at decreasing distance fakes the old soft falloff; the final 0-offset
+        // halo gives direction-independent coverage so BOTH the curl and the
+        // leading edge are shaded regardless of advancing/receding.
+        filter: `drop-shadow(rgba(0, 0, 0, ${alpha * 0.08}) 2.4em 1.2em 0.45em)
+          drop-shadow(rgba(0, 0, 0, ${alpha * 0.10}) 1.6em 0.8em 0.4em)
+          drop-shadow(rgba(0, 0, 0, ${alpha * 0.12}) 0.9em 0.45em 0.4em)
+          drop-shadow(rgba(0, 0, 0, ${alpha * 0.13}) 0.35em 0.18em 0.3em)
+          drop-shadow(rgba(0, 0, 0, ${alpha * 0.07}) 0 0 0.5em)`,
+      });
+      castShadow.setAttribute("viewBox", `0 0 ${pgWidth} ${pgHeight}`);
+      castShadow.firstElementChild.setAttribute("d", follower.firstChild ? follower.firstChild.style.clipPath.replace(/^path\(["']?|["']?\)$/g, "") : "");
       shadow.style.opacity = alpha;
       shadow.style.left = pgWidth - pullingEdgeWidth + "px";
       shadow.style.transform = `rotate(${pulledAngle - pullingAngle}rad)`;
@@ -1248,6 +1333,7 @@ class BookLayout extends Layout {
       this.spine.append(slot);
     }
     this.shadow.remove();
+    this.castShadow.remove();
   }
 
 }
@@ -1538,7 +1624,7 @@ class ScrollLayout extends Layout {
       let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
       animate(this.elm, 
         { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
-        this.cell.pz ? this.cell.pz : this.centerLT({ fontSize: "1em"}),
+        this.userPz() ?? this.centerLT({ fontSize: "1em"}),
         `left, top, font-size ${_gs_}ms`
       );
     }
@@ -1967,13 +2053,14 @@ class TableLayout extends Layout {
   }
 
   buildAux() {
-    // set layout's final position/size, based on this.fit (or this.cell.pz, if set). Called after
+    // set layout's final position/size, based on this.fit (or the saved pan-zoom from userPz(), if any). Called after
     // build one of 2 locations: 1. all thumbnails 2. user cancelled in-flight thumbnail build
     let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
-    if(this.cell.pz)
+    let pz = this.userPz();
+    if(pz)
       animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
-        this.cell.pz, `left, top, font-size ${_gs_}ms`);
-    else { 
+        pz, `left, top, font-size ${_gs_}ms`);
+    else {
       if(this.fit == "Height") { // reduce fontSize so layout fits window's height
         // Guard the division: a collapsed layout (offsetHeight 0, e.g. when the
         // vertical-gap slider stacks every row at top 0) would set fontSize to
