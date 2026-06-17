@@ -49,6 +49,10 @@ class PodiumHandler(http.server.SimpleHTTPRequestHandler):
             if not fullPath.startswith(rootPath):
                 logger.warning(f"Path traversal attempt blocked: {self.path}")
                 self.send_response(403)
+                # HTTP/1.1 keep-alive: a bodyless response must declare zero length
+                # and close, or the browser hangs waiting for a body that never comes.
+                self.send_header("Content-Length", "0")
+                self.send_header("Connection", "close")
                 self.end_headers()
                 return
 
@@ -64,6 +68,11 @@ class PodiumHandler(http.server.SimpleHTTPRequestHandler):
 
         logger.debug(f"File not found: {self.path}")
         self.send_response(404)
+        # HTTP/1.1 keep-alive: a bodyless response must declare zero length and
+        # close, or the browser hangs waiting for a body that never comes
+        # (manifests as "server stopped responding" / a hung page load).
+        self.send_header("Content-Length", "0")
+        self.send_header("Connection", "close")
         self.end_headers()
 
     def do_GET(self):
@@ -77,6 +86,10 @@ class PodiumHandler(http.server.SimpleHTTPRequestHandler):
             if not fullPath.startswith(rootPath):
                 logger.warning(f"Path traversal attempt blocked: {self.path}")
                 self.send_response(403)
+                # HTTP/1.1 keep-alive: a bodyless response must declare zero length
+                # and close, or the browser hangs waiting for a body that never comes.
+                self.send_header("Content-Length", "0")
+                self.send_header("Connection", "close")
                 self.end_headers()
                 return
 
@@ -99,6 +112,11 @@ class PodiumHandler(http.server.SimpleHTTPRequestHandler):
 
         logger.debug(f"File not found: {self.path}")
         self.send_response(404)
+        # HTTP/1.1 keep-alive: a bodyless response must declare zero length and
+        # close, or the browser hangs waiting for a body that never comes
+        # (manifests as "server stopped responding" / a hung page load).
+        self.send_header("Content-Length", "0")
+        self.send_header("Connection", "close")
         self.end_headers()
 
     def do_PUT(self):

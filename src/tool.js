@@ -1397,14 +1397,25 @@ conductor = `<defs>
         this.tickCount = 0;
       }
       if (this.beatPattern.name == "metronome") {
-        let pendulum = this.pathTransforms["pendulum"];
         let dur = 2 * this.secondsPerTick;
         if (dur != this.pendulumDur) {
+          // RESTART path — taken after play() (which tempo/latency changes route
+          // through) resets pendulumDur to null. iOS WebKit FREEZES a
+          // repeatCount="indefinite" <animateTransform> that is re-triggered in
+          // place (setAttribute("dur")+beginElement leaves it stuck: the tick keeps
+          // sounding but the pendulum stops). Swapping in a fresh clone restarts it
+          // reliably — the same thing switching beat patterns (a full rebuild) does,
+          // which is why that "cures" it. Conductor patterns use one-shot per-beat
+          // animations and never hit this.
           this.pendulumDur = dur;
-          pendulum.setAttribute("dur", dur);
-          pendulum.beginElement();
+          let old = this.pathTransforms["pendulum"];
+          let fresh = old.cloneNode(true);
+          fresh.setAttribute("dur", dur);
+          old.replaceWith(fresh);
+          this.pathTransforms["pendulum"] = fresh;
+          fresh.beginElement();
         } else {
-          pendulum.beginElementAt((this.tickCount & 0x01) ? -this.secondsPerTick : 0);
+          this.pathTransforms["pendulum"].beginElementAt((this.tickCount & 0x01) ? -this.secondsPerTick : 0);
         }
         return;
       }
@@ -1857,11 +1868,19 @@ class Review {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
     } catch (error) {
-      dialog(`Error: no accessible audio/video device(s) found.<br>
-        <div style="text-align:left">
-        <ul><li>This device doesn't have any audio/video device(s) ?</li>
-        <li>Device(s) in use by another app ?</li>
-        <li>Wrong permissions ?</li></ul></div>Hint: To check browser permissions:<br>
+      // Report the actual failure rather than always blaming permissions — the
+      // most common real cause is NotReadableError (device busy, or the OS audio/
+      // video stack was reset out from under a long-lived tab), which a reload fixes.
+      console.error("Review getUserMedia failed:", error.name, error.message);
+      let detail =
+        error.name == "NotAllowedError"  ? "Permission to use the camera/microphone was denied or dismissed." :
+        error.name == "NotReadableError" ? "The camera/microphone is unavailable — it's in use by another app, or the system audio/video stack was reset. <strong>Reloading Podium usually fixes this.</strong>" :
+        error.name == "NotFoundError"    ? "No camera or microphone was found on this device." :
+        error.name == "OverconstrainedError" ? "No device matches the requested audio+video constraints." :
+        `${error.name}: ${error.message}`;
+      dialog(`<strong>Can't access the audio/video device.</strong><br><br>
+        <div style="text-align:left">${detail}</div><br>
+        Also worth checking: the device is plugged in and not held by another app, and this site's browser permissions.<br>
         <a href="http://www.google.com/search?q=How+to+set+browser+permissions">How to set browser permissions</a>`);
       return false;
     }
