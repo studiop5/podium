@@ -12,6 +12,7 @@ import socket
 import sys
 import subprocess
 
+
 if len(sys.argv) == 1:
    args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, yin=True, guide=True, cert=False, clean=False, cert_host='') ;
 else:
@@ -87,6 +88,10 @@ if args.font:
     #      (re)build font.js        #
     #################################
 
+    # Build the embedded font (build/BravuraText.otf) from pristine lib/BravuraText.otf.
+    from build_font import build_bravura
+    build_bravura()
+
     outFileName = 'build/font.js'
 
     with open(outFileName, 'wb') as outFile:
@@ -96,7 +101,7 @@ if args.font:
     // Bravura Text font (registered as "Bravura" for both CSS and PDF embedding)
     const bravuraBase64 = \"""")
 
-        with open('lib/BravuraText.otf','rb') as inFile:
+        with open('build/BravuraText.otf','rb') as inFile:
             outFile.write(base64.b64encode(inFile.read()))
 
         outFile.write(b"""\";

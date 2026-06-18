@@ -2311,7 +2311,10 @@ function pnToDiv(pn, div, autoSize = true) {
   let roman = pn - prelim <= 0;
   div.style.fontFamily = roman ? "Times" : "Bravura";
   div.style.fontStyle = roman ? "italic" : "normal";
-  div.style.letterSpacing = roman ? "normal" : "0.345em";
+  // The time-sig digits (E080-E089) now carry real advance widths (set by
+  // build_bravura() in build.py), so they flow as normal text — no
+  // letter-spacing hack, which also fixes the multi-digit overlap/blank on iOS.
+  div.style.letterSpacing = "normal";
   if(!roman) div.style.paddingTop = 0 ; // this keeps or bravura chars more centererd
   let str = pnToString(pn, true);
 
@@ -2411,7 +2414,6 @@ css(
       transition: opacity ease-out ${_gsgs_}ms;
       z-index: var(--z-topmost);
       background-color: var(--bodyColor);
-      will-change: transform, left, top;
    }`
 );
 

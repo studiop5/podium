@@ -14,8 +14,9 @@ CLAUDE.md
 # Claude memory
 .claude/
 
-# Python venv inside font/
-font/bravura-env/
+# Python build-script artifacts
+__pycache__/
+*.pyc
 
 # Temporary / backup files
 *.old.js
@@ -31,6 +32,9 @@ yin/
 test/
 test-js/
 ext.old/
+# Scratch dir for upstream font downloads / experiments. The embedded font is
+# built by build_font.py from the one tracked binary, pristine lib/BravuraText.otf;
+# everything in here is disposable.
 font/
 src/lib
 src/manifest.webmanifest

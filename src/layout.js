@@ -2529,11 +2529,14 @@ class Pager {
     pager.setPointerCapture(e.pointerId);
     cursor.classList.add("Pager__cursor-active");
 
-    let ptrDiv = ptrMsg(e,(e,div) => this.formatFunc(_score_.numbers, true, div) && false, `width: ${cursor.style.width};`);
+    // display:block (overriding .floatingMsg's flex): the page number is drawn with
+    // zero-advance Bravura time-sig glyphs whose ink overflows the box; iOS/WebKit
+    // clips that overflow inside a flex item, so the readout shows blank. Block layout
+    // paints it (same as the cursor, which is why the cursor renders fine).
+    let ptrDiv = ptrMsg(e, (e,div) => this.formatFunc(_score_.numbers, true, div) && false, `width: ${cursor.style.width};display:block;text-align:center;`);
     let prevPos = e[CLIENTY];
     let cursorTop = clamp(e[CLIENTY] - pagerBox[Y] - cursorBox[HEIGHT] / 2, 0, pagerBox[HEIGHT] - cursorBox[HEIGHT]);
-
-let cursorOffset = pagerBox[Y] + cursorBox.height ;
+    let cursorOffset = pagerBox[Y] + cursorBox.height ;
 
     let setCursor = (clientPos, delta) => {
       let dPos = clientPos - prevPos ;
