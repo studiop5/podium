@@ -958,7 +958,6 @@ class Menu {
       turn: null, // current turn, updates with rotation
       turn0: null, // initial turn on pointerDown
     });
-
     this.elm.setPointerCapture(e.pointerId);
     // op.turn will be in  "turns", with range (.75, 1.75),
     // and with 1 at the top.  This allows us to turn without
@@ -1024,7 +1023,6 @@ class Menu {
     if (op.completed) return;
     op.emv = emv;
     op.drag.mv(emv);
-
     if (op.out)
       return this.notify(`${op.ringKey}/${op.cellKey}/out`); // if cell has panel, then this will pass move operation to it
 
@@ -1156,9 +1154,9 @@ class Menu {
     this.grip.classList.remove("Menu__grip-selected");
     if (op.spun) { this.spinFling(op, eup); return; }
     if(op.out) {
-      if(op.drag.dXY && eup.timeStamp - op.e.timeStamp > 500) {
-        // hide with fling...but only after at least 500 msecs to a quick drag out
-        // gesture won't immediately hide the panel
+      // hide with quick fling...but only after at least 500 msecs to a quick drag out
+      // gesture won't immediately hide the panel
+      if(op.drag.vXY && op.drag.vXY > 0.75 && eup.timeStamp - op.e.timeStamp > 500) {
         let panel = panels[op.cell.name + "Panel"]?.get(op.cell);
         if (panel) hide(panel.elm, dataIndex("tag", op.cell.elm).cellIcon);
       }
