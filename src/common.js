@@ -2532,15 +2532,16 @@ function strToHash(str) {
   return Math.abs(hash);
 }
 
-function toast(innerHtml, addClass=null, duration=null) {
+function toast(innerHtml, addClass=null, duration=null,) {
   // display a "toast", i.e. a brief message that automatically dismisses
   // after _gs_ msecs.
   // @param innerHtml the html content of the toast.
   // @param addClass optional additonal css class
   // @param duration optional float that replaces _gs_ as duration basis
+  if(document.getElementById("toast")) return ; // only 1 toast at a time!
   let dur = duration ? duration: _gs_ ;
   let elm = helm(
-    `<div style="position:absolute;pointer-events:none;display:flex;justify-content:center;align-items:center;height:100vh;width:100vw;pointer-events:none">
+    `<div id="toast" style="position:absolute;pointer-events:none;display:flex;justify-content:center;align-items:center;height:100vh;width:100vw;pointer-events:none">
        <div class="floatingMsg" style="z-index:var(--z-toast);position:absolute;width:fit-content;height:fit-content;opacity:0;transition:opacity ${dur}ms ease-in">${innerHtml}</div>
      </div>`
   );

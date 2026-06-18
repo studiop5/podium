@@ -167,26 +167,31 @@ class Layout {
         var(--recto)
     }
     .Layout__alert {
-      background-color: #0000;
       height: 60px !important;
       width: 60px !important;
     }
 
   `);
 
-
   // Toast shown when user tries to navigate before the first or past the last page.
   static pgAlert(which) {
+    // The 5-line staff is drawn with a repeating-linear-gradient rather than the
+    // SMuFL glyph \ue01a (staff5LinesWide): that glyph has zero advance width, so
+    // its ink overflows the inline box \u2014 Blink paints the overflow but iOS/WebKit
+    // does not, leaving the staff blank on iOS. The barlines (\ue033/\ue032) have
+    // normal width and render fine, so they stay as glyphs.
+    // staff geometry (tune by eye in the console): 5 lines, 1.5px thick, 12.5px apart.
+    let staff = (top, left, width) =>
+      `<div style="position:absolute;top:${top}px;left:${left}px;width:${width}px;height:36.5px;
+        background:repeating-linear-gradient(to bottom,currentColor 0 1.5px,transparent 1.5px 8.43px);"></div>`;
     toast(which == "start"
-      ? `<div style="position:absolute;font:2em/.2 Bravura;top:42px;left:33px;">\ue033</div>
-         <div style="position:absolute;font:2em/.2 Bravura;top:42px;left:33px;">\ue01a</div>`
+      ? `${staff(23.5, 33, 30)}
+         <div style="position:absolute;font:2em/.2 Bravura;top:42px;left:33px;">\ue033</div>`
       : `<div style="position:absolute;top:5px;left:28px;font:italic bold 0.9em/1 'Times New Roman',serif";>Fine</div>
-         <div style="position:absolute;font:2em/.4 Bravura;left:33px;top:50px;">\ue01a</div>
+         ${staff(36.5, 34.5, 24)}
          <div style="position:absolute;font:2em/.4 Bravura;left:55px;top:50px;">\ue032</div>`,
       "Layout__alert", 300) ;
-
   }
-
 
   static async open(cell) {
     if (!_score_) return;
@@ -911,7 +916,7 @@ class BookLayout extends Layout {
 
   async onDown(e) {
     if (this.inOp && this.closeFunc) {
-      // This block runs when a pointer event is received while a sequencee of
+      // This block runs when a pointer event is received while a sequence of
       // pgFlip's animator calls is still running running from previous page flip,
       // i.e. user is turning pages faster than they are flipping closed.
       this.animId++;
@@ -936,13 +941,16 @@ class BookLayout extends Layout {
     let { pgWidth, pgHeight } = this.cell.geo;
     let advancing;
     // When target is slot[3] (right side), we're advancing toward end of book
-    // In this case, if slot[4] has no children, there's no page to advance  to,
+    // In this case, if slot[4] has no children, there's no page to advance to,
     // so just return. Its as if last page was "glued" to the book.
     // When target is slot[2] (left side), we're flipping toward beginning.
     let slot = e.target.closest(".BookLayout__slot");
     if (slot === this.slots[3] && this.slots[4].children.length > 0) advancing = true;
     else if (slot === this.slots[2]) advancing = false;
-    else return Layout.pgAlert("end");
+    else 
+    { e.taken = true ;
+      return Layout.pgAlert("end");
+    }
     this.inOp = true;
     this.elm.setPointerCapture(e.pointerId);
     let spineBox = getBox(this.spine);
@@ -1638,6 +1646,7 @@ class ScrollLayout extends Layout {
     this.sash.setPointerCapture(e.pointerId);
     let frameBox = getBox(this.frame);
     let drag = new Drag(e, { minvelocity: 0.01 });
+    let prevSashStart = this.sashStart ; // Used by pgAlert logic(...)
 
     this.navMv = listen(
       this.frame,
@@ -1648,14 +1657,11 @@ class ScrollLayout extends Layout {
         // sash locations where no Pg is mounted
         if (clientX < frameBox[X] || clientX > frameBox[X] + frameBox[WIDTH]) return;
         // follow the user's move:
-        let prevSashStart = this.sashStart ;
         this.sashStart = clamp(this.sashStart + clientX - drag.mvBuf.at(-1)[CLIENTX], sashLimit, 0); // drag.mvBuf.at(-1) is previous mv event
         if(this.sashStart == prevSashStart) // no motion means were at the start or end
-        { if(!e.alerted) Layout.pgAlert( this.sashStart == 0 ? "start" : "end");
-          e.alerted = true ; // only alert once per incident
-          return ;
+        { Layout.pgAlert(drag.mvBuf.at(-1)[CLIENTX] < clientX ? "start" : "end");
+          e.taken = true ;
         }
-        e.alerted = false ;
         this.sash.style[LEFT] = toEm(this.sashStart);
         this.spinRollers();
         drag.mv(emv) ;
