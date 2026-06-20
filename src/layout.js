@@ -221,7 +221,10 @@ class Layout {
       if(e.detail.tag == "pn") this.pgGoTo(_score_.numbers.pn);
       else this.renumber();
     });
-    delay(1, () => (this.elm.dataset.tag = this.constructor.name)); // run after subclass constructor
+    delay(1, () => { // run after subclass constructor
+      this.elm.dataset.tag = this.constructor.name; 
+      this.elm.owner = this ;
+    }) ;
   }
 
   renumber() {
@@ -253,6 +256,25 @@ class Layout {
     }
   }
 
+
+  constrain() {
+    // Call this when translating the layout on screen to enforce that the layout is
+    // always at least partially visible.
+    let offset = Math.max(window.innerHeight, window.innerWidth) * .1 ; // 1/10 of window's max dimension always on screen
+    let layout = this.elm.firstElementChild ;
+    let x = layout.offsetWidth / 2  - offset;
+    let y = layout.offsetHeight / 2 - offset;
+    if(this.elm.offsetTop < -y)
+       this.elm.style.top = -y + "px" ;
+    else if(this.elm.offsetTop > y + window.innerHeight)
+       this.elm.style.top = y + window.innerHeight + "px" ;
+    if(this.elm.offsetLeft < -x)
+       this.elm.style.left = -x + "px" ;
+    else if(this.elm.offsetLeft > x + window.innerWidth)
+       this.elm.style.left = x + window.innerWidth + "px" ;
+  }
+
+
   userPz() {
     // The user's saved pan-zoom for this layout's cell, but only if it was captured
     // at the current viewport size; otherwise null, so the default fit is used.
@@ -270,7 +292,7 @@ class Layout {
     // change, re-orientation, or request to jump to specific page.
   }
 
-  async animateToCell(pg, clone, cell, layoutKey, after=null) {
+  async animateToCell(pg, srcBox, clone, cell, layoutKey, after=null) {
     // Simulate the given pg "Moving" to a menu cell will shrinking to viusally represent
     // copying or deleting. The pg (or the cloned pg) is removed from the dom when the
     // animation completes.
@@ -306,12 +328,11 @@ class Layout {
          elm = clone.elm;
        }
     }    
-    let srcBox = getBox(elm);
     let dstBox = getBox(dataIndex("tag", cell.elm).cellIcon);
     _body_.append(elm);
     let css = elm.style.cssText; 
     animate(elm, 
-     { left: srcBox.x + "px", top: srcBox.y + "px", zIndex:100 },
+     { left: srcBox.x + "px", top: srcBox.y + "px", zIndex:_zTop_+ 1 },
      { left: dstBox.x + dstBox.width/2 + "px", top: dstBox.y + dstBox.height/2 +  "px", fontSize: 0},
       `all ${_gsgs_}ms`, () => { 
          elm.remove();
@@ -414,7 +435,7 @@ class Layout {
         case "copy": {
           if (pasteCell.pg) pasteCell.pg.deflate(true);
           pasteCell.pg = await pg.clone(true);
-          await this.animateToCell(pg, false, _menu_.rings.page.cells.paste, layoutKey, 
+          await this.animateToCell(pg, getBox(pg.elm), false, _menu_.rings.page.cells.paste, layoutKey, 
             () => this.build(false));
           _menu_.enableCells("page/paste") ;
           break;
@@ -436,7 +457,7 @@ class Layout {
           _shade_.show("Copying...", 250);
           await _podPb_.pgCopy(pn);
           _shade_.hide();
-          await this.animateToCell(pg, true, _menu_.rings.page.cells.import,layoutKey); 
+          await this.animateToCell(pg, getBox(pg.elm), true, _menu_.rings.page.cells.import,layoutKey); 
           break;
         }
 
@@ -684,6 +705,14 @@ class BookLayout extends Layout {
             position:absolute;
             overflow: hidden;
           }
+          /* iOS/WebKit drops the paint of a page revealed by a flip until
+             pointerup. The slot's transform is churned by the flip animation, so
+             promote the page bitmap itself (which the flip never touches) to a
+             stable own compositing layer so it stays rasterized. Bounded: only a
+             handful of slots are mounted at once. */
+          .BookLayout__slot .canvas-container {
+            transform: translateZ(0);
+          }
           .BookLayout__shadow {
             position:absolute;
             height: 125%; /* extra is clipped off */
@@ -804,7 +833,7 @@ class BookLayout extends Layout {
     // Layout scroll g((eo)metry) in units of css pixels
     let g = this.cell.geo = (this.cell.geo || {});
     // top/bottom gap and left/right gap, for a border-radius of .8em
-    g.tbGap = .2 * _pxPerEm_; /// .15
+    g.tbGap = .2 * _pxPerEm_; 
     g.borderPx = 0.025 * _pxPerEm_ * 2; // top+bottom border included in box-sizing:border-box height
     g.lrGap = this.pnShow ==  "On"? 0: g.tbGap ;
     // Pager always occupies its own strip (hidden or not), lrGap=0 when pager is present.
@@ -1400,6 +1429,13 @@ class ScrollLayout extends Layout {
         .ScrollLayout__sash {
           position: relative;
           pointer-events: auto;
+        }
+        /* iOS/WebKit drops the paint of a page scrolled/snapped into view until
+           pointerup. Promote each page bitmap to its own stable compositing layer
+           so it stays rasterized. Bounded: the sash only holds a window of
+           2*pgShow+1 (min 4) pages. (Same fix as BookLayout.) */
+        .ScrollLayout__sash .canvas-container {
+          transform: translateZ(0);
         }
         .ScrollLayout__roll {
           position:absolute;
@@ -2098,8 +2134,6 @@ class TableLayout extends Layout {
        left:toEm(left),
        top:toEm(top),
     });  
-
-
     if(this.pnShow == "On") {
       // add a page number elm (or refresh, it elm already has a page number elm) to upper left corner of elm
       let pnElm = elm.getElementsByClassName("TableLayout__pn").item(0) || helm(`<div class="TableLayout__pn"></div>`);
@@ -2115,7 +2149,6 @@ class TableLayout extends Layout {
     }
     else
       clearChildren(elm);
-
     if (pn == _score_.numbers.pn) 
        await this.buildPgActive(pn, elm) 
     else this.score.pgUnuse(pg);
@@ -2228,13 +2261,14 @@ class TableLayout extends Layout {
       let score = this.layout.score;
       if(this.toPn == null) {
         // Then this is a cut operation
+        this.layout.pasting = true ;
         let active = this.active;
         score.pgCut(active.pn);
         let pasteCell = _menu_.rings.page.cells.paste ;
         if (pasteCell.pg) pasteCell.pg.deflate(true);
-          pasteCell.pg = await active.pg.clone(true);
-        this.layout.animateToCell(active.pg, false, _menu_.rings.page.cells.cut, "table",
-          () => this.layout.build(false));
+        pasteCell.pg = await active.pg.clone(true);
+        this.layout.animateToCell(active.pg, getBox(active.pg.elm), false, _menu_.rings.page.cells.paste, "table",
+          async () => { await this.layout.build(false) ; this.layout.pasting = false ;});
         _menu_.enableCells("page/paste") ;
         return;
       }        
@@ -2262,7 +2296,12 @@ class TableLayout extends Layout {
     }
   }
 
+
   async onDown(e) {
+    // Don't process a new gesture if a previous gesture's pasting animation is still running:
+    // this.build() is called after animation that completes, and if we allow onDown() to run
+    // during or after this.build(), the state will be unpredictable
+    if(this.pasting) return ;
     if (await super.onDown(e)) return;
     this.layout.setPointerCapture(e.pointerId);
     let elm = e.target.closest(".TableLayout__pg");

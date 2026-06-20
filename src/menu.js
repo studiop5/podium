@@ -251,6 +251,7 @@ class Menu {
   constructor() {
     Object.assign(this, dataIndex("tag", this.elm));
     let elm = this.elm;
+    elm.owner = this ;
     _body_.append(elm);
 
     this.sizes = this.getSizes();
@@ -917,6 +918,13 @@ class Menu {
         cell.elm.style.clipPath = ringClipPath;
       });
     });
+  }
+
+  constrain() {
+    if(this.elm.offsetTop < 0) this.elm.style.top = 0 ;
+    else if(this.elm.offsetTop > window.innerHeight) this.elm.style.top = window.innerHeight + "px";
+    if(this.elm.offsetLeft < 0) this.elm.style.left = 0 ;
+    else if(this.elm.offsetLeft > window.innerWidth) this.elm.style.left = window.innerWidth + "px";
   }
 
   // event operation handles:

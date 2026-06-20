@@ -442,8 +442,7 @@ class Panel {
           this.constrain();
       }
     }));
-
-
+    delay(1, () => this.elm.owner = this) ;
   }
 
   hidden() { 
@@ -470,14 +469,23 @@ class Panel {
   }
 
  constrain() {
-    // Ensure at least 50% of the panel header's width and 100% of its height stays onscreen
-    delay(10, () => {  // must delay until after any screen.orientation change, see main.js
-      let newLeft = clamp(this.elm.offsetLeft, 0, innerWidth);
-      let newTop = clamp(this.elm.offsetTop, this.panel.offsetHeight/2,
-        innerHeight - this.header.offsetHeight + this.panel.offsetHeight / 2);
-      if (this.elm.offsetLeft != newLeft) this.elm.style.left = newLeft + "px";
-      if (this.elm.offsetTop != newTop) this.elm.style.top = newTop + "px";
-    });
+    // Ensure panel's title and header's height stay onscreen
+    let y = this.panel.offsetHeight / 2 ;
+    if(this.elm.offsetTop < y) this.elm.style.top = y + "px" ;
+    else {
+       y += window.innerHeight - this.header.offsetHeight ;
+       if(this.elm.offsetTop > y)
+       this.elm.style.top = y + "px" ;
+    }
+    let range = document.createRange();
+    let box = getBox(range.selectNodeContents(this.title)) ;
+    let x = this.elm.offsetLeft - box.x ;
+    if(this.elm.offsetLeft < x) this.elm.style.left = x + "px" ;
+    else {
+       x = window.innerWidth - box.width / 2 ;
+       if(this.elm.offsetLeft > x) this.elm.style.left = x + "px" ;
+    }
+   return ;
   }
 
   setIcon(svgPath) {
@@ -496,6 +504,8 @@ class Panel {
     // Bring the panel on screen (if it is not) .
     // @onShown, if supplied, is a function that is called
     //   when the standard show animation is completed.
+    //   Currently, only ImportPanel's show(....) method
+    //   popuplates this.
     ScreenPanel.update(this.elm) ;
     let elm = this.elm;
     this.setIcon(this.cell.svgPath);
@@ -507,12 +517,7 @@ class Panel {
     elm.style.transform = "scale(0)";
     reflow();
     elm.style.transition = `transform ${_gs_}ms`;
-    listen(elm, "transitionend", () => {
-        elm.style.transition = "unset";
-        elm.style.transform = "unset";
-        if(onShown) onShown();
-      }, { once: true });
-    reflow();
+    if(onShown) delayMs(_gs_, () => onShown()) ;
     elm.style.transform = "scale(1)";
     _pzTarget_ = elm;
     let clazz = this.constructor.name ;
@@ -554,7 +559,6 @@ class Panel {
       elm.style.left =
         Math.max(innerWidth / 2 - box.width / 2, 0) + "px";
     this.constrain();
-
   }
 
 }
@@ -2496,8 +2500,9 @@ class Pz extends Pzr {
       case 22: dy =  a.translate; break; // down
     }
     for (let [target, size, box] of targets) {
-      target.style.left = clamp(target.offsetLeft + dx, 0, window.innerWidth - box.width) + "px";
-      target.style.top = clamp(target.offsetTop + dy, 0, window.innerHeight - box.height) + "px";
+      target.style.top = target.offsetTop + dy + "px";
+      target.style.left = target.offsetLeft + dx + "px";
+      target.owner?.constrain();
     } }
   }}}} /* bracket hell, sigh: that's what happens with this coding pattern! */
 
@@ -2545,6 +2550,12 @@ class SurfacePanel extends Panel {
 
 class ClockPanel extends SurfacePanel {
   surface = new Clock(this);
+
+  constructor(cell) {
+    super(cell);
+    this.body.style.minWidth = "unset" ;
+    this.body.style.padding = "unset" ;
+  }
 }
 
 class EditPanel extends SurfacePanel {
@@ -2782,10 +2793,10 @@ class KeyboardPanel extends SurfacePanel {
     elm.setAttribute('inputmode', 'none');
   }
 
-  show(onShown) {
+  show() {
     document.querySelectorAll('input,textarea').forEach(elm => this.suppressBrowserKb(elm));
     this.kbFocusListener = listen(document, 'focus', (e) => this.suppressBrowserKb(e.target), {capture:true});
-    return super.show(onShown);
+    return super.show();
   }
 
   hidden() {

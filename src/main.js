@@ -193,8 +193,9 @@ class Gestures {
       emv.stopImmediatePropagation();
       let dx = emv.clientX - startX, dy = emv.clientY - startY;
       for (let [target, { left, top }] of starts) {
-        target.style.left = clamp(left + dx, 0, innerWidth) + "px";
-        target.style.top  = clamp(top + dy, 0, innerHeight) + "px";
+        target.style.left = left + dx + "px";
+        target.style.top = top + dy + "px";
+        target.owner.constrain() ;
         target.classList.add("pz-set");
       }
     }, { capture: true });
@@ -417,7 +418,7 @@ async function main() {
        on the screen rather than relying on console.log
     */
     let msgs = [];
-    let x = helm("<div></div>");
+    let x = helm(`<div data-tag="dbg"></div>`);
     _body_.append(x);
     window.dbg = (...args) => {
       if (args.length == 0) msgs = [];

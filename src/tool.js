@@ -879,9 +879,10 @@ class Clock extends Surface {
   }
 
   build() {
+    // transform:translateZ(0) forces compositing...overcomes iOS rendering wierdness
     let clock = helm(`
-      <svg data-tag="clock" transform="scale(1,1)"
-        style="position:relative;width:100%;height:100%;pointer-events:none;filter:drop-shadow(0 0.2em 0.5em rgba(0,0,0,0.22))"
+      <svg data-tag="clock"
+        style="position:relative;width:100%;height:100%;pointer-events:none;transform:translateZ(0);filter:drop-shadow(0 0.2em 0.5em rgba(0,0,0,0.22))"
         viewBox="0 0 1200 1200">
         <defs>
           <path id="face" d="M 600,250 A 350,350 0 0 1 600 950 A 350,350 0 1 1 600,250"/>
@@ -985,8 +986,8 @@ class Stopwatch extends Surface {
     };
 
     let watch = helm(`
-       <svg data-tag="watch" transform="scale(1,1)"
-           style="position:relative;width:100%;height:100%;filter:drop-shadow(0 0.2em 0.5em rgba(0,0,0,0.22))"
+       <svg data-tag="watch"
+           style="position:relative;width:100%;height:100%;transform:translateZ(0);filter:drop-shadow(0 0.2em 0.5em rgba(0,0,0,0.22))"
            viewBox="0 0 1200 1200">
           <defs>
             <path id="hourPointer" d="M585,640 L600,210 L615,640,Z"/>
