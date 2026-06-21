@@ -478,7 +478,8 @@ class Panel {
        this.elm.style.top = y + "px" ;
     }
     let range = document.createRange();
-    let box = getBox(range.selectNodeContents(this.title)) ;
+    range.selectNodeContents(this.title) ;
+    let box = range.getBoundingClientRect();
     let x = this.elm.offsetLeft - box.x ;
     if(this.elm.offsetLeft < x) this.elm.style.left = x + "px" ;
     else {

@@ -136,6 +136,13 @@ class Layout {
   static margin = 1.5 / _dvPxRt_; // default margin between layout and viewport
   static activeLayout = null;
 
+  // Guard: true while a cut/copy has mutated the score model but the DOM has not
+  // yet been rebuilt (the rebuild happens in build() after the move animation).
+  // onDown() bails while this is set so a new gesture can't read stale DOM state.
+  // Set in onDown()'s "copy" case (cut falls through to it) and in TableLayout's
+  // drag-out cut; always cleared by the build() wrapper below.
+  pasting = false;
+
   static recto =
     // Define the texture/color used as the background 
     // in all layouts.
@@ -286,7 +293,21 @@ class Layout {
       : null;
   }
 
-  build() {
+  async build(...args) {
+    // Wrapper around each layout's _build(). Subclasses implement _build(); this
+    // wrapper guarantees the `pasting` guard is cleared once a (re)build completes,
+    // even if _build() returns early (e.g. BookLayout._build returns when
+    // animated==false) or throws. This is the single, traceable reset point for
+    // the guard: every code path that mutates the model then rebuilds passes
+    // through here, so the guard can never leave input permanently frozen.
+    try {
+      return await this._build(...args);
+    } finally {
+      this.pasting = false;
+    }
+  }
+
+  _build() {
     // Subclasses override: (re) build the ui: called on initial
     // display, and any time the layout needs to be updated, due to screen size
     // change, re-orientation, or request to jump to specific page.
@@ -349,6 +370,10 @@ class Layout {
     // @param e event, the subclass event handler event argument
     // @return boolean, true if this method handles this event and the subclass
     //   should not process it further.
+    // Don't start a new gesture while a cut/copy mutation+rebuild is in flight:
+    // the score model has been mutated but the DOM hasn't been rebuilt yet, so the
+    // DOM state a new gesture would read is stale. Cleared by the build() wrapper.
+    if (this.pasting) return true;
     let ae = document.activeElement;
     if(ae && (ae.tagName == "INPUT" || ae.tagName == "TEXTAREA")) ae.blur();
     if (e.ctrlKey || !e.isPrimary) return true;
@@ -393,6 +418,9 @@ class Layout {
       // for most layouts, but VerticalLayout uses top/bottom. 
       pg = e.target.pg || e.target.closest(".canvas-container")?.pg;
       if (!pg) return true;
+      // for animation, get pg.elm's  (or pg.thumbElm's) location before cut/clone/build
+      let srcBox = layoutKey == "table" ? (pg.thumbElm ? getBox(pg.thumbElm) : null)
+         : pg.elm ? getBox(pg.elm) : null ; 
       pn = score.pnOf(pg);
       if (["add", "paste", "import", "merge"].includes(pageKey)) {
         let box = getBox(e.target);
@@ -424,18 +452,26 @@ class Layout {
         }
 
         case "cut": {
-          if(this.score.pgs.length == 1) break; // no cutting last pg
+          if(this.score.pgs.length == 1) {  // a score must keep at least one page
+            toast("Can't cut last page.");
+            break;
+          }
           score.pgCut(pn);
           if(pn == _score_.numbers.pn) // deleting active pg?
             _score_.numbers.pn = Math.max(1, _score_.numbers.pn - 1) // choose different one
           else if(pn < _score_.numbers.pn) // active pg must decrement
             --_score_.numbers.pn;
+          // note: falls through to case "copy"
         }
 
         case "copy": {
+          // cut falls through to here, so this guards both: model has been mutated
+          // (cut) and/or the page elm is about to detach for the move animation;
+          // block new gestures until build() (run in the animation's after) rebuilds.
+          this.pasting = true;
           if (pasteCell.pg) pasteCell.pg.deflate(true);
           pasteCell.pg = await pg.clone(true);
-          await this.animateToCell(pg, getBox(pg.elm), false, _menu_.rings.page.cells.paste, layoutKey, 
+          await this.animateToCell(pg, srcBox, false, _menu_.rings.page.cells.paste, layoutKey, 
             () => this.build(false));
           _menu_.enableCells("page/paste") ;
           break;
@@ -457,7 +493,7 @@ class Layout {
           _shade_.show("Copying...", 250);
           await _podPb_.pgCopy(pn);
           _shade_.hide();
-          await this.animateToCell(pg, getBox(pg.elm), true, _menu_.rings.page.cells.import,layoutKey); 
+          await this.animateToCell(pg, srcBox, true, _menu_.rings.page.cells.import,layoutKey); 
           break;
         }
 
@@ -824,7 +860,7 @@ class BookLayout extends Layout {
     unlisten(this.pointerListener);
   }
 
-  async build(animated=true) {
+  async _build(animated=true) {
     Object.assign(this, this.cell.stash);
     this.pn0 = -2;
     let { fit, score } = this;
@@ -1542,8 +1578,8 @@ class ScrollLayout extends Layout {
     unlisten(this.pointerListener);
   }
 
-  async build(animated=true) {
-    this.animated = animated; 
+  async _build(animated=true) {
+    this.animated = animated;
     Object.assign(this, this.cell.stash);
     let { fit, gap, pgSnap, sash, score, pgShow } = this;
     let { LEFT, RIGHT, TOP, WIDTH, HEIGHT, MAXWIDTH, MAXHEIGHT, INNERWIDTH, INNERHEIGHT } = this.props;
@@ -2008,7 +2044,7 @@ class TableLayout extends Layout {
     unlisten(this.pointerListener);
   }
 
-  async build(animated=true) {
+  async _build(animated=true) {
     // @animated set to false to skip some of the animation effects during building...
     // When true, we build 1 page per animation frame, and move the layout as more
     // rows are added. This works fine for initial builds, but is too much if
@@ -2268,7 +2304,7 @@ class TableLayout extends Layout {
         if (pasteCell.pg) pasteCell.pg.deflate(true);
         pasteCell.pg = await active.pg.clone(true);
         this.layout.animateToCell(active.pg, getBox(active.pg.elm), false, _menu_.rings.page.cells.paste, "table",
-          async () => { await this.layout.build(false) ; this.layout.pasting = false ;});
+          () => this.layout.build(false));  // build() wrapper clears layout.pasting
         _menu_.enableCells("page/paste") ;
         return;
       }        
@@ -2298,10 +2334,7 @@ class TableLayout extends Layout {
 
 
   async onDown(e) {
-    // Don't process a new gesture if a previous gesture's pasting animation is still running:
-    // this.build() is called after animation that completes, and if we allow onDown() to run
-    // during or after this.build(), the state will be unpredictable
-    if(this.pasting) return ;
+    // The pasting guard (set during an in-flight cut/copy) is checked in super.onDown().
     if (await super.onDown(e)) return;
     this.layout.setPointerCapture(e.pointerId);
     let elm = e.target.closest(".TableLayout__pg");
@@ -2349,9 +2382,12 @@ class TableLayout extends Layout {
     built = true;
 
     this.navMv = listen(this.layout, "pointermove", (emv) => {
-      if(this.score.pgs.length == 1) return; // disallow action on last pg
       drag.mv(emv) ;
        if(drag.moved) {
+         if(this.score.pgs.length == 1) {  // can't drag/cut the only page out of the table
+           toast("Can't cut last page.");
+           return;
+         }
          this.bMarkTimer.cancel();
          if(!cursor) cursor = new this.Organizer(e, this);
          cursor.mv(emv);

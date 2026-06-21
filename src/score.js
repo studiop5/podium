@@ -1111,6 +1111,18 @@ class Score {
       };
 
       this.mozDoc = await loadingTask.promise;
+
+      // A score must always have at least one page (see pgCut's last-page guard).
+      // A zero-page PDF is non-conforming per the spec but can be produced (e.g.
+      // pdf-lib's PDFDocument.create()+save()); PDF.js loads it with numPages 0.
+      // Reject it at the door so the rest of the app never sees an empty score.
+      if (this.mozDoc.numPages == 0) {
+        toast("This PDF has no pages.");
+        let err = new Error("PDF has no pages");
+        err.handled = true; // tells open() callers we've already surfaced this to the user
+        throw err;
+      }
+
       // Grab pdf metadata's info, if available
       let meta = await this.mozDoc.getMetadata();
       this.pdfInfo = meta ? meta.info : null;
