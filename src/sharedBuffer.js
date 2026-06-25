@@ -93,6 +93,10 @@ class SharedBuffer {
             case "pod-pgs-changed": // Another tab has modified the shared buffer
               this.score = null;
               this.announce();
+              // Enable/disable the import cell here (the always-on storage listener,
+              // registered once per tab) rather than relying on the buffer panel's
+              // SHAREDBUFFER listener, which is torn down when that panel is closed.
+              _menu_.enableCells("page/import", (await this.getScore()).pgs.length > 0);
               break;
     
             case "pod-pgs-clear": 

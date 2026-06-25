@@ -1300,8 +1300,7 @@ class ImportPanel extends Panel {
       for(let pg of score.pgs) thumbs.push(await pg.getThumbElm(true));
       _shade_.hide();
       clearChildren(this.sash);
-      if(thumbs.length > 0) { 
-        _menu_.enableCells("page/import",true) ;
+      if(thumbs.length > 0) {
         this.sash.style.fontSize = "1em"; // reset to known "baseline"
         reflow();
         thumbs.forEach((thumb) => this.sash.append(thumb));
@@ -1317,7 +1316,6 @@ class ImportPanel extends Panel {
         buttons.defs.Clear.disabled = false;
       }
       else {
-        _menu_.enableCells("page/import", false);
         if (_menu_.activeRing?.activeCell === _menu_.rings.page.cells.paste)
           _menu_.activateCell(null);
         buttons.defs.Undo.disabled = true;
