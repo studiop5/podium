@@ -545,6 +545,11 @@ Storage:
    <path d="M2 17h10.5M14 17h8" stroke="currentColor" stroke-width="0.5"/>
    <path d="M4 19v-2M6 19v-2M8 19v-2M10 19v-2M16 19v-2M18 19v-2M20 19v-2" stroke="currentColor" stroke-width="0.6"/>`,
 
+Stretcher:
+  `<text y="11" x="8" font-size="16px" font-family="Bravura">\uea68&nbsp;\uea69</text>
+   <text y="22" x="1" font-size="24px">\u21d4</text>`,
+
+
 
 Symbols:
   `<text y="15" x="7" font-size="13px" font-family="Bravura" fill="currentColor">\ue050</text>`,

@@ -249,6 +249,7 @@ class Piano {
     this.panel = panel;
     this.cell = cell;
     this.keyboardLeft = null;
+    this.userWidth = null;
     Object.assign(this, dataIndex("tag", this.elm));
     this.c4Elm = dataIndex("sample", this.elm)["60/0"];
 
@@ -265,10 +266,10 @@ class Piano {
 
     // pedal button...swaps Pedal and PedalUp icons
     let pedalDownButton = helm(
-      `<div class="Piano__button-holder" style="right: calc(50% + 6em)">
+      `<div class="Piano__button-holder" style="right: calc(50% + 10em)">
         ${iconSvg("Pedal", { tag: "pedal", class: "Piano__button" })}</div>`);
     let pedalUpButton = helm(
-      `<div class="Piano__button-holder" style="right: calc(50% + 6em)">
+      `<div class="Piano__button-holder" style="right: calc(50% + 10em)">
         ${iconSvg("Pedal Up", {tag: "pedalup", class: "Piano__button" })}</div>`);
 
     this.panel.header.append(pedalDownButton);
@@ -297,6 +298,60 @@ class Piano {
           if (e.type == "keydown") pedalDownButton.dispatchEvent(e2);
           else pedalUpButton.dispatchEvent(e2); // keyup
         }
+      })
+    );
+
+    // stretcher button
+    let stretcherButton = helm(
+      `<div class="Piano__button-holder" style="right: calc(50% + 5.5em)">
+        ${iconSvg("Stretcher", { tag: "tune", class: "Piano__button" })}</div>`);
+
+    this.panel.header.append(stretcherButton);
+
+    this.panel.listeners.push(
+      listen(stretcherButton, "pointerdown", (e) => {
+        e.stopPropagation();
+        let W = this.panel.panel.clientWidth;
+        let K = this.keyboard.offsetWidth;
+        let emSize = parseFloat(getComputedStyle(this.panel.elm).fontSize);
+        let minDrag = -5 * emSize;
+        let maxDrag = 16 * emSize;
+        let labelWidth = this.panel.title ? this.panel.title.offsetWidth : 100;
+        let minWidth = this.c4Elm.offsetWidth * 8; // minimum 8 white keys
+        let maxWidth = Math.min(K, 2 * window.innerWidth - labelWidth / 2);
+
+        e.startWidth = W;
+        e.target.setPointerCapture(e.pointerId);
+        stretcherButton.firstElementChild.classList.add("Piano__button-active");
+        this.panel.header.classList.add("Panel__header-selected");
+
+        let mv = listen(e.target, "pointermove", (emv) => {
+          let delta = emv.clientX - e.clientX;
+          // Linear mapping: delta of minDrag -> minWidth, maxDrag -> maxWidth
+          // Width factor: (maxWidth - minWidth) / (maxDrag - minDrag)
+          let factor = (maxWidth - minWidth) / (maxDrag - minDrag);
+          let newWidth = clamp(e.startWidth + delta * factor, minWidth, maxWidth);
+          
+          this.panel.panel.style.width = pxToEm(newWidth, this.panel.elm);
+          this.userWidth = newWidth;
+
+          // Clamp internal keyboard position to prevent blank spaces
+          if (K > newWidth) {
+            this.keyboardLeft = clamp(this.keyboardLeft, newWidth - K, 0);
+          } else {
+            this.keyboardLeft = (newWidth - K) / 2;
+          }
+          this.keyboard.style.left = this.keyboardLeft + "px";
+        });
+
+        listen(e.target, "pointerup",
+          () => {
+            unlisten(mv);
+            stretcherButton.firstElementChild.classList.remove("Piano__button-active");
+            this.panel.header.classList.remove("Panel__header-selected");
+          },
+          { once: true }
+        );
       })
     );
 
@@ -824,6 +879,12 @@ class Piano {
     // Force reflow to ensure DOM is laid out, then defer position calculation
     this.c4Elm.offsetWidth; // force reflow
     delay(4, () => {
+      let labelWidth = this.panel.title ? this.panel.title.offsetWidth : 100;
+      let maxWidth = Math.min(this.keyboard.offsetWidth, 2 * window.innerWidth - labelWidth / 2);
+      if (this.userWidth !== null && this.userWidth !== undefined) {
+        this.userWidth = Math.min(this.userWidth, maxWidth);
+        this.panel.panel.style.width = pxToEm(this.userWidth, this.panel.elm);
+      }
       let W = this.panel.panel.clientWidth;
       let K = this.keyboard.offsetWidth;
       if (this.keyboardLeft === undefined || this.keyboardLeft === null) {
