@@ -499,7 +499,7 @@ class Layout {
 
         case "import": {
           // paste from  _podPb_
-          dialog(`Confirm: Import pages from shared buffer?<br>(clears undo history and cannot be undone)`,
+          dialog(`Confirm: Import pages from shared buffer?<br>(clears undo history)`,
             { Import: { svg: "Import Page" }, Cancel: { svg: "Cancel" } },
             async (_e, _prop, tag, args) => {
               if (tag == "Import") {
@@ -521,7 +521,7 @@ class Layout {
           if (!mergeCell.pdfData) break;
           let pdfData = mergeCell.pdfData;
           let wasLocked = mergeCell.locked;
-          dialog(`Confirm: Merge entire PDF into score?<br>(clears undo history and cannot be undone)`,
+          dialog(`Confirm: Merge entire PDF into score?<br>(clears undo history)`,
             { Merge: { svg: "Merge" }, Cancel: { svg: "Cancel" } },
             async (_e, _prop, tag, args) => {
               if (tag == "Merge") {

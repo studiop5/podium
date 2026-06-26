@@ -2041,7 +2041,7 @@ function closeVideo(event, container) {
 
     <p>To undo a page operation (cut or paste), activate the Undo cell. The most recent operation will be immediately reversed. The Page Ring maintains an undo history of the last 10 operations.</p>
 
-    <div class="note">The <strong>Import</strong> and <strong>Merge</strong> operations cannot be undone and will clear the score's entire undo history. Because of this, you'll be prompted to confirm these operations before they are performed.</div>
+    <div class="note">The <strong>Import</strong> and <strong>Merge</strong> operations will clear the score's entire undo history. Because of this, you'll be prompted to confirm these operations before they are performed.</div>
 
     <div class="note">Unlike the Ink Ring's per-page undo stack, the Page Ring undo operates on page-level operations across the entire score.</div>
 
@@ -2060,7 +2060,7 @@ function closeVideo(event, container) {
 
     <p><strong>Import:</strong> Activate the Import cell, then tap a page in the score. All pages in the shared buffer are inserted at that position, before the page if you tap on the left half (top half for Vertical Layout) or after if you tap the right half (bottom half for Vertical Layout).</p>
 
-    <div class="note">Because an import operation cannot be undone and will clear the score's undo history, you'll be prompted to confirm before the operation is performed.</div>
+    <div class="note">Because an import operation will clear the score's undo history, you'll be prompted to confirm before the operation is performed.</div>
 
     <p>The Import Panel shows you a horizontally draggable view of thumbnails of the shared buffer, along with two management buttons:</p>
 
@@ -2083,7 +2083,7 @@ function closeVideo(event, container) {
 
     <p>Tap the Merge cell to open the file panel, then select any PDF. The cell activates and a toast message confirms the file is loaded and ready. Tap any page in the current score to insert the chosen PDF before that page. The merge preserves page order from the source file and carries over any Ink annotations saved within it.</p>
 
-    <div class="note">Because a merge operation cannot be undone and will clear the score's undo history, you'll be prompted to confirm before the operation is performed.</div>
+    <div class="note">Because a merge operation will clear the score's undo history, you'll be prompted to confirm before the operation is performed.</div>
 
 
     <p>After each merge the cell stays active, so you can tap additional pages to insert the same source PDF at multiple positions without reloading it. The cell deactivates automatically after a few seconds, or immediately when you tap it again.</p>
