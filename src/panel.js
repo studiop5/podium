@@ -91,6 +91,9 @@ class Select {
       background-color: #fff;
       outline: none;
     }
+    [data-theme="Dark"] .Select__toggle:focus {
+      background-color: #555;
+    }
     .Select__frame {
       border-radius:var(--borderRadius);
       position:absolute;
