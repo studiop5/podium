@@ -144,6 +144,7 @@ class Gestures {
     let gestureDelta = Math.min(innerWidth, innerHeight) * 0.15;
     let cancelDelta = 16;
     this.timer.run(_gs_, () => {
+      // to defeat the long-press timer, set e.taken = true
       if(e.taken) return;
       e.timedOut = true;
       if (!onBody) Layout.activeLayout?.cancelNav();
@@ -502,3 +503,4 @@ async function main() {
 }
 
 main();
+import { } from "./video.js"

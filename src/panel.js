@@ -391,6 +391,7 @@ class Panel {
     this.listeners.push(
       listen(this.closer, "pointerdown", (e) => {
         e.stopPropagation();
+        e.taken = true ;
         this.close();
       })
     );

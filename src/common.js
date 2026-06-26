@@ -504,6 +504,9 @@ css( // common css declarations.
       color:blue;
       background:inherit;
   }
+  .taken
+   /* marker for elements that should not be processed by main.py's Gesture class's long press action */
+  {}
   .dialog {
     border: var(--border);
     border-radius:var(--borderRadius);
@@ -849,12 +852,11 @@ class ColorPicker {
      }
      .ColorPicker__alphaSlider {
       z-index: var(--z-modal);
-      background: #c8c8c8;
+      background: #999; 
       border-radius: var(--borderRadius);
       padding: var(--spacing-md);
       position: absolute;
-      left: -2.7em;
-      width: 80%;
+      width:60%;
      }
       `
   );

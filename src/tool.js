@@ -278,6 +278,7 @@ class Piano {
     this.panel.listeners.push(
       listen(pedalDownButton, ["pointerdown", "spacebar"], (e) => {
         e.stopPropagation();
+        e.taken = true ;
         this.sustaining = true;
         pedalDownButton.replace(pedalUpButton);
       })
@@ -286,6 +287,7 @@ class Piano {
     this.panel.listeners.push(
       listen(pedalUpButton, ["pointerdown", "spacebar"], (e) => {
         e.stopPropagation();
+        e.taken = true ;
         this.sustaining = false;
         pedalUpButton.replace(pedalDownButton);
       })
@@ -312,6 +314,7 @@ class Piano {
     this.panel.listeners.push(
       listen(stretcherButton, "pointerdown", (e) => {
         e.stopPropagation();
+        e.taken = true ;
         let W = this.panel.panel.clientWidth;
         let K = this.keyboard.offsetWidth;
         let emSize = parseFloat(getComputedStyle(this.panel.elm).fontSize);
@@ -366,6 +369,7 @@ class Piano {
     this.panel.listeners.push(
       listen(rangeButton, "pointerdown", (e) => {
         e.stopPropagation();
+        e.taken = true ;
         let W = this.panel.panel.clientWidth;
         let K = this.keyboard.offsetWidth;
         if (K <= W) return;
@@ -406,6 +410,7 @@ class Piano {
     this.panel.listeners.push(
       listen(this.optionsButton, "pointerdown", (e) => {
         e.stopPropagation();
+        e.taken = true ;
         if (this.optionsButton.firstElementChild.classList.contains("Piano__button-active")) {
           this.optionsButton.firstElementChild.classList.remove("Piano__button-active");
           this.optionsView.elm.style.visibility = "hidden";
@@ -427,6 +432,7 @@ class Piano {
     this.panel.listeners.push(
       listen(this.repeatButton, "pointerdown", (e) => {
         e.stopPropagation();
+        e.taken = true ;
         this.repeatButton.firstElementChild.classList.toggle("Piano__button-active");
         this.tuning = this.repeatButton.firstElementChild.classList.contains("Piano__button-active");
         if (this.repeatScheduler) {
@@ -446,6 +452,7 @@ class Piano {
     this.panel.listeners.push(
       listen(this.pitchButton, "pointerdown", (e) => {
         e.stopPropagation();
+        e.taken = true ;
         this.marker.remove();
         if (this.pitchButton.firstElementChild.classList.contains("Piano__button-active")) {
           this.pitchButton.firstElementChild.classList.remove("Piano__button-active");

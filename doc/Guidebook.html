@@ -2392,7 +2392,15 @@ function closeVideo(event, container) {
     <p>Playable piano keyboard with tuning and pitch detection features.</p>
 
     <figure>
-        <img src="assets/morepiano.jpg" alt="Piano panel">
+        <div class="video-container" onclick="playVideo(this)">
+            <img src="assets/morepiano.jpg" alt="Piano panel">
+            <div class="play-overlay"></div>
+            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+                <source src="assets/morepiano.webm" type="video/webm">
+                Your browser does not support the video tag.
+            </video>
+        </div>
         <figcaption>Piano keyboard with controls</figcaption>
     </figure>
 
@@ -2403,8 +2411,6 @@ function closeVideo(event, container) {
 
     <p>Perform glissando by running a finger across the keys. Multiple notes can be played simultaneously using multiple fingers, including chords and intervals, up to the polyphony limit set in Settings: Timbre (see below). Podium supports as many simultaneous notes as you can play; in practice, real-world touch screens typically recognize no more than 5 simultaneous touches.</p>
 
-
-
     <p><strong>Sustain Mode:</strong> Identified by the standard piano pedal symbol. In sustain mode, notes continue to sound even after the key is released. Note however that piano notes only last for a maximum of a little over 2 seconds. Podium is not a sophisticated audio workstation.</p>
 
     <p><strong>Autorepeat Mode:</strong> Tap the Autorepeat Mode button to toggle autorepeat mode. When enabled, key presses automatically repeat at intervals (2.5 seconds for piano samples, 5 seconds for tuning fork timbre; see Settings: Timbre below), allowing you to hear sustained notes for easier tuning.</p>
@@ -2413,7 +2419,7 @@ function closeVideo(event, container) {
 
     <p><strong>Pitch Detector:</strong> Identified by a tuning fork icon. Tap the Pitch Detector button to toggle pitch detection on/off. When on, a <a href="https://asa.scitation.org/doi/10.1121/1.1458024">YIN-based pitch detector</a> attempts to estimate the closest piano note to what it hears in the microphone. It overlays a whole note (semibreve) on the corresponding key, plus shows the number of cents deviation from that key's expected pitch. The opacity of the whole note reflects the algorithm's confidence; the symbol becomes more transparent as confidence decreases. The expected pitch is affected by the Settings Pitch setting (see below), but not by the Temperament setting, i.e., it's the deviation from equal tempered tuning regardless of Temperament setting.</p>
 
-    <div class="note">The pitch detector is monophonic: it works best with a single note at a time. When multiple pitches or unpitched sounds (such as speech or noise) are present in the microphone input, the detector will produce unreliable results.</div>
+    <div class="note">The pitch detector is monophonic: it works best with a single note at a time. When multiple pitches or unpitched sounds (such as speech or noise) are present in the microphone input, the detector will produce unreliable results. If you play the Piano will the pitch detector is active, you may experience distorted sounds and inaccurate detection.</div>
 
     <div class="note">The Pitch Detector button is disabled (greyed out) when no microphone is present, and enables automatically the moment one is connected. If a microphone exists but can't be used — for example, when the browser has been denied microphone access — tapping the button shows a brief message explaining why.</div>
 
