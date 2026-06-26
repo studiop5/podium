@@ -640,17 +640,17 @@ for more details.</p>
          `);
 
   versionFace = helm(
-    `<div style="position:relative;width:100%;height:100%;box-sizing:border-box;">
-        <div style="position:absolute;top:35%;left:50%;transform:translate(-50%,-50%);text-align:center;font-size:1.5em;">
-          <div>PODIUM: Sheet Music Studio</div>
+    `<div style="display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:100%;width:100%;box-sizing:border-box;padding:2em 1em;text-align:center;">
+        <div style="font-size:1.5em;display:flex;flex-direction:column;align-items:center;gap:0.2em;">
+          <div style="white-space:nowrap;">PODIUM: Sheet Music Studio</div>
           ${iconSvg("Podium", { size: "8em" })}
           <div>Version ${_podiumVersion_}</div>
-          <a style="font-size:.6em;" href="https://studiop5.org/release${_podiumVersion_}.html">Release Notes</a><br><br>
-          <div style="font-size:.6em;color:#888;">${typeof chrome !== "undefined" && chrome.runtime?.id ? "Browser Extension" : window.matchMedia("(display-mode: standalone)").matches ? "Progressive Web App" : location.protocol + "//" + location.host}</div>
+          <a style="font-size:.6em;" href="https://studiop5.org/release${_podiumVersion_}.html">Release Notes</a>
+          <div style="font-size:.6em;color:#888;margin-top:0.5em;">${typeof chrome !== "undefined" && chrome.runtime?.id ? "Browser Extension" : window.matchMedia("(display-mode: standalone)").matches ? "Progressive Web App" : location.protocol + "//" + location.host}</div>
         </div>
-        <div style="position:absolute;bottom:2em;left:50%;transform:translateX(-50%);font-size:1.2em;text-align:center;font-variant-emoji:text;">
+        <div style="font-size:1.2em;text-align:center;font-variant-emoji:text;margin-top:2em;line-height:1.6em;">
           <a href="https://studiop5.org/privacy.html">\u{1F6E1} Privacy</a>&nbsp;
-          <a href="https://studiop5.org/terms.html">\u00A7 Terms</a><br><br>
+          <a href="https://studiop5.org/terms.html">\u00A7 Terms</a><br>
           <a href="https://github.com/studiop5/podium">&lt;&sol;&gt; Source</a>&nbsp;
           <a href="https://github.com/studiop5/podium/issues">\u2709\uFE0E Issues</a>
         </div>
