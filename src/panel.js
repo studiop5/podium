@@ -477,6 +477,14 @@ class Panel {
        if(this.elm.offsetTop > y)
        this.elm.style.top = y + "px" ;
     }
+    if (this.constructor.name == "PianoPanel") {
+      let halfW = this.panel.offsetWidth / 2;
+      let minX = -halfW + 3 * _pxPerEm_;
+      let maxX = window.innerWidth + halfW - 3 * _pxPerEm_;
+      if (this.elm.offsetLeft < minX) this.elm.style.left = minX + "px";
+      else if (this.elm.offsetLeft > maxX) this.elm.style.left = maxX + "px";
+      return;
+    }
     let range = document.createRange();
     range.selectNodeContents(this.title) ;
     let box = range.getBoundingClientRect();
@@ -3005,6 +3013,8 @@ class SymbolsPanel extends Panel {
 class PianoPanel extends Panel {
   constructor(cell) {
     super(cell);
+    this.panel.style.maxWidth = "none";
+    this.panel.style.maxHeight = "none";
     this.piano = new Piano(this, cell);
     this.body.replaceWith(this.piano.elm);
     this.panel.style.width =

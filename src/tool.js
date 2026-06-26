@@ -105,7 +105,10 @@ class Piano {
     .Piano__keyboard {
       display:flex;
       position:relative;
-      width:fit-content; 
+      width:max-content;
+      flex-shrink:0; /* keep full width; otherwise the body's flexbox shrinks
+                        this element to the panel width, so offsetWidth (used as
+                        the stretcher's max bound) collapses and widening fails */
     }
     .Piano__key-white {
       flex-shrink:0;
@@ -817,12 +820,6 @@ class Piano {
   }
 
   show() {
-    // Move c4 (middle C) to center of keyboard.
-    // note: this assumes middle C key's tag is
-    // "60/0", i.e. midi 60 plus 0 cents adjustment.
-    // Note: the -2  here subtracts half the width of a key
-    this.keyboard.style.left = (this.elm.offsetWidth / 2 - this.c4Elm.offsetLeft) / _pxPerEm_ - 2 + "em";
-
     // Force reflow to ensure DOM is laid out, then defer width calculation
     this.c4Elm.offsetWidth; // force reflow
     delay(4, () => {
@@ -836,6 +833,11 @@ class Piano {
       // otherwise start with minimum width
       let panelWidth = this.userWidth !== null ? this.userWidth : Math.min(minWidth, maxWidth);
       this.panel.panel.style.width = pxToEm(panelWidth, this.panel.elm);
+
+      // Set constant left offset to center the keyboard (approx 0em).
+      // Note: this relies on the browser's flexbox centering (justify-content: center)
+      // on the parent element, so the keyboard naturally stretches symmetrically.
+      this.keyboard.style.left = (this.keyboard.offsetWidth / 2 - this.c4Elm.offsetLeft) / _pxPerEm_ + "em";
     });
   }
 }
