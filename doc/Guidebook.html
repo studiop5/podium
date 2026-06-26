@@ -1072,7 +1072,7 @@ function closeVideo(event, container) {
         <figcaption>Right-click context menu showing "Open with Podium" option on IMSLP</figcaption>
     </figure>
 
-    <div class="note">Podium's extension is not available on iPhone or iPad, but can be installed as a progressive web app, see below. On Android, Chrome does not support extensions. Edge for Android has limited Beta support for extensions as of Podium's 2.1 release.</div>
+    <div class="note">Podium's extension is not available on iPhone or iPad, but can be installed as a progressive web app, see below. On Android, Chrome does not support extensions. Other third-party Chromium-based browsers like Kiwi Browser and Lemur Browser support Chrome extensions on Android, and Edge for Android has limited Beta support, though note that Podium is not yet tested on these browsers.</div>
 
     <h3 id="chapter-2-pwa">2.2 Progressive Web App (PWA)</h3>
 
@@ -1649,7 +1649,7 @@ function closeVideo(event, container) {
 
     <p>Page numbers can be turned on or off in the Panel.</p>
 
-    <p><strong>Current Page:</strong> At any time, there is always a current page, drawn in higher resolution, slightly larger, and on top of all other pages. Tap on any page to make it current. If you change to another layout, that layout will open at the current page.</p>
+    <p id="chapter-5-table-current-page"><strong>Current Page:</strong> At any time, there is always a current page, drawn in higher resolution, slightly larger, and on top of all other pages. Tap on any page to make it current. If you change to another layout, that layout will open at the current page.</p>
 
     <div class="note">You cannot add annotations to a page in Table layout unless it is current. See the <a href="#chapter-6" class="chapter-link">Ink Ring</a> chapter for details on annotations.</div>
 
@@ -2127,6 +2127,7 @@ function closeVideo(event, container) {
     <p>Magnify a portion of a page.</p>
 
     <p>Drag out from the Magnify cell to reveal a panel that displays a zoomed-in view of the page at the current touch point. Touch any page in the score and the magnifier panel updates in real time, showing both the PDF content and any annotations at the touched location.</p>
+    <div class="note">Only the <a href="#chapter-5-table-current-page" class="chapter-link">current page</a> in a Table Layout can be magnified, not the thumbnails.</div>
     <div class="note"><strong>Pro Tip:</strong> Think of the Magnify tool like a monitor connected to a camera. The magnifier panel is the monitor, and your finger or stylus is the camera. Activating the Magnify cell turns the camera on; dragging your finger across a score page then shows the area around the pointer dynamically in the monitor (you must lift and retouch to move between pages). When you deactivate the cell, the camera turns off and the last captured image remains in the panel until you reactivate the tool and touch the page again.</div>
 
 
@@ -2265,7 +2266,7 @@ function closeVideo(event, container) {
         <figcaption>Closeup of the Wakelock cell. The candle is visibly lit when Wakelock is on.</figcaption>
     </figure>
 
-    <div class="note">Wakelock requires browser support and may not be available on all platforms. On iOS, Wakelock is not supported; use your device's display settings to extend the auto-lock timeout instead.</div>
+    <div class="note">Wakelock requires browser support and may not be available on all platforms. (It is supported on iPad and iPhone starting with Safari version 16.4.)</div>
 
     <h3 id="chapter-8-screen">8.7 App Ring: Screen<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-full-screen"/></svg><svg class="gb-icon"><use href="#gb-normal-screen"/></svg></h3>
 

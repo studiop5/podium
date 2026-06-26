@@ -2690,7 +2690,6 @@ class Keyboard extends Surface {
           this.repeater.run(500, repeat);
         }
 
-
         listen(document, "pointerup", () => { // must be on document, not surface
            sentinel.remove();
            key.classList.remove('pressed');
@@ -2764,6 +2763,12 @@ class Keyboard extends Surface {
         break;
       case '↵':
         dispatch('keydown','Enter') ;
+        if (isText && elm.tagName == 'TEXTAREA') {
+          let s = elm.selectionStart, e = elm.selectionEnd;
+          elm.value = elm.value.slice(0,s) + '\n' + elm.value.slice(e);
+          elm.selectionStart = elm.selectionEnd = s + 1;
+          elm.dispatchEvent(new InputEvent('input', {inputType:'insertLineBreak', bubbles:true}));
+        }
         dispatch('keyup','Enter');
         break;
       default:

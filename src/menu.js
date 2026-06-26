@@ -350,8 +350,22 @@ class Menu {
             wakeLockCell._wakeLock = await navigator.wakeLock.request("screen");
             dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Wakelock On"];
           } catch {
-            wakeLockCell.stash.on = false;
-            toast("Wake lock unavailable.");
+            // Silently ignore page-load failures. The wake lock will be requested
+            // again on the first user interaction.
+            dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Wakelock On"];
+            let l = listen(document, "pointerup", async () => {
+              if (wakeLockCell.stash.on && !wakeLockCell._wakeLock) {
+                try {
+                  wakeLockCell._wakeLock = await navigator.wakeLock.request("screen");
+                } catch (err) {
+                  // If it still fails on interaction, turn it off and alert the user.
+                  wakeLockCell.stash.on = false;
+                  dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Wakelock Off"];
+                  toast("Wake lock unavailable.");
+                }
+              }
+              unlisten(l);
+            }, { capture: true });
           }
         })();
       }
