@@ -1275,6 +1275,7 @@ conductor = `<defs>
   }
 
   build() {
+    this.pendulumDur = null;
     this.motionPaths.forEach((motionPath) => motionPath.endElement());
     Object.values(this.pathTransforms).forEach((pathTransform) => pathTransform.endElement());
     clearChildren(this.surface);
@@ -1287,7 +1288,7 @@ conductor = `<defs>
     // pause indicator at top of metronome
     svg += `<text data-tag="pause" width="4em" style="font-family:Bravura;font-size:100px;fill:var(--body-color);" x="505" y="280" text-anchor="middle">\ue4c0</text>`;
     // bpm (beats/minute) readout on bottom of metronome
-    svg += `<text data-tag="bpm" width="4em" style="font-family:Bravura;font-size:60px;fill:var(--body-color);" x="505" y="780" text-anchor="middle">60</text>`;
+    svg += `<text data-tag="bpm" width="4em" style="font-family:Bravura;font-size:60px;fill:var(--body-color);" x="505" y="780" text-anchor="middle">${Math.round(this.tempo)}</text>`;
     // Define the "marker", i.e.  the object to animate along the conducting paths
     svg += beatPattern.marker;
     // Stroke the conducting paths

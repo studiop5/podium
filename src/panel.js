@@ -1678,13 +1678,17 @@ class MetronomePanel extends Panel {
     stash.state = "Play"; // i.e. always show "Play" on launch, metronome will be paused
 
     let metronome = (this.metronome = new Metronome(this));
+    metronome.tempo = stash.tempo;
+    metronome.latency = stash.latency;
+    metronome.mute = (stash.mute == "Unmute");
+    metronome.beatPattern = metronome.beatPatterns.find(p => p.name == stash.pattern);
+
     let stashed = Object.keys(this.options).find(key => this.options[key] == stash.pattern);
     let patterns = new Select(Object.keys(this.options), stashed, this) ;
     this.content.append(patterns.elm) ;
     patterns.elm.classList.add("Metronome__patterns") ;
     listen(patterns.toggle, "SELECTED",
        (e) => metronome.setPattern(stash.pattern = this.options[e.detail]));
-    delay(2, () => (metronome.bpm.textContent = this.cell.stash.tempo));
 
     this.mediaGroup = new ButtonGroup(
       stash,
@@ -1741,7 +1745,7 @@ class MetronomePanel extends Panel {
     this.content.append(this.tempoGroup.elm);
     this.tempoGroup.refresh();
 
-    this.metronome.showTrace(stash.Trace);
+    this.metronome.showTrace(stash.trace != "Show");
   }
 
   destructor() {
