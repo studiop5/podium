@@ -475,6 +475,10 @@ Podium:
 Print:
   `<path fill="#aaa" stroke="currentColor" stroke-width=".5" d="m14.3,12h2.2M18.6,15.6 17.5,13M6.18,12H7.97M3.37,15.6 5.17,13M11.1,1.96h1M10.7,3.13 11.4,2.57 11.1,2M11.8,3.12 12.4,2.53 12.1,1.96M11.1,6.91 10.6,6.28 11.2,5.88 10.6,5.19 11.1,4.75 10.7,4.18M12.4,6.86 12,6.23 12.6,5.82 12,5.13 12.4,4.69 12.1,4.12m0.8,2.85H9.85V8.83H12.9V8.28L20.8,8.15V7.69L12.9,7.58ZM7.02,8.82H15.7V10.3H7.01ZM8.19,11.6 6.63,14.4H15.3L14.1,11.6ZM3.56,22.9V15.6H18.4V23H16.5V18.6H15.6V17H6.03v1.6H5.14v4.3zM16.6,8.23V13h0.9L17.6,8.24ZM5.14,13V2.1H6.16V3.15H16.6v-1.1h1.1l-0.1,5.57h-1V4.09H6.16V13Z" />`,
 
+Range:
+  `<text y="10" x="6" font-size="10px" font-family="Bravura">\ue512</text>
+   <text y="22" x="1" font-size="24px">\u21d4</text>`,
+
 Rastrum:
   `<path fill="#aaa" stroke="currentColor" stroke-width=".6" d="M15.6,2.74 17,1.48 22.4,6.75 21.1,8.04ZM0.472,17.8 6.59,10C9.69,8.18 12.9,6.65 15.5,4.16l4.2,4.17C17.4,10.7 15.5,14 13.5,17.3l-7.55,6.2 6.15,-7.6-7.56,6C4.31,22.1 11.1,14 10.6,14.4l-7.49,6.1 6.21,-7.6-7.65,6.2c-0.59,0.5 6.51,-8.2 6.06,-7.8z"/>`,
 
@@ -541,9 +545,6 @@ Storage:
    <path d="M2 17h10.5M14 17h8" stroke="currentColor" stroke-width="0.5"/>
    <path d="M4 19v-2M6 19v-2M8 19v-2M10 19v-2M16 19v-2M18 19v-2M20 19v-2" stroke="currentColor" stroke-width="0.6"/>`,
 
-Stretch:
-  `<text y="10" x="6" font-size="10px" font-family="Bravura">\ue512</text>
-   <text y="22" x="1" font-size="24px">\u21d4</text>`,
 
 Symbols:
   `<text y="15" x="7" font-size="13px" font-family="Bravura" fill="currentColor">\ue050</text>`,

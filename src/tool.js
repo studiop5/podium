@@ -108,7 +108,7 @@ class Piano {
       width:max-content;
       flex-shrink:0; /* keep full width; otherwise the body's flexbox shrinks
                         this element to the panel width, so offsetWidth (used as
-                        the stretcher's max bound) collapses and widening fails */
+                        the range button's bounds) collapses and scroll offset calculation fails */
     }
     .Piano__key-white {
       flex-shrink:0;
@@ -229,7 +229,7 @@ class Piano {
     Young: { description: "Thomas Young well temperament (1807), also Luigi Malerbi nr.2 (1794)", frequencies: [261.6255653006, 275.62199471997, 293.00227310437, 310.07474405997, 328.14198392915, 348.83408706747, 367.49599295996, 391.5530240856, 413.43299207996, 438.51190905657, 465.11211608996, 491.10256480205, 523.2511306012], name: "Young" },
   };
 
-  elm = helm(`<div style="justify-content:center;display:flex;" data-tag="body">
+  elm = helm(`<div style="justify-content:flex-start;display:flex;" data-tag="body">
                 <div data-tag="keyboard" class="Piano__keyboard">${this.buildKeyboard()}</div>
                 <div data-tag="options" class="Piano__options"></div>
              </div>`);
@@ -248,7 +248,7 @@ class Piano {
   constructor(panel, cell) {
     this.panel = panel;
     this.cell = cell;
-    this.userWidth = null;
+    this.keyboardLeft = null;
     Object.assign(this, dataIndex("tag", this.elm));
     this.c4Elm = dataIndex("sample", this.elm)["60/0"];
 
@@ -300,37 +300,38 @@ class Piano {
       })
     );
 
-    // stretcher: control to allow adjusting keyboard width
-    let stretcherButton = helm(
+    // range: control to allow adjusting visible keyboard range
+    let rangeButton = helm(
       `<div class="Piano__button-holder" style="right: calc(50% + 1em)">
-        ${iconSvg("Stretch", { tag: "tune", class: "Piano__button" })}</div>`);
+        ${iconSvg("Range", { tag: "tune", class: "Piano__button" })}</div>`);
 
-    this.panel.header.append(stretcherButton);
+    this.panel.header.append(rangeButton);
 
     this.panel.listeners.push(
-      listen(stretcherButton, "pointerdown", (e) => {
+      listen(rangeButton, "pointerdown", (e) => {
         e.stopPropagation();
-        e.offWidth = this.panel.panel.offsetWidth;
-        e.offLeft = this.panel.panel.offsetLeft;
+        let W = this.panel.panel.clientWidth;
+        let K = this.keyboard.offsetWidth;
+        if (K <= W) return;
 
-        e.keyWidth = this.keyboard.offsetWidth;
-        e.keyOffLeft = this.keyboard.offsetLeft;
+        e.startLeft = parseFloat(this.keyboard.style.left) || 0;
         e.target.setPointerCapture(e.pointerId);
-        stretcherButton.firstElementChild.classList.add("Piano__button-active");
+        rangeButton.firstElementChild.classList.add("Piano__button-active");
         this.panel.header.classList.add("Panel__header-selected");
 
         let mv = listen(e.target, "pointermove", (emv) => {
           let delta = emv.clientX - e.clientX;
-          let minWidth = this.c4Elm.offsetWidth * 8.75; // minimum display - reduced for mobile
-          let newWidth = clamp(e.offWidth + delta + delta, minWidth, this.keyboard.offsetWidth);
-          this.panel.panel.style.width = pxToEm(newWidth, this.panel.elm);
-          this.userWidth = newWidth;
+          // Moving 1/4 of keyboard width to the right moves keys all the way to the right
+          let shiftDelta = delta * 4 * (K - W) / K;
+          let newLeft = clamp(e.startLeft + shiftDelta, W - K, 0);
+          this.keyboard.style.left = newLeft + "px";
+          this.keyboardLeft = newLeft;
         });
 
         listen(e.target, "pointerup",
           () => {
             unlisten(mv);
-            stretcherButton.firstElementChild.classList.remove("Piano__button-active");
+            rangeButton.firstElementChild.classList.remove("Piano__button-active");
             this.panel.header.classList.remove("Panel__header-selected");
           },
           { once: true }
@@ -820,24 +821,26 @@ class Piano {
   }
 
   show() {
-    // Force reflow to ensure DOM is laid out, then defer width calculation
+    // Force reflow to ensure DOM is laid out, then defer position calculation
     this.c4Elm.offsetWidth; // force reflow
     delay(4, () => {
-      // Set panel width - use same minimum as stretcher button
-      let keyWidth = this.c4Elm.offsetWidth;
-      let minKeyCount = 8.75; // same as stretcher button minimum
-      let minWidth = keyWidth * minKeyCount;
-      let maxWidth = this.keyboard.offsetWidth; // full keyboard
-
-      // Use user-adjusted width if set (preserved across fling-hide/reopen),
-      // otherwise start with minimum width
-      let panelWidth = this.userWidth !== null ? this.userWidth : Math.min(minWidth, maxWidth);
-      this.panel.panel.style.width = pxToEm(panelWidth, this.panel.elm);
-
-      // Set constant left offset to center the keyboard (approx 0em).
-      // Note: this relies on the browser's flexbox centering (justify-content: center)
-      // on the parent element, so the keyboard naturally stretches symmetrically.
-      this.keyboard.style.left = (this.keyboard.offsetWidth / 2 - this.c4Elm.offsetLeft) / _pxPerEm_ + "em";
+      let W = this.panel.panel.clientWidth;
+      let K = this.keyboard.offsetWidth;
+      if (this.keyboardLeft === undefined || this.keyboardLeft === null) {
+        let c4Center = this.c4Elm.offsetLeft + this.c4Elm.offsetWidth / 2;
+        if (K > W) {
+          this.keyboardLeft = clamp(W / 2 - c4Center, W - K, 0);
+        } else {
+          this.keyboardLeft = (W - K) / 2;
+        }
+      } else {
+        if (K > W) {
+          this.keyboardLeft = clamp(this.keyboardLeft, W - K, 0);
+        } else {
+          this.keyboardLeft = (W - K) / 2;
+        }
+      }
+      this.keyboard.style.left = this.keyboardLeft + "px";
     });
   }
 }

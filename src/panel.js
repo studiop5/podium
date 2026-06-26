@@ -477,14 +477,6 @@ class Panel {
        if(this.elm.offsetTop > y)
        this.elm.style.top = y + "px" ;
     }
-    if (this.constructor.name == "PianoPanel") {
-      let halfW = this.panel.offsetWidth / 2;
-      let minX = -halfW + 3 * _pxPerEm_;
-      let maxX = window.innerWidth + halfW - 3 * _pxPerEm_;
-      if (this.elm.offsetLeft < minX) this.elm.style.left = minX + "px";
-      else if (this.elm.offsetLeft > maxX) this.elm.style.left = maxX + "px";
-      return;
-    }
     let range = document.createRange();
     range.selectNodeContents(this.title) ;
     let box = range.getBoundingClientRect();
@@ -3021,10 +3013,7 @@ class PianoPanel extends Panel {
     this.panel.style.maxHeight = "none";
     this.piano = new Piano(this, cell);
     this.body.replaceWith(this.piano.elm);
-    this.panel.style.width =
-      innerWidth / _pxPerEm_ / parseFloat(this.elm.style.fontSize) -
-      4 +
-      "em";
+    this.panel.style.width = "95vw";
   }
 
   destructor() {
@@ -3042,6 +3031,22 @@ class PianoPanel extends Panel {
   hidden() {
     this.optionsVisibility = this.piano.options.style.visibility ;
     this.piano.options.style.visibility = "hidden" ;
+  }
+
+  constrain() {
+    super.constrain();
+    if (this.piano && this.piano.keyboard) {
+      let W = this.panel.clientWidth;
+      let K = this.piano.keyboard.offsetWidth;
+      if (this.piano.keyboardLeft !== undefined && this.piano.keyboardLeft !== null) {
+        if (K > W) {
+          this.piano.keyboardLeft = clamp(this.piano.keyboardLeft, W - K, 0);
+        } else {
+          this.piano.keyboardLeft = (W - K) / 2;
+        }
+        this.piano.keyboard.style.left = this.piano.keyboardLeft + "px";
+      }
+    }
   }
 }
 
