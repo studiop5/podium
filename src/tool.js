@@ -125,7 +125,7 @@ class Piano {
       touch-action: manipulation; 
       user-select: none;
     }
-    .Piano__key-white:active {
+    .Piano__key-white:active, .Piano__key-white.pressed {
       border-top:.06em solid #777;
       border-left:.06em solid #999;
       border-bottom:.06em solid #999;
@@ -147,7 +147,7 @@ class Piano {
       touch-action: manipulation;
       user-select: none;
     }
-    .Piano__key-black:active {
+    .Piano__key-black:active, .Piano__key-black.pressed {
       box-shadow:-.06em -.06em .18em rgba(255,255,255,0.2) inset,0 -.18em .18em 3px rgba(0,0,0,0.6) inset,0 .06em .18em rgba(0,0,0,0.5);
       background:linear-gradient(to right,#444 0%,#222 100%)
       touch-action: manipulation;
@@ -250,6 +250,7 @@ class Piano {
     this.cell = cell;
     this.keyboardLeft = null;
     this.userWidth = null;
+    this.pointerKeys = new Map();
     Object.assign(this, dataIndex("tag", this.elm));
     this.c4Elm = dataIndex("sample", this.elm)["60/0"];
 
@@ -317,7 +318,7 @@ class Piano {
         let minDrag = -5 * emSize;
         let maxDrag = 16 * emSize;
         let labelWidth = this.panel.title ? this.panel.title.offsetWidth : 100;
-        let minWidth = this.c4Elm.offsetWidth * 8; // minimum 8 white keys
+        let minWidth = this.c4Elm.offsetWidth * 10; // minimum 10 white keys
         let maxWidth = Math.min(K, 2 * window.innerWidth - labelWidth / 2);
 
         e.startWidth = W;
@@ -547,6 +548,9 @@ class Piano {
     });
 
     let noteOff = (tag, force=false) => {
+      let keyElm = this.keyboard.querySelector(`[data-sample="${tag}"]`);
+      if (keyElm) keyElm.classList.remove("pressed");
+
       let note = this.activeNotes.get(tag);
       if(note && (force || !(this.sustaining || this.tuning)))  {
         note.envelope.gain.setTargetAtTime(0, actx.currentTime, 0.015);
@@ -613,19 +617,48 @@ class Piano {
       // Trim activeNotes to current "voices" setting
       while(this.activeNotes.size > this.cell.stash["voices"] - 1) noteOff(this.activeNotes.keys().next().value, true);
       // ...and now sound the new Note
+      let keyElm = this.keyboard.querySelector(`[data-sample="${midiOffset}"]`);
+      if (keyElm) keyElm.classList.add("pressed");
+
       source.start(0);
       this.activeNotes.set(midiOffset, { midiOffset, envelope, source});
     };
 
-    // piano key press handler
+    // piano key press handler (supports glissando)
     this.panel.listeners.push(listen(this.keyboard, "pointerdown", (e) => {
-      let midiOffset = e.target.dataset.sample;
-      if (!midiOffset) return; // pointerdown landed between keys / on a non-key element
-      e.target.setPointerCapture(e.pointerId);
+      let key = e.target.closest('[data-sample]');
+      if (!key) return;
+      e.stopPropagation();
+      this.keyboard.setPointerCapture(e.pointerId);
+      let midiOffset = key.dataset.sample;
+      this.pointerKeys.set(e.pointerId, midiOffset);
       noteOn(midiOffset);
-      listen(e.target, "pointerup", (e) => {
-        noteOff(midiOffset);
-      }, {once:true});
+    }));
+
+    this.panel.listeners.push(listen(this.keyboard, "pointermove", (e) => {
+      if (!this.pointerKeys.has(e.pointerId)) return;
+      let target = document.elementFromPoint(e.clientX, e.clientY);
+      let key = target ? target.closest('[data-sample]') : null;
+      let currentMidiOffset = this.pointerKeys.get(e.pointerId);
+      if (key) {
+        let newMidiOffset = key.dataset.sample;
+        if (newMidiOffset !== currentMidiOffset) {
+          if (currentMidiOffset) noteOff(currentMidiOffset);
+          this.pointerKeys.set(e.pointerId, newMidiOffset);
+          noteOn(newMidiOffset);
+        }
+      } else {
+        if (currentMidiOffset) {
+          noteOff(currentMidiOffset);
+          this.pointerKeys.set(e.pointerId, null);
+        }
+      }
+    }));
+
+    this.panel.listeners.push(listen(this.keyboard, ["pointerup", "pointercancel"], (e) => {
+      let currentMidiOffset = this.pointerKeys.get(e.pointerId);
+      if (currentMidiOffset) noteOff(currentMidiOffset);
+      this.pointerKeys.delete(e.pointerId);
     }));
   }
 
