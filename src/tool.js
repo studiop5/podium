@@ -416,16 +416,9 @@ class Piano {
           this.optionsView.elm.style.visibility = "hidden";
         } else {
           this.optionsButton.firstElementChild.classList.add("Piano__button-active");
-          // Cancel a pending fling-hide park and undo any in-flight collapse,
-          // else hide()'s deferred callback strands this view offscreen at -9999.
-          this.optionsHide?.cancel();
-          let oelm = this.optionsView.elm;
-          oelm.hiding = false;
-          oelm.style.transition = "unset";
-          oelm.style.fontSize = "";
-          oelm.style.top = "" ;
-          oelm.style.left = "calc(50% - 13.5em);";
-          oelm.style.visibility = "visible";
+          this.optionsView.elm.style.top = "" ;
+          this.optionsView.elm.style.left = "calc(50% - 13.5em);";
+          this.optionsView.elm.style.visibility = "visible";
         }
       })
     );
@@ -743,7 +736,7 @@ class Piano {
         listen(optionsView.sash, "pointerup", (eup) => {
           drag.up(eup) ;
           if(!drag.lift && !drag.jab && drag.vXY > 0.75) {
-            this.optionsHide = hide(elm, this.optionsButton) || this.optionsHide;
+            hide(elm, this.optionsButton);
             delay(10, () => this.optionsButton.firstElementChild.classList.remove("Piano__button-active"));
           }
           optionsView.sash.classList.remove("Panel__header-selected");

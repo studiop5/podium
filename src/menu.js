@@ -430,7 +430,7 @@ class Menu {
         },
         close: { name: "Close", svgPath: iconPaths["Close"] },
         print: { name: "Print", svgPath: iconPaths["Print"] },
-        details: { name: "Details", svgPath: iconPaths["Details"], stash: { quality: 2, pgFit: "Center", bkColorIdx: 0 }, storage: "score" },
+        details: { name: "Details", svgPath: iconPaths["Details"], stash: { quality: 3, pgFit: "Center", bkColorIdx: 0 }, storage: "score" },
       },
       svgPath: iconPaths["Score"],
     };

@@ -1153,6 +1153,7 @@ class Score {
         let { page, score } = _menu_.rings;
         Object.assign(page.cells.numbers.stash, defaults.page?.cells?.numbers);
         Object.assign(score.cells.details.stash, defaults.score?.cells?.details);
+        this.quality = score.cells.details.stash.quality ?? this.quality;
       }
       // create a Pg instance for every pdf page, and calculate the
       // max {width/height} over all pgs.

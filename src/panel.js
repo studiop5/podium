@@ -3033,7 +3033,14 @@ class PianoPanel extends Panel {
   show() {
     super.show();
     this.piano.show();
-    this.piano.options.style.visibility = this.optionsVisibility ;
+    // Never reveal the options view while it is parked offscreen. A fling-hide
+    // animates for 500ms and then parks the element at top:-9999px; the saved
+    // visibility can be a stale "visible" captured mid-hide. Restoring it onto
+    // the still-parked element strands it offscreen (the monkey's offscreen
+    // invariant catches this). -9999px is exclusively the park sentinel, so an
+    // element sitting there must stay hidden until something repositions it.
+    let o = this.piano.options;
+    o.style.visibility = o.style.top === "-9999px" ? "hidden" : this.optionsVisibility ;
     return this;
   }
 
