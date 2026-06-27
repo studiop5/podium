@@ -614,8 +614,20 @@ class Piano {
         this.damper.run(piano ? 2200:7500, () => envelope.gain.setTargetAtTime(0.0, now, 0.015));
       }
       else {
-        if (!piano) envelope.gain.setValueAtTime(0, now);
-        envelope.gain.setTargetAtTime(1.0, now, 0.005);
+        if (!piano) {
+          envelope.gain.setValueAtTime(0, now);
+          envelope.gain.setTargetAtTime(1.0, now, 0.005);
+          envelope.gain.setTargetAtTime(0.0, now + 1.0, 3.0);
+          let noteSource = source;
+          schedule(12000, () => {
+            let currentNote = this.activeNotes.get(midiOffset);
+            if (currentNote && currentNote.source === noteSource) {
+              noteOff(midiOffset, true);
+            }
+          });
+        } else {
+          envelope.gain.setTargetAtTime(1.0, now, 0.005);
+        }
       }
 
       // Don't allow same note to sound more than once
