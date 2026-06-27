@@ -2009,15 +2009,21 @@ function delayMs(msec = -1, func) {
   if (msec >= 0) return delay(Math.round(msec * _frMs_), func);
   let now = performance.now();
   delay(60, () => {
-    // Reject a bogus measurement rather than dividing by ~0 into Infinity (which
-    // would poison every later delayMs into an unbounded delay()). 60 real
-    // animation frames take meaningful wall-clock time on ANY display (~1000ms
-    // at 60Hz, ~60ms even at 1000Hz, ~6ms at a fanciful 10000Hz), so a
-    // sub-millisecond result means rAF isn't vsync-paced (headless/throttled) —
-    // keep the prior estimate. No upper cap, so high-refresh displays calibrate
-    // correctly however fast they get.
+    // _frMs_ is frames-per-ms (refresh rate / 1000). Only the UPPER bound needs
+    // guarding: a headless/throttled environment can fire the 60 frames in ~0ms,
+    // dividing into Infinity (or an absurd rate) and poisoning every later
+    // delayMs into an unbounded delay(). Cap at 400fps — past any real display,
+    // and it keeps the longest caller (the 7s pointer watchdog) bounded well
+    // under a renderer-wedging frame count. NO lower bound: a slow refresh
+    // (e-ink readers run a few fps or less) gives a small _frMs_, which only ever
+    // means FEWER frames per delay — harmless to safety, and exactly right for
+    // the device; clamping it up would make every delay run long there. Log a
+    // clamp: it means the calibration sampled garbage.
     let elapsed = performance.now() - now;
-    if (elapsed > 1) _frMs_ = 60 / elapsed;
+    let raw = 60 / elapsed; // measured frames per ms
+    _frMs_ = Math.min(raw, 0.4);
+    if (raw > 0.4)
+      console.error(`delayMs calibration implausible: ${raw} fr/ms (60 frames in ${elapsed}ms); clamped to ${_frMs_}`);
   });
 }
 
