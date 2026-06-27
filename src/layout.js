@@ -1712,6 +1712,10 @@ class ScrollLayout extends Layout {
   }
 
   async onDown(e) {
+    if (this.inOp) {
+      this.commitAnimId++;
+      this.inOp = false;
+    }
     if (await super.onDown(e)) return;
     let { LEFT, CLIENTX, WIDTH, X, VX } = this.props;
     let sashLimit = this.cell.geo.sashLimit;
@@ -1821,6 +1825,7 @@ class ScrollLayout extends Layout {
 
   async pgCommit(pn, pace) { // pace is px/msec
     let { LEFT, MAXWIDTH } = this.props;
+    this.inOp = true;
     this.pnPost(pn);
     this.pagerLeft.build();
     this.pagerRight.build();
@@ -1837,12 +1842,14 @@ class ScrollLayout extends Layout {
       let eased = 1 - Math.pow(1 - t, 3); // cubic ease-out: full speed start, decelerates to rest
       this.sash.style[LEFT] = (startLeft + (target - startLeft) * eased) + "em";
       if (t < 1) requestAnimationFrame(step);
+      else this.inOp = false;
     };
     requestAnimationFrame(step);
   }
 
   async pgOpen(how, bookMarks) {
     if (bookMarks) return super.pgOpen(how);
+    if (this.inOp) return;
     let pn = parseInt(_score_.numbers.pn);
     // convert msec/snap to px/msec, reading pgSnap directly to avoid stale snapStep:
     let pgSnap = this.cell.geo.pgSnap;

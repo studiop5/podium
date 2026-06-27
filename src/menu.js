@@ -491,7 +491,7 @@ class Menu {
           stash: {
             fit: "Auto", // "Auto","Width","Height","None",
             pnShow: "On", // "On" or "Off"
-            pace: 85, // pace: animation speed in %, 0 means no animation
+            pace: 350, // pace: animation speed in msecs/flip
             pz: null, // user pan-zoom saved with the score. When set: { left, top, fontSize, w, h }; applied only when w/h match the current viewport (see Layout.userPz)
           },
           svgPath: iconPaths["Book"],
@@ -505,7 +505,7 @@ class Menu {
             pnShow: "On",
             pgShow: 2,
             pgSnap: 2,
-            pace: 500, // msec/snap
+            pace: 350, // msec/snap
             pz: null, // see book cell
           },
           svgPath: iconPaths["Horizontal Scroll"],
@@ -519,7 +519,7 @@ class Menu {
             pnShow: "On",
             pgShow: 1, // [1,_score_.pages.length)
             pgSnap: 0, // 0 = disabled
-            pace: 500, // msec/snap
+            pace: 350, // msec/snap
             pz: null, // see book cell
           },
           svgPath: iconPaths["Vertical Scroll"],

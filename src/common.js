@@ -1991,8 +1991,11 @@ function dataIndex(key, elm) {
 }
 
 function delay(frameCount, func) {
-  // delay execution of a function a given number of animation frames
-  if (frameCount <= 0) return func();
+  // delay execution of a function a given number of animation frames.
+  // Guard a non-finite frameCount (Infinity/NaN, e.g. from a poisoned _frMs_):
+  // otherwise it never counts down to <= 0 and this recurses through
+  // requestAnimationFrame every frame forever, wedging the renderer.
+  if (!Number.isFinite(frameCount) || frameCount <= 0) return func();
   requestAnimationFrame(() => delay(frameCount - 1, func));
 }
 
@@ -2005,7 +2008,17 @@ function delayMs(msec = -1, func) {
   // time between frames over 60 frames.
   if (msec >= 0) return delay(Math.round(msec * _frMs_), func);
   let now = performance.now();
-  delay(60, () => (_frMs_ = 60 / (performance.now() - now)));
+  delay(60, () => {
+    // Reject a bogus measurement rather than dividing by ~0 into Infinity (which
+    // would poison every later delayMs into an unbounded delay()). 60 real
+    // animation frames take meaningful wall-clock time on ANY display (~1000ms
+    // at 60Hz, ~60ms even at 1000Hz, ~6ms at a fanciful 10000Hz), so a
+    // sub-millisecond result means rAF isn't vsync-paced (headless/throttled) —
+    // keep the prior estimate. No upper cap, so high-refresh displays calibrate
+    // correctly however fast they get.
+    let elapsed = performance.now() - now;
+    if (elapsed > 1) _frMs_ = 60 / elapsed;
+  });
 }
 
 delayMs(); // force initial calibration of _frMs_ (frames per millisecond)

@@ -3040,7 +3040,7 @@ class PianoPanel extends Panel {
     // invariant catches this). -9999px is exclusively the park sentinel, so an
     // element sitting there must stay hidden until something repositions it.
     let o = this.piano.options;
-    o.style.visibility = o.style.top === "-9999px" ? "hidden" : this.optionsVisibility ;
+    o.style.visibility = o.style.top == "-9999px" ? "hidden" : this.optionsVisibility ;
     return this;
   }
 

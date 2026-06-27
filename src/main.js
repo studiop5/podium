@@ -299,7 +299,9 @@ async function main() {
      **/
     let pedalKeys = ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'];
 
+let knt = 0 ;
     listen(document, "keydown", (e) => {
+console.log("keydown:", ++knt) ;
       if (e.target.nodeName === 'TEXTAREA' || e.target.nodeName === 'INPUT') {
         // we don't want to process inputs to fabricjs text boxes or other text input sources
         _menu_.autoOff.run() ; // keep cell from de-activating 
