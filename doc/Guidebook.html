@@ -1068,7 +1068,15 @@ function closeVideo(event, container) {
     <p>The extension works well with online score libraries such as <a href="https://www.cpdl.org" target="_blank" rel="noopener noreferrer">CPDL (Choral Public Domain Library)</a> and <a href="https://imslp.org" target="_blank" rel="noopener noreferrer">IMSLP</a>. For IMSLP, logging in to your account provides the best experience&mdash;scores open instantly in Podium with no intermediate pages. Please support this invaluable resource for musicians by becoming an IMSLP member. CPDL provides direct PDF links to clean, modern vocal and choral engravings, which open seamlessly in Podium. For classical guitar repertoire, Jean-François Delcamp's <a href="https://classical-guitar-sheet-music.com" target="_blank" rel="noopener noreferrer">Classical Guitar Sheet Music and Tabs</a> is another excellent resource.</p>
 
     <figure>
-        <img src="assets/imslp.jpg" alt="Podium context menu on IMSLP">
+        <div class="video-container" onclick="playVideo(this)">
+            <img src="assets/imslp.jpg" alt="Podium context menu on IMSLP">
+            <div class="play-overlay"></div>
+            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+                <source src="assets/imslp.webm" type="video/webm">
+                Your browser does not support the video tag.
+            </video>
+        </div>
         <figcaption>Right-click context menu showing "Open with Podium" option on IMSLP</figcaption>
     </figure>
 
