@@ -2153,7 +2153,10 @@ function hide(elm, onElm) {
   elm.style.left = (onElmBox.x + onElmBox.width / 2 - offsetParentBox.x) + "px"; 
   elm.style.top = (onElmBox.y + onElmBox.height / 2 - offsetParentBox.y) + "px";  
   elm.style.fontSize = 0;
-  schedule(500, () => {
+  // Return the schedule handle so a caller can cancel the deferred park if it
+  // re-shows the element within the 500ms window (otherwise this callback fires
+  // afterwards and strands the now-visible element offscreen at top:-9999px).
+  return schedule(500, () => {
     elm.style.left = left;
     elm.style.visibility = "hidden";
     elm.style.top = "-9999px";
