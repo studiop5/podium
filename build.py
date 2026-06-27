@@ -581,7 +581,7 @@ if args.guide:
         "Local storage": ["chapter-8-storage"],
         "Long press": ["chapter-3"],
         "Magnify": ["chapter-7-magnify"],
-        "Manuscript paper": ["chapter-7-merge", "chapter-6-rastrum"],
+        "Manuscript paper": ["chapter-7-flatten", "chapter-6-rastrum"],
         "Merge": ["chapter-7-merge"],
         "Metadata": ["chapter-4-details"],
         "Microphone": ["chapter-9-review", "chapter-9-piano"],
@@ -597,7 +597,7 @@ if args.guide:
         "Page ordering": ["chapter-5-table"],
         "Page range": ["chapter-4-print"],
         "Page sizing": ["chapter-4-details"],
-        "Page turn": ["chapter-5-page-turning"],
+        "Page Turning": ["chapter-5-page-turning"],
         "Pager": ["chapter-5-page-turning"],
         "Password-protected PDF": ["chapter-4-open-save"],
         "Paste buffer": ["chapter-7-export-import"],
@@ -628,7 +628,7 @@ if args.guide:
         "Staff space": ["chapter-6-rastrum", "chapter-6-symbols"],
         "Staves": ["chapter-6-rastrum"],
         "Sustain mode": ["chapter-9-piano"],
-        "Symbol library": ["chapter-6-edit"],
+        "Symbol library": ["chapter-6-symbols"],
         "Tablature": ["chapter-6-rastrum"],
         "Temperament": ["chapter-9-piano"],
         "Timbre": ["chapter-9-piano"],
@@ -643,20 +643,42 @@ if args.guide:
     with open(GUIDEBOOK_PATH, 'r', encoding='utf-8') as f:
         guide_html = f.read()
 
-    # Extract headings with IDs -> (anchor_id, section_label, heading_text)
+    # Extract headings in order of appearance -> (anchor_id, section_label, heading_text)
     headings = []
-    for m in _re.finditer(r'<section\s+id="([^"]+)"[^>]*>\s*<h2>(.+?)</h2>', guide_html):
-        aid, text = m.group(1), m.group(2)
-        if aid == 'overture':
-            headings.append((aid, 'Overture', text))
-        else:
-            ch = _re.match(r'Chapter (\d+)', text)
-            if ch:
-                headings.append((aid, f'Ch.{ch.group(1)}', text))
-    for m in _re.finditer(r'<h3\s+id="([^"]+)">(\d+\.\d+)\s+.+?:\s+(.+?)</h3>', guide_html):
-        headings.append((m.group(1), m.group(2), m.group(3)))
-    for m in _re.finditer(r'<h4\s+id="([^"]+)">(.+?)</h4>', guide_html):
-        headings.append((m.group(1), '4.1', m.group(2)))
+    current_chapter_label = 'Ch.1'
+    current_section_label = 'Ch.1'
+
+    pattern = (
+        r'<section\s+id="([^"]+)"[^>]*>\s*<h2>(.+?)</h2>|'
+        r'<h3\s+id="([^"]+)">(\d+\.\d+)\s+(?:.+?:\s+)?(.+?)</h3>|'
+        r'<h4\s+id="([^"]+)">(.+?)</h4>'
+    )
+
+    for m in _re.finditer(pattern, guide_html):
+        if m.group(1) is not None:
+            # h2 / section
+            aid, text = m.group(1), m.group(2)
+            if aid == 'overture':
+                label = 'Overture'
+            elif aid == 'chapter-10':
+                label = 'Ch.10'
+            else:
+                ch = _re.match(r'Chapter (\d+)', text)
+                label = f'Ch.{ch.group(1)}' if ch else 'Ch.1'
+            current_chapter_label = label
+            current_section_label = label
+            headings.append((aid, label, text))
+        elif m.group(3) is not None:
+            # h3
+            aid, label, text = m.group(3), m.group(4), m.group(5)
+            # Remove any trailing HTML tags (like <svg>) from display text
+            text = _re.sub(r'<[^>]+>', '', text).strip()
+            current_section_label = label
+            headings.append((aid, label, text))
+        elif m.group(6) is not None:
+            # h4
+            aid, text = m.group(6), m.group(7)
+            headings.append((aid, current_section_label, text))
 
     section_labels = {h[0]: h[1] for h in headings}
 
@@ -676,22 +698,35 @@ if args.guide:
             if len(sub) >= 2:
                 heading_terms.setdefault(sub, set()).add(aid)
 
-    # Merge heading terms with curated keywords
+    # Merge heading terms with curated keywords, normalizing case
     entries = {}
     for term, anchors in heading_terms.items():
-        entries.setdefault(term, set()).update(anchors)
+        low_term = term.lower()
+        if low_term in entries:
+            entries[low_term][1].update(anchors)
+        else:
+            entries[low_term] = [term, set(anchors)]
+
     for term, anchors in CURATED_KEYWORDS.items():
-        entries.setdefault(term, set()).update(anchors)
+        low_term = term.lower()
+        if low_term in entries:
+            entries[low_term][1].update(anchors)
+            entries[low_term][0] = term  # prefer curated casing
+        else:
+            entries[low_term] = [term, set(anchors)]
+
+    # Reconstruct the final entries dictionary
+    final_entries = {item[0]: item[1] for item in entries.values()}
 
     # Validate anchor references
     all_ids = set(_re.findall(r'id="([^"]+)"', guide_html))
-    for term, anchors in entries.items():
+    for term, anchors in final_entries.items():
         for anchor in anchors:
             if anchor not in all_ids:
                 print(f'  WARNING: index keyword "{term}" references missing anchor #{anchor}', file=sys.stderr)
 
     # Generate index HTML
-    sorted_terms = sorted(entries.keys(), key=lambda t: t.lower())
+    sorted_terms = sorted(final_entries.keys(), key=lambda t: t.lower())
     groups = {}
     for term in sorted_terms:
         groups.setdefault(term[0].upper(), []).append(term)
@@ -717,7 +752,7 @@ if args.guide:
         lines.append(f'    <div class="idx-letter">{letter}</div>')
         lines.append('    <dl>')
         for term in groups[letter]:
-            sorted_anchors = sorted(entries[term], key=lambda a: section_labels.get(a, a))
+            sorted_anchors = sorted(final_entries[term], key=lambda a: section_labels.get(a, a))
             refs = ', '.join(f'<a href="#{a}">{section_labels.get(a, a)}</a>' for a in sorted_anchors)
             lines.append(f'        <dt>{term}</dt><dd> &mdash; {refs}</dd>')
         lines.append('    </dl>')

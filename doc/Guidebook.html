@@ -1158,15 +1158,15 @@ function closeVideo(event, container) {
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
-<section id="chapter-2-foot-pedal">
-    <h3>2.4 Foot Pedal</h3>
+    <h3 id="chapter-2-foot-pedal">2.4 Foot Pedal</h3>
 
     <p>Podium works with Bluetooth foot pedal page turners commonly used by performing musicians. Most foot pedals emulate keyboard arrow keys — Podium detects these and uses them to turn pages.</p>
 
     <p>The behavior of the arrow keys (and therefore the pedal) is configured in the <a href="#chapter-7-numbers" class="chapter-link">Numbers panel</a> (Page Ring → Numbers). You can assign the right/up arrow to advance a page or jump to the next bookmark, and the left/down arrow to go back a page or jump to the previous bookmark. The bookmark mode is especially useful for scores with repeats: navigate to the first page of the repeated section and long-press its page number to place a bookmark there, then use the back pedal to snap directly to it when the repeat begins.</p>
 
     <div class="note">The foot pedal triggers the same tap-speed page turn setting as tapping the score layout directly. Use the <strong>Pace</strong> slider in the layout panel for the chosen layout to control how fast the page turns — see <a href="#chapter-5-page-turning" class="chapter-link">§5 Page Turning</a>.</div>
-</section>
+
+    <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 
 <section id="chapter-3">
     <h2>Chapter 3: Interface Basics</h2>
@@ -1247,7 +1247,7 @@ function closeVideo(event, container) {
 
     <p>Menu cells with small diamond-shaped pointers contain hidden panels. To open a panel, drag inward or outward. As long as the drag motion isn't circular, the panel will be revealed&mdash;circular motion rotates the ring instead.</p>
 
-    <div class="note"> Revealing a panel does not activate the corresponding cell&mdash;cell activation by tapping is a completely independent gesture. However, once a panel is revealed, double-tapping its textured header can be used to activate or de-activate the cell.</div>
+    <div class="note"> Revealing a panel does not activate the corresponding cell&mdash;cell activation by tapping is a completely independent gesture. However, once a panel is revealed, double-tapping its textured header can be used to activate or deactivate the cell.</div>
 
     <p><strong>Moving panels:</strong> Drag from the textured header, or use two-fingers (Ctrl-mouse-drag) to drag anywhere on the panel.</p>
 
@@ -1420,7 +1420,7 @@ function closeVideo(event, container) {
 
     <p>Close the current score.</p>
 
-    <p>In normal use, simply opening a new score is sufficient — Podium automatically closes the current one. Close is provided as a convenience for users who want to use Podium's practice tools without a score open.</p>
+    <p>In normal use, simply opening a new score is sufficient — Podium automatically closes the current one. <strong>Close</strong> is provided as a convenience for users who want to use Podium's practice tools without a score open.</p>
 
     <p>If the current score has unsaved changes, a confirmation dialog appears before closing.</p>
 
@@ -1497,7 +1497,7 @@ function closeVideo(event, container) {
     <p>Book, Horizontal, and Vertical layouts all support four ways to navigate pages:</p>
     <ul>
       <li><strong>Tap:</strong> Turns the page at a controlled speed set by the layout's <strong>Pace</strong> setting (configured in its panel). For Book layout, Pace is in seconds/flip; for Horizontal and Vertical, it is seconds/snap.</li>
-      <li><strong>Drag:</strong> Touch and drag the page, pause, then lift. In Book layout, the page will <em>flip</em> forward or <em>flop</em> back to its original position depending on whether you release beyond the book's central spine. In Horizontal and Vertical layouts, the layout snaps to the nearest snap boundary, as determined by the layout's <strong>Snap</strong> setting. When Snap is disabled, a drag will not scroll the layout at all. In all cases, the speed of the snap, flip, or flop is determined by the <strong>Pace</strong> setting.</li>
+      <li><strong>Drag:</strong> Touch and drag the page, pause, then lift. In Book layout, the page will <em>flip</em> forward or <em>flop</em> back to its original position depending on whether you release beyond the book's central spine. In Horizontal and Vertical layouts, the layout snaps to the nearest snap boundary, as determined by the layout's <strong>Snap</strong> setting. When Snap is disabled, a drag will scroll the layout freely without snapping to page boundaries. In all cases, the speed of the snap, flip, or flop is determined by the <strong>Pace</strong> setting.</li>
       <li><strong>Fling:</strong> Drag quickly and release with momentum. The speed of the fling drives the turn — fling quickly for a fast turn, slowly for a slow one. The Pace setting is ignored. In Horizontal and Vertical layouts with Snap disabled, a fling will scroll freely until the layout runs out of kinetic energy.</li>
     </ul>
 
@@ -1580,7 +1580,7 @@ function closeVideo(event, container) {
 
     <p>The Panel's <strong>Gap:</strong> slider determines how much space to leave around each page, as a percentage of the page's width.</p>
 
-    <p>The Panel's <strong>Pace:</strong> slider determines how quickly pages turn when tapped or dragged.<p>
+    <p>The Panel's <strong>Pace:</strong> slider determines how quickly pages turn when tapped or dragged.</p>
 
     <p>Page numbers can be turned on or off in the Panel. Current page numbers are shown at the left and right sides of the layout: drag the page number to quickly scroll to other pages.</p>
 
@@ -1645,7 +1645,7 @@ function closeVideo(event, container) {
 
     <p>The Panel's <strong>Horizontal Gap</strong> slider determines the horizontal gap between neighboring pages, as a percentage of the page's width. Setting this to a negative value causes the pages to be displayed overlapping each other, much like playing cards.</p>
 
-    <p>The Panel's <strong>Vertical Gap</strong> slider determines the vertical gap between neighbouring pages, as a percentage of the page's height. Setting this to a negative value causes the pages to be displayed overlapping each other, much like playing cards.</p>
+    <p>The Panel's <strong>Vertical Gap</strong> slider determines the vertical gap between neighboring pages, as a percentage of the page's height. Setting this to a negative value causes the pages to be displayed overlapping each other, much like playing cards.</p>
 
     <p>Page numbers can be turned on or off in the Panel.</p>
 
@@ -1838,7 +1838,7 @@ function closeVideo(event, container) {
 
     <p>To precisely position the Grid, first activate the Grid cell, then touch any page in the score. Before releasing this touch, the position of the grid will follow your touch. Use this to align the grid with current features of the score page. The grid can be repositioned by first tapping the page to remove the grid, then tap-hold and drag to reposition.</p>
 
-    <p>When Numbers is On, labels on the grid lines show the distance from the origin, marked with a "o".</p>
+    <p>When Numbers is On, labels on the grid lines show the distance from the origin, marked with a small circle.</p>
 
     <p>The Grid is not itself an annotation object: it does not interfere with any other Ink actions and is not present when a score is saved or printed.</p>
 
@@ -1921,7 +1921,7 @@ function closeVideo(event, container) {
 
     <div class="note">Normally, any gestures made on score pages are interpreted as page navigation commands. However, if the Page Ring is selected, and if it has an activated cell, that cell's action will be performed instead.</div>
 
-    <div class="note">When a Page Ring Cell is activated, it stays active until tapped again, or until a different Page Ring Cell is activated. Cells automatically deactivate after 4 seconds if not used. To prevent this, long-press a cell to lock it&mdash;a circle appears around its outer edge to indicate the lock. Long-press again or select a different cell to unlock. All Page Ring cells support locking except Numbers and Merge. Exception: the Numbers cell never activates&mdash;it simply holds a panel for configuring page numbering and keyboard shortcuts.</div>
+    <div class="note">When a Page Ring Cell is activated, it stays active until tapped again, or until a different Page Ring Cell is activated. Cells automatically deactivate after 4 seconds if not used. To prevent this, long-press a cell to lock it&mdash;a circle appears around its outer edge to indicate the lock. Long-press again or select a different cell to unlock. All Page Ring cells support locking except Numbers. Exception: the Numbers cell never activates&mdash;it simply holds a panel for configuring page numbering and keyboard shortcuts.</div>
 
     <h3>Page Ring Tools:</h3>
 
@@ -2405,8 +2405,8 @@ function closeVideo(event, container) {
         <figcaption>Piano keyboard with controls</figcaption>
     </figure>
 
-    <p>Drag left ⇄ right from the |=| (<i>breve</i>) button to narrow/widen the keyboard. 
-        <p>Drag left ⇄ right from the 8va (<i>ottava</i>) button to move the visible keys within the keyboard.</p>
+    <p>Drag left ⇄ right from the |=| (<i>breve</i>) button to narrow/widen the keyboard.</p>
+    <p>Drag left ⇄ right from the 8va (<i>ottava</i>) button to move the visible keys within the keyboard.</p>
 
     <div class="note">Piano samples make up a significant portion of Podium's download size. For this reason, the maximum keyboard size is limited to 5 octaves, a common size for an 18th century harpsichord or pianoforte. Samples have been truncated and down-sampled, reducing size while maintaining (hopefully) acceptable audio quality.</div>
 
@@ -2420,9 +2420,9 @@ function closeVideo(event, container) {
 
     <p><strong>Pitch Detector:</strong> Identified by a tuning fork icon. Tap the Pitch Detector button to toggle pitch detection on/off. When on, a <a href="https://asa.scitation.org/doi/10.1121/1.1458024">YIN-based pitch detector</a> attempts to estimate the closest piano note to what it hears in the microphone. It overlays a whole note (semibreve) on the corresponding key, plus shows the number of cents deviation from that key's expected pitch. The opacity of the whole note reflects the algorithm's confidence; the symbol becomes more transparent as confidence decreases. The expected pitch is affected by the Settings Pitch setting (see below), but not by the Temperament setting, i.e., it's the deviation from equal tempered tuning regardless of Temperament setting.</p>
 
-    <div class="note">The pitch detector is monophonic: it works best with a single note at a time. When multiple pitches or unpitched sounds (such as speech or noise) are present in the microphone input, the detector will produce unreliable results. If you play the Piano will the pitch detector is active, you may experience distorted sounds and inaccurate detection.</div>
+    <div class="note">The pitch detector is monophonic: it works best with a single note at a time. When multiple pitches or unpitched sounds (such as speech or noise) are present in the microphone input, the detector will produce unreliable results. If you play the Piano while the pitch detector is active, you may experience distorted sounds and inaccurate detection.</div>
 
-    <div class="note">The Pitch Detector button is disabled (greyed out) when no microphone is present, and enables automatically the moment one is connected. If a microphone exists but can't be used — for example, when the browser has been denied microphone access — tapping the button shows a brief message explaining why.</div>
+    <div class="note">The Pitch Detector button is disabled (grayed out) when no microphone is present, and enables automatically the moment one is connected. If a microphone exists but can't be used — for example, when the browser has been denied microphone access — tapping the button shows a brief message explaining why.</div>
 
     <div class="note"><strong>iPhone/iPad:</strong> Due to audio system constraints on these devices, the microphone indicator will remain active after the pitch detector is turned off. This is expected behavior — the microphone is kept open in the background to prevent interruption of piano and metronome audio. The microphone is fully released when the Piano panel is closed.</div>
 
@@ -2472,7 +2472,7 @@ function closeVideo(event, container) {
 
     <p>You can let the Review run for hours without worrying about running out of memory. Behind the scenes, Podium automatically manages memory by keeping only the most recent portion of your session available for replay (typically 30 seconds to a few minutes). This ensures that you can always review your most recent performance without exhausting your device's resources.</p>
 
-    <div class="note">Although this prevents your system from consuming memory, it can use a lot of battery, so works best if your device is plugged in to a power supply rather than running off battery.</div>
+    <div class="note">Although this prevents your system from consuming memory, it can use a lot of battery, so it works best if your device is plugged in to a power supply rather than running off battery.</div>
 
     <p>At any time, the tool will be in one of two modes:</p>
 
@@ -2584,37 +2584,45 @@ function closeVideo(event, container) {
         @media (max-width: 600px) { #keyword-index dl { columns: 1; } }
     </style>
     <h2>Index</h2>
+    <div class="idx-letter"><</div>
+    <dl>
+        <dt><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-ink"/></svg>Chapter 6: Ink Ring</dt><dd> &mdash; <a href="#chapter-6">Ch.1</a></dd>
+        <dt><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-layout"/></svg>Chapter 5: Layout Ring</dt><dd> &mdash; <a href="#chapter-5">Ch.1</a></dd>
+        <dt><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-more"/></svg>Chapter 9: More Ring</dt><dd> &mdash; <a href="#chapter-9">Ch.1</a></dd>
+        <dt><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-page"/></svg>Chapter 7: Page Ring</dt><dd> &mdash; <a href="#chapter-7">Ch.1</a></dd>
+        <dt><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-podium"/></svg>Chapter 8: App Ring</dt><dd> &mdash; <a href="#chapter-8">Ch.1</a></dd>
+        <dt><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-score"/></svg>Chapter 4: Score Ring</dt><dd> &mdash; <a href="#chapter-4">Ch.1</a></dd>
+    </dl>
     <div class="idx-letter">A</div>
     <dl>
+        <dt>About</dt><dd> &mdash; <a href="#chapter-8-about">8.1</a></dd>
         <dt>About the Author</dt><dd> &mdash; <a href="#chapter-10">Ch.10</a></dd>
-        <dt>About<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-about"/></svg></dt><dd> &mdash; <a href="#chapter-8-about">8.1</a></dd>
-        <dt>Add<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-page"/></svg></dt><dd> &mdash; <a href="#chapter-7-add">7.2</a></dd>
-        <dt>Annotations</dt><dd> &mdash; <a href="#chapter-1">Ch.1</a>, <a href="#chapter-6">chapter-6</a></dd>
+        <dt>Add</dt><dd> &mdash; <a href="#chapter-7-add">7.2</a></dd>
+        <dt>Annotations</dt><dd> &mdash; <a href="#chapter-6">Ch.1</a>, <a href="#chapter-1">Ch.1</a></dd>
         <dt>Aspect ratio</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
     </dl>
     <div class="idx-letter">B</div>
     <dl>
-        <dt>Book<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-book"/></svg></dt><dd> &mdash; <a href="#chapter-5-book">5.1</a></dd>
-        <dt>Bookmarks</dt><dd> &mdash; <a href="#chapter-5-bookmarks">4.1</a></dd>
+        <dt>Book</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a></dd>
+        <dt>Bookmarks</dt><dd> &mdash; <a href="#chapter-5-bookmarks">Ch.1</a></dd>
         <dt>Bravura font</dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
-        <dt>Browser extension</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
+        <dt>Browser Compatibility</dt><dd> &mdash; <a href="#chapter-2-compat">2.3</a></dd>
+        <dt>Browser extension</dt><dd> &mdash; <a href="#chapter-2-extension">2.1</a>, <a href="#chapter-2">Ch.2</a></dd>
         <dt>Browser tab naming</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
     </dl>
     <div class="idx-letter">C</div>
     <dl>
-        <dt>Cell Auto-Deactivation</dt><dd> &mdash; <a href="#chapter-3-auto-deactivation">4.1</a></dd>
-        <dt>Cell auto-deactivation</dt><dd> &mdash; <a href="#chapter-3-auto-deactivation">4.1</a></dd>
-        <dt>Cell Locking</dt><dd> &mdash; <a href="#chapter-3-cell-locking">4.1</a></dd>
-        <dt>Cell locking</dt><dd> &mdash; <a href="#chapter-3-cell-locking">4.1</a>, <a href="#chapter-6">chapter-6</a></dd>
-        <dt>Clock<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-clock"/></svg></dt><dd> &mdash; <a href="#chapter-9-clock">9.4</a></dd>
-        <dt>Close<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-close"/></svg></dt><dd> &mdash; <a href="#chapter-4-close">4.3</a></dd>
+        <dt>Cell auto-deactivation</dt><dd> &mdash; <a href="#chapter-3-auto-deactivation">Ch.3</a></dd>
+        <dt>Cell locking</dt><dd> &mdash; <a href="#chapter-6">Ch.1</a>, <a href="#chapter-3-cell-locking">Ch.3</a></dd>
+        <dt>Clock</dt><dd> &mdash; <a href="#chapter-9-clock">9.4</a></dd>
+        <dt>Close</dt><dd> &mdash; <a href="#chapter-4-close">4.3</a></dd>
         <dt>Cloud storage</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
         <dt>Color chooser</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a>, <a href="#chapter-7-add">7.2</a></dd>
         <dt>Conducting patterns</dt><dd> &mdash; <a href="#chapter-9-metronome">9.2</a></dd>
         <dt>Copy</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a>, <a href="#chapter-7-cut-copy-paste">7.3</a></dd>
         <dt>Cross-instance sharing</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
         <dt>CSS pixels</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-5-horizontal">5.2</a></dd>
-        <dt>Curtain<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-curtain"/></svg></dt><dd> &mdash; <a href="#chapter-8-curtain">8.5</a></dd>
+        <dt>Curtain</dt><dd> &mdash; <a href="#chapter-8-curtain">8.5</a></dd>
         <dt>Cut</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a>, <a href="#chapter-7-cut-copy-paste">7.3</a></dd>
     </dl>
     <div class="idx-letter">D</div>
@@ -2622,7 +2630,7 @@ function closeVideo(event, container) {
         <dt>Dark theme</dt><dd> &mdash; <a href="#chapter-8-theme">8.2</a></dd>
         <dt>Delcamp</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
         <dt>Detached Panels</dt><dd> &mdash; <a href="#chapter-9-detached">9.1</a></dd>
-        <dt>Details<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
+        <dt>Details</dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
         <dt>Display quality</dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
         <dt>Drag and drop</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
         <dt>Dropbox</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
@@ -2630,7 +2638,7 @@ function closeVideo(event, container) {
     <div class="idx-letter">E</div>
     <dl>
         <dt>E-reader</dt><dd> &mdash; <a href="#overture">Overture</a></dd>
-        <dt>Edit<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-edit"/></svg></dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
+        <dt>Edit</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
         <dt>Equal temperament</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
         <dt>Expand mode</dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
         <dt>Export</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
@@ -2639,29 +2647,28 @@ function closeVideo(event, container) {
     <dl>
         <dt>File System Access API</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
         <dt>Firefox settings</dt><dd> &mdash; <a href="#firefox-settings">4.1</a></dd>
-        <dt>Flatten<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-flatten"/></svg></dt><dd> &mdash; <a href="#chapter-7-flatten">7.7</a></dd>
-        <dt>Fling gesture</dt><dd> &mdash; <a href="#chapter-5-page-turning">4.1</a>, <a href="#chapter-3">Ch.3</a></dd>
-        <dt>Foot pedal</dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a>, <a href="#chapter-2-foot-pedal">chapter-2-foot-pedal</a></dd>
+        <dt>Flatten</dt><dd> &mdash; <a href="#chapter-7-flatten">7.7</a></dd>
+        <dt>Fling gesture</dt><dd> &mdash; <a href="#chapter-5-page-turning">Ch.1</a>, <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Foot pedal</dt><dd> &mdash; <a href="#chapter-2-foot-pedal">2.4</a>, <a href="#chapter-7-numbers">7.1</a></dd>
         <dt>Full screen</dt><dd> &mdash; <a href="#chapter-8-screen">8.7</a>, <a href="#chapter-3">Ch.3</a></dd>
     </dl>
     <div class="idx-letter">G</div>
     <dl>
         <dt>Gestures</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
         <dt>Google Drive</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Grid<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-grid"/></svg></dt><dd> &mdash; <a href="#chapter-6-grid">6.7</a></dd>
+        <dt>Grid</dt><dd> &mdash; <a href="#chapter-6-grid">6.7</a></dd>
         <dt>Grip</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
         <dt>Group selection</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
-        <dt>Guide<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-guide"/></svg></dt><dd> &mdash; <a href="#chapter-8-guide">8.3</a></dd>
+        <dt>Guide</dt><dd> &mdash; <a href="#chapter-8-guide">8.3</a></dd>
     </dl>
     <div class="idx-letter">H</div>
     <dl>
-        <dt>Horizontal<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-horizontal-scroll"/></svg></dt><dd> &mdash; <a href="#chapter-5-horizontal">5.2</a></dd>
+        <dt>Horizontal</dt><dd> &mdash; <a href="#chapter-5-horizontal">5.2</a></dd>
     </dl>
     <div class="idx-letter">I</div>
     <dl>
         <dt>Images, importing</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a></dd>
         <dt>Import</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
-        <dt>Import<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-export-page"/></svg><svg class="gb-icon"><use href="#gb-import-page"/></svg></dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
         <dt>IMSLP</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
         <dt>Inner ring</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
         <dt>Installation</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
@@ -2669,8 +2676,8 @@ function closeVideo(event, container) {
     </dl>
     <div class="idx-letter">K</div>
     <dl>
+        <dt>Keyboard</dt><dd> &mdash; <a href="#chapter-9-keyboard">9.7</a></dd>
         <dt>Keyboard shortcuts</dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
-        <dt>Keyboard<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-keyboard"/></svg></dt><dd> &mdash; <a href="#chapter-9-keyboard">9.7</a></dd>
     </dl>
     <div class="idx-letter">L</div>
     <dl>
@@ -2683,12 +2690,10 @@ function closeVideo(event, container) {
     <div class="idx-letter">M</div>
     <dl>
         <dt>Magnify</dt><dd> &mdash; <a href="#chapter-7-magnify">7.8</a></dd>
-        <dt>Magnify<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-magnify"/></svg></dt><dd> &mdash; <a href="#chapter-7-magnify">7.8</a></dd>
-        <dt>Manuscript paper</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a>, <a href="#chapter-7-merge">7.6</a></dd>
+        <dt>Manuscript paper</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a>, <a href="#chapter-7-flatten">7.7</a></dd>
         <dt>Merge</dt><dd> &mdash; <a href="#chapter-7-merge">7.6</a></dd>
-        <dt>Merge<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-merge"/></svg></dt><dd> &mdash; <a href="#chapter-7-merge">7.6</a></dd>
         <dt>Metadata</dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
-        <dt>Metronome<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-metronome"/></svg></dt><dd> &mdash; <a href="#chapter-9-metronome">9.2</a></dd>
+        <dt>Metronome</dt><dd> &mdash; <a href="#chapter-9-metronome">9.2</a></dd>
         <dt>Microphone</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a>, <a href="#chapter-9-review">9.6</a></dd>
         <dt>Mouse controls</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
         <dt>Musopen</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
@@ -2696,8 +2701,8 @@ function closeVideo(event, container) {
     <div class="idx-letter">N</div>
     <dl>
         <dt>Navigation</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-1">Ch.1</a></dd>
-        <dt>New<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-score"/></svg></dt><dd> &mdash; <a href="#chapter-4-new">4.2</a></dd>
-        <dt>Numbers<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-numbers"/></svg></dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
+        <dt>New</dt><dd> &mdash; <a href="#chapter-4-new">4.2</a></dd>
+        <dt>Numbers</dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
     </dl>
     <div class="idx-letter">O</div>
     <dl>
@@ -2714,26 +2719,24 @@ function closeVideo(event, container) {
         <dt>Page ordering</dt><dd> &mdash; <a href="#chapter-5-table">5.4</a></dd>
         <dt>Page range</dt><dd> &mdash; <a href="#chapter-4-print">4.4</a></dd>
         <dt>Page sizing</dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
-        <dt>Page turn</dt><dd> &mdash; <a href="#chapter-5-page-turning">4.1</a></dd>
-        <dt>Page Turning</dt><dd> &mdash; <a href="#chapter-5-page-turning">4.1</a></dd>
-        <dt>Pager</dt><dd> &mdash; <a href="#chapter-5-page-turning">4.1</a></dd>
+        <dt>Page Turning</dt><dd> &mdash; <a href="#chapter-5-page-turning">Ch.1</a></dd>
+        <dt>Pager</dt><dd> &mdash; <a href="#chapter-5-page-turning">Ch.1</a></dd>
         <dt>Password-protected PDF</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
+        <dt>Paste</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a>, <a href="#chapter-7-cut-copy-paste">7.3</a></dd>
         <dt>Paste buffer</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
-        <dt>Paste<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut"/></svg><svg class="gb-icon"><use href="#gb-copy"/></svg><svg class="gb-icon"><use href="#gb-paste"/></svg></dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a></dd>
-        <dt>Paste<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut-page"/></svg><svg class="gb-icon"><use href="#gb-copy-page"/></svg><svg class="gb-icon"><use href="#gb-paste-page"/></svg></dt><dd> &mdash; <a href="#chapter-7-cut-copy-paste">7.3</a></dd>
         <dt>PDF files</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a>, <a href="#overture">Overture</a></dd>
         <dt>Pen</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a></dd>
-        <dt>Pencil<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-pen"/></svg><svg class="gb-icon"><use href="#gb-pencil"/></svg></dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a></dd>
-        <dt>Piano<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-piano"/></svg></dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
+        <dt>Pencil</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a></dd>
+        <dt>Piano</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
         <dt>Pinch-zoom</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-3">Ch.3</a></dd>
         <dt>Pitch detector</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
         <dt>Playback</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Practice scores</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
         <dt>Precision sliders</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
         <dt>Print</dt><dd> &mdash; <a href="#chapter-4-print">4.4</a></dd>
-        <dt>Print<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-print"/></svg></dt><dd> &mdash; <a href="#chapter-4-print">4.4</a></dd>
         <dt>Privacy</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a>, <a href="#chapter-8-storage">8.4</a></dd>
         <dt>Progressive Web App</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
+        <dt>Progressive Web App (PWA)</dt><dd> &mdash; <a href="#chapter-2-pwa">2.2</a></dd>
     </dl>
     <div class="idx-letter">Q</div>
     <dl>
@@ -2741,13 +2744,13 @@ function closeVideo(event, container) {
     </dl>
     <div class="idx-letter">R</div>
     <dl>
-        <dt>Rastrum<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-rastrum"/></svg></dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a></dd>
+        <dt>Rastrum</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a></dd>
         <dt>Recent files</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a>, <a href="#chapter-8-storage">8.4</a></dd>
         <dt>Recording</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Reorder pages</dt><dd> &mdash; <a href="#chapter-5-table">5.4</a></dd>
         <dt>Resize</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
         <dt>Revert to saved</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Review<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-review"/></svg></dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
+        <dt>Review</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Roman numerals</dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
         <dt>Rotating rings</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
         <dt>Running Podium</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
@@ -2755,8 +2758,8 @@ function closeVideo(event, container) {
     <div class="idx-letter">S</div>
     <dl>
         <dt>Salamander Grand Piano</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
-        <dt>Save<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-open"/></svg><svg class="gb-icon"><use href="#gb-save"/></svg></dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Screen<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-full-screen"/></svg><svg class="gb-icon"><use href="#gb-normal-screen"/></svg></dt><dd> &mdash; <a href="#chapter-8-screen">8.7</a></dd>
+        <dt>Save</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
+        <dt>Screen</dt><dd> &mdash; <a href="#chapter-8-screen">8.7</a></dd>
         <dt>Scrubber</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Shared buffer</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
         <dt>Sliders</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
@@ -2766,36 +2769,36 @@ function closeVideo(event, container) {
         <dt>Split times</dt><dd> &mdash; <a href="#chapter-9-stopwatch">9.3</a></dd>
         <dt>Staff space</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a>, <a href="#chapter-6-symbols">6.4</a></dd>
         <dt>Staves</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a></dd>
-        <dt>Stopwatch<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-stopwatch"/></svg></dt><dd> &mdash; <a href="#chapter-9-stopwatch">9.3</a></dd>
-        <dt>Storage<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-storage"/></svg></dt><dd> &mdash; <a href="#chapter-8-storage">8.4</a></dd>
+        <dt>Stopwatch</dt><dd> &mdash; <a href="#chapter-9-stopwatch">9.3</a></dd>
+        <dt>Storage</dt><dd> &mdash; <a href="#chapter-8-storage">8.4</a></dd>
         <dt>Sustain mode</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
-        <dt>Symbol library</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
-        <dt>Symbols<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-symbols"/></svg></dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
+        <dt>Symbol library</dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
+        <dt>Symbols</dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
     </dl>
     <div class="idx-letter">T</div>
     <dl>
         <dt>Tablature</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a></dd>
-        <dt>Table<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-table"/></svg></dt><dd> &mdash; <a href="#chapter-5-table">5.4</a></dd>
+        <dt>Table</dt><dd> &mdash; <a href="#chapter-5-table">5.4</a></dd>
         <dt>Temperament</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
-        <dt>Text<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-text"/></svg></dt><dd> &mdash; <a href="#chapter-6-text">6.3</a></dd>
-        <dt>Theme<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-light"/></svg><svg class="gb-icon"><use href="#gb-glass"/></svg><svg class="gb-icon"><use href="#gb-dark"/></svg></dt><dd> &mdash; <a href="#chapter-8-theme">8.2</a></dd>
+        <dt>Text</dt><dd> &mdash; <a href="#chapter-6-text">6.3</a></dd>
+        <dt>Theme</dt><dd> &mdash; <a href="#chapter-8-theme">8.2</a></dd>
         <dt>Timbre</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
         <dt>Transform handles</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
         <dt>Tuner</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
     </dl>
     <div class="idx-letter">U</div>
     <dl>
+        <dt>Undo</dt><dd> &mdash; <a href="#chapter-6-undo">6.6</a>, <a href="#chapter-7-undo">7.4</a></dd>
         <dt>Undo history</dt><dd> &mdash; <a href="#chapter-6-undo">6.6</a>, <a href="#chapter-7-undo">7.4</a></dd>
-        <dt>Undo<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></dt><dd> &mdash; <a href="#chapter-6-undo">6.6</a>, <a href="#chapter-7-undo">7.4</a></dd>
     </dl>
     <div class="idx-letter">V</div>
     <dl>
-        <dt>Vertical<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-vertical-scroll"/></svg></dt><dd> &mdash; <a href="#chapter-5-vertical">5.3</a></dd>
-        <dt>Volume<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-volume"/></svg></dt><dd> &mdash; <a href="#chapter-9-volume">9.8</a></dd>
+        <dt>Vertical</dt><dd> &mdash; <a href="#chapter-5-vertical">5.3</a></dd>
+        <dt>Volume</dt><dd> &mdash; <a href="#chapter-9-volume">9.8</a></dd>
     </dl>
     <div class="idx-letter">W</div>
     <dl>
-        <dt>Wakelock<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-wakelock"/></svg></dt><dd> &mdash; <a href="#chapter-8-wakelock">8.6</a></dd>
+        <dt>Wakelock</dt><dd> &mdash; <a href="#chapter-8-wakelock">8.6</a></dd>
         <dt>Waveform</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
     </dl>
     <div class="idx-letter">Y</div>
