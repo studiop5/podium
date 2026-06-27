@@ -318,6 +318,7 @@ async function main() {
       }
       // otherwise let active layout process navigation keys:
       if (Layout.activeLayout && pedalKeys.includes(e.key)) {
+        if (e.repeat) return;
         e.preventDefault();
         e.stopPropagation();
         let layout = Layout.activeLayout;

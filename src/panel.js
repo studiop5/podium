@@ -1759,7 +1759,7 @@ class MetronomePanel extends Panel {
 
 class NumbersPanel extends Panel {
   content = helm(`
-     <div data-tag="body" class="Panel__body">
+     <div data-tag="body" style="width:15em;" class="Panel__body">
        <div data-tag="sliders"></div>
        <div style="font-size: var(--font-size-sm); margin-top: calc(var(--spacing-md) + 1em); margin-bottom: 0.1em">Foot Pedal Keys</div>
        <div style="margin: 0 var(--spacing-md)">

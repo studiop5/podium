@@ -504,7 +504,7 @@ class Menu {
             gap: 0.2, // [0,10]% of fit dimension
             pnShow: "On",
             pgShow: 2,
-            pgSnap: 2,
+            pgSnap: 2, // -4:none, -3:visible, -2:1/4pg, -1:1/3 pg, 0:1/2 pg
             pace: 350, // msec/snap
             pz: null, // see book cell
           },
@@ -518,7 +518,7 @@ class Menu {
             gap: 0.2, // [0,10]% of fit dimension
             pnShow: "On",
             pgShow: 1, // [1,_score_.pages.length)
-            pgSnap: 0, // 0 = disabled
+            pgSnap: 0,  // i.e. 1/2 pg
             pace: 350, // msec/snap
             pz: null, // see book cell
           },

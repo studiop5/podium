@@ -26,8 +26,8 @@ import { Pg } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
 // -skip
 
-const bkColors = [
-  "#ffffff", "#163799", "#e5e522", "#1a1a1a",
+let bkColors = [
+  "#e58322", "#163799", "#e5e522", "#1a1a1a",
   "#22e5e5", "#991637", "#22e522", "#8322e5",
   "#808080", "#379916", "#e522e5", "#167899",
   "#e52222", "#83e522", "#371699", "#2283e5",
@@ -2346,6 +2346,7 @@ class TableLayout extends Layout {
     this.layout.setPointerCapture(e.pointerId);
     let elm = e.target.closest(".TableLayout__pg");
     if(!elm) return;
+e.taken = true ; 
     let {pg, pn} = elm;
     let pnElm = elm.querySelector(".TableLayout__pn");
     if(pnElm) {
