@@ -298,6 +298,7 @@ async function main() {
         devices, but of course they work from regular keyboards as well.
      **/
     let pedalKeys = ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'];
+    let lastPedalTime = 0;
 
     listen(document, "keydown", (e) => {
       if (e.target.nodeName === 'TEXTAREA' || e.target.nodeName === 'INPUT') {
@@ -319,6 +320,13 @@ async function main() {
       // otherwise let active layout process navigation keys:
       if (Layout.activeLayout && pedalKeys.includes(e.key)) {
         if (e.repeat) return;
+        let now = performance.now();
+        if (now - lastPedalTime < 200) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        lastPedalTime = now;
         e.preventDefault();
         e.stopPropagation();
         let layout = Layout.activeLayout;
