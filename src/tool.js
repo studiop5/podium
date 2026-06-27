@@ -502,6 +502,10 @@ class Piano {
       let self = this;
       let [actx] = Actx.get();
       this.yin = new Yin((arg) => {
+        if (!self.pitchButton.firstElementChild.classList.contains("Piano__button-active")) {
+          self.marker.remove();
+          return;
+        }
         let key = arg.freq > 0 ? dataIndex("midi",self.elm)["" + arg.midi] : null;
         if(key) {
           let isBlack = [1,3,6,8,10].includes(arg.midi % 12);
