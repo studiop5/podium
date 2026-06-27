@@ -609,7 +609,7 @@ if args.guide:
         "Precision sliders": ["chapter-6-edit"],
         "Print": ["chapter-4-print"],
         "Privacy": ["chapter-7-export-import", "chapter-8-storage"],
-        "Progressive Web App": ["chapter-2"],
+        "Progressive Web App (PWA)": ["chapter-2"],
         "Recent files": ["chapter-4-open-save", "chapter-8-storage"],
         "Recording": ["chapter-9-review"],
         "Reorder pages": ["chapter-5-table"],
