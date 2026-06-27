@@ -1175,6 +1175,7 @@ class Score {
       let defaults = JSON.parse(_menu_.stashDefaults);
       Object.assign(_menu_.rings.page.cells.numbers.stash, defaults.page?.cells?.numbers);
       Object.assign(_menu_.rings.score.cells.details.stash, defaults.score?.cells?.details);
+      this.quality = _menu_.rings.score.cells.details.stash.quality ?? this.quality;
     }
 
     if(activate) await this.activate();
