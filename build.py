@@ -586,7 +586,7 @@ if args.guide:
         "Metadata": ["chapter-4-details"],
         "Microphone": ["chapter-9-review", "chapter-9-piano"],
         "Mouse controls": ["chapter-3"],
-        "Musopen": ["chapter-2"],
+        "CPDL": ["chapter-2"],
         "Navigation": ["chapter-1", "chapter-5-book"],
         "Offline use": ["chapter-2"],
         "OneDrive": ["chapter-4-open-save"],
