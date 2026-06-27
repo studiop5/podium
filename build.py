@@ -658,21 +658,22 @@ if args.guide:
         if m.group(1) is not None:
             # h2 / section
             aid, text = m.group(1), m.group(2)
+            # Remove HTML tags to parse chapter name correctly
+            clean_text = _re.sub(r'<[^>]+>', '', text).strip()
             if aid == 'overture':
                 label = 'Overture'
             elif aid == 'chapter-10':
                 label = 'Ch.10'
             else:
-                ch = _re.match(r'Chapter (\d+)', text)
+                ch = _re.match(r'Chapter (\d+)', clean_text)
                 label = f'Ch.{ch.group(1)}' if ch else 'Ch.1'
             current_chapter_label = label
             current_section_label = label
-            headings.append((aid, label, text))
+            headings.append((aid, label, clean_text))
         elif m.group(3) is not None:
             # h3
             aid, label, text = m.group(3), m.group(4), m.group(5)
-            # Remove any trailing HTML tags (like <svg>) from display text
-            text = _re.sub(r'<[^>]+>', '', text).strip()
+            # Keep raw text (with HTML/SVG) to preserve icons
             current_section_label = label
             headings.append((aid, label, text))
         elif m.group(6) is not None:
@@ -698,22 +699,28 @@ if args.guide:
             if len(sub) >= 2:
                 heading_terms.setdefault(sub, set()).add(aid)
 
-    # Merge heading terms with curated keywords, normalizing case
+    def strip_html(t):
+        return _re.sub(r'<[^>]+>', '', t).strip()
+
+    # Merge heading terms with curated keywords, normalizing by plain text lowercase
     entries = {}
     for term, anchors in heading_terms.items():
-        low_term = term.lower()
-        if low_term in entries:
-            entries[low_term][1].update(anchors)
+        norm_key = strip_html(term).lower()
+        if norm_key in entries:
+            entries[norm_key][1].update(anchors)
+            if '<' in term:
+                entries[norm_key][0] = term
         else:
-            entries[low_term] = [term, set(anchors)]
+            entries[norm_key] = [term, set(anchors)]
 
     for term, anchors in CURATED_KEYWORDS.items():
-        low_term = term.lower()
-        if low_term in entries:
-            entries[low_term][1].update(anchors)
-            entries[low_term][0] = term  # prefer curated casing
+        norm_key = strip_html(term).lower()
+        if norm_key in entries:
+            entries[norm_key][1].update(anchors)
+            if '<' in term:
+                entries[norm_key][0] = term
         else:
-            entries[low_term] = [term, set(anchors)]
+            entries[norm_key] = [term, set(anchors)]
 
     # Reconstruct the final entries dictionary
     final_entries = {item[0]: item[1] for item in entries.values()}
@@ -726,10 +733,11 @@ if args.guide:
                 print(f'  WARNING: index keyword "{term}" references missing anchor #{anchor}', file=sys.stderr)
 
     # Generate index HTML
-    sorted_terms = sorted(final_entries.keys(), key=lambda t: t.lower())
+    sorted_terms = sorted(final_entries.keys(), key=lambda t: strip_html(t).lower())
     groups = {}
     for term in sorted_terms:
-        groups.setdefault(term[0].upper(), []).append(term)
+        first_letter = strip_html(term)[0].upper()
+        groups.setdefault(first_letter, []).append(term)
 
     lines = [INDEX_BEGIN, '<nav id="keyword-index">', '    <style>',
         '        #keyword-index h2 { border-bottom: none; margin-top: 0; }',
