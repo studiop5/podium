@@ -1700,15 +1700,24 @@ class ScrollLayout extends Layout {
     this.pagerLeft.build();
     this.pagerRight.build();
 
-    if(animated) { // animate centering of layout's screen position
+    let pn = parseInt(_score_.numbers.pn);
+    if (animated && score.pgs.length > 1) {
+      // Instantly position the sash 1 page away to show a 1-page transition
+      let startPn = (pn > 1) ? (pn - 1) : 2;
+      let pgSpan = g.pg[this.props.WIDTH] + g.gap;
+      let startSashStart = -(startPn - 1) * pgSpan;
+      this.sash.style[this.props.LEFT] = (startSashStart / _pxPerEm_) + "em";
+
       let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
       animate(this.elm, 
         { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
         this.userPz() ?? this.centerLT({ fontSize: "1em"}),
         `left, top, font-size ${_gs_}ms`
       );
+      this.pgGoTo(pn, true);
+    } else {
+      this.pgGoTo(pn, false);
     }
-    await this.pgGoTo(_score_.numbers.pn);
   }
 
   async onDown(e) {
@@ -1776,17 +1785,19 @@ class ScrollLayout extends Layout {
     this.pgSnapTo(0);
   }
 
-  async pgGoTo(pn) {
+  async pgGoTo(pn, animated = true) {
+    pn = parseInt(pn);
     let { pg, gap, sashLimit } = this.cell.geo;
     let pgSpan = pg[this.props.WIDTH] + gap;
     this.sashStart = clamp(-(pn - 1) * pgSpan, sashLimit, 0);
     this.snapStep = 1;       // whole-page; pgSnapTo corrects for snap setting on next gesture
     this.snapIndex = pn - 1;
     let pace = _score_[this.props.MAXWIDTH] / _score_.layout.pace;
-    await this.pgCommit(pn, pace);
+    await this.pgCommit(pn, pace, animated);
   }
 
   async pgMount(pn) {
+    pn = parseInt(pn);
     // Mount pages to ensure that [pn-pgShow, pn+pgShow] pages are mounted, as well
     // as "pgShow" previous and succeeding pages are checked out and mounted on
     // the sash.  All other pages on the sash are marked as unused.
@@ -1823,7 +1834,7 @@ class ScrollLayout extends Layout {
 
   commitAnimId = 0; // prevent multiple pgCommit animation threads
 
-  async pgCommit(pn, pace) { // pace is px/msec
+  async pgCommit(pn, pace, animated = true) { // pace is px/msec
     let { LEFT, MAXWIDTH } = this.props;
     this.inOp = true;
     this.pnPost(pn);
@@ -1831,6 +1842,11 @@ class ScrollLayout extends Layout {
     this.pagerRight.build();
     await this.pgMount(pn);
     let target = this.sashStart / _pxPerEm_;
+    if (!animated) {
+      this.sash.style[LEFT] = target + "em";
+      this.inOp = false;
+      return;
+    }
     let startLeft = parseFloat(this.sash.style[LEFT]) || 0;
     let duration = ((this.snapStep || 1) * _score_[MAXWIDTH]) / pace ;
     this.spinRollers(duration);
