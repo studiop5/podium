@@ -2257,7 +2257,13 @@ class TableLayout extends Layout {
       this.gridMargin = parseInt(this.layout.gridMargin);
       this.active = this.layout.active;
       let actBox = getBox(this.active);
-      Object.assign(this.active.style, { pointerEvents:"none", position: "absolute", opacity: ".75", zIndex: 99});
+      Object.assign(this.active.style, { 
+        pointerEvents: "none", 
+        position: "absolute", 
+        opacity: ".75", 
+        zIndex: 99,
+        fontSize: this.layout.elm.style.fontSize
+      });
       this.offset = { x: actBox.width / 2, y:actBox.height / 2};
       _body_.append(this.active);
       // create list of transitions for our "splits"
@@ -2324,7 +2330,7 @@ class TableLayout extends Layout {
          let sibling = this.layout.grid.children.item(this.toPn-2);
          sibling.after(this.active);
       }
-      Object.assign(this.active.style, { pointerEvents: "auto", opacity: "1", zIndex: 2});
+      Object.assign(this.active.style, { pointerEvents: "auto", opacity: "1", zIndex: 2, fontSize: ""});
       // put each thumbElm into its correct grid location
       for(let {left, pn, top} of this.layout.gridCoords) {
         let elm = score.pgs[pn-1]?.thumbElm;
