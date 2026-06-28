@@ -2716,7 +2716,7 @@ css("layout-themes", `
     --layout-border-color: #222;
     --roll-cap-color: #181818;
   }
-  [data-theme="Warm"] {
+  [data-theme="Light"] {
     --recto: ${rectoWarm};
     --verso: ${versoWarm};
     --layout-gradient: linear-gradient(145deg, #f958 0%, #A748 100%);

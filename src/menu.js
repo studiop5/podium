@@ -338,7 +338,7 @@ class Menu {
     // Apply local-only cell states restored from stash
     {
       let themeCell = this.rings.app.cells.theme;
-      let theme = themeCell.stash.theme || "Glass";
+      let theme = themeCell.stash.theme || "Light";
       document.documentElement.setAttribute("data-theme", theme);
       dataIndex("tag", themeCell.elm).cellIcon.innerHTML = iconPaths[theme];
       this.applyGaps(theme);
@@ -689,7 +689,7 @@ class Menu {
       name: "App",
       cells: {
         about: { name: "About", svgPath: iconPaths["About"], stash: {} },
-        theme: { name: "Theme", svgPath: iconPaths["Glass"], stash: { theme: "Glass" }, storage: "local" },
+        theme: { name: "Theme", svgPath: iconPaths["Light"], stash: { theme: "Light" }, storage: "local" },
         guide: { name: "Guide", svgPath: iconPaths["Guide"], stash: {} },
         storage: { name: "Storage", svgPath: iconPaths["Storage"], stash: {} },
         curtain: { name: "Curtain", svgPath: iconPaths["Curtain"], stash: { color:"Black", alpha: 60 }, storage: "local" },
@@ -723,8 +723,8 @@ class Menu {
     });
 
     this.listen("app/theme/up", (cell) => {
-      const themes = ["Warm", "Glass", "Dark"];
-      let theme = cell.stash.theme || "Glass";
+      const themes = ["Light", "Glass", "Dark"];
+      let theme = cell.stash.theme || "Light";
       theme = themes[(themes.indexOf(theme) + 1) % themes.length];
       document.documentElement.setAttribute("data-theme", theme);
       dataIndex("tag", cell.elm).cellIcon.innerHTML = iconPaths[theme];
@@ -1455,26 +1455,32 @@ class Menu {
   }
 
   factoryReset() {
-    this.stashFromJson(this.stashDefaults, "local");
+    // Preserve active environment settings
+    let theme = this.rings.app.cells.theme.stash.theme;
+    let wakeLock = { ...this.rings.app.cells.wakeLock.stash };
+    let curtain = { ...this.rings.app.cells.curtain.stash };
+    let screen = { ...this.rings.app.cells.screen.stash };
+
+    this.stashFromJson(this.stashDefaults);
+
+    // Restore the preserved environment settings
+    this.rings.app.cells.theme.stash.theme = theme;
+    Object.assign(this.rings.app.cells.wakeLock.stash, wakeLock);
+    Object.assign(this.rings.app.cells.curtain.stash, curtain);
+    Object.assign(this.rings.app.cells.screen.stash, screen);
+
     localStorage.setItem("menu", this.stashToJson("local"));
-
-    // Apply theme
-    let themeCell = this.rings.app.cells.theme;
-    let theme = themeCell.stash.theme || "Glass";
-    document.documentElement.setAttribute("data-theme", theme);
-    dataIndex("tag", themeCell.elm).cellIcon.innerHTML = iconPaths[theme];
-
-    // Release wake lock
-    let wakeLockCell = this.rings.app.cells.wakeLock;
-    wakeLockCell._wakeLock?.release();
-    wakeLockCell._wakeLock = null;
-    dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Wakelock Off"];
-
-    // Exit fullscreen
-    if (document.fullscreenElement) document.exitFullscreen();
 
     // Close all open panels
     this.closePanels(["app"]);
+
+    if (Layout.activeLayout) {
+      let layout = Layout.activeLayout;
+      layout.elm.classList.remove("pz-set");
+      layout.elm.style.fontSize = "1em";
+      Object.assign(layout.elm.style, layout.centerLT({ fontSize: "1em" }));
+      layout.build(false);
+    }
   }
 
   stash() {

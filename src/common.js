@@ -398,8 +398,8 @@ css( // common css declarations.
   }
 
 
-  /* Warm theme (original neutral grey/amber) */
-  [data-theme="Warm"] {
+  /* Light theme (original neutral grey/amber) */
+  [data-theme="Light"] {
     --bodyColor: #efefef;
     --panTexture: ${panSvgWarm};
 
