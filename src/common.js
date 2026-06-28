@@ -962,22 +962,56 @@ class Curtain {
 
   constructor() {
     _body_.append(this.curtain);
+    delay(1, () => {
+      try {
+        let json = localStorage.getItem("menu");
+        if (json) {
+          let parsed = JSON.parse(json);
+          let stash = parsed?.app?.cells?.curtain?.stash;
+          if (stash && stash.on) {
+            this.on = true;
+            let { color, alpha } = stash;
+            let curtain = this.curtain;
+            curtain.style.transition = "none";
+            if (color == 'Black') {
+              curtain.style.background = "#000" ;
+              curtain.style.opacity = alpha / 100 * .7 ;
+              curtain.style.mixBlendMode = "normal";
+            }
+            else { // color == 'Red'
+              curtain.style.background = "#A00000";
+              curtain.style.opacity = alpha / 100;
+              curtain.style.mixBlendMode = "multiply";
+            }
+            curtain.style.visibility = "visible" ;
+            curtain.offsetHeight;
+            curtain.style.transition = "opacity 1.5s ease";
+          }
+        }
+      } catch (err) {}
+    });
   }
 
   toggle() {
     this.on = !this.on ;
-    let cellIcon = dataIndex("tag", _menu_.rings.app.cells.curtain.elm).cellIcon;
-    cellIcon.innerHTML = iconPaths[_curtain_.on ? "Curtain On" : "Curtain"];
+    let cell = window._menu_.rings.app.cells.curtain;
+    cell.stash.on = this.on;
+    let cellIcon = dataIndex("tag", cell.elm).cellIcon;
+    cellIcon.innerHTML = iconPaths[this.on ? "Curtain On" : "Curtain"];
     this.update() ;
+    window._menu_.stash();
   }
 
-  update () {
+  update (immediate = false) {
     let curtain = this.curtain ;
-    let {color, alpha} = _menu_.rings.app.cells.curtain.stash;
+    let {color, alpha} = window._menu_.rings.app.cells.curtain.stash;
+    if (immediate) {
+      curtain.style.transition = "none" ;
+    }
     if(this.on) {
       if(color == 'Black') {
-        curtain.style.background = "#000";
-        curtain.style.opacity = alpha / 100 * .8;
+        curtain.style.background = "#000" ;
+        curtain.style.opacity = alpha / 100 * .7 ;
         curtain.style.mixBlendMode = "normal";
       }
       else { // color == 'Red'
@@ -985,8 +1019,13 @@ class Curtain {
         curtain.style.opacity = alpha / 100;
         curtain.style.mixBlendMode = "multiply";
       }
+      curtain.style.visibility = "visible" ;
     }
     else curtain.style.opacity = 0 ;
+    if (immediate) {
+      curtain.offsetHeight ; // force reflow
+      curtain.style.transition = "opacity 1.5s ease" ;
+    }
   }
 
 } 

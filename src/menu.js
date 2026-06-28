@@ -249,6 +249,7 @@ class Menu {
   }
 
   constructor() {
+    window._menu_ = this;
     Object.assign(this, dataIndex("tag", this.elm));
     let elm = this.elm;
     elm.owner = this ;
@@ -376,6 +377,14 @@ class Menu {
             }, { capture: true });
           }
         })();
+      }
+
+      let curtainCell = this.rings.app.cells.curtain;
+      if (curtainCell.stash.on) {
+        window._curtain_.on = true;
+        let cellIcon = dataIndex("tag", curtainCell.elm).cellIcon;
+        cellIcon.innerHTML = iconPaths["Curtain On"];
+        window._curtain_.update(true);
       }
     }
 
@@ -692,7 +701,7 @@ class Menu {
         theme: { name: "Theme", svgPath: iconPaths["Light"], stash: { theme: "Light" }, storage: "local" },
         guide: { name: "Guide", svgPath: iconPaths["Guide"], stash: {} },
         storage: { name: "Storage", svgPath: iconPaths["Storage"], stash: {} },
-        curtain: { name: "Curtain", svgPath: iconPaths["Curtain"], stash: { color:"Black", alpha: 60 }, storage: "local" },
+        curtain: { name: "Curtain", svgPath: iconPaths["Curtain"], stash: { color:"Black", alpha: 60, on: false }, storage: "local" },
         wakeLock: { name: "Wakelock", svgPath: iconPaths["Wakelock Off"], stash: { on: false }, storage: "local" },
         screen: { name: "Screen", stash: {}, svgPath: iconPaths["Full Screen"], storage: "local" },
 
@@ -1468,6 +1477,9 @@ class Menu {
     Object.assign(this.rings.app.cells.wakeLock.stash, wakeLock);
     Object.assign(this.rings.app.cells.curtain.stash, curtain);
     Object.assign(this.rings.app.cells.screen.stash, screen);
+
+    // Reset curtain explicitly if it's on
+    if (window._curtain_ && window._curtain_.on) window._curtain_.toggle();
 
     localStorage.setItem("menu", this.stashToJson("local"));
 
