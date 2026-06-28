@@ -507,7 +507,6 @@ async function main() {
       if (now - p.lastMove > period) { cancel(id, p); activePointers.delete(id); }
     delayMs(period, watchdogLoop);
   };
-  delayMs(-1);
   delayMs(period, watchdogLoop);
 }
 

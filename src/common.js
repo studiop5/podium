@@ -78,7 +78,6 @@ window._podiumVersion_ = "2.1.0";
 window._body_ = document.body;
 window._lastTarget_ = null; // last touched .pz element, excluding EditPanel
 window._dvPxRt_ = 1 + (devicePixelRatio - 1) * 0.3;
-window._frMs_ = 0.06; // initial estimate of number of frames per millisecond (60fps)
 window._gs_ = 618; // golden section (reciprocal) msec (.618 seconds)
 window._gsgs_ = (_gs_ * _gs_) / 1000; // shorter golden section!
 window._sliderPrecision_ = 4; // sensitivity multiplier for slider/pager precision mode
@@ -1991,43 +1990,21 @@ function dataIndex(key, elm) {
 }
 
 function delay(frameCount, func) {
-  // delay execution of a function a given number of animation frames.
-  // Guard a non-finite frameCount (Infinity/NaN, e.g. from a poisoned _frMs_):
-  // otherwise it never counts down to <= 0 and this recurses through
-  // requestAnimationFrame every frame forever, wedging the renderer.
-  if (!Number.isFinite(frameCount) || frameCount <= 0) return func();
+  // delay execution of a function a given number of animation frames
+  if (frameCount <= 0) return func();
   requestAnimationFrame(() => delay(frameCount - 1, func));
 }
 
-function delayMs(msec = -1, func) {
-  // delay execution of a function the given number of @msecs.
-  // Initially, this runs assuming 60 frames/second. However,
-  // to "recalibrate" this value, call this function with
-  // @msec < 0: in this case,  both @func and @args are ignored,
-  // and the frame rate will be (re) calibrated by measuring the mean
-  // time between frames over 60 frames.
-  if (msec >= 0) return delay(Math.round(msec * _frMs_), func);
-  let now = performance.now();
-  delay(60, () => {
-    // _frMs_ is frames-per-ms (refresh rate / 1000). Only the UPPER bound needs
-    // guarding: a headless/throttled environment can fire the 60 frames in ~0ms,
-    // dividing into Infinity (or an absurd rate) and poisoning every later
-    // delayMs into an unbounded delay(). Cap at 400fps — past any real display,
-    // and it keeps the longest caller (the 7s pointer watchdog) bounded well
-    // under a renderer-wedging frame count. NO lower bound: a slow refresh
-    // (e-ink readers run a few fps or less) gives a small _frMs_, which only ever
-    // means FEWER frames per delay — harmless to safety, and exactly right for
-    // the device; clamping it up would make every delay run long there. Log a
-    // clamp: it means the calibration sampled garbage.
-    let elapsed = performance.now() - now;
-    let raw = 60 / elapsed; // measured frames per ms
-    _frMs_ = Math.min(raw, 0.4);
-    if (raw > 0.4)
-      console.error(`delayMs calibration implausible: ${raw} fr/ms (60 frames in ${elapsed}ms); clamped to ${_frMs_}`);
-  });
+function delayMs(msec, func) {
+  // delay execution of @func until @msec real milliseconds have elapsed.
+  // Deadline-based against the wall clock, so it needs no frame-rate
+  // calibration and is immune to variable refresh rates: unlike delay(),
+  // which counts a fixed number of animation frames, this counts time.
+  if (!(msec > 0)) return func(); // 0/negative/NaN: run now (no rAF, no wedge)
+  let runTime = performance.now() + msec;
+  let loop = () => (performance.now() < runTime ? requestAnimationFrame(loop) : func());
+  loop();
 }
-
-delayMs(); // force initial calibration of _frMs_ (frames per millisecond)
 
 function dialog(
   innerHtml,
@@ -2504,7 +2481,7 @@ function ptrMsg(e, msgFunc, styles) {
       unlisten(done);
       put(eup);
       div.style.opacity = 0;
-      delay(_gsgs_, () => div.remove());
+      delayMs(_gsgs_, () => div.remove());
       unlisten(mv);
     }
   );
