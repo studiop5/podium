@@ -116,6 +116,7 @@ class Gestures {
   onDown(e) {
     if (e.target.dataset.midi) return; // piano keys are polyphonic
     if (e.button != 0) return;        // ignore right-click / middle-click
+    if (e.target.closest("input, textarea, [contenteditable]")) return;
 
     if (e.isPrimary) {
       this.tr2 = null;
@@ -144,7 +145,7 @@ class Gestures {
     let gestureDelta = Math.min(innerWidth, innerHeight) * 0.15;
     let cancelDelta = 16;
     this.timer.run(_gs_, () => {
-      // to defeat the long-press timer, set e.taken = true
+      // when e.taken == true, the long-press timer is a no-op.
       if(e.taken) return;
       e.timedOut = true;
       if (!onBody) Layout.activeLayout?.cancelNav();
@@ -158,7 +159,9 @@ class Gestures {
     // capture:true so these fire even when a layout element has pointer capture
     let mv = listen(_body_, "pointermove", emv => {
       if (Math.hypot(emv.clientX - e.clientX, emv.clientY - e.clientY) > cancelDelta)
-        this.timer.cancel();
+      { this.timer.cancel();
+        e.timedOut = true ; // prevent pointerup's gesture handler from running
+      }
     }, { capture: true });
 
     listen(_body_, "pointerup", eup => {
@@ -509,5 +512,10 @@ async function main() {
   };
   delayMs(period, watchdogLoop);
 }
+
+// don't allow the contextmenu to appear, ever!
+listen(document, "contextmenu", (e) => {
+  if (!e.target.closest("input, textarea, [contenteditable]")) e.preventDefault();
+}) ;
 
 main();
