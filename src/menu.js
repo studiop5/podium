@@ -596,7 +596,7 @@ class Menu {
         symbols: {
           name: "Symbols",
           svgPath: iconPaths["Symbols"],
-          stash: {alpha:"1", rgb:"#000000", font: "Bravura", size: 5, group: "Recent", codePoint: "\ue050", recent: {}},
+          stash: {alpha:"1", rgb:"#000000", font: "Bravura", size: 5, group: "Basic", codePoint: "\ue050", recent: {}},
         },
         cut: {
           name: "Cut",
@@ -662,7 +662,7 @@ class Menu {
         import: { name: "Import", svgPath: iconPaths["Import Page"] },
         merge: { name: "Merge", svgPath: iconPaths["Merge"] },
         flatten: { name: "Flatten", svgPath: iconPaths["Flatten"] },
-        magnify: { name: "Magnify", svgPath: iconPaths["Magnify"], stash: { zoom: 1 } },
+        magnify: { name: "Magnify", svgPath: iconPaths["Magnify"], stash: { zoom: 2 } },
       },
       name: "Page",
       stash: {},

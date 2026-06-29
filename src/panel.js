@@ -3310,8 +3310,10 @@ class MagnifyPanel extends Panel {
     if (!pg?.canvas) return;
 
     let canvas = pg.canvas;
-    let zoom = _menu_.magnifier.zoom;
+    let zoom = window._menu_.magnifier.zoom;
     let destW = 300, destH = 300;
+    let destCSSW = this.magCanvas.clientWidth || 450;
+    let destCSSH = this.magCanvas.clientHeight || 450;
 
     let ctx = this.magCanvas.getContext("2d", { willReadFrequently: true });
     ctx.clearRect(0, 0, destW, destH);
@@ -3322,8 +3324,8 @@ class MagnifyPanel extends Panel {
       let srcH = pg.mozCanvas.height;
       let srcX = fracX * srcW;
       let srcY = fracY * srcH;
-      let sourceW = destW / zoom;
-      let sourceH = destH / zoom;
+      let sourceW = (destCSSW / zoom) * (srcW / pg.width);
+      let sourceH = (destCSSH / zoom) * (srcH / pg.height);
       ctx.drawImage(
         pg.mozCanvas,
         srcX - sourceW/2, srcY - sourceH/2,
@@ -3337,8 +3339,8 @@ class MagnifyPanel extends Panel {
     let fabH = canvas.lowerCanvasEl.height;
     let fabX = fracX * fabW;
     let fabY = fracY * fabH;
-    let fabSourceW = destW / zoom;
-    let fabSourceH = destH / zoom;
+    let fabSourceW = (destCSSW / zoom) * (fabW / pg.width);
+    let fabSourceH = (destCSSH / zoom) * (fabH / pg.height);
     ctx.drawImage(
       canvas.lowerCanvasEl,
       fabX - fabSourceW/2, fabY - fabSourceH/2,
@@ -3346,7 +3348,6 @@ class MagnifyPanel extends Panel {
       0, 0, destW, destH
     );
 
-    // Draw from upper canvas (selections, active drawing)
     // Draw from upper canvas (selections, active drawing)
     ctx.drawImage(
       canvas.upperCanvasEl,
