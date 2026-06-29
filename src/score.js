@@ -469,9 +469,12 @@ class Pg {
     if (!this.inflated) return null; // only call this on inflated pg's
     let oldPrecision = fabric.Object.NUM_FRACTION_DIGITS;
     fabric.Object.NUM_FRACTION_DIGITS = 2;
-    // "flatten" is a custom property (see flattenObjects); fabric drops unknown
-    // properties on serialize unless they're listed here, and toPdf relies on it.
-    let json = this.canvas.toJSON(["flatten"]);
+    // "flatten" and "podiumType" are custom properties (see flattenObjects /
+    // PodBrush); fabric drops unknown properties on serialize unless they're
+    // listed here. toPdf relies on "flatten"; "podiumType" must survive so a
+    // stroke keeps its pencil/pen/rastrum tag across deflate/inflate and reload
+    // (rastrum control rendering keys off it — see canvas.js).
+    let json = this.canvas.toJSON(["flatten", "podiumType"]);
     fabric.Object.NUM_FRACTION_DIGITS = oldPrecision;
     return json;
   }

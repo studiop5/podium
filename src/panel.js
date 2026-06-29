@@ -472,8 +472,8 @@ class Panel {
     unlisten(...this.listeners);
   }
 
- constrain() {
-    // Ensure panel's title and header's height stay onscreen
+  constrain() {
+   // Ensure panel's title and header's height stay onscreen
     let y = this.panel.offsetHeight / 2 ;
     if(this.elm.offsetTop < y) this.elm.style.top = y + "px" ;
     else {
@@ -841,7 +841,6 @@ class DetailsPanel extends Panel {
         },
       },
       async (e, tag, value) => {
-        this.cell.stash.tag = value;
         let score = _score_;
         if (score) {
           score.quality = value;
@@ -1815,7 +1814,7 @@ class NumbersPanel extends Panel {
       { Pages: { svg: "Page", radio: "forward" },
         Marks: { svg: "Mark", radio: "forward" },
       },
-      (e, tag, value) => score.numbers.tag  = value,
+      () => {},
     );
     this.forward.replaceWith(this.forwardGroup.elm);
 
@@ -1824,7 +1823,7 @@ class NumbersPanel extends Panel {
       { Pages: { svg: "Page", radio: "reverse" },
         Marks: { svg: "Mark", radio: "reverse" },
       },
-      (e, tag, value) => score.numbers.tag = value,
+      () => {},
     );
     this.reverse.replaceWith(this.reverseGroup.elm);
 
@@ -1913,7 +1912,6 @@ class PencilPanel extends Panel {
           this.cell.stash,
           this.slidersDef,
           (e, tag, value) => {
-            this.cell.stash.tag = value;
             this.update();
           }
         );
@@ -1926,7 +1924,6 @@ class PencilPanel extends Panel {
           this.cell.stash,
           this.buttonsDef,
           (e, tag, value) => {
-            this.cell.stash.tag = value;
             this.update();
           }
         );
