@@ -806,7 +806,12 @@ class DetailsPanel extends Panel {
       async (e,tag,value) => {
          let score = _score_;
          score.details.pgFit = value;
-         await Layout.open(_menu_.rings.layout.activeCell);
+         // Re-open the current layout to apply the new fit. Use the canonical
+         // stash.active key (always valid, kept current by Layout.open) — the
+         // layout ring's activeCell object is not reliably maintained and can
+         // be null/stale (cf. score.js score-load path).
+         let layout = _menu_.rings.layout;
+         await Layout.open(layout.cells[layout.stash.active || "book"]);
       }
     );
     

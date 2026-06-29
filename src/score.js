@@ -167,7 +167,10 @@ class Pg {
       this.inflatePromise = this.inflateAux(render).catch(err => {
         if(err.name == 'AbortError') return; // no error: expected
         console.warn(`Failed to background load/render page ${this.mozPn}:`, err)});
-    } else await this.inflateAux(render);
+    } else await this.inflateAux(render).catch(err => {
+      if(err.name == 'AbortError') return; // no error: expected (nav/layout change cancelled the inflate)
+      throw err;
+    });
   }
 
   async inflateAux(render) {

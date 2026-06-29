@@ -201,7 +201,10 @@ class Layout {
   }
 
   static async open(cell) {
-    if (!_score_) return;
+    // Defensive: never NPE on a null @cell. Callers should pass a valid layout
+    // cell (use rings.layout.cells[stash.active], not the unreliable
+    // activeCell) — this guard is a backstop so a bad caller can't crash here.
+    if (!_score_ || !cell) return;
     _shade_.show("Formatting");
     // try/finally guarantees the Shade is released even if a build throws —
     // otherwise an exception between show() and hide() orphans the overlay,
