@@ -147,7 +147,6 @@ class Gestures {
     this.timer.run(_gs_, () => {
       // when e.taken == true, the long-press timer is a no-op.
       if(e.taken) return;
-      e.timedOut = true;
       if (!onBody) Layout.activeLayout?.cancelNav();
       animate(_menu_.elm, null, { left: e.clientX + "px", top: e.clientY + "px" }, `${_gsgs_}ms`);
       if (_menu_.collapsed) _menu_.collapse();
@@ -159,9 +158,7 @@ class Gestures {
     // capture:true so these fire even when a layout element has pointer capture
     let mv = listen(_body_, "pointermove", emv => {
       if (Math.hypot(emv.clientX - e.clientX, emv.clientY - e.clientY) > cancelDelta)
-      { this.timer.cancel();
-        e.timedOut = true ; // prevent pointerup's gesture handler from running
-      }
+        this.timer.cancel();
     }, { capture: true });
 
     listen(_body_, "pointerup", eup => {

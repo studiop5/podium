@@ -297,7 +297,10 @@ class Panel {
       overflow: hidden;
       border-radius: var(--borderRadius);
       border: 0.05em solid rgba(100,115,148,0.22);
-      filter: var(--panelShadow);
+      /* No drop-shadow filter on panels: a filter promotes a GPU compositing
+         layer whose blurred drop-shadow leaves trails when a panel is dragged on
+         iOS/iPad (the compositor fails to invalidate the shadow overhang). Border
+         + inset box-shadow read fine without it. Don't re-add a filter. */
       box-shadow: var(--panel-inset-shadow);
       background: var(--panel-bg);
       z-index: 90;
@@ -362,7 +365,7 @@ class Panel {
 
   elm = helm(`
     <div class="pz Panel" style="z-index:200">
-      <div data-tag="panel" class="Panel__elm raisedEdge">
+      <div data-tag="panel" class="Panel__elm">
         <div data-tag="header" class="Panel__header">
           ${iconSvg("Close", { tag: "icon", class: "Panel__icon" })}
           <div class="Panel__title" data-tag="title">
@@ -2930,6 +2933,7 @@ class SymbolsPanel extends Panel {
     }) ;
 
     let l1 = listen(this.gridFrame, "pointerdown", (e) => {
+      e.taken = true; 
       this.gridFrame.setPointerCapture(e.pointerId);
       let startY = e.clientY;
       let startScrollTop = this.gridFrame.scrollTop;

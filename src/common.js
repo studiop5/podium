@@ -542,13 +542,6 @@ css( // common css declarations.
     width: .5em;
     background-image: linear-gradient(to right, transparent, var(--panel-header-bg) 53%, var(--panel-header-bg));
   }
-  /* Create illusion of a raised edge */
-  .raisedEdge {
-    border-radius: var(--borderRadius);
-    filter: var(--bodyShadow);
-    box-shadow: 0.1em 0.1em 0.6em #888 inset, 0 0 19px #0000;
-    background: var(--bodyColor);
-  }
   /* Shared styling for floating messages (toast, ptrMsg) */
   .floatingMsg {
     border-radius: var(--borderRadius);
@@ -1167,10 +1160,10 @@ class PodiumSlider extends HTMLElement {
        width: 2.8em;
        height: 2.8em;
        top: calc(50% - 1.4em);
+       border-radius: var(--borderRadius); /* was inherited from .raisedEdge */
        background: var(--slider-knob-bg);
        background-image: var(--panTexture);
-       box-shadow: var(--slider-knob-shadow);
-       filter: none; /* iOS: suppress raisedEdge filter; drop shadow is in box-shadow instead */
+       box-shadow: var(--slider-knob-shadow); /* drop-shadow is here, not a filter (iOS) */
      }
      .Slider__knob-selected {
        background: var(--slider-knob-selected-bg);
@@ -1195,7 +1188,7 @@ class PodiumSlider extends HTMLElement {
   elm = helm(`
     <div data-tag="slider" class="Slider">
        <div data-tag="track" class="Slider__track"></div>
-       <div data-tag="knob" class="Slider__knob raisedEdge">
+       <div data-tag="knob" class="Slider__knob">
           <div data-tag="indicator" class="Slider__knob__indicator"></div>
        </div>
      </div>`);
