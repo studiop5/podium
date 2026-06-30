@@ -421,11 +421,13 @@ class Panel {
         let middleX = this.panel.offsetWidth / 2;
         let middleY = this.panel.offsetHeight / 2;
 
+        let offsetX = e.offsetX, offsetY = e.offsetY;
+
         let mv = listen(header, "pointermove", (emv) => {
           if (e.pointerId != emv.pointerId) return; // rem grd...needed?
           drag.mv(emv) ;
-          elm.style.left = emv.clientX - e.offsetX + middleX + "px";
-          elm.style.top = emv.clientY - e.offsetY + middleY + "px";
+          elm.style.left = emv.clientX - offsetX + middleX + "px";
+          elm.style.top = emv.clientY - offsetY + middleY + "px";
           this.constrain();
         });
 
