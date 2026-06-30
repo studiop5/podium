@@ -164,7 +164,6 @@ class Gestures {
     listen(_body_, "pointerup", eup => {
       unlisten(mv);
       this.timer.cancel();
-      if (e.timedOut) return;
       if (!onBody) return;   // swipe gestures only from background
       let dY = eup.clientY - e.clientY;
       if (Math.abs(dY) > gestureDelta) {

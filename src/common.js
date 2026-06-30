@@ -1712,7 +1712,7 @@ class Surface {
     `
     .Surface {
       font-size:1em;
-      position:absolute;
+      position:absolute; 
       width:8em;
       height:8em;
       z-index:100;
@@ -1780,7 +1780,8 @@ class Surface {
           surface.style.zIndex = panel.elm.style.zIndex;
           _body_.append(surface);
           _pzTarget_ = surface; // this allows pan-zooming without having to reselect
-          ScreenPanel.pzTarget = surface ; /// rem grd
+          ScreenPanel.pzTarget = surface ; 
+//          hide(this.panel.elm, dataIndex("tag", this.panel.cell.elm).cellIcon);
           hide(this.panel.elm, dataIndex("tag", this.panel.cell.elm).cellIcon);
           surface.style.left = emv.clientX - dX + "px";
           surface.style.top = emv.clientY - dY + "px";
@@ -1791,20 +1792,51 @@ class Surface {
         fling.up(eup) ;
         longPresser.cancel();
         unlisten(mv);
-        let downTime = eup.timeStamp - e.timeStamp;
         if (fling.dXY) { // fling detected
-          hide(surface, dataIndex("tag", this.panel.cell.elm).cellIcon);
+          this.hide();
           if (this.panel.constructor != ScreenPanel) ScreenPanel.update(null);
         }
-        else if (downTime < _gs_) this.onSurfaceEvent("click");
+        else if (eup.timeStamp - e.timeStamp < _gs_) this.onSurfaceEvent("click");
       }, { once: true });
     }));
     delay(2, () => this.build());
   }
 
   hide() {
-    if (this.surface.parentElement == _body_)
-      hide(this.surface, dataIndex("tag", this.panel.cell.elm).cellIcon);
+    // Animate the detached surface flying back to its menu cell, then hide it.
+    // We deliberately do NOT use the global hide(): that animates via left/top +
+    // font-size, which iOS Safari refuses to interpolate on the surface (an
+    // absolutely-positioned, composited element) — it snaps to the destination.
+    // A `transform` (translate + scale) animation is honored on iOS. That's safe
+    // here because the surface is self-positioned with no position:fixed
+    // descendants; on a Panel a wrapper transform would re-anchor its fixed child
+    // (the "glue" bug), which is why the global hide() stays left/top-based.
+    let surface = this.surface;
+    if (surface.parentElement != _body_ || surface.hiding) return;
+    surface.hiding = true;
+    let ms = 500;
+    let onElmBox = getBox(dataIndex("tag", this.panel.cell.elm).cellIcon);
+    let elmBox = getBox(surface);
+    // translate the surface's CENTER onto the cell icon's CENTER, shrinking to nothing
+    let dx = (onElmBox.x + onElmBox.width / 2) - (elmBox.x + elmBox.width / 2);
+    let dy = (onElmBox.y + onElmBox.height / 2) - (elmBox.y + elmBox.height / 2);
+    let saved = {
+      transform: surface.style.transform,
+      transition: surface.style.transition,
+      transformOrigin: surface.style.transformOrigin,
+    };
+    surface.style.transformOrigin = "center center";
+    surface.style.transform = "translate(0px, 0px) scale(1)"; // FROM
+    surface.style.transition = `transform ${ms}ms`; // default `ease`; stay opaque, scale(0) vanishes it
+    reflow();
+    surface.style.transform = `translate(${dx}px, ${dy}px) scale(0)`; // TO
+    schedule(ms, () => {
+      surface.style.visibility = "hidden";
+      surface.style.transition = saved.transition;
+      surface.style.transform = saved.transform; // reset so a later show() is clean
+      surface.style.transformOrigin = saved.transformOrigin;
+      surface.hiding = false;
+    });
   }
 
   destructor() {
@@ -2176,19 +2208,26 @@ function hide(elm, onElm) {
   // then elm's visibility will be set hidden, and its size restored.
   if (elm.hiding) return;
   else elm.hiding = true; // prevent hiding until schedule(500...) has run
-  let { left, top } = getComputedStyle(elm);
   let fontSize = elm.style.fontSize; // this MUST come from style, NOT from getComputedStyle
-  elm.style.left = left;
-  elm.style.top = top;
-  elm.style.transition = "top 10.5s, left 10.5s,font-size 10.5s, opacity 10.5s";
-  reflow();
-  let elmBox = getBox(elm);
+  let elmBox = getBox(elm); // getBox forces layout, so this is the current (source) position
   let onElmBox = getBox(onElm);
   let offsetParentBox = elm.offsetParent ? getBox(elm.offsetParent) : { x: 0, y: 0 };
+  // FROM in explicit px, derived from getBox (the SAME basis as the TO below). Do NOT
+  // read getComputedStyle(elm).left here: for a position:absolute element Safari/iOS
+  // returns the specified value ("auto"), not the used px. CSS can't transition from
+  // "auto", so on iOS left/top snapped straight to the destination while font-size/
+  // opacity still animated — the "fling plays at the destination" bug. (Chrome papers
+  // over it by returning the used px from getComputedStyle.)
+  let left = (elmBox.x - offsetParentBox.x) + "px";
+  let top  = (elmBox.y - offsetParentBox.y) + "px";
+  elm.style.left = left;
+  elm.style.top = top;
+  elm.style.transition = "top .5s, left .5s,font-size .5s, opacity .5s";
+  reflow();
   elm.style.left = (onElmBox.x + onElmBox.width / 2 - offsetParentBox.x) + "px"; 
   elm.style.top = (onElmBox.y + onElmBox.height / 2 - offsetParentBox.y) + "px";  
   elm.style.fontSize = 0;
-  schedule(10500, () => {
+  schedule(500, () => {
     elm.style.left = left;
     elm.style.visibility = "hidden";
     elm.style.top = "-9999px";

@@ -1073,6 +1073,7 @@ class Clock extends Surface {
 
   hide() {
     this.clockSchedule.cancel();
+    super.hide(); // run the Surface fly-to-cell + hide animation (don't just stop ticking)
   }
 }
 

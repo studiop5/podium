@@ -1576,7 +1576,7 @@ class StoragePanel extends Panel {
             toast("Import buffer cleared");
           } else if (tag == "Reload") {
             dialog("Confirm: restart Podium? Any unsaved changes will be lost",
-              { Restart: { svg: "Refresh" }, Cancel: { svg: "Cancel" } },
+              { Restart: { svg: "Reload" }, Cancel: { svg: "Cancel" } },
               (e, prop, tag, args) => {
                 args.close();
                 if (tag == "Restart") {
