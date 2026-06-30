@@ -1553,7 +1553,7 @@ class StoragePanel extends Panel {
     buttons.replaceWith(
       new ButtonGroup(
         cell,
-        { Menu: { svg: "Menu" }, Recent: { svg: "Score" }, Import: { svg: "Import Page" } },
+        { Menu: { svg: "Menu" }, Recent: { svg: "Score" }, Import: { svg: "Import Page" }, Reload: { svg: "Reload" } },
         (e, prop, tag) => {
           if (tag == "Menu") {
             dialog("Reset all menu settings to defaults? Open panels will be closed.",
@@ -1574,6 +1574,17 @@ class StoragePanel extends Panel {
           } else if (tag == "Import") {
             _podPb_.clear();
             toast("Import buffer cleared");
+          } else if (tag == "Reload") {
+            dialog("Confirm: restart Podium? Any unsaved changes will be lost",
+              { Restart: { svg: "Refresh" }, Cancel: { svg: "Cancel" } },
+              (e, prop, tag, args) => {
+                args.close();
+                if (tag == "Restart") {
+                  let url = new URL(location.href);
+                  url.searchParams.set("t", Date.now());
+                  location.replace(url.href);
+                }
+              });
           }
           this.updateStats(); // refresh after reset
         }

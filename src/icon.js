@@ -487,6 +487,10 @@ Refresh:
 Replace:
   `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M2.28,16.6 12.3,5.33 11.2,3.9h5.4v5.72l-1.3,-1.1-5.55,5.98-1.51,-1.3 0.11,6.1 5.15,-0.1-1,-1.6 9.9,-11.03"/>`,
 
+
+Reload:
+  `<text y="17" x="4" font-size="20px">\u27f3</text>`,
+
 Repeat:
   `<text y="19" x="6.5" font-family="Bravura" font-size="16px" fill="currentColor">\ue040</text>
    <text y="19" x="13.5" font-family="Bravura" font-size="16px" fill="currentColor">\ue041</text>`,

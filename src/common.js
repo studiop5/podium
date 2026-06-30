@@ -1482,8 +1482,8 @@ class Shade {
   }
 
   hide() {
-    this.msgStack = [];
-    this.elm.style.transition = "opacity .5s ease-in";
+   this.msgStack = [];
+    this.elm.style.transition = "opacity 5.5s ease-in";
     this.elm.style.opacity = 0;
     this.scheduler.run(500, () => this.elm.remove());
   }
@@ -2180,7 +2180,7 @@ function hide(elm, onElm) {
   let fontSize = elm.style.fontSize; // this MUST come from style, NOT from getComputedStyle
   elm.style.left = left;
   elm.style.top = top;
-  elm.style.transition = "top 0.5s, left 0.5s,font-size 0.5s, opacity 0.5s";
+  elm.style.transition = "top 10.5s, left 10.5s,font-size 10.5s, opacity 10.5s";
   reflow();
   let elmBox = getBox(elm);
   let onElmBox = getBox(onElm);
@@ -2188,7 +2188,7 @@ function hide(elm, onElm) {
   elm.style.left = (onElmBox.x + onElmBox.width / 2 - offsetParentBox.x) + "px"; 
   elm.style.top = (onElmBox.y + onElmBox.height / 2 - offsetParentBox.y) + "px";  
   elm.style.fontSize = 0;
-  schedule(500, () => {
+  schedule(10500, () => {
     elm.style.left = left;
     elm.style.visibility = "hidden";
     elm.style.top = "-9999px";
