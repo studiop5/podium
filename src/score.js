@@ -163,6 +163,10 @@ class Pg {
       this.deferred = true;
       this.canvas = helm(`<div style="text-align:center;color:#eee;background:white;font-family:Bravura"><div style="font-size:5em;">\uE4C4<div></div>`);
       this.elm = this.canvas;
+      this.elm.pg = this; // backref on the placeholder too: it's mounted into layouts
+        // immediately, while the real canvas (which also sets .pg) only replaces it
+        // later in the background. Without this, a concurrent ScrollLayout.pgMount
+        // iterating the sash finds a .pg-less child \u2192 pgUnuse(undefined) crash.
       this.style = this.elm.style; // convenient shorthand
       this.inflatePromise = this.inflateAux(render).catch(err => {
         if(err.name == 'AbortError') return; // no error: expected

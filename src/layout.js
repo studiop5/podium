@@ -2241,6 +2241,11 @@ class TableLayout extends Layout {
     }
     // Now build the new active pg:
     let pg = elm.pg = await this.score.pgUse(pn, false);
+    // A null elm means this foreground inflate was aborted — i.e. a newer build
+    // superseded this one (rapid layout switching). Bail the stale build; the
+    // newer one will mount the active page. (Non-abort inflate errors re-throw,
+    // so elm===null here can only be the supersede signal, not a silent failure.)
+    if (!pg || !pg.elm) return;
     elm.pn = pn;
     pg.elm.style.display = "block";
     // increase zoom to help distinguish active pg

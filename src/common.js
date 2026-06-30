@@ -901,7 +901,7 @@ class ColorPicker {
           min: 0,
           max: 1,
           step: 0.01,
-          value: `${rgb}`,
+          value: alpha, // numeric alpha (was mistakenly `${rgb}` — the hex colour — which made the slider value NaN)
           msg: (tag, value) => `Opacity: ${Math.round(value * 100)}%`,
         },
       },
@@ -1295,14 +1295,21 @@ class PodiumSlider extends HTMLElement {
     if (which != "value") {
       this[which] = parseFloat(is);
     } else {
-      let t = clamp((is - this.min) / (this.max - this.min), 0, 1);
+      let v = parseFloat(is);
+      if (!Number.isFinite(v)) return; // ignore a non-numeric "value" attribute
+      let t = clamp((v - this.min) / (this.max - this.min), 0, 1);
       let pos = this.curve == 1 ? t : Math.pow(t, 1 / this.curve);
       this.setPos(pos);
     }
   }
 
   setPos(pos) {
-    // set the pos, which represents slider position in [0,1]
+    // set the pos, which represents slider position in [0,1].
+    // NaN-safety: never emit a non-finite value. A degenerate drag (zero-width
+    // geometry → div-by-zero) or a bad `value` attribute can produce a NaN pos;
+    // bail rather than corrupt this.pos/this.value, which would otherwise poison
+    // whatever stash the slider is bound to (e.g. numbers.pn → pgUse crash).
+    if (!Number.isFinite(pos)) return;
     this.pos = pos;
     let value = (this.max - this.min) * Math.pow(pos, this.curve) + this.min;
     let snapped = Math.round(value / this.step) * this.step;
