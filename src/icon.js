@@ -290,8 +290,8 @@ Layout:
   `<path fill="none" stroke="currentColor" stroke-width="0.8" d="m12.1,1.82v2.13m0,8.35v3.9M16.8,11A3.88,4.91 86.2 0 1 11.9,14.3 3.88,4.91 86.2 0 1 7.09,11.1M11.4,8.08C10.3,7.89 9.88,6.88 9.99,5.76 10.1,4.65 11.1,3.81 12.2,3.84c1.1,0 2,0.92 2.1,2.04 0,1.11-0.4,2-1.5,2.13M4.97,21 12.2,7.03 19.8,21"/>`,
 
 Light:
-  `<path fill="currentColor" d="M16,6A7,7 0 0 0 9,13A7,7 0 0 0 16,20A7,7 0 0 0 21,18.5A8,8 0 0 1 13,12A8,8 0 0 1 16,6Z"/>
-   <circle fill="currentColor" cx="7" cy="8" r="0.8"/>`,
+ `<circle fill="currentColor" cx="12" cy="12" r="4"/>
+   <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M12,2.5v2M12,19.5v2M21.5,12h-2M4.5,12h-2M18.4,5.6l-1.4,1.4M7,17l-1.4,1.4M18.4,18.4l-1.4-1.4M7,7L5.6,5.6"/>`,
 
 Local:
   `<path fill-rule="evenodd" fill="#aaa" stroke="currentColor" stroke-width="1.2" d="m6.22,13.5v2.8M5.39,13.5v2.8M6.35,5.65V8.47M5.5,5.66v2.85m5.4,3.99-2.03,2m7.43,-7.19-2,2m-0.2,3.19 2,2M8.87,7.29 10.9,9.25m3.7,1.55a2.09,2.22 0 0 1-2.1,2.2 2.09,2.22 0 0 1-2.1,-2.2 2.09,2.22 0 0 1 2.1,-2.22 2.09,2.22 0 0 1 2.1,2.22m-9.51,9.5v1.8h2.2V20.3M5.97,4.49H19V17.8H5.73ZM3.57,20.1V2.13H21.5V20.2Zm14.23,0.2v1.8H20v-1.8" />`,
@@ -382,7 +382,10 @@ More:
 "No Ink":
   `<path style="fill:none;stroke:currentColor;stroke-width:0.6;stroke-linecap:butt;stroke-linejoin:miter;" d="m13.5,16.7c1.3,0.4 3.3,0.5 4.4,0m-6.3,1.6c2.1,0.9 6.3,0.9 8.1,0M16.8,17.9C14.8,13.9 14.2,10.2 4.5,2.98 8.43,6.49 12.7,11 16.8,17.9ZM14,13.6C11.8,13.2 10.4,12.2 9.55,11L9.87,10.3 8.48,10.1C5.05,7.72 4.04,3.78 3.08,1.77 5.26,2.68 7.43,3.63 9.43,4.9L9.57,5.78 10.1,5.41c1.7,1.12 3.5,2.34 4.2,4.12l0.1,1.77 0.5,-0.4c0.5,1.2 0.5,2.1-0.2,2.6m-2.3,8c-1.6,-0.2-1.1,-2.3-0.8,-3.2 0.3,-0.9 1.1,-1.5 1.9,-1.6 0,-1 0.2,-1.4 0.4,-1.6 1,-0.1 2.2,-0.2 3.5,0 0.5,0.5 0.4,1 0.5,1.6 0.9,0 1.5,0.7 1.8,1.6 0.3,0.9 0.6,3.1-0.8,3.2-1.4,0.1-4.9,0.2-6.5,0z"/>`,
 
-"Not Pdf": 
+"Normal Screen":
+  `<path fill="#aaa" stroke="currentColor" stroke-width="0.9" d="M8.04,15.7 4.94,19m3.1,0v-3.3h-3.1m10.36,0 3.1,3.3m-3.1,0v-3.3h3.1M8.03,8.24 4.93,5M8.1,5.12V8.36H5M15.3,8.24 18.4,5m-3.1,0v3.24h3.1M8.99,9.01a0.4,0.4 0 0 0-0.4,0.4v5.39a0.4,0.4 0 0 0 0.4,0.4h5.41a0.4,0.4 0 0 0 0.4,-0.4V9.41a0.4,0.4 0 0 0-0.4,-0.4z" />`,
+
+"Not Pdf":
   `<rect width="24" height="24" rx="2" fill="#aaa" />
    <text y="12" x="9" font-family="Bravura" font-size="10px">\ue01a\ue01a\ue01a</text>
    <text y="12.125" x="9.75" font-family="Bravura" font-size="10px">\ue050</text>
@@ -616,9 +619,6 @@ Video:
      stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 `,
 
-Light:
- `<circle fill="currentColor" cx="12" cy="12" r="4"/>
-   <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M12,2.5v2M12,19.5v2M21.5,12h-2M4.5,12h-2M18.4,5.6l-1.4,1.4M7,17l-1.4,1.4M18.4,18.4l-1.4-1.4M7,7L5.6,5.6"/>`,
 
 Wave:
   `<defs><mask id="scope"><rect x="0" y="0" height="24" width="24" fill="white"></rect>
