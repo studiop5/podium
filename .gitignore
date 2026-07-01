@@ -37,8 +37,6 @@ ext.old/
 # everything in here is disposable.
 font/
 src/lib
-src/manifest.webmanifest
-src/sw.js
 src/icon192.png
 src/icon512.png
 src/video.js
