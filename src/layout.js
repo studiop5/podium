@@ -384,6 +384,7 @@ class Layout {
     if (_menu_.magnifier?.active) {
       let pg = e.target.pg || e.target.closest(".canvas-container")?.pg;
       if (pg) {
+        e.taken = true ;
         let updateMag = (ev) => {
           if (!pg.elm) return; // pg can be released/recycled mid-gesture
           let box = pg.elm.getBoundingClientRect();
