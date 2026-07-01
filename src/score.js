@@ -1089,8 +1089,20 @@ class Score {
         window.pdfjsLib = await import(pdfUrl);
         URL.revokeObjectURL(pdfUrl);
         let mozWorkerUrl = URL.createObjectURL(await inflate(mozWorkerSrc));
-        window.pdfjsLib.GlobalWorkerOptions.workerPort = new Worker(mozWorkerUrl, { type: "module" });
-        URL.revokeObjectURL(mozWorkerUrl); // safe to revoke once Worker is constructed
+        let mozWorker = new Worker(mozWorkerUrl, { type: "module" });
+        // A module worker fetches its script asynchronously, so the blob URL
+        // must stay valid until that fetch lands — revoking right after the
+        // constructor returns races the fetch. The worker's first message (or
+        // an error) proves the script has loaded and executed, so it's safe to
+        // release the URL then and let the source blob be GC'd.
+        let revokeMozWorkerUrl = () => {
+          URL.revokeObjectURL(mozWorkerUrl);
+          mozWorker.removeEventListener("message", revokeMozWorkerUrl);
+          mozWorker.removeEventListener("error", revokeMozWorkerUrl);
+        };
+        mozWorker.addEventListener("message", revokeMozWorkerUrl);
+        mozWorker.addEventListener("error", revokeMozWorkerUrl);
+        window.pdfjsLib.GlobalWorkerOptions.workerPort = mozWorker;
         mozWorkerSrc = null; // allow gc
       }
 
