@@ -327,6 +327,8 @@ class Panel {
       top: var(--spacing-sm);
       left: var(--spacing-sm);
       pointer-events: none;
+      transform: translateZ(0); /* fix for iOS partial-path SVG rendering glitch */
+      will-change: transform;
     }
     .Panel__title {
       position: absolute;
@@ -1580,7 +1582,8 @@ class StoragePanel extends Panel {
             await _podPb_.pgClear();
             toast("Import buffer cleared");
           } else if (tag == "Reload") {
-            dialog("Confirm: restart Podium? Any unsaved changes will be lost",
+            let url = `${location.origin}${location.pathname}`;
+            dialog(`Confirm: restart Podium?<br><span style="font-size:0.8em;color:#333">(${escapeHtml(url)})</span><br>Any unsaved changes will be lost`,
               { Restart: { svg: "Reload" }, Cancel: { svg: "Cancel" } },
               (e, prop, tag, args) => {
                 args.close();

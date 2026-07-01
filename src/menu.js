@@ -105,8 +105,9 @@ class Menu {
       box-shadow: -0.02em -0.02em 0.04em var(--menu-panel-indicator-highlight) inset,
                   0.02em 0.02em 0.04em var(--menu-panel-indicator-shadow) inset;
     }
-    .Menu__cellIcon {
-      transform: translateY(5%);
+    .cellIcon {
+      transform: translateZ(0); /* fix for iOS partial-path SVG rendering glitch */
+      will-change: transform;
     }
     .Menu__disk {
       position: relative;
