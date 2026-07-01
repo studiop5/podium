@@ -46,6 +46,7 @@ import {
   schedule,
   Schedule,
   Surface,
+  svgWrap,
   TabView,
   toast,
   unlisten,
@@ -501,9 +502,7 @@ class Panel {
   }
 
   setIcon(svgPath) {
-    let newIcon = helm(
-      `<svg data-tag="icon" class="Panel__icon" viewBox="0 0 24 24">${svgPath}</svg>`
-    );
+    let newIcon = helm(svgWrap(svgPath, { tag: "icon", class: "Panel__icon" }));
     this.icon.replaceWith(newIcon);
     this.icon = newIcon;
   }

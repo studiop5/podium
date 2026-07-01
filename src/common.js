@@ -40,6 +40,7 @@ export {
   getBox,
   hide,
   iconSvg,
+  svgWrap,
   inflate,
   listen,
   pnToDiv,
@@ -95,6 +96,7 @@ window._recentInsertPts_ = 4; // points awarded when a symbol is inserted into t
                                // ensures symbols you actually use dominate over ones merely browsed)
 window._voidFunc_ = () => {};
 window._curtain_ = null; // set in class Curtain below: used to dim the screen
+window._svgId_ = 0; // continuously incrementing counter: uniquifies ids in embedded icon svg markup
 
 // svg texture used for all draggable elements
 let panSvgWarm =
@@ -2237,10 +2239,31 @@ function hide(elm, onElm) {
   });
 }
 
-function iconSvg(iconName, props = {}) {
-  // Returns a string that can be included in html to display an icon whose path is defined
-  // in the icon.js iconPaths object.
-  // @iconName key in the iconPaths object.
+function uniqueSvgIds(svgMarkup) {
+  // iOS WebKit resolves <mask>/<clipPath> url(#id) references ambiguously when
+  // the same id string appears more than once in the live document (e.g. a menu
+  // cell's icon and its open panel's header embed the identical icon markup
+  // simultaneously) - it can silently fail to render the masked content, while
+  // other browsers tolerate the duplicate. Suffix every id (and matching url(#id)
+  // reference) defined in this markup so each embedded copy is unique, regardless
+  // of how many times the same icon is on screen at once.
+  let ids = new Set();
+  svgMarkup.replace(/\sid="([^"]+)"/g, (_, id) => { ids.add(id); return ""; });
+  if (ids.size === 0) return svgMarkup;
+  let suffix = "-" + ++_svgId_;
+  for (let id of ids) {
+    svgMarkup = svgMarkup.split(`id="${id}"`).join(`id="${id}${suffix}"`);
+    svgMarkup = svgMarkup.split(`url(#${id})`).join(`url(#${id}${suffix})`);
+  }
+  return svgMarkup;
+}
+
+function svgWrap(svgMarkup, props = {}) {
+  // Returns a string that can be included in html to display the given svg markup
+  // (the contents of an <svg>) wrapped in an <svg> tag, with its ids uniquified
+  // (see uniqueSvgIds above) so multiple simultaneous copies (e.g. a menu cell and
+  // its open panel's header showing the same icon) never collide on iOS WebKit.
+  // @svgMarkup raw svg markup (e.g. one of the icon.js iconPaths values).
   // @props option object that contain overrides of the default properties defined here.
   //   Note: the (square) icon size comes from `size`, emitted as width/height ATTRIBUTES,
   //   NOT from `style`. Attributes sit below class/style in the cascade, so a caller can
@@ -2261,7 +2284,15 @@ function iconSvg(iconName, props = {}) {
     props
   );
   return `<svg viewBox="${props.viewBox}" width="${props.size}" height="${props.size}" class="${props.class}" style="${props.style}" data-tag="${props.tag}" >
-          ${iconPaths[iconName]}</svg>`;
+          ${uniqueSvgIds(svgMarkup)}</svg>`;
+}
+
+function iconSvg(iconName, props = {}) {
+  // Returns a string that can be included in html to display an icon whose path is defined
+  // in the icon.js iconPaths object.
+  // @iconName key in the iconPaths object.
+  // @props see svgWrap above.
+  return svgWrap(iconPaths[iconName], props);
 }
 
 async function inflate(b64GzipString) {

@@ -31,6 +31,15 @@ iconPaths
   svg files, while others were created by hand-coding the svg.  As a result, there
   is some unfortunate inconsistencies with how they are rendered, partcularly as
   some use css style defs and some don't.
+
+  A few icons (Magnify, Details, Wave) use an internal <mask id="x">...</mask>
+  cut out via mask="url(#x)" (see Magnify below for the pattern). Because the same
+  icon markup can appear twice in the live DOM at once (e.g. a menu cell and its
+  open panel's header), common::uniqueSvgIds() suffixes these ids per rendered
+  instance so they never collide - iOS WebKit silently drops masked content when
+  duplicate ids exist. That helper only rewrites double-quoted id="x" definitions
+  and url(#x) references, so if you add another masked/clipped icon, copy the
+  existing double-quote/url(#x) style rather than single quotes or <use href="#x">.
 **/
 
 // This formula creates a circular path segment from 2 arcs.

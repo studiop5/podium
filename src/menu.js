@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, clamp, css, dataIndex, delay, delayMs, Drag, fontMap, getBox, helm, hide, listen, mergeRecent,Schedule, schedule, toast, unlisten } from "./common.js";
+import { animate, clamp, css, dataIndex, delay, delayMs, Drag, fontMap, getBox, helm, hide, listen, mergeRecent,Schedule, schedule, svgWrap, toast, unlisten } from "./common.js";
 import { checkUnsaved, FileSrc } from "./file.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
@@ -869,10 +869,7 @@ class Menu {
             class="Menu__diskCell" data-key="${diskKey}">
           <div data-tag="cellContents" class="Menu__cell-contents" style="transform:rotate(${-rotation}turn)">
             <div data-tag="cellName" style="font-size:${fontSize}em;pointer-events:none;"><br>${ring.name}</div>
-            <svg data-tag="cellIcon"
-              style="width:${cellIcon}em;height:${cellIcon}em;pointer-events:none" class="cellIcon" viewBox="0 0 24 24">
-              ${ring.svgPath}
-            </svg>
+            ${svgWrap(ring.svgPath, { tag: "cellIcon", class: "cellIcon", size: cellIcon + "em", style: `width:${cellIcon}em;height:${cellIcon}em;pointer-events:none` })}
          </div>
 
        </div>`
@@ -901,9 +898,7 @@ class Menu {
              data-key="${diskKey + "/" + cellKey}">
            <div data-tag="cellContents" class="Menu__cell-contents" style="transform:rotate(${-rotation}turn);">
              <div data-tag="cellName" style="font-size:${fontSize}em;"><br>${cell.name}</div>
-             <svg data-tag="cellIcon" style="width:${cellIcon}em;height:${cellIcon}em;" class="cellIcon" viewBox="0 0 24 24">
-               ${cell.svgPath}
-             </svg>
+             ${svgWrap(cell.svgPath, { tag: "cellIcon", class: "cellIcon", size: cellIcon + "em", style: `width:${cellIcon}em;height:${cellIcon}em;` })}
           </div>
         </div>`);
           ring.elm.append(cell.elm);
