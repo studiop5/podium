@@ -2248,7 +2248,7 @@ function uniqueSvgIds(svgMarkup) {
   // reference) defined in this markup so each embedded copy is unique, regardless
   // of how many times the same icon is on screen at once.
   let ids = new Set();
-  svgMarkup.replace(/\sid="([^"]+)"/g, (_, id) => { ids.add(id); return ""; });
+  svgMarkup.replace(/\sid=\x22([^\x22]+)\x22/g, (_, id) => { ids.add(id); return ''; });
   if (ids.size === 0) return svgMarkup;
   let suffix = "-" + ++_svgId_;
   for (let id of ids) {
