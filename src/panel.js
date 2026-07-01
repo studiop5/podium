@@ -21,6 +21,7 @@
 **/
 
 import {
+  animate,
   ButtonGroup,
   dataIndex,
   clamp,
@@ -30,32 +31,246 @@ import {
   delay,
   delayMs,
   dialog,
-  flung,
+  Drag,
   fontMap,
   getBox,
   helm,
   hide,
   iconSvg,
   listen,
-  mvmt,
+  mergeRecent,
   pnToString,
   pxToEm,
   reflow,
   SliderGroup,
   schedule,
   Schedule,
+  Surface,
+  svgWrap,
   TabView,
   toast,
   unlisten,
 } from "./common.js";
+import { iconPaths } from "./icon.js";
 import { escapeHtml, FileSrc, FileListView, FileSystemView, LocalFileView } from "./file.js";
 import { Layout } from "./layout.js";
-import { Pg, Score } from "./score.js";
+import { Score } from "./score.js";
 import { smuflTable } from "./smufl.js";
 import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
-export { Panel, panels };
+export { Panel, panels, EditPanel, ScreenPanel, CurtainPanel };
 
 // -skip
+
+class Select {
+
+  static css = css(
+    "Select", `
+    mark {
+      background-color: #aaa;
+    }
+    .Select__toggle {
+      border:2px solid black;
+      border-radius:var(--borderRadius);
+      font-family:Bravura;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      padding-right:1.5em;
+      height:3em;
+      box-sizing: border-box;
+    }
+    .Select__toggle:after {
+      content: "\ueb7c";
+      position:absolute;
+      right:.2em;
+      font-size:3em;
+      top: calc(50% - .2em);
+      line-height:0;
+     }
+    .Select__toggle:focus {
+      background-color: #fff;
+      outline: none;
+    }
+    [data-theme="Dark"] .Select__toggle:focus {
+      background-color: #555;
+    }
+    .Select__frame {
+      border-radius:var(--borderRadius);
+      position:absolute;
+      overflow:hidden;
+      z-index: var(--z-modal);
+    }
+    .Select__sash {
+      color:black;
+      text-align:left;
+      background:white;
+      font-family:Bravura;
+      position:absolute;
+    }
+    .Select__option {
+      padding: .25em;
+    }
+
+    /* for older Safari and Firefox */
+    .Select__list::-webkit-scrollbar {
+      display: none; 
+    } 
+ `) ;
+
+  elm = helm(`
+    <div>
+     <div data-tag="toggle" class="Select__toggle"></div>
+     <div data-tag="frame" class="Select__frame" style="visibility:hidden;">
+       <div class="Select__sash" data-tag="sash"></div>
+     </div>
+    </div>`) ;
+
+  constructor(options, option=null, panel) {
+    Object.assign(this, dataIndex("tag", this.elm));
+    Object.assign(this, {options, option, panel}) ;
+    delayMs(_gs_ + 1, () => this.build()) ; // call build after we're confident panel has animated (duration _gs_) to its full size
+  }
+
+  build() {
+    let {frame, options, option, panel, sash, toggle} = this ;
+    toggle.tabIndex = 0 ; // required for toggle to be focused 
+    let keyBuf = "" ;
+    let toggleStyle = getComputedStyle(toggle);
+    let emPerPx = parseFloat(toggleStyle.fontSize) ;
+    toggle.style.width = frame.style.width = sash.style.width = parseFloat(toggleStyle.width) / emPerPx + "em";
+    let frameHeight = frame.style.height = ((getBox(panel.panel).bottom - getBox(frame).top) / emPerPx) -.5 + "em" ;
+    // Add in all the options:
+    for(let option of options) sash.append(helm(`<div class="Select__option">${option}</div>`)) ;
+
+    let selectOption = (option, matched=null) => {
+      // called when an option is selected by user, either by clicking the option or by 
+      // matching the option's text through keyboard input. @matched, if non-null, contains the
+      // chars in option that were matched by keyBuf (user's typed chars)
+      if(matched && matched.length > 0) {
+        let re =  new RegExp(matched.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
+        let m = option.match(re) ;
+        let inner = m
+          ? escapeHtml(option.slice(0, m.index)) + `<mark>${escapeHtml(m[0])}</mark>` + escapeHtml(option.slice(m.index + m[0].length))
+          : escapeHtml(option) ;
+        toggle.innerHTML = "<div>" + inner + "</div>";
+      }
+      else toggle.textContent = option;
+      toggle.dispatchEvent(new CustomEvent('SELECTED', { detail:option}));
+    }
+
+    let closeFrame = () => {
+      if(frame.style.visibility == "hidden") return;
+      animate(frame, null, {height:0}, "height .35s", () => frame.style.visibility = "hidden");
+      keyBuf = "";
+    };
+
+    let l1 = listen(this.toggle,"pointerdown", (e) => {
+      e.taken = true ;
+      if(frame.style.visibility == "hidden") {
+        frame.style.visibility = "visible" ;
+        animate(frame, {height:0}, {height:frameHeight}, "height .35s");
+      }
+      else closeFrame() ;
+    });
+
+    let l2 = listen(sash,"pointerdown", (e) => {
+      e.taken = true;
+      let drag = new Drag(e) ;
+      sash.setPointerCapture(e.pointerId);
+      let top = sash.offsetTop;
+      let sashLimit = frame.offsetHeight - sash.offsetHeight ;
+
+      let mv = listen(sash, "pointermove", (emv) => {
+        drag.mv(emv) ;
+        sash.style.top = clamp(top + emv.clientY - e.clientY, sashLimit, 0) + "px" ;
+      });
+
+      listen(sash, "pointerup", (eup) => {
+        unlisten(mv);
+        drag.up(eup) ;
+        if(!drag.moved) {
+          if(this.target) this.target.style.background = "none" ;
+          this.target = e.target ;
+          this.target.style.background = "#aaa" ;
+          closeFrame();
+          return selectOption(e.target.textContent) ;
+        }
+        else if (drag.vY) {
+          let { to, dt } = Drag.fling(sash.offsetTop, frame.offsetHeight - sash.offsetHeight, 0, drag.vY);
+          animate(sash, null, { top: to + "px" }, `top ${dt}ms ease-out`);
+        } 
+      }, { once:true}) ;
+    }); 
+
+    let opt = null ; // currently selection option, if any
+    let l3 = listen(toggle, "keydown", (e) => {
+      e.stopPropagation();
+
+      let sashTop = null;
+      switch(e.key) {
+        case "Home": sashTop = "0" ; break ;
+        case "End": sashTop = frame.offsetHeight - sash.offsetHeight ; break;
+        case "ArrowDown":
+          if(this.frame.style.visibility == "hidden") return this.frame.style.visibility = "visible" ;
+        case "ArrowUp": 
+          let optionHeight = sash.scrollHeight / options.length;
+          sashTop = sash.offsetTop + (e.key == "ArrowDown" ? optionHeight : -optionHeight);
+          break;
+        case "Backspace":
+        case "Delete": 
+          keyBuf = keyBuf.slice(0,-1) ;
+          // fall through to search logic in default
+        case "Enter": 
+          if(e.key == "Enter") {
+             keyBuf = "" ;
+             selectOption(opt);
+             return;
+          }
+        default: 
+          if (e.key != "Backspace" && e.key != "Delete") {
+            if(/^[a-zA-Z0-9 .]$/.test(e.key)) keyBuf += e.key;
+            else return;
+          }
+          let lineNumber = 0 ;
+          opt = options.find((str) => { ++lineNumber ; return new RegExp(keyBuf.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i").test(str);}) ;
+          if(opt) {
+            selectOption(opt, keyBuf) ;
+            sashTop = frame.offsetHeight/2 - sash.offsetHeight * (lineNumber / options.length) ;
+            if(this.target) this.target.style.background = "none" ;
+            this.target = sash.children[lineNumber-1] ;
+            this.target.style.background = "#aaa" ;
+          }
+          else if (e.key != "Backspace" && e.key != "Delete") keyBuf = keyBuf.slice(0,-1) ;
+      }
+      if(sashTop != null) {
+        sashTop = clamp(sashTop, frame.offsetHeight - sash.offsetHeight, 0) ;
+        animate(sash, null, { top: sashTop + "px"}, `top ${Drag.scrollDur(sash.offsetTop -sashTop)}ms ease-out`) ;
+      }
+    })
+
+    let l4 = listen(frame, "wheel", (e) => {
+      if (frame.style.visibility != "hidden") 
+        sash.style.top = clamp(sash.offsetTop - e.deltaY, frame.offsetHeight - sash.offsetHeight, 0) + "px";
+    });
+
+    panel.listeners.push(l1, l2, l3, l4) ;
+
+    if(option) {
+      let lineNumber = 0 ;
+      let opt = options.find((str) => { ++lineNumber ; return option == str;}) ;
+      if(opt) {
+        selectOption(opt, keyBuf) ;
+        sash.style.top = clamp(frame.offsetHeight/2 - sash.offsetHeight * (lineNumber / options.length), frame.offsetHeight - sash.offsetHeight, 0) + "px" ;
+        if(this.target) this.target.style.background = "none" ;
+        this.target = sash.children[lineNumber-1] ;
+        this.target.style.background = "#aaa" ;
+      }
+    }
+
+    this.toggle.focus();
+  }
+}
 
 /**
 class Panel
@@ -68,28 +283,7 @@ class Panel
   subclass, and is simply ignored if singleton already exists.
 **/
 
-
-let PAGE_SIZE_SELECT = `
-  <select class="FontPanel__select" data-tag="presets">
-    <option value="score">Match Score</option>
-    <option value="custom">Custom</option>
-    <option value="mm/279/420">A3</option>
-    <option value="mm/210/297">A4</option>
-    <option value="mm/250/353">B4</option>
-    <option value="in/6.5/10.5">Octavo</option>
-    <option value="in/8.5/11">Letter</option>
-    <option value="in/9/12">Folio</option>
-    <option value="in/9.5/12.5">Hand Copy (Trad)</option>
-    <option value="in/11/14">Orchestral Parts (MOLA)</option>
-    <option value="in/17/11">Ledger</option>
-    <option value="in/8.5/14.0">Legal</option>
-    <option value="in/11/17">Tabloid</option>
-  </select>
-`;
-
 class Panel {
-  static _zTop = 1000;
-
   static get(cell) {
     return panels[cell.key] || (panels[cell.key] = new this(cell));
   }
@@ -103,10 +297,19 @@ class Panel {
       position: fixed;
       overflow: hidden;
       border-radius: var(--borderRadius);
-      filter: var(--panelShadow);
+      border: 0.05em solid rgba(100,115,148,0.22);
+      /* No drop-shadow filter on panels: a filter promotes a GPU compositing
+         layer whose blurred drop-shadow leaves trails when a panel is dragged on
+         iOS/iPad (the compositor fails to invalidate the shadow overhang). Border
+         + inset box-shadow read fine without it. Don't re-add a filter. */
       box-shadow: var(--panel-inset-shadow);
       background: var(--panel-bg);
       z-index: 90;
+      /* Never let a panel exceed the viewport (dvh/dvw track the iOS URL bar).
+         Oversized panels are capped here; ones that want their overflow to
+         scroll (e.g. AboutPanel) cap their body to the viewport too. */
+      max-width: calc(100vw - 1em);
+      max-height: calc(100dvh - 1em);
     }
     .Panel__header {
       background: var(--panel-header-bg);
@@ -125,6 +328,8 @@ class Panel {
       top: var(--spacing-sm);
       left: var(--spacing-sm);
       pointer-events: none;
+      transform: translateZ(0); /* fix for iOS partial-path SVG rendering glitch */
+      will-change: transform;
     }
     .Panel__title {
       position: absolute;
@@ -145,7 +350,7 @@ class Panel {
       right: 0;
     }
     .Panel__body {
-      font-size: var(--font-size-base);
+      font-size: var(--font-size-base); 
       margin: var(--spacing-sm);
       min-width: 13em;
       text-align: center;
@@ -154,12 +359,16 @@ class Panel {
     .Panel__fader {
       transition: opacity var(--transition-normal);
     }
+    .Panel__item {
+      /* used to seperate logical items in a panel body */
+      margin-top: var(--spacing-sm);
+    }
   `
   );
 
   elm = helm(`
     <div class="pz Panel" style="z-index:200">
-      <div data-tag="panel" class="Panel__elm raisedEdge">
+      <div data-tag="panel" class="Panel__elm">
         <div data-tag="header" class="Panel__header">
           ${iconSvg("Close", { tag: "icon", class: "Panel__icon" })}
           <div class="Panel__title" data-tag="title">
@@ -168,7 +377,7 @@ class Panel {
             tag: "closer",
             class: "Panel__closer",
             viewBox: "-16 -12 48 48",
-            style: "width:3em;height:3em",
+            style: "width:3em;height:3em;",
           })}
         </div>
         <div data-tag="body" class="Panel__body">
@@ -178,46 +387,61 @@ class Panel {
 
   cell = null;
   listeners = [];
+  lastTapTime = 0;
 
   constructor(cell) {
     Object.assign(this, dataIndex("tag", this.elm));
     this.elm.style.fontSize = _menu_.elm.style.fontSize; // open at same zoom level as menu
     this.cell = cell;
     this.elm.dataset.tag = this.constructor.name;
+    this.elm.panel = this;
     this.setIcon(cell.svgPath);
     this.setTitle(cell.name);
     this.listeners.push(
       listen(this.closer, "pointerdown", (e) => {
         e.stopPropagation();
+        e.taken = true ;
         this.close();
       })
     );
     this.listeners.push(
       listen(this.header, "pointerdown", (e) => {
+        e.taken = true;
+        let now = performance.now();
+        if (now - this.lastTapTime < 300) {
+          let path = this.cell.ring?.key + "/" + this.cell.key;
+          _menu_.notify(path + "/up");
+          let longPressTimer = setTimeout(() => _menu_.notify(path + "/long"), 500);
+          listen(this.header, "pointerup", () => clearTimeout(longPressTimer), { once: true });
+        }
+        this.lastTapTime = now;
+        let drag = new Drag(e) ;
         let { header, elm } = this;
-        elm.style.zIndex = ++Panel._zTop; // move to top of stacking order
+        if(!(this instanceof CurtainPanel)) // CurtainPanel uniquely manages its own z-index
+          elm.style.zIndex = ++_zTop_; // move to top of stacking order
         this.header.classList.add("Panel__header-selected");
         header.setPointerCapture(e.pointerId);
         let middleX = this.panel.offsetWidth / 2;
         let middleY = this.panel.offsetHeight / 2;
+
+        let offsetX = e.offsetX, offsetY = e.offsetY;
+
         let mv = listen(header, "pointermove", (emv) => {
-          if (e.pointerId != emv.pointerId) return;
-          flung(emv); // store event for fling detection
-          elm.style.left = emv.clientX - e.offsetX + middleX + "px";
-          elm.style.top = emv.clientY - e.offsetY + middleY + "px";
+          if (e.pointerId != emv.pointerId) return; // rem grd...needed?
+          drag.mv(emv) ;
+          elm.style.left = emv.clientX - offsetX + middleX + "px";
+          elm.style.top = emv.clientY - offsetY + middleY + "px";
           this.constrain();
-          e.emv = emv;
         });
 
-        listen(
-          header,
-          ["pointerup", "pointercancel"],
+        listen(header,"pointerup",
           (eup) => {
+            drag.up(eup) ;
             header.classList.remove("Panel__header-selected");
             unlisten(mv);
-            if (flung(null, eup)) { // fling detected
-              hide(this.elm, dataIndex("tag", this.cell.elm).cellIcon);
-              this.hidden() ;
+            if (drag.vXY) { // fling detected
+              this.hide();
+              if(this.elm.dataset.tag != "ScreenPanel") ScreenPanel.update(null) ;
             }
           },
           { once: true }
@@ -230,6 +454,7 @@ class Panel {
           this.constrain();
       }
     }));
+    delay(1, () => this.elm.owner = this) ;
   }
 
   hidden() { 
@@ -240,8 +465,8 @@ class Panel {
   close() {
     // When a panel is closed, its first hidden, then, removed from
     // the dom, and its singleton is deleted.
-    hide(this.elm, dataIndex("tag", this.cell.elm).cellIcon);
-
+    this.hide();
+    if (this.elm.dataset.tag != "ScreenPanel" && ScreenPanel.pzTarget == this.elm) ScreenPanel.update(null) ;
     schedule(510, () => {
       this.elm.remove();
       this.destructor();
@@ -255,25 +480,29 @@ class Panel {
     unlisten(...this.listeners);
   }
 
- constrain() {
-    // Ensure at least 50% of the panel header's width and 100% of its height stays onscreen
-    delay(10, () => {  // must delay until after any screen.orientation change, see main.js
-      let newLeft = clamp(this.elm.offsetLeft, 0, innerWidth);
-      let newTop = clamp(this.elm.offsetTop, this.panel.offsetHeight/2,
-        innerHeight - this.header.offsetHeight + this.panel.offsetHeight / 2);
-      if (this.elm.offsetLeft != newLeft) {
-        this.elm.style.left = newLeft + "px";
-      }
-      if (this.elm.offsetTop != newTop) {
-        this.elm.style.top = newTop + "px";
-      }
-    });
+  constrain() {
+   // Ensure panel's title and header's height stay onscreen
+    let y = this.panel.offsetHeight / 2 ;
+    if(this.elm.offsetTop < y) this.elm.style.top = y + "px" ;
+    else {
+       y += window.innerHeight - this.header.offsetHeight ;
+       if(this.elm.offsetTop > y)
+       this.elm.style.top = y + "px" ;
+    }
+    let range = document.createRange();
+    range.selectNodeContents(this.title) ;
+    let box = range.getBoundingClientRect();
+    let x = this.elm.offsetLeft - box.x ;
+    if(this.elm.offsetLeft < x) this.elm.style.left = x + "px" ;
+    else {
+       x = window.innerWidth - box.width / 2 ;
+       if(this.elm.offsetLeft > x) this.elm.style.left = x + "px" ;
+    }
+   return ;
   }
 
   setIcon(svgPath) {
-    let newIcon = helm(
-      `<svg data-tag="icon" class="Panel__icon" viewBox="0 0 24 24">${svgPath}</svg>`
-    );
+    let newIcon = helm(svgWrap(svgPath, { tag: "icon", class: "Panel__icon" }));
     this.icon.replaceWith(newIcon);
     this.icon = newIcon;
   }
@@ -286,28 +515,34 @@ class Panel {
     // Bring the panel on screen (if it is not) .
     // @onShown, if supplied, is a function that is called
     //   when the standard show animation is completed.
+    //   Currently, only ImportPanel's show(....) method
+    //   popuplates this.
+    ScreenPanel.update(this.elm) ;
     let elm = this.elm;
     this.setIcon(this.cell.svgPath);
     this.setTitle(this.cell.name);
     elm.style.visibility = "visible";
-    let fontSize = elm.style.fontSize;
-    elm.style.fontSize = 0;
-    elm.style.transition = "font-size 0.35s";
     if (!elm.isConnected) _body_.append(elm);
-    listen(elm,"transitionend", () => {
-        elm.style.transition = "unset";
-        if(onShown) onShown();
-      },
-      { once:true});
+    let dy = this.header.offsetHeight / 2 - this.panel.offsetHeight / 2;
+    elm.style.transformOrigin = `0px ${dy}px`;
+    elm.style.transform = "scale(0)";
     reflow();
-    elm.style.fontSize = fontSize;
+    elm.style.transition = `transform ${_gs_}ms`;
+    if(onShown) delayMs(_gs_, () => onShown()) ;
+    elm.style.transform = "scale(1)";
     _pzTarget_ = elm;
-    elm.style.zIndex = ++Panel._zTop;
+    let clazz = this.constructor.name ;
+    if (this != _panels_.screen && clazz != "ScreenPanel") {
+      _lastTarget_ = elm;
+      _panels_.screen?.surface.update();
+    }
+    if(clazz != "CurtainPanel") elm.style.zIndex = ++_zTop_;
     return this;
   }
 
   hide() {
     hide(this.elm, dataIndex("tag", this.cell.elm).cellIcon);
+    this.hidden();
   }
 
   setPosition(otherElm) {
@@ -335,20 +570,154 @@ class Panel {
       elm.style.left =
         Math.max(innerWidth / 2 - box.width / 2, 0) + "px";
     this.constrain();
-
   }
 
 }
 
+class AboutPanel extends Panel {
+  static css = css(
+    "AboutPanel",
+    `.Credit {
+        font-size: var(--font-size-xs);
+        margin: var(--spacing-lg);
+     }
+     .AboutPanel__scroll {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        height: 100%;
+        box-sizing: border-box;
+        cursor: grab;
+     }
+     .AboutPanel__scroll::-webkit-scrollbar {
+        display: none;
+     }
+     `
+  );
+
+  licenseFace = helm(`<p style="padding:2em;overflow:auto;text-align:center;">
+  <br><b>PODIUM: Sheet Music Studio</b><br><br>
+  Copyright 2026 Glendon Diener<br><br>
+
+  Podium is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br><br>
+
+  Podium is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+      <a rel="noopener noreferrer" href="https://www.gnu.org/licenses/agpl-3.0-standalone.html">GNU Affero Public License</a>
+for more details.</p>
+      `);
+
+  creditsFace = helm(`<div>
+        <div class="Credit">
+          <a href="https://github.com/steinbergmedia/bravura">Bravura</a> Version 1.1<br>
+          © 2019, Steinberg Media Technologies GmbH<br>
+          SIL OPEN FONT LICENSE Version 1.1
+        </div><div class="Credit">
+          <a href="https://codepen.io/zastrow/details/kxdYdk">CSS Piano</a><br>
+          © 2026 Philip Zastrow
+        </div><div class="Credit">
+          <a href="https://github.com/fabricjs">fabric.js</a> Version 5.3.0 (2023)<br>
+          © 2008-2015 Printio (Juriy Zaytsev, Maxim Chernyak)<br>
+          MIT LICENSE
+        </div><div class="Credit">
+          <a href="https://github.com/foliojs/fontkit">fontkit.js</a> Version 1.1.1<br>
+          Author: Devon Govett<br>
+          MIT LICENSE
+        </div><div class="Credit">
+          <a href="https://fonts.google.com/specimen/Patrick+Hand">Patrick Hand Regular</a> Version 1.1.1<br>
+          © 2010-2012 Patrick Wagesreiter<br>
+          SIL OPEN FONT LICENSE Version 1.1
+        </div><div class="Credit">
+          <a href="https://github.com/mozilla/pdf.js">pdf.js</a> Version 4.10.38<br>
+          © 2024 Mozilla Foundation<br>
+          APACHE LICENSE Version 2.0<br>
+        </div><div class="Credit">
+          <a href="https://github.com/Hopding/pdf-lib">pdf-lib.js</a> Version 1.17.1<br>
+          © 2019 Andrew Dillon<br>
+          MIT LICENSE
+        </div><div class="Credit">
+          <a href="https://github.com/sfzinstruments/SalamanderGrandPiano">Salamander Grand Piano</a>  V2 Yamaha C5<br>
+          Author: Alexander Holm<br>
+          Creative Commons 3.0
+        </div><div class="Credit">
+          <a href="https://filipposfragkogiannis.com/fonts/vercetti-regular">Vercetti Regular</a> Version 1.1<br>
+          Designer: Filippos Fragkogiannis<br>
+          LICENSE AMICALE V. 0.2
+        </div></div>
+         `);
+
+  versionFace = helm(
+    `<div style="display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:100%;width:100%;box-sizing:border-box;padding:2em 1em;text-align:center;">
+        <div style="font-size:1.5em;display:flex;flex-direction:column;align-items:center;gap:0.2em;">
+          <div style="white-space:nowrap;">PODIUM: Sheet Music Studio</div>
+          ${iconSvg("Podium", { size: "8em" })}
+          <div>Version ${_podiumVersion_}</div>
+          <a style="font-size:.6em;" href="https://studiop5.org/release${_podiumVersion_}.html">Release Notes</a>
+          <div style="font-size:.6em;color:#888;margin-top:0.5em;">${typeof chrome !== "undefined" && chrome.runtime?.id ? "Browser Extension" : window.matchMedia("(display-mode: standalone)").matches ? "Progressive Web App" : location.protocol + "//" + location.host}</div>
+        </div>
+        <div style="font-size:1.2em;text-align:center;font-variant-emoji:text;margin-top:2em;line-height:1.6em;">
+          <a href="https://studiop5.org/privacy.html">\u{1F6E1} Privacy</a>&nbsp;
+          <a href="https://studiop5.org/terms.html">\u00A7 Terms</a><br>
+          <a href="https://github.com/studiop5/podium">&lt;&sol;&gt; Source</a>&nbsp;
+          <a href="https://github.com/studiop5/podium/issues">\u2709\uFE0E Issues</a>
+        </div>
+     </div>`
+  );
+
+
+  constructor(cell) {
+    super(cell);
+    let tabView = new TabView(this, "Version", "Credits", "License");
+    Object.assign(this.body.style, {
+      margin: 0,
+      width: "32em",
+      height: "38em",
+      // Cap to the viewport (leaving room for the 3em header) so the panel
+      // always fits on screen at full font size; the body keeps a definite
+      // height, so the face cascade below can scroll the overflow.
+      maxWidth: "calc(100vw - 2em)",
+      maxHeight: "calc(100dvh - 4.5em)",
+    });
+    tabView.frame.style.height = "100%";
+    tabView.faces.style.position = "relative";
+    tabView.faces.style.top = "0";
+    tabView.tabs["Version"].face.append(this.versionFace);
+    tabView.tabs["Credits"].face.append(this.creditsFace);
+    tabView.tabs["License"].face.append(this.licenseFace);
+    // Touch-drag scroll (no visible scrollbar) for any tab whose content
+    // exceeds the viewport-capped face — Credits most often.
+    for (let t of ["Version", "Credits", "License"])
+      tabView.tabs[t].face.classList.add("AboutPanel__scroll");
+    this.body.append(tabView.elm);
+    tabView.tabs["Version"].select();
+  }
+}
+
 class AddPanel extends Panel {
+
+  options = {
+    "Match Score":"score",
+    "Custom":"custom",
+    "A3":"mm/279/420",
+    "A4":"mm/210/297",
+    "B4":"mm/250/353",
+    "Octavo":"in/6.5/10.5",
+    "Letter":"in/8.5/11",
+    "Folio":"in/9/12",
+    "Hand Copy (Trad)":"in/9.5/12.5",
+    "Orchestral Parts (MOLA)":"in/11/14",
+    "Ledger":"in/17/11",
+    "Legal":"in/8.5/14.0",
+    "Tabloid":"in/11/17",
+  }
+
   content = helm(`
-    <div data-tag="options" class="Panel__body">
-      <div data-tag="picker"></div>
-      <div style="margin-top: var(--spacing-md); margin-bottom: 0.1em">Size</div>
-      ${PAGE_SIZE_SELECT}
-      <div data-tag="custom"></div>
+    <div>
+      <div data-tag="colorPickerProxy"></div>
+      <div class="Panel__item">Size</div>
+      <div data-tag="selectProxy"></div>
+      <div data-tag="customProxy"></div>
     </div>
-  `);
+  `)
 
   constructor(cell) {
     super(cell);
@@ -356,16 +725,16 @@ class AddPanel extends Panel {
     this.body.append(this.content);
     let stash = cell.stash;
      // Color picker
-    let picker = new ColorPicker(
-      "Color",
-      stash.rgb,
-      stash.alpha,
+    this.colorPicker = new ColorPicker(
+      "Color", stash.rgb, stash.alpha,
       (rgb, alpha) => {
         stash.rgb = rgb;
         stash.alpha = alpha;
       }
     );
-    this.picker.replaceWith(picker.elm);
+    this.colorPickerProxy.replaceWith(this.colorPicker.elm);
+    this.select = new Select(Object.keys(this.options), stash.size, this) ;
+    this.selectProxy.replaceWith(this.select.elm) ;
     this.setupSizeSelection(stash);
   }
 
@@ -375,30 +744,31 @@ class AddPanel extends Panel {
       let pt = val.toFixed(0);
       let mm = (val * (1 / 2.8346456693)).toFixed(0);
       let inch = (val * (1 / 72)).toFixed(2);
-      return `${tag}: ${pt} pt, ${mm} mm, ${inch} in`;
+      return `${tag}: ${pt}pt,... ${mm}mm, ${inch}in`;
     };
     let disable = stash.size != "Custom";
 
     this.customGroup = new SliderGroup(stash,
-      { Width: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
-        Height: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable },
+      { Width: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable},
+        Height: { min: 100, max: 2000, msg: sizeMsg, step: 1, disabled: disable},
       }, null);
-    this.custom.replaceWith(this.customGroup.elm);
+    this.customProxy.replaceWith(this.customGroup.elm);
 
-    listen(this.presets, ["input", "change"], (e) => {
-      stash.size = e.target.selectedOptions[0].textContent;
-      if (e.target.value == "score") { // Match current score dimensions
+    listen(this.select.toggle, "SELECTED", (e) => {
+      stash.size = e.detail;
+      let detail = this.options[e.detail] ;
+      if (detail == "score") { // Match current score dimensions
         let score = _score_;
         stash.Width = score.maxWidth;
         stash.Height = score.maxHeight;
         this.customGroup.defs.Height.disabled = true;
         this.customGroup.defs.Width.disabled = true;
       }
-      else if (e.target.value == "custom") {
+      else if (detail == "custom") {
         this.customGroup.defs.Height.disabled = false;
         this.customGroup.defs.Width.disabled = false;
       } else {
-        let [unit, width, height] = e.target.value.split("/");
+        let [unit, width, height] = detail.split("/");
         let toPts = unit == "in" ? 72 : unit == "mm" ? 2.8346456693 : 1;
         stash.Width = width * toPts;
         stash.Height = height * toPts;
@@ -409,34 +779,19 @@ class AddPanel extends Panel {
     });
 
     this.customGroup.refresh();
-    let size = [...this.presets.children].find(
-      (option) => option.textContent == stash.size
-    );
-    if (size) size.selected = true;
   }
 }
 
-class ClockPanel extends Panel {
+class NewPanel extends AddPanel {
+
   constructor(cell) {
-    super(cell);
-    this.clock = new Clock(this);
-    this.body.classList.add("centerChild");
-  }
-
-  destructor() {
-    super.destructor();
-    this.clock.destructor();
-  }
-
-  show() {
-    super.show();
-    this.clock.show();
-    return this;
-  }
-
-  hide() {
-    super.hide();
-    this.clock.hide();
+    super(cell); 
+    this.select.options.shift() ; // remove the "Math Score" option: not applicable toNewPanel
+    this.pagesGroup = new SliderGroup( cell.stash,
+      {  pages: { min: 1, max: 100, value: 5, 
+         msg: (tag, val) => `${val.toFixed(0)} page${val > 1 ? "s":""}`, step: 1 }, }, null );
+    this.body.prepend(this.pagesGroup.elm);    
+    this.pagesGroup.refresh();
   }
 }
 
@@ -456,8 +811,13 @@ class DetailsPanel extends Panel {
       },
       async (e,tag,value) => {
          let score = _score_;
-         score.pgFit = value;
-         await Layout.open(_menu_.rings.layout.activeCell);
+         score.details.pgFit = value;
+         // Re-open the current layout to apply the new fit. Use the canonical
+         // stash.active key (always valid, kept current by Layout.open) — the
+         // layout ring's activeCell object is not reliably maintained and can
+         // be null/stale (cf. score.js score-load path).
+         let layout = _menu_.rings.layout;
+         await Layout.open(layout.cells[layout.stash.active || "book"]);
       }
     );
     
@@ -487,7 +847,6 @@ class DetailsPanel extends Panel {
         },
       },
       async (e, tag, value) => {
-        this.cell.stash.tag = value;
         let score = _score_;
         if (score) {
           score.quality = value;
@@ -535,13 +894,7 @@ class DetailsPanel extends Panel {
         let newName = nameInput.value.trim();
         if (!newName.toLowerCase().endsWith(".pdf")) newName += ".pdf";
         score.name = newName;
-        let title = newName.replace(/\.pdf$/i, "");
-        const maxLen = 30;
-        if (title.length > maxLen) {
-          let half = (maxLen - 1) >> 1;
-          title = title.slice(0, half) + "\u2026" + title.slice(-half);
-        }
-        document.title = title;
+        score.setTitle();
       });
       this.content.append(nameInput);
       let source = score.source
@@ -555,12 +908,32 @@ class DetailsPanel extends Panel {
             score.size
           ).toLocaleString()} B</div>`
         : "";
+      const PERM_FLAGS = [
+        [4,    "Print"],
+        [16,   "Copy"],
+        [8,    "Modify"],
+        [32,   "Annotate"],
+        [1024, "Assemble"],
+      ];
+      let permVal;
+      if (score.permissions === null) {
+        permVal = "No restrictions";
+      } else {
+        let denied = PERM_FLAGS
+          .filter(([f]) => !score.permissions.includes(f))
+          .map(([, n]) => n);
+        permVal = denied.length == 0
+          ? "All allowed"
+          : `<span style="color:#c44">Restricted: ${denied.join(", ")}</span>`;
+      }
+      let permHtml = `<div style="text-align:right;">Permissions:&nbsp;</div><div>${permVal}</div>`;
       this.content.append(
         helm(`<div style="display:grid;grid-template-columns:40% 60%;font-size:.8em;">
           ${source} ${path} ${size}
           <div style="text-align:right;">Pages:&nbsp;</div><div>${
             score.pgs.length
           }</div>
+          ${permHtml}
           <div style="text-align:right;">Created:&nbsp;</div><div>${
             score.created ? new Date(score.created).toLocaleString() : "?"
           }</div>
@@ -625,6 +998,12 @@ class FilePanel extends Panel {
       height: "90vh",
       maxHeight: "30em",
     });
+    // overflow:hidden doesn't prevent programmatic scrollTop changes — browser extensions
+    // (e.g. password managers) can cause Panel__elm to scroll by injecting/removing elements
+    // from body. Panel__elm should never scroll intentionally, so reset immediately.
+    this.listeners.push(
+      listen(this.panel, "scroll", () => this.panel.scrollTop = 0)
+    );
   }
 
   show() {
@@ -673,6 +1052,17 @@ class CopyPanel extends OpenPanel {
     this.mode = "copy";
   }
 }
+
+
+class MergePanel extends OpenPanel {
+  mode = "merge";
+
+  hidden() {
+    // If the panel closes without a file being selected, deactivate (and unlock) the cell
+    if (!this.cell.pdfData) _menu_.activateCell(null, _menu_.rings.page);
+  }
+}
+
 
 class SavePanel extends FilePanel {
   mode = "save";
@@ -754,8 +1144,8 @@ class GridPanel extends Panel {
       this.inchSliders = new SliderGroup(
         this.cell.stash,
         {
-          xStep: { min: 0, max: 4, step: 1, value: 0, msg: xStepMsg },
-          yStep: { min: 0, max: 4, step: 1, value: 0, msg: yStepMsg },
+          xStep: { min: 0, max: 4, step: 1, value: 0, msg: xStepMsg, row:1, col:1 },
+          yStep: { min: 0, max: 4, step: 1, value: 0, msg: yStepMsg, row:1, col:2 },
         },
         () => {}
       );
@@ -789,202 +1179,356 @@ class GridPanel extends Panel {
   }
 }
 
-class AboutPanel extends Panel {
-  static css = css(
-    "AboutPanel",
-    `.Credit {
-        font-size: var(--font-size-xs);
-        margin: var(--spacing-lg);
-     }
-     .AboutPanel__scroll {
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        height: 100%;
-        box-sizing: border-box;
-        cursor: grab;
-     }
-     .AboutPanel__scroll::-webkit-scrollbar {
-        display: none;
-     }
-     `
-  );
+class GuidePanel extends Panel {
+  static guidebookUrl = typeof chrome !== "undefined" && chrome.runtime?.id
+    ? `https://studiop5.org/Guidebook${window._podiumVersion_}.html`
+    : `Guidebook${window._podiumVersion_}.html`;
 
-  licenseFace = helm(`<p style="padding:2em;overflow:auto;text-align:center;">
-  <br><b>PODIUM: Sheet Music Studio</b><br><br>
-  Copyright 2026 Glendon Diener<br><br>
-
-  Podium is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br><br>
-
-  Podium is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-      <a rel="noopener noreferrer" href="https://www.gnu.org/licenses/agpl-3.0-standalone.html">GNU Affero Public License</a>
-for more details.</p>
-      `);
-
-  creditsFace = helm(`<div>
-        <div class="Credit">
-          <a href="https://github.com/steinbergmedia/bravura">Bravura</a> Version 1.1<br>
-          © 2019, Steinberg Media Technologies GmbH<br>
-          SIL OPEN FONT LICENSE Version 1.1
-        </div><div class="Credit">
-          <a href="https://codepen.io/zastrow/details/kxdYdk">CSS Piano</a><br>
-          © 2026 Philip Zastrow
-        </div><div class="Credit">
-          <a href="https://github.com/fabricjs">fabric.js</a> Version 5.2.1<br>
-          © 2008-2015 Printio (Juriy Zaytsev, Maxim Chernyak)<br>
-          MIT LICENSE
-        </div><div class="Credit">
-          <a href="https://github.com/foliojs/fontkit">fontkit.js</a> Version 1.1.1<br>
-          Author: Devon Govett<br>
-          MIT LICENSE
-        </div><div class="Credit">
-          <a href="https://fonts.google.com/specimen/Patrick+Hand">Patrick Hand Regular</a> Version 1.1.1<br>
-          © 2010-2012 Patrick Wagesreiter<br>
-          SIL OPEN FONT LICENSE Version 1.1
-        </div><div class="Credit">
-          <a href="https://github.com/mozilla/pdf.js">pdf.js</a> Version 2.0<br>
-          © 2023 Mozilla Foundation<br>
-          APACHE LICENSE Version 2.0<br>
-        </div><div class="Credit">
-          <a href="https://github.com/Hopding/pdf-lib">pdf-lib.js</a> Version 1.17.1<br>
-          © 2019 Andrew Dillon<br>
-          MIT LICENSE
-        </div><div class="Credit">
-          <a href="https://github.com/sfzinstruments/SalamanderGrandPiano">Salamander Grand Piano</a>  V2 Yamaha C5<br>
-          Author: Alexander Holm<br>
-          Creative Commons 3.0
-        </div><div class="Credit">
-          <a href="https://filipposfragkogiannis.com/fonts/vercetti-regular">Vercetti Regular</a> Version 1.1<br>
-          Designer: Filippos Fragkogiannis<br>
-          LICENSE AMICALE V. 0.2
-        </div></div>
-         `);
-
-  aboutFace = helm(
-    `<div style="position:relative;width:100%;height:100%;box-sizing:border-box;">
-        <div style="position:absolute;top:35%;left:50%;transform:translate(-50%,-50%);text-align:center;font-size:1.5em;">
-          <div>PODIUM: Sheet Music Studio</div>
-          ${iconSvg("Podium", { style: "width:8em;" })}
-          <div>Version ${_podiumVersion_}</div>
-          <div style="font-size:.6em;color:#888;">${typeof chrome !== "undefined" && chrome.runtime?.id ? "Browser Extension" : window.matchMedia("(display-mode: standalone)").matches ? "Progressive Web App" : location.protocol + "//" + location.host}</div>
-        </div>
-        <div style="position:absolute;bottom:2em;left:50%;transform:translateX(-50%);font-size:1.2em;text-align:center;font-variant-emoji:text;">
-           <a href="https://studiop5.org/privacy.html">\u{1F6E1} Privacy</a>&nbsp;
-          <a href="https://studiop5.org/terms.html">\u00A7 Terms</a><br><br>
-          <a href="https://github.com/studiop5/podium">&lt;&sol;&gt; Source</a>&nbsp;
-          <a href="https://github.com/studiop5/podium/issues">\u2709\uFE0E Issues</a>
-        </div>
+  content = helm(
+    `<div style="padding:0;width:100%;height:100%;box-sizing:border-box;overflow:hidden;position:relative;">
+       <iframe style="width:100%;height:100%;border:none;display:none;"></iframe>
+       <div class="guide-msg" style="display:flex;width:100%;height:100%;align-items:center;justify-content:center;color:#888;font-size:1.2em;"></div>
      </div>`
   );
 
+  constructor(cell) {
+    super(cell);
+    Object.assign(this.body.style, {
+      margin: 0,
+      padding: 0,
+      width: "90vw",
+      maxWidth: "60em",
+      height: "90vh",
+      maxHeight: "50em",
+    });
 
-  releaseNotesFace = helm(
-    `<div class="AboutPanel__scroll" style="padding:2em;text-align:left;font-size:.8em;">
-      <h2>V2.0.2 April 2026</h2>
-  <ul>
-  <li>Updated SMuFL documentation link.</li>
-  </ul>
-      <h2>V2.0 March 2026</h2>
-  <ul>
-  <li><b>Browser Extension (Chrome, Edge)</b><br>
-  Right-click any PDF link and open it directly in Podium. Includes IMSLP integration for seamless access to the world's largest public domain music library.
-  </li><br>
-  <li><b>Progressive Web App</b><br>
-  Install Podium from your browser for app-like access and offline use.
-  </li><br>
-  <li><b>App Ring</b><br>
-  New ring with About, Theme, Guide, Storage, and Screen cells for managing application settings, appearance, and documentation.
-  </li><br>
-  <li><b>Magnify (Page ring)</b><br>
-  A dedicated magnification tool for zooming into score details. Drag to reposition, pinch or use the slider to adjust zoom level.
-  </li><br>
-  <li><b>Piano Tuner (More ring &rarr; Piano)</b><br>
-  Built-in chromatic tuner integrated into the Piano panel, powered by YIN pitch detection. Use your device's microphone to tune instruments with real-time pitch and confidence display.
-  </li><br>
-  <li><b>Cell Locking</b><br>
-  Long-press supported ink and page ring cells to lock them on, preventing auto-deactivation. Useful for extended annotation or page editing sessions.
-  </li><br>
-  <li><b>Edit Panel (Ink ring &rarr; Edit)</b><br>
-  Precisely adjust the position, size, and rotation of selected annotations by entering exact values for X, Y, width, height, and rotation angle.
-  </li><br>
-  <li><b>Cut, Copy &amp; Paste (Page ring)</b><br>
-  New local cut, copy, and paste cells for moving and duplicating pages within a score. The previous Copy and Paste cells, which share pages between Podium instances, are renamed Export and Import.
-  </li><br>
-  <li><b>Tap to Turn Pages</b><br>
-  In Book, Horizontal, and Vertical layouts, a tap is equivalent to a quick fling.
-  </li><br>
-  <li><b>Guide (App ring)</b><br>
-  Comprehensive new guidebook with 10 chapters, screenshots, embedded video demos, and a searchable keyword index.
-  </li><br>
-  </ul>
-      <h2>V1.1 December 2025</h2>
-  <ul>
-  <li> <b>Shared Copy/Paste Buffer (Page ring)</b><br>
-  Copy and paste pages between different Podium instances. Useful for combining pages from multiple scores,
-  extracting individual movements, or assembling custom practice sets.
-  </li><br>
-  <li><b>Dark Mode (More ring)</b><br>
-  Reduces eye strain during long practice sessions or low-light environments.
-  </li><br>
-  <li><b>Page Expansion (Score ring → Details)</b><br>
-  Pages smaller than the maximum size in a score can now be expanded to fill the available space, providing a more
-  consistent viewing experience.
-  </li><br>
-  <li><b>Page Management (Layout ring → Table)</b><br>
-  Reorder pages by dragging them to a new position. Delete pages by dragging them off the layout.
-  </li><br>
-  <li><b>New Fonts (Ink ring → Text)</b><br>
-  Two new font options: Vercetti and Patrick Hand (a handwritten-style font).
-  </li><br>
-  <li><b>Auto-off Safety Feature</b><br>
-  Page and ink ring cells automatically deactivate after a few seconds of inactivity, preventing accidental deletions or other unintended actions.
-  </li><br>
-  </ul>
-   <h2>V1.0 March 2025</h2>
-   Initial release.
+    this.body.append(this.content);
+    this.iframe = this.content.querySelector("iframe");
+    this.msg = this.content.querySelector(".guide-msg");
+    this.fetched = false;
+  }
+
+  show() {
+    if (typeof chrome !== "undefined" && chrome.runtime?.id) {
+      // Extension: open in new tab (cross-origin iframe restrictions prevent embedding)
+      if (this.guideWin && !this.guideWin.closed) this.guideWin.focus();
+      else  this.guideWin = window.open(GuidePanel.guidebookUrl, "podium-guidebook");
+      return this;
+    }
+    super.show();
+    if (this.fetched) return this;
+    this.fetched = true;
+    this.msg.textContent = "Fetching Guidebook...";
+    this.iframe.src = GuidePanel.guidebookUrl;
+    this.iframe.addEventListener("load", () => {
+      this.iframe.style.display = "block";
+      this.msg.style.display = "none";
+    }, { once: true });
+    if (!navigator.onLine) {
+      this.msg.textContent = "Guidebook is not available.";
+    }
+    return this;
+  }
+}
+
+class ImportPanel extends Panel {
+
+  static css = css(
+    "ImportPanel", 
+     `.ImportPanel__frame {
+        background-image: var(--panTexture);
+        height: 6em;
+        width: 100%;
+        padding:.8em 0;
+        box-sizing: border-box;
+        margin-bottom: 0.2em;
+        overflow: hidden;
+        border-radius: var(--borderRadius);
+      }
+      
+      .ImportPanel__sash {
+        position: relative;
+        height:100%;
+        width: max-content;
+        min-width: 100%;
+        padding: 0 0.8em;
+        box-sizing: border-box;
+        display: flex;
+        gap: 0.8em;
+        align-items: flex-start;
+      }
+   `);
+
+  content = helm(`
+     <div data-tag="body" class="Panel__body">
+       <div class="ImportPanel__frame" data-tag="frame">
+         <div class="ImportPanel__sash" data-tag="sash"></div>
+       </div>
+       <div data-tag="buttons" style="border-top: 1px solid var(--color-border);"></div>
      </div>
-
    `);
 
   constructor(cell) {
     super(cell);
-    let tabView = new TabView(this, "Version", "Release Notes", "Credits", "License");
-    Object.assign(this.body.style, {
-      margin: 0,
-      width: "90vw",
-      maxWidth: "50em",
-      height: "90vh",
-      maxHeight: "40em",
-    });
-    tabView.frame.style.height = "100%";
-    tabView.faces.style.position = "relative";
-    tabView.faces.style.top = "0";
 
-    // Version tab
-    tabView.tabs["Version"].face.append(this.aboutFace);
+    this.body.replaceWith(this.content);
+    Object.assign(this, dataIndex("tag", this.content));
 
-    // Release Notes tab — drag-to-scroll for mouse (touch uses native scrolling)
-    tabView.tabs["Release Notes"].face.append(this.releaseNotesFace);
-    let rnf = this.releaseNotesFace;
-    listen(rnf, "pointerdown", (e) => {
-      if (e.pointerType == "touch") return;
-      let startY = e.clientY;
-      let startScroll = rnf.scrollTop;
-      rnf.setPointerCapture(e.pointerId);
-      let mv = listen(rnf, "pointermove", (emv) => {
-        rnf.scrollTop = startScroll - (emv.clientY - startY);
+    listen(this.sash, "pointerdown", (e) => { 
+      this.sash.setPointerCapture(e.pointerId);
+      let fs = parseFloat(getComputedStyle(this.sash).fontSize);
+      let offsetX = e.clientX - this.sash.offsetLeft;
+      let limit = this.sash.offsetWidth - this.frame.offsetWidth;
+      let mv = listen(this.sash, "pointermove", (emv) => {
+        let leftPx = clamp(emv.clientX - offsetX, -limit, 0);
+        this.sash.style.left = leftPx / fs + "em";
       });
-      listen(rnf, "pointerup", () => unlisten(mv), { once: true });
+      listen(this.sash, "pointerup", (eup) => {
+        unlisten(mv);
+      }, { once: true });
     });
 
-    // Credits and License tabs
-    tabView.tabs["Credits"].face.append(this.creditsFace);
-    tabView.tabs["License"].face.append(this.licenseFace);
+    let buttons = new ButtonGroup({}, {
+        Clear: { svg: "Cancel" },
+        Undo: { svg: "Undo" },
+      },
+      async (e, tag, value) => {
+        if(value == "Clear") await _podPb_.pgClear();
+        else if(value == "Undo") await _podPb_.pgPop();
+        delay(10, () => {
+          // We don't have a button type for "one shot" (button causes
+          // handler to run, but immediately goes back to initial state),
+          // can easily simulate it:
+          delete buttons.props[value]; 
+          buttons.refresh();
+        });
+      }
+    );
+    buttons.elm.style.borderTop = ".02em solid var(--color-border)";   
+    this.buttons.replaceWith(buttons.elm);
 
-    this.body.append(tabView.elm);
-    tabView.tabs["Version"].select();
+    this.listeners.push(listen(_body_, "SHAREDBUFFER", async (e) => {
+      _shade_.show("Building...");
+      let score = await _podPb_.getScore();
+      let thumbs = [];
+      for(let pg of score.pgs) thumbs.push(await pg.getThumbElm(true));
+      _shade_.hide();
+      clearChildren(this.sash);
+      if(thumbs.length > 0) {
+        this.sash.style.fontSize = "1em"; // reset to known "baseline"
+        reflow();
+        thumbs.forEach((thumb) => this.sash.append(thumb));
+        this.sash.style.fontSize = this.sash.offsetHeight / thumbs[0].offsetHeight   + "em";
+        let frameWidth = pxToEm(this.frame.offsetWidth, this.sash);
+        let sashWidth = pxToEm(this.sash.offsetWidth, this.sash);
+        this.sash.style.left = frameWidth;
+        reflow();
+        this.sash.style.transition = `left ${_gs_}ms`;
+        this.sash.style.left = parseFloat(frameWidth) - parseFloat(sashWidth) - .8 + "em";
+        delayMs(_gs_, () => this.sash.style.transition = "unset");
+        buttons.defs.Undo.disabled = false;
+        buttons.defs.Clear.disabled = false;
+      }
+      else {
+        if (_menu_.activeRing?.activeCell === _menu_.rings.page.cells.paste)
+          _menu_.activateCell(null);
+        buttons.defs.Undo.disabled = true;
+        buttons.defs.Clear.disabled = true;
+        this.close();
+        if (_menu_.activeRing?.activeCell === this.cell)
+          _menu_.activateCell(null);
+      }
+      buttons.refresh() ;
+    }));
+  }
+
+  show() {
+    super.show(() => _podPb_.announce());
+    return this;
+  }
+
+}
+
+
+class LayoutPanel extends Panel {
+  // Superclass for all Layout panels.
+
+  content = helm(`
+    <div>
+      <div data-tag="bookFace" class="Panel__body">
+        Page Fit<br>
+        <div data-tag="fitBook"></div>
+        <div data-tag="bookSliders"></div>
+        Numbers<br>
+        <div data-tag="pnBook"></div>
+       </div>
+
+      <div data-tag="horizontalFace" class="Panel__body">
+        Page Fit<br>
+        <div data-tag="fitHorizontal"></div>
+        <div data-tag="fitHorizontalSliders"></div>
+        Numbers<br>
+        <div data-tag="pnHorizontal"></div>
+      </div>
+
+      <div data-tag="verticalFace" class="Panel__body">
+        Page Fit<br>
+        <div data-tag="fitVertical"></div>
+        <div data-tag="fitVerticalSliders"></div>
+        Numbers<br>
+        <div data-tag="pnVertical"></div>
+      </div>
+
+      <div data-tag="tableFace" class="Panel__body">
+        Page Fit<br>
+        <div data-tag="fitTable"></div>
+        <div data-tag="tableFlowSliders"></div>
+        Numbers<br>
+        <div data-tag="pnTable"></div>
+      </div>
+    </div>
+   `);
+
+  constructor(cell) {
+    super(cell);
+    Object.assign(this, dataIndex("tag", this.content));
+    this.body.replaceWith(this.content);
+    this.schedule = new Schedule();
+    let tags = dataIndex("tag", this.content);
+    this.faces = {
+      book: tags.bookFace,
+      horizontal: tags.horizontalFace,
+      vertical: tags.verticalFace,
+      table: tags.tableFace,
+    };
+
+    let handler = (e, tag, value, props) => {
+      if (tag == "fit") this.cell.stash.pz = null; // reset pz-set marker so layout will use fit setting
+      if (tag == "pace") return; // no rebuild required
+      if (_score_ && this.cell == Layout.activeLayout.cell) {
+        if(tag == "pgSnap") // no rebuild, but must update
+          Layout.activeLayout.cell.geo.pgSnap = value ;
+        else
+          Layout.activeLayout.build(); // rebuild
+      }
+    };
+
+    let msgCallback = (tag, value) => {
+      if(tag == "pgShow") {
+         // don't allow pgSnap to be > pgShow
+         if(cell.stash.pgSnap > value) cell.stash.pgSnap = value;
+         return "Show: " + value + (value == 1 ? " page" : " pages");
+      } else if(tag == "pgSnap") {
+        if (value == -4) return "Snap: none";
+        if (value == -3) return "Snap: visible";
+        if (value == -2) return "Snap: 1/4 page";
+        if (value == -1) return "Snap: 1/3 page";
+        if (value == 0) return "Snap: 1/2 page";
+        return "Snap: " + value + (value == 1 ? " page." : " pages");
+      } else if(tag == "gap") return `Gap: ${value}%`;
+      else if(tag == "pace") return `Pace: ${(value/1000).toFixed(2)} sec/snap`
+    };
+
+    // defs for scroll/slider groups
+    let fitGroupDef = {
+      Auto:   { svg: "Fit Auto",   radio: "fit", redo: true},
+      None:   { svg: "Fit None",   radio: "fit", redo: true},
+      Width:  { svg: "Fit Width",  radio: "fit", redo: true},
+      Height: { svg: "Fit Height", radio: "fit", redo: true},
+    };
+
+    let bookSlidersGroupDef = {
+      pace: { min: 0, max: 1500, step: 10, curve:2, msg: (tag,value) =>
+         `Pace: ${(value/1000).toFixed(2)} sec/flip`}}
+
+    let horzSlidersGroupDef = {
+      pgShow: { min: 1, max: 8, step: 1, throttle: 750, row:1, col:1, msg: msgCallback},
+      // values <= 0  are reinterpreted: see msgCallback
+      pgSnap: { min: -4, max: 8,     step: 1,                  row:1, col:2, msg: msgCallback},
+      gap:    { min: 0,  max: 100,   step: 0.5, throttle: 750, row:2, col:1, msg: msgCallback},
+      pace:   { min: 0,  max: 10000, step: 1,   curve: 2,      row:2, col:2, msg: msgCallback},
+    };
+
+    // Horizontal layout uses a 2-column grid: pgShow/pgSnap on row 1, gap/pace on row 2
+    let vertSlidersGroupDef = {
+      pgShow: { min: 1,  max: 8,     step: 1,   throttle: 750, col: 1, row: 1, msg: msgCallback},
+      pgSnap: { min: -4, max: 8,     step: 1,                  col: 2, row: 1, msg: msgCallback},
+      gap:    { min: 0,  max: 100,   step: 0.5, throttle: 750, col: 1, row: 2, msg: msgCallback},
+      pace:   { min: 0,  max: 10000, step: 1,   curve: 2,      col: 2, row: 2, msg: msgCallback},
+    };
+
+    let pnGroupDef = {
+      On:  { svg: "Numbers", radio: "pnShow" },
+      Off: { svg: "Close",   radio: "pnShow" },
+    };
+
+    let tableSlidersGroupDef = {
+      pages:         { min: 1,    max: 50,  step: 1, throttle: 750, fullWidth:true, msg: "Pages per row: {value}"},
+      horizontalGap: { min: -100, max: 100, step: 1, throttle: 750, row:2, col:1, msg: "Horizontal Gap: {value} %"},
+      verticalGap:   { min: -100, max: 100, step: 1, throttle: 750, row:2, col:2, msg: "Vertical Gap: {value} %"},
+    };
+
+    // build faces. Note: both BottonGroup and SliderGroup modify their defs element, so we
+    // must pass shallow copies...deep copies are not required, as the only non-reference
+    // value is msgCallback, and it doesn't need to be unique.
+
+    // build book face
+    let stash = _menu_.rings.layout.cells.book.stash;
+    tags.fitBook.replaceWith(new ButtonGroup(stash, fitGroupDef, handler).elm);
+    tags.bookSliders.replaceWith(
+      new SliderGroup(stash, bookSlidersGroupDef, handler).elm,
+    );
+    tags.pnBook.replaceWith(new ButtonGroup(stash, pnGroupDef, handler).elm);
+
+    // build horizontal face
+    stash = _menu_.rings.layout.cells.horizontal.stash;
+    tags.fitHorizontal.replaceWith(
+      new ButtonGroup(stash, fitGroupDef, handler).elm
+    );
+    tags.fitHorizontalSliders.replaceWith(
+      new SliderGroup(stash, horzSlidersGroupDef, handler).elm,
+    );
+    tags.pnHorizontal.replaceWith(
+      new ButtonGroup(stash, pnGroupDef, handler).elm
+    );
+
+    // build vertical face
+    stash = _menu_.rings.layout.cells.vertical.stash;
+    tags.fitVertical.replaceWith(
+      new ButtonGroup(stash, fitGroupDef, handler).elm
+    );
+    tags.fitVerticalSliders.replaceWith(
+      new SliderGroup(stash, vertSlidersGroupDef, handler).elm
+    );
+    tags.pnVertical.replaceWith(
+      new ButtonGroup(stash, pnGroupDef, handler).elm
+    );
+
+    // build table face
+    stash = _menu_.rings.layout.cells.table.stash;
+    let def = { Width: fitGroupDef.Width, Height: fitGroupDef.Height };
+    tags.fitTable.replaceWith(new ButtonGroup(stash, def, handler).elm);
+    tags.tableFlowSliders.replaceWith(
+      new SliderGroup(stash, tableSlidersGroupDef, handler).elm
+    );
+    tags.pnTable.replaceWith(new ButtonGroup(stash, pnGroupDef, handler).elm);
+  }
+
+  show() {
+    super.show();
+    Object.values(this.faces).forEach((face) => face.remove());
+    this.content.append(this.faces[this.cell.key]);
+    return this;
   }
 }
+
+class BookPanel extends LayoutPanel {}
+
+class HorizontalPanel extends LayoutPanel {}
+
+class VerticalPanel extends LayoutPanel {}
+
+class TablePanel extends LayoutPanel {}
 
 class StoragePanel extends Panel {
   constructor(cell) {
@@ -1015,20 +1559,39 @@ class StoragePanel extends Panel {
     buttons.replaceWith(
       new ButtonGroup(
         cell,
-        { Menu: { svg: "Menu" }, Recent: { svg: "Score" }, Import: { svg: "Import Page" } },
-        (e, prop, tag) => {
+        { Menu: { svg: "Menu" }, Recent: { svg: "Score" }, Import: { svg: "Import Page" }, Reload: { svg: "Reload" } },
+        async (e, prop, tag) => {
           if (tag == "Menu") {
-            _menu_.stashFromJson(_menu_.stashDefaults);
-            localStorage.setItem("menu", _menu_.stashToJson());
-            toast("Menu reset");
+            dialog("Reset all menu settings to defaults? Open panels will be closed.",
+              { Reset: { svg: "Menu" }, Cancel: { svg: "Cancel" } },
+              (e, prop, tag, args) => {
+                args.close();
+                if (tag == "Reset") {
+                  _menu_.closePanels();
+                  _menu_.factoryReset();
+                  toast("Menu reset");
+                }
+              });
           } else if (tag == "Recent") {
             localStorage.setItem("recent", []);
             for (let src of Object.values(Score.sources))
               localStorage.setItem(src, "");
             toast("Recent list cleared");
           } else if (tag == "Import") {
-            _podPb_.clear();
+            await _podPb_.pgClear();
             toast("Import buffer cleared");
+          } else if (tag == "Reload") {
+            let url = `${location.origin}${location.pathname}`;
+            dialog(`Confirm: restart Podium?<br><span style="font-size:0.8em;color:#333">(${escapeHtml(url)})</span><br>Any unsaved changes will be lost`,
+              { Restart: { svg: "Reload" }, Cancel: { svg: "Cancel" } },
+              (e, prop, tag, args) => {
+                args.close();
+                if (tag == "Restart") {
+                  let url = new URL(location.href);
+                  url.searchParams.set("t", Date.now());
+                  location.replace(url.href);
+                }
+              });
           }
           this.updateStats(); // refresh after reset
         }
@@ -1100,264 +1663,6 @@ class StoragePanel extends Panel {
   }
 }
 
-class GuidePanel extends Panel {
-  static guidebookUrl = typeof chrome !== "undefined" && chrome.runtime?.id
-    ? "https://studiop5.org/Guidebook.html"
-    : "Guidebook.html";
-
-  content = helm(
-    `<div style="padding:0;width:100%;height:100%;box-sizing:border-box;overflow:hidden;position:relative;">
-       <iframe style="width:100%;height:100%;border:none;display:none;"></iframe>
-       <div class="guide-msg" style="display:flex;width:100%;height:100%;align-items:center;justify-content:center;color:#888;font-size:1.2em;"></div>
-     </div>`
-  );
-
-  constructor(cell) {
-    super(cell);
-    Object.assign(this.body.style, {
-      margin: 0,
-      padding: 0,
-      width: "90vw",
-      maxWidth: "60em",
-      height: "90vh",
-      maxHeight: "50em",
-    });
-
-    this.body.append(this.content);
-    this.iframe = this.content.querySelector("iframe");
-    this.msg = this.content.querySelector(".guide-msg");
-    this.fetched = false;
-  }
-
-  show() {
-    if (typeof chrome !== "undefined" && chrome.runtime?.id) {
-      // Extension: open in new tab (cross-origin iframe restrictions prevent embedding)
-      if (this.guideWin && !this.guideWin.closed) this.guideWin.focus();
-      else  this.guideWin = window.open(GuidePanel.guidebookUrl, "podium-guidebook");
-      return this;
-    }
-    super.show();
-    if (this.fetched) return this;
-    this.fetched = true;
-    this.msg.textContent = "Fetching Guidebook...";
-    this.iframe.src = GuidePanel.guidebookUrl;
-    this.iframe.addEventListener("load", () => {
-      this.iframe.style.display = "block";
-      this.msg.style.display = "none";
-    }, { once: true });
-    if (!navigator.onLine) {
-      this.msg.textContent = "Guidebook is not available.";
-    }
-    return this;
-  }
-}
-
-class LayoutPanel extends Panel {
-  // Superclass for all Layout panels.
-
-  content = helm(`
-    <div>
-      <div data-tag="bookFace" class="Panel__body">
-        Page Fit<br>
-        <div data-tag="fitBook"></div>
-        Numbers<br>
-        <div data-tag="pnBook"></div>
-       </div>
-
-      <div data-tag="horizontalFace" class="Panel__body">
-        Page Fit<br>
-        <div data-tag="fitHorizontal"></div>
-        <div data-tag="fitHorizontalSliders"></div>
-        Numbers<br>
-        <div data-tag="pnHorizontal"></div>
-      </div>
-
-      <div data-tag="verticalFace" class="Panel__body">
-        Page Fit<br>
-        <div data-tag="fitVertical"></div>
-        <div data-tag="fitVerticalSliders"></div>
-        Numbers<br>
-        <div data-tag="pnVertical"></div>
-      </div>
-
-      <div data-tag="tableFace" class="Panel__body">
-        Page Fit<br>
-        <div data-tag="fitTable"></div>
-        <div data-tag="tableFlowSliders"></div>
-        Numbers<br>
-        <div data-tag="pnTable"></div>
-      </div>
-    </div>
-   `);
-
-  constructor(cell) {
-    super(cell);
-    Object.assign(this, dataIndex("tag", this.content));
-    this.body.replaceWith(this.content);
-    this.schedule = new Schedule();
-    let tags = dataIndex("tag", this.content);
-    this.faces = {
-      book: tags.bookFace,
-      horizontal: tags.horizontalFace,
-      vertical: tags.verticalFace,
-      table: tags.tableFace,
-    };
-
-    let handler = (e, tag, value, props) => {
-      if (tag == "fit") this.cell.pz = null; // reset pz-set marker so layout will use fit setting
-      if (_score_ && this.cell === Layout.activeLayout.cell) {
-        Layout.activeLayout.build();
-      }
-    };
-
-    let msgCallback = (tag, value) => {
-      if(tag == "pgShow") {
-         // don't allow pgSnap to be > pgShow
-         if(cell.stash.pgSnap > value) cell.stash.pgSnap = value;
-         return "Show: " + value + (value == 1 ? " page." : " pages");
-      } else if(tag == "pgSnap") {
-        if (value == 0) return "Snap disabled";
-        return "Snap: " + value + (value == 1 ? " page." : " pages");
-      }
-    };
-
-    // defs for scroll/slider groups
-    let fitGroupDef = {
-      Auto: { svg: "Fit Auto", radio: "fit", redo: true },
-      None: { svg: "Fit None", radio: "fit", redo: true },
-      Width: { svg: "Fit Width", radio: "fit", redo: true },
-      Height: { svg: "Fit Height", radio: "fit", redo: true },
-    };
-
-    let scrollSlidersGroupDef = {
-      pgShow: {
-        min: 1,
-        max: 8,
-        step: 1,
-        msg: msgCallback,
-        throttle: 750,
-      },
-      pgSnap: { min: 0, max: 8, step: 1, msg: msgCallback, throttle: 750 },
-      gap: {
-        min: 0,
-        max: 100,
-        step: 0.5,
-        msg: "Gap: {value} %",
-        throttle: 750,
-      },
-    };
-
-    let pnGroupDef = {
-      On: { svg: "Numbers", radio: "pnShow" },
-      Off: { svg: "Close", radio: "pnShow" },
-    };
-
-    let tableSlidersGroupDef = {
-      pages: {
-        min: 1,
-        max: 50,
-        msg: "Pages per row: {value}",
-        step: 1,
-        throttle: 750,
-      },
-      horizontalGap: {
-        min: -100,
-        max: 100,
-        msg: "Horizontal Gap: {value} %",
-        step: 1,
-        throttle: 750,
-      },
-      verticalGap: {
-        min: -100,
-        max: 100,
-        msg: "Vertical Gap: {value} %",
-        step: 1,
-        throttle: 750,
-      },
-    };
-
-    // build faces. Note: both BottonGroup and SliderGroup modify their defs element, so we
-    // must pass shallow copies...deep copies are not required, as the only non-reference
-    // value is msgCallback, and it doesn't need to be unique.
-
-    // build book face
-    let stash = _menu_.rings.layout.cells.book.stash;
-    tags.fitBook.replaceWith(new ButtonGroup(stash, fitGroupDef, handler).elm);
-    tags.pnBook.replaceWith(new ButtonGroup(stash, pnGroupDef, handler).elm);
-
-    // build horizontal face
-    stash = _menu_.rings.layout.cells.horizontal.stash;
-    tags.fitHorizontal.replaceWith(
-      new ButtonGroup(stash, fitGroupDef, handler).elm
-    );
-    tags.fitHorizontalSliders.replaceWith(
-      new SliderGroup(stash, scrollSlidersGroupDef, handler).elm
-    );
-    tags.pnHorizontal.replaceWith(
-      new ButtonGroup(stash, pnGroupDef, handler).elm
-    );
-
-    // build vertical face
-    stash = _menu_.rings.layout.cells.vertical.stash;
-    tags.fitVertical.replaceWith(
-      new ButtonGroup(stash, fitGroupDef, handler).elm
-    );
-    tags.fitVerticalSliders.replaceWith(
-      new SliderGroup(stash, scrollSlidersGroupDef, handler).elm
-    );
-    tags.pnVertical.replaceWith(
-      new ButtonGroup(stash, pnGroupDef, handler).elm
-    );
-
-    // build table face
-    stash = _menu_.rings.layout.cells.table.stash;
-    let def = { Width: fitGroupDef.Width, Height: fitGroupDef.Height };
-    tags.fitTable.replaceWith(new ButtonGroup(stash, def, handler).elm);
-    tags.tableFlowSliders.replaceWith(
-      new SliderGroup(stash, tableSlidersGroupDef, handler).elm
-    );
-    tags.pnTable.replaceWith(new ButtonGroup(stash, pnGroupDef, handler).elm);
-  }
-
-  show() {
-    super.show();
-    Object.values(this.faces).forEach((face) => face.remove());
-    this.content.append(this.faces[this.cell.key]);
-    return this;
-  }
-}
-
-class BookPanel extends LayoutPanel {}
-
-class HorizontalPanel extends LayoutPanel {}
-
-class VerticalPanel extends LayoutPanel {}
-
-class TablePanel extends LayoutPanel {}
-
-class VolumePanel extends Panel {
-  constructor(cell) {
-    super(cell);
-    this.volume = new Volume(this);
-  }
-
-  destructor() {
-    super.destructor();
-    this.volume.destructor();
-  }
-
-  show() {
-    super.show();
-    this.volume.show();
-    return this;
-  }
-
-  hide() {
-    super.hide();
-    this.volume.hide();
-  }
-}
-
 class MetronomePanel extends Panel {
   static css = css(
     "MetronomePanel",
@@ -1365,82 +1670,103 @@ class MetronomePanel extends Panel {
       { flex-flow:column;
       }
       .Metronome__patterns
-      { border-radius: calc(var(--borderRadius) / 2);
-        font-size: var(--font-size-base);
-        text-align: center;
-        margin: var(--spacing-md) 0;
+      { width: 12em;
+        padding-top:1em;
       }
     }
     `
   );
 
+  options = {
+    "Metronome":"metronome",
+    "One":"one",
+    "Two":"two",
+    "Three":"three",
+    "Four":"four",
+    "Five (3+2)":"five",
+    "Six (3+3)":"six",
+  } ;
+
   content = helm(
-    `<div data-tag="body" class="Panel__body Metronome centerChild">
-      <select data-tag="patterns" class="Metronome__patterns">
-        <option value="metronome" selected>Metronome</option>
-        <option value="one"  >One</option>
-        <option value="two"  >Two</option>
-        <option value="three">Three</option>
-        <option value="four" >Four</option>
-        <option value="five" >Five (3+2)</option>
-        <option value="six"  >Six (3+3)</option>
-      </select>
-     </div>`
+    `<div data-tag="body" class="Panel__body Metronome centerChild"></div>`
   );
 
   constructor(cell) {
     super(cell);
     this.body.replaceWith(this.content);
     Object.assign(this, dataIndex("tag", this.content));
-    cell.stash.state = "Pause";
-    this.patterns.value = cell.stash.pattern;
-    let metronome = (this.metronome = new Metronome(this));
-    Object.assign(metronome, this.cell.stash);
-    delay(2, () => (metronome.bpm.textContent = this.cell.stash.tempo));
+    let stash = cell.stash ;
+    stash.state = "Play"; // i.e. always show "Play" on launch, metronome will be paused
 
-    listen(this.patterns, ["input", "change"], (e) => {
-      cell.stash.pattern = e.target.value;
-      metronome.setPattern(e.target.value);
-    });
+    let metronome = (this.metronome = new Metronome(this));
+    metronome.tempo = stash.tempo;
+    metronome.latency = stash.latency;
+    metronome.mute = (stash.mute == "Unmute");
+    metronome.beatPattern = metronome.beatPatterns.find(p => p.name == stash.pattern);
+
+    let stashed = Object.keys(this.options).find(key => this.options[key] == stash.pattern);
+    let patterns = new Select(Object.keys(this.options), stashed, this) ;
+    this.content.append(patterns.elm) ;
+    patterns.elm.classList.add("Metronome__patterns") ;
+    listen(patterns.toggle, "SELECTED",
+       (e) => metronome.setPattern(stash.pattern = this.options[e.detail]));
 
     this.mediaGroup = new ButtonGroup(
-      this.cell.stash,
+      stash,
       {
-        Play: { svg: "Play", redo: true, radio: "state" },
-        Pause: { svg: "Pause", redo: true, radio: "state" },
+        Play: { svg: "Play", redo: true, toggle: "state" },
+        Pause: { svg: "Pause", redo: true, toggle: "state" },
+        Show: { svg: "ShowTrace", toggle: "trace" },
+        Hide: { svg: "HideTrace", toggle: "trace" } ,
+        Mute: { svg: "Mute", toggle: "mute" } ,
+        Unmute: { svg: "Unmute", toggle: "mute" } ,
       },
       (e, prop, tag) => {
-        cell.stash.state = tag;
-        tag == "Play" ? metronome.play(true) : metronome.play(false);
-      }
-    );
+        if(prop == "trace") {
+          stash.trace = (tag == "Show") ? "Hide":"Show" ;
+          metronome.showTrace(tag == "Show") ;
+        }
+        else if(prop == "state") {
+          stash.state = (tag == "Play") ? "Pause":"Play" ;
+          metronome.play(tag == "Play") ;
+        }
+        else if(prop == "mute") {
+          stash.mute = (tag == "Mute") ? "Unmute":"Mute" ;
+          metronome.setMute(tag == "Mute") ;
+        } 
+        this.mediaGroup.refresh() ;
+    });
     this.content.append(this.mediaGroup.elm);
     this.mediaGroup.refresh();
 
+
+    this.adjuster = new Schedule(100, () => metronome.play(true)) ;
     this.tempoGroup = new SliderGroup(
-      this.cell.stash,
+      stash,
       {
-        tempo: {
-          min: 1,
-          max: 220,
-          step: 1,
-          msg: "Tempo: {value} bpm",
-          value: 60,
-          throttle: 200,
-        },
+        tempo: { min: 1, max: 220, step: 1, msg: "Tempo: {value} bpm", value: 60, },
+        latency: { min: -300, max: 300, step: 10, msg: "Latency: {value}ms", value: 0},
       },
-      (e, prop, tag) => {
-        cell.stash.prop = tag;
-        metronome.bpm.textContent = Math.round(tag);
-        Object.assign(metronome, this.cell.stash);
-        metronome.play(cell.stash.state == "Play");
+      (e, prop, value) => {
+        // Push only the numeric slider values onto the metronome. The old code
+        // did Object.assign(metronome, stash), which also copied the stash's
+        // `mute`/`state`/`trace` strings — and a truthy string landing in the
+        // boolean metronome.mute silenced it on every slider move (see tock()).
+        // (SliderGroup has already written Number(value) into stash[prop].)
+        metronome.tempo = stash.tempo;
+        metronome.latency = stash.latency;
+        if (prop == "tempo") metronome.bpm.textContent = Math.round(stash.tempo);
+        if (stash.state == "Pause") {
+          metronome.play(false);
+          this.adjuster.run(Math.max(500, metronome.tempo * 1.5)) ; // pause while slider is adjusting, then play
+        }
       }
     );
     this.tempoGroup.elm.style.width = "14em";
     this.content.append(this.tempoGroup.elm);
     this.tempoGroup.refresh();
 
-    this.metronome.setPattern(cell.stash.pattern);
+    this.metronome.showTrace(stash.trace != "Show");
   }
 
   destructor() {
@@ -1456,26 +1782,11 @@ class MetronomePanel extends Panel {
 }
 
 
-class NewPanel extends AddPanel {
-
-  constructor(cell) {
-    super(cell); 
-    let matchScoreOption = [...this.presets.children].find(opt => opt.value == "score");
-    if (matchScoreOption) matchScoreOption.remove();
-    this.pagesGroup = new SliderGroup( cell.stash,
-      {  pages: { min: 1, max: 100, value: 5, 
-         msg: (tag, val) => `${val.toFixed(0)} page${val > 1 ? "s":""}`, step: 1 }, }, null );
-     this.body.prepend(this.pagesGroup.elm);    
-    this.pagesGroup.refresh();
-  }
-}
-
-
 class NumbersPanel extends Panel {
   content = helm(`
-     <div data-tag="body" class="Panel__body">
+     <div data-tag="body" style="width:15em;" class="Panel__body">
        <div data-tag="sliders"></div>
-       <div style="font-size: var(--font-size-sm); margin-top: calc(var(--spacing-md) + 1em); margin-bottom: 0.1em">Footpedal Keys</div>
+       <div style="font-size: var(--font-size-sm); margin-top: calc(var(--spacing-md) + 1em); margin-bottom: 0.1em">Foot Pedal Keys</div>
        <div style="margin: 0 var(--spacing-md)">
          <div style="display: flex; align-items: center; gap: 0.5em; margin-bottom: 0.5em">
            <div style="min-width: 4em; text-align: left; font-size: 0.9em">Next (\u21e7/\u21e8):</div>
@@ -1499,16 +1810,16 @@ class NumbersPanel extends Panel {
 
     let formatPn = () => {
       return `Page: ${pnToString(_score_.numbers.pn)} 
-      (${_score_.numbers.pn} / ${score.pgs.length})`;
+      (${~~_score_.numbers.pn} / ${score.pgs.length})`;
     };
 
     let defs = {
       pn: { min: 1, max: score.pgs.length, value: score.numbers.pn, step: 1,
-        msg: formatPn, throttle: 500},
+        msg: formatPn, throttle: 500, fullWidth:true},
       prelim: {min: 0, max: 100,value: _score_.numbers.prelim,step: 1,
-        msg: () => `Roman: ${_score_.numbers.prelim}`,throttle: 500 },
+        msg: () => `Roman: ${_score_.numbers.prelim}`,throttle: 500, row:2, col:1 },
       first: { min: 1, max: 1000, value: _score_.numbers.first, step: 1,
-        msg: () => `First: ${_score_.numbers.first}`,throttle: 500},
+        msg: () => `First: ${_score_.numbers.first}`,throttle: 500, row:2, col:2},
     };
     this.pnSliderGroup = new SliderGroup(
        _score_.numbers,
@@ -1519,25 +1830,12 @@ class NumbersPanel extends Panel {
 
     this.sliders.replaceWith(this.pnSliderGroup.elm);
 
-    // Make the "First #" and "Roman" sliders smaller and narrower...looks much
-    // nicer that way, emphasizes that they are "subordinate" so to speak
-    let sliderBlocks = this.pnSliderGroup.elm.querySelectorAll('.SliderGroup__SliderBlock');
-    [sliderBlocks[1], sliderBlocks[2]].forEach(block => {
-      if (block) {
-        block.style.fontSize = '.8em';
-        block.style.width = '80%';
-        block.style.marginLeft = 'auto';
-        block.style.marginRight = 'auto';
-        block.style.position = 'relative';
-      }
-    });
-
     this.forwardGroup = new ButtonGroup(
       score.numbers,
       { Pages: { svg: "Page", radio: "forward" },
         Marks: { svg: "Mark", radio: "forward" },
       },
-      (e, tag, value) => score.numbers.tag  = value,
+      () => {},
     );
     this.forward.replaceWith(this.forwardGroup.elm);
 
@@ -1546,13 +1844,14 @@ class NumbersPanel extends Panel {
       { Pages: { svg: "Page", radio: "reverse" },
         Marks: { svg: "Mark", radio: "reverse" },
       },
-      (e, tag, value) => score.numbers.tag = value,
+      () => {},
     );
     this.reverse.replaceWith(this.reverseGroup.elm);
-    listen(_body_, "NUMBERS", (e) => {
+
+    this.listeners.push(listen(_body_, "NUMBERS", (e) => {
       if (e.detail.sender === this) return;
-      this.refresh(); 
-    });
+      this.refresh();
+    }));
   }
 
   refresh() {
@@ -1571,7 +1870,6 @@ class PencilPanel extends Panel {
        height: 6em;
        border: 1px solid var(--color-border);
        border-radius: var(--borderRadius);
-       margin: var(--spacing-md);
        background-color: #fff;
        background-image:
          linear-gradient(45deg, #e8e8e8 25%, transparent 25%),
@@ -1615,7 +1913,7 @@ class PencilPanel extends Panel {
     // This code block is delayed so that it runs after any subclass constructor:
     delay(1, () => {
       if (this.buttonsDef)
-        this.sliders.after(helm(`<div style="font-size:.8em">Styles</div>`));
+        this.sliders.after(helm(`<div>Style</div>`));
 
       let picker = new ColorPicker(
         "Color",
@@ -1635,7 +1933,6 @@ class PencilPanel extends Panel {
           this.cell.stash,
           this.slidersDef,
           (e, tag, value) => {
-            this.cell.stash.tag = value;
             this.update();
           }
         );
@@ -1648,7 +1945,6 @@ class PencilPanel extends Panel {
           this.cell.stash,
           this.buttonsDef,
           (e, tag, value) => {
-            this.cell.stash.tag = value;
             this.update();
           }
         );
@@ -1712,88 +2008,20 @@ class PencilPanel extends Panel {
 
 class PenPanel extends PencilPanel {}
 
-class TextPanel extends PencilPanel {
-  slidersDef = {
-    size: { min: 1, max: 100, step: 1, value: 1, msg: "Font Size: {value} px" },
-    height: { min: 1, max: 100, step: 1, value: 1, msg: "Line Height: {value} px" },
-  };
-
-  buttonsDef = null;
-
-  fonts = helm(`
-      <select data-tag="font">
-        <option selected>Courier</option>
-        <option>Courier-Bold</option>
-        <option>Courier-Oblique</option>
-        <option>Courier-BoldOblique</option>
-        <option>Helvetica</option>
-        <option>Helvetica-Bold</option>
-        <option>Helvetica-Oblique</option>
-        <option>Helvetica-BoldOblique</option>
-        <option>Times-Roman</option>
-        <option>Times-Bold</option>
-        <option>Times-Italic</option>
-        <option>Times-BoldItalic</option>
-        <option>Bravura</option>
-        <option>Vercetti</option>
-        <option>Patrick Hand</option>
-      </select>`);
-
-  text = helm(`<div>Abc<br>123<br></div>`);
-
-  constructor(cell) {
-    super(cell);
-    let fontLabel = helm(`<div style="font-size:.8em; margin-top: var(--spacing-md); margin-bottom: 0.1em">Font</div>`);
-    this.picker.after(fontLabel);
-    fontLabel.after(this.fonts);
-    this.preview.append(this.text);
-    this.listeners.push(listen(this.fonts, "change", () => this.update()));
-    this.preview.append(this.text);
-    this.fonts.value = cell.stash.font ;
-    this.update();
-  }
-
-  update() {
-    this.cell.stash.font = this.fonts.value;
-    let { font, size, height, rgb, alpha } = this.cell.stash;
-    this.text.style.fontSize = size / _pxPerEm_ + "em";
-    this.text.style.lineHeight = height / _pxPerEm_ + "em";
-    this.text.style.color = rgb + Math.round(alpha * 255).toString(16);
-    Object.assign(this.preview.style, fontMap[font]);
-    let active = _score_.getActiveObject();
-    if (active && active.type == "textbox") {
-      let color = fabric.Color.fromHex(rgb);
-      color.setAlpha(alpha);
-      active.canvas.requestRenderAll();
-      active.fill = color.toRgba();
-      active.fontSize = size - 1;
-      active.lineHeight = height / size;
-      Object.assign(active, fontMap[font]);
-      active.canvas.requestRenderAll();
-      delay(1, () => {
-        // work around as fabricjs bug...fill doesn't change
-        // unless/until fontsize changes, (or some such breakage)
-        active.fontSize = size;
-        active.canvas.requestRenderAll();
-      });
-    }
-  }
-}
-
 class RastrumPanel extends PencilPanel {
   slidersDef = {
     gap: {
-      throttle: 250, min: 5, max: 40, step: 1, value: 8, msg: "Staff Space: {value}px" },
+      throttle: 250, min: 1, max: 40, step: .5, value: 8, fullWidth:true, msg: "Staff Space: {value}px" },
     lines: {
-      throttle: 250, min: 1, max: 60, step: 1, value: 5, msg: "Lines: {value}" },
+      throttle: 250, min: 1, max: 60, step: 1, value: 5, row:2, col:1, msg: "Lines: {value}"},
     width: {
-      throttle: 250, min: 0, max: 20, step: 0.1, value: 1, msg: (tag, value) =>
+      throttle: 250, min: 0, max: 20, step: 0.1, value: 1, row:2, col:2, msg: (tag, value) =>
         `Width: ${value == 0 ? "Auto":value + "px"}` },
     bars: {
-      throttle: 250, min: 0, max: 60, step: 1, value: 4, msg: "Bars: {value}" },
+      throttle: 250, min: 0, max: 60, step: 1, value: 4, row:3, col:1, msg: "Bars: {value}" },
     barWidth: {
-      throttle: 250, min: 0, max: 30, step: 0.1, value: 4, msg: (tag, value) => 
-        `Barline Width: ${value == 0 ? "Auto":value + "px"}` },
+      throttle: 250, min: 0, max: 30, step: 0.1, value: 4, row:3, col:2, msg: (tag, value) => 
+        `Width: ${value == 0 ? "Auto":value + "px"}` },
 
   };
 
@@ -1804,54 +2032,6 @@ class RastrumPanel extends PencilPanel {
 
   constructor(cell) {
     super(cell);
-
-
-    delay(3, () => { 
-      // After superclass constructor has done layout, arrange sliders 
-      // so that lLines/width, bars/barsWidth are on same line
-      this.body.style.width = "16em" ;
-      Object.assign(this.sliders.elm.style, {
-        "display": "grid",
-        "grid-template-columns": "repeat(6, 1fr)",
-        "width": "100%",
-      });
-      let sliderBlocks = this.sliders.elm.querySelectorAll('.SliderGroup__SliderBlock');
-      Object.assign(sliderBlocks[0].style, {
-        "grid-column": "1/-1",
-        "grid-row": 1,
-      });
-      Object.assign(sliderBlocks[1].style, {
-        "font-size": "0.75em",
-        "grid-column": "1/4",
-        "grid-row": 2,
-      });
-      Object.assign(sliderBlocks[2].style, {
-        "font-size": "0.75em",
-        "grid-column": "4/7",
-        "grid-row": 2,
-      }),
-      Object.assign(sliderBlocks[3].style, {
-        "font-size": "0.75em",
-        "grid-column": "1/4",
-        "grid-row": 3,
-      }),
-      Object.assign(sliderBlocks[4].style, {
-        "font-size": "0.75em",
-        "grid-column": "4/7",
-        "grid-row": 3,
-      }),
-
-      this.sliders.elm.querySelectorAll('.Slider').forEach((slider, i) => {
-        if(i != 0) 
-          Object.assign(slider.style, {
-            width: "calc(50% - 3em)",
-            left: "unset",
-          })
-       });
-     }) ;
-     // make preview square
-     this.preview.style.height = "unset";
-     this.preview.style.aspectRatio = 1 ;
     }
 
 
@@ -1865,7 +2045,7 @@ class RastrumPanel extends PencilPanel {
     if (width == 0) width = .13 * gap ; 
     if (barWidth == 0) barWidth = .16 * gap ; 
     let staffHeight = (lines - 1) * gap + width;
-    let offset = (100 - staffHeight) / 2;
+    let offset = (50 - staffHeight) / 2;
     for (let i = 0, y = offset; ++i <= lines; y += gap)
       if (style == "L-R") linePath += `M5 ${y}h90v${width}h-90Z`;
       else linePath += `M${y} 5v90h${width}v-90Z`;
@@ -1901,13 +2081,85 @@ class RastrumPanel extends PencilPanel {
       width: width,
       gap: gap,
       bars: bars,
-      // style: style, // style doesn't redraw correctly
     });
     brush.draw();
     Object.assign(active, active._calcDimensions());
     active.dirty = true;
     brush.canvas.requestRenderAll();
   }
+}
+
+class TextPanel extends PencilPanel {
+
+  slidersDef = {
+    size: { min: 1, max: 100, step: 1, value: 1, row:1, col:1, msg: "Size: {value} px"},
+    height: { min: 1, max: 100, step: 1, value: 1, row:1, col:2, msg: "Spacing: {value} px"},
+  };
+
+  buttonsDef = null;
+
+  fonts = [
+    "Courier",
+    "Courier-Bold",
+    "Courier-Oblique",
+    "Courier-BoldOblique",
+    "Helvetica",
+    "Helvetica-Bold",
+    "Helvetica-Oblique",
+    "Helvetica-BoldOblique",
+    "Times-Roman",
+    "Times-Bold",
+    "Times-Italic",
+    "Times-BoldItalic",
+    "Bravura",
+    "Vercetti",
+    "Patrick Hand",
+    ] ;
+ 
+  text = helm(`<div>Abc<br>123<br></div>`);
+
+  constructor(cell) {
+    super(cell);
+    let fontLabel = helm(`<div class="Panel__item">Font</div>`);
+    this.picker.after(fontLabel);
+    let select = new Select(this.fonts, cell.stash.font, this) ;
+    fontLabel.after(select.elm) ;
+    this.preview.append(this.text);
+    this.listeners.push(listen(select.toggle, "SELECTED", (e) => this.update(e.detail)));
+    this.preview.append(this.text);
+    this.fonts.value = cell.stash.font ;
+    this.update();
+  }
+
+  update(fontName) {
+    this.cell.stash.font = fontName;
+    let { font, size, height, rgb, alpha } = this.cell.stash;
+    this.text.style.fontSize = size / _pxPerEm_ + "em";
+    this.text.style.lineHeight = height / _pxPerEm_ + "em";
+    this.text.style.color = rgb + Math.round(alpha * 255).toString(16);
+    Object.assign(this.preview.style, fontMap[font]);
+    let active = _score_.getActiveObject();
+    if (active && active.type == "textbox") {
+      let color = fabric.Color.fromHex(rgb);
+      color.setAlpha(alpha);
+      active.fill = color.toRgba();
+      active.fontSize = size - 1;
+      active.lineHeight = height / size;
+      Object.assign(active, fontMap[font]);
+      active.initDimensions();
+      active.setCoords();
+      active.canvas.requestRenderAll();
+      delay(1, () => {
+        // work around as fabricjs bug...fill doesn't change
+        // unless/until fontsize changes, (or some such breakage)
+        active.fontSize = size;
+        active.initDimensions();
+        active.setCoords();
+        active.canvas.requestRenderAll();
+      });
+    }
+  }
+
 }
 
 class ReviewPanel extends Panel {
@@ -1923,63 +2175,750 @@ class ReviewPanel extends Panel {
     this.review.destructor();
   }
 
+}
+
+class VolumePanel extends Panel {
+  constructor(cell) {
+    super(cell);
+    this.volume = new Volume(this);
+  }
+
+  destructor() {
+    super.destructor();
+    this.volume.destructor();
+  }
+
+  show() {
+    super.show();
+    this.volume.show();
+    return this;
+  }
+
   hide() {
     super.hide();
-    this.av.hide();
+    this.volume.hide();
   }
 }
+
+
+/**
+class Pzr
+  This is the detachable body of the EditPanel.
+  Implements a detachable widget that allows fine-tuning the location, size, and rotation
+  of fabridjs objects.  Essentially an alternative to using fabric's "controls" on the
+  the active selection.
+*/
+class Pzr extends Surface {
+  static css = css(
+    "Pz",
+    `
+     .Pz {
+       display:grid;
+       grid-template-columns:repeat(5, 1.6em);
+       grid-template-rows:repeat(5, 1.6em);
+       justify-items:center;
+       align-items:center;
+     }
+     .Pz__control {
+       /* Explicit size: an inline <svg viewBox=...> with no width/height falls
+          back to the 300x150 replaced-element default on WebKit/iOS (Blink and
+          Gecko shrink it to the grid cell), which blew the controls up ~10x.
+          Pin it to the 1.6em grid cell. */
+       width: 1.6em;
+       height: 1.6em;
+       fill: none;
+       stroke: #444;
+       stroke-width: 8;
+       stroke-linecap: round;
+       stroke-linejoin: round;
+     }
+     [data-theme="Dark"] .Pz__control {
+       stroke: #888 ;
+     }
+     .Pz__control-active {
+       color: #6c6;
+       transform: scale(1.2);
+     }
+  `) ;
+
+  // Positions in the 5x5 ui grid that have svg elements:
+  // (positions are0-based index starting in upper left, l-r t-b).
+  // The last 2 positions are only used in class Pzr
+
+  grid = helm(`
+        <div class="Pz Surface__outline">
+
+          <!-- translate up, right, down, left: pos 2,14,22,10-->
+          <svg class="Pz__control" style="grid-row:1;grid-column:3;" viewBox="0 0 100 100"><path d="M10 60L50 10L90 60Q50 40 10 60"/></svg>
+          <svg class="Pz__control" style="grid-row:3;grid-column:5;" viewBox="0 0 100 100"><path d="M40 10L90 50L40 90Q 60 40 40 10"/></svg>
+          <svg class="Pz__control" style="grid-row:5;grid-column:3;" viewBox="0 0 100 100"><path d="M10 40L50 90L90 40Q 50 60 10 40"/></svg> 
+          <svg class="Pz__control" style="grid-row:3;grid-column:1;" viewBox="0 0 100 100"><path d="M60 10L10 50L60 90Q 40 50 60 10"/></svg>
+
+          <!-- rotate conterclockwise, clockwise: pos 6,8-->
+          <svg class="Pz__control" style="grid-row:2;grid-column:2;"data-tag="ccw"  viewBox="0 0 100 100">
+            <path d="M50 22 A28 28 0 1 1 30.2 70 M50 14 L50 30 L34 22 Z"/></svg>
+          <svg class="Pz__control" style="grid-row:2;grid-column:4;" data-tag="cw"  viewBox="0 0 100 100">
+            <path  d="M50 22 A28 28 0 1 1 30.2 70 M50 14 L50 30 L34 22 Z" transform="translate(100,0) scale(-1, 1)"/></svg>
+
+
+          <!-- edit prev, next: pos 16,18-->
+          <svg class="Pz__control" style="grid-row:4;grid-column:2;", data-tag="left" viewBox="0 0 100 100">
+            <path d="M25,18A8,8 0 1,0 25,17.9M32,26L58,60M40,33L25,48L8,48M40,33L55,20L72,33M58,60L38,75L50,94M58,60L76,67L92,64"/></svg>
+          <svg class="Pz__control" style="grid-row:4;grid-column:4;", data-tag="right" viewBox="0 0 100 100">
+            <path d="M75,18A8,8 0 1,1 75,17.9M68,26L42,60M60,33L75,48L92,48M60,33L45,20L28,33M42,60L62,75L50,94M42,60L24,67L8,64"/></svg>
+
+
+          <!-- scale down, up: pos 11,13 -->
+          <svg class="Pz__control" style="overflow:visible;grid-row:3;grid-column:4;" viewBox="0 0 100 100"><path d="M10 20L120 50L10 80"/></svg>
+          <svg class="Pz__control" style="overflow:visible;grid-row:3;grid-column:2;" viewBox="0 0 100 100"><path d="M90 20L-20 50L90 80"/></svg>
+
+          <!-- active object, pos 12 -->
+          ${iconSvg("Void", {class:"Pz__control", style:"grid-row:3;grid-column:3;pointer-events:none;opacity:0.5;"})}
+
+          <!-- cut, pos 4 -->
+          ${iconSvg("Cut", {class:"Pz__control", style:"transform:translateY(-3px);grid-row:1;grid-column:5;fill:currentColor;stroke:none;", tag:"cutBtn"})}
+        </div>
+    `);
+
+  slots = [2,4,6,8,10,11,12,13,14,16,18,22] ;
+  targets = [] ;
+
+  constructor(panel) {
+    super(panel, ScreenPanel);
+    Object.assign(this, dataIndex("tag", this.grid)) ;
+    this.surface.append(this.grid) ;
+    panel.body.style.minWidth = panel.body.style.padding = "unset"; // defeat default body styles
+    this.surface.style.width = this.surface.style.height = "10em" ;
+    this.grid.style.width = this.grid.style.height = "10em" ;
+    this.repeater = new Schedule();
+    this.update();
+
+    // When selecting icons in this.grid, we don't use listeners for every control...
+    // instead, we'll listen on the grid itself, and compute the grid "slot" as a
+    // 0-based index (L-R,T-B). Not all slots have controls, but these do:
+    this.panel.listeners.push(listen(this.grid, "pointerdown", (e) => {
+      let box  = getBox(this.surface) ;
+      let row = parseInt((e.clientY - box.y) / box.height * 5) ;
+      let col = parseInt((e.clientX - box.x) / box.width * 5) ;
+      let pos = row * 5 + col ;
+      if(!this.slots.includes(pos)) return ; // no control at this location
+      e.taken = true;
+      _menu_.busy = true ;
+      // add active marker. Note: can't add style to <path.../>, must be parent <svg.../>
+      let target = e.target.tagName == "path" ? e.target.parentElement : e.target;
+      if(this.getTargets()) {
+        target.classList.add("Pz__control-active") ;
+        e.stopPropagation();
+        e.target.setPointerCapture(e.pointerId);
+        
+        this.opStartTime = performance.now();
+        this.opStartValues = this.targets.map(item => item[1]);
+  
+        this.doStep(pos);
+        let loopSpeed = (pos == 16 || pos == 18) ? 350 : 50 ; // back/forward autrepeat slowly
+        this.repeater.run(250, () => {
+          let loop = () => {
+            this.doStep(pos);
+            this.repeater.run(loopSpeed, loop);
+          };
+          loop();
+        });
+      }
+      listen(this.grid, "pointerup", () => {
+        target.classList.remove("Pz__control-active") ;
+        this.repeater.cancel();
+        _menu_.busy = false;
+        _menu_.autoOff.run();
+      }, { once: true });
+    }));
+  }
+ 
+  update() {
+    let getIconPath = () => {
+      let type = EditPanel.pzrTarget?.podiumType || EditPanel.pzrTarget?.type ;
+      this.grid.classList.remove("Pz__noTarget") ;
+      switch(type) {
+        case undefined: return iconPaths["Void"];
+        case "pencil": return iconPaths["Pencil"] ;
+        case "pen": return iconPaths["Pen"] ;
+        case "rastrum": return iconPaths["Rastrum"] ;
+        case "symbols": return iconPaths["Symbols"] ;
+        case "textbox": return iconPaths["Text"] ;
+        case "text": return iconPaths["Symbols"] ;
+        default: return iconPaths["Edit"] ; // assume activeSelection
+      }
+    }
+    let tmp = helm(`<svg viewBox="0 0 24 24" width="1.6em" height="1.6em"
+      style="grid-column:3;grid-row:3;stroke:none;fill:currentColor;">
+      ${getIconPath()}</svg>`) ;
+    this.iconSvg.replaceWith(tmp) ;
+    this.iconSvg = tmp ;
+  }
+
+  doStep(pos) {
+    let obj = EditPanel.pzrTarget;
+    if(!obj) return;
+    let elapsed = performance.now() - this.opStartTime;
+
+    if (pos == 4) {
+      this.repeater.cancel();
+      _menu_.cutCopyObject(obj, obj.canvas, true);
+      return;
+    }
+
+    // Warning: unorthodox coding pattern follows: nested switch statements with intentional fallthrough.
+    // Each level tests pos for the cases that diverge at that level; unmatched
+    // cases fall into the default, which sets up shared state and dispatches
+    // further. Each value of pos is tested at most once.            
+
+    // prev/next obj:
+    let step = 1;
+    switch(pos) {
+      case 16: step = -1;
+      case 18: 
+        let objs = obj.canvas.getObjects();
+        let knt = objs.length;
+        let i = (objs.indexOf(obj) + knt + step) % knt;
+        obj.canvas.setActiveObject(objs[i]) ; 
+        break;
+
+    default: { // rotate:
+      // Remaining pos's perform progressive acceleration
+      let a = Object.assign({}, 
+        (elapsed > 2000) ? { rotate:20.0, scale:0.10, translate:50} :
+        (elapsed > 1200) ? { rotate: 5.0, scale:0.05, translate:20} :
+        (elapsed >  600) ? { rotate: 1.0, scale:0.02, translate: 5} :
+                           { rotate: 0.2, scale:0.01, translate: 1});
+      let center = obj.getCenterPoint();
+      let p = { originX: "center", originY: "center", left: center.x, top: center.y };
+      switch(pos) {
+        case 6: a.rotate = -a.rotate;
+        case 8: p.angle = (obj.angle + a.rotate) % 360;
+        break ;
+
+    default: { // scale:
+      let scale = 1 - a.scale;
+      switch(pos) {
+        case 11: scale = 1 + a.scale;
+        case 13: p.scaleX = Math.max(0.01, obj.scaleX * scale);
+                 p.scaleY = Math.max(0.01, obj.scaleY * scale);
+        break ;
+
+    default: { // translate:
+      let dx = 0, dy = 0 ;
+      switch(pos) {
+        case 2:  dy = -a.translate; break; // up
+        case 10: dx = -a.translate; break; // left
+        case 14: dx =  a.translate; break; // right
+        case 22: dy =  a.translate; break; // down
+      }
+      let halfW = obj.getScaledWidth() / 2;
+      let halfH = obj.getScaledHeight() / 2;
+      let minTrans = 1 / (obj.canvas.getZoom() * window.devicePixelRatio); // theoretical minimum translation factor
+      p.left = clamp(center.x + dx * minTrans, halfW, obj.canvas.width - halfW);
+      p.top  = clamp(center.y + dy * minTrans, halfH, obj.canvas.height - halfH);
+
+    }}}} /* close nested default / switch blocks */
+    obj.set(p);
+    }}
+    obj.canvas?.requestRenderAll();
+   _menu_.magnifier?.panel?.updateMagnifier();
+  }
+
+  getTargets() 
+  { // For class Pzr, always 0 or 1 targets, but for subclass Pz there can be
+    // many, so for "regularity", this.targets is always an array.
+    let obj = EditPanel.pzrTarget ;
+    if (obj) {
+      this.targets[0] = [obj, {
+        left: obj.left,
+        top: obj.top,
+        scaleX: obj.scaleX,
+        scaleY: obj.scaleY,
+        angle: obj.angle,
+        originX: obj.originX,
+        originY: obj.originY
+      }];
+      return true ;
+    }
+    this.grid.classList.add("Pz__noTarget") ;
+    return false ;
+  }
+}
+
+class Pz extends Pzr {
+
+  slots = [2,10,11,13,14,16,18,22] ;
+
+  constructor(panel) {
+    super(panel, ScreenPanel);
+    // modify the grid, replacing the central icon and removing clockwise and counter-clockwise svg's
+    this.cw.remove() ;
+    this.ccw.remove() ;
+    this.cutBtn.remove() ;
+    this.update();
+  }
+
+  update() {
+    let getIconPath = () => {
+      let tag = ScreenPanel.pzTarget?.dataset?.tag ;
+      switch(tag) {
+        case "BookLayout":
+        case "ScrollLayout":
+        case "TableLayout": return iconPaths["Layout"] ;
+        case "Menu": return iconPaths["Menu"] ;
+        case "Body": return iconPaths["Void"] ;
+        default: {
+          let key = tag[0].toLowerCase() + tag.slice(1).replace("Panel", "");
+          return _panels_[key]?.cell?.svgPath ?? null ;
+        }
+      }
+    }
+    let tmp = helm(`<svg viewBox="0 0 24 24" width="1.6em" height="1.6em"
+      style="grid-column:3;grid-row:3;pointer-events:none;stroke:none;fill:currentColor;">
+      ${getIconPath()}</svg>`) ;
+    this.iconSvg.replaceWith(tmp) ;
+    this.iconSvg = tmp ;
+  }
+
+
+  doStep(pos) {
+    let elapsed = performance.now() - this.opStartTime;
+    let targets = this.targets;
+
+
+    // prev/next
+    let step = 1 ;
+    switch(pos) {
+      case(16): step = -1 ;
+      case(18):
+        let target = targets.find(([elm, size, box]) => elm === ScreenPanel.pzTarget);
+        let idx = targets.indexOf(target) + step;
+        if(idx == -2) ScreenPanel.pzTarget = targets[targets.length - 1][0] ;
+        else if(idx == -1 || idx == targets.length) ScreenPanel.pzTarget = _body_ ;
+        else ScreenPanel.pzTarget = targets[idx][0]; 
+        this.update() ;
+        break ;
+
+    default: { // scale
+      let a = Object.assign({}, 
+      (elapsed > 2000) ? { scale:0.10, translate:50} :
+      (elapsed > 1200) ? { scale:0.05, translate:20} :
+      (elapsed >  600) ? { scale:0.02, translate: 5} :
+                         { scale:0.01, translate: 1});
+    let scale = 1 - a.scale ;
+    if(ScreenPanel.pzTarget != _body_) 
+      targets = [targets.find(([pzElm, size, box]) => pzElm === ScreenPanel.pzTarget)] ;
+    switch(pos) { // scale
+      case(11): scale = 1 + a.scale ;
+      case(13): targets.forEach((item) => { 
+        let [target] = item;
+        let currentSize = parseFloat(target.style.fontSize) || 1;
+        let newSize = Math.max(0.1, currentSize * scale);
+        target.style.fontSize = newSize + "em";
+        item[1] = newSize; 
+      });
+      break ;
+
+    default: { // translate
+      if(ScreenPanel.pzTarget == _body_) return ; // disallow on body
+      let dx = 0, dy = 0 ;
+    switch(pos) {
+      case 2:  dy = -a.translate; break; // up
+      case 10: dx = -a.translate; break; // left
+      case 14: dx =  a.translate; break; // right
+      case 22: dy =  a.translate; break; // down
+    }
+    for (let [target, size, box] of targets) {
+      target.style.top = target.offsetTop + dy + "px";
+      target.style.left = target.offsetLeft + dx + "px";
+      target.owner?.constrain();
+    } }
+  }}}} /* bracket hell, sigh: that's what happens with this coding pattern! */
+
+
+  getTargets() {
+    let pzTargets = [...document.getElementsByClassName("pz")].filter((elm) =>
+       elm.isConnected && elm.style.visibility != "hidden") ;
+    this.targets.length = 0 ;
+    for(let target of pzTargets) {
+      let fs = target.style.fontSize;
+      let emSize = (fs && fs.includes("em")) ? parseFloat(fs) : parseFloat(getComputedStyle(target).fontSize) / _pxPerEm_;
+      this.targets.push([target, emSize, getBox(target)]) ;
+    }
+    return true ;
+  }
+
+}
+
+
+class SurfacePanel extends Panel {
+
+  constructor(cell) {
+    super(cell);
+    this.body.classList.add("centerChild");
+    this.body.style.padding = "1em";
+  }
+
+  destructor() {
+    super.destructor();
+    this.surface?.destructor();
+  }
+ 
+  show() {
+    super.show();
+    this.surface?.show();
+    return this;
+  }
+
+  hide() {
+    super.hide();
+    this.surface?.hide();
+    return this;
+  }
+}
+
+class ClockPanel extends SurfacePanel {
+  surface = new Clock(this);
+
+  constructor(cell) {
+    super(cell);
+    this.body.style.minWidth = "unset" ;
+    this.body.style.padding = "unset" ;
+  }
+}
+
+class EditPanel extends SurfacePanel {
+  static pzrTarget = null ;
+
+  static update(target) {
+    // This sets the (static) fabricjs target obj for EditPanel pan/zoom/rotate operations.
+    EditPanel.pzrTarget = target;
+    _panels_.edit?.surface.update();
+  }
+
+  surface = new Pzr(this);
+}
+
+
+class Keyboard extends Surface {
+
+  static css = css(
+  "Keyboard", `
+    .Keyboard__rows {
+      display:flex;
+      flex-direction:column;
+      gap:0.25em;
+      padding:0.25em;
+      touch-action:none;
+      user-select:none;
+      width:20em;
+      -webkit-user-select:none;
+     }
+    .Keyboard__row {
+      display:flex;
+      gap:0.25em;
+    }
+    .Keyboard__key
+    { flex:1 1 0;
+      border-radius:100vmax;
+      border:1px solid #444;
+      background:#fffa;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:.8em;
+      font-family:system-ui,sans-serif;
+    }
+    .Keyboard__key.mod {
+      background:#aaaa;
+    }
+    .Keyboard__key.pressed {
+      background:#8888;
+    }
+    [data-theme="Dark"] .Keyboard__key {
+      background:#444a;
+      border-color:#aaa;
+    }
+    [data-theme="Dark"] .Keyboard__key.mod {
+      background:#555a;
+    }
+    [data-theme="Dark"] .Keyboard__key.pressed {
+      background:#999a;
+    }
+  `) ;
+
+  mods = new Set(['⇧','⌫','↵','⋯','Aa','←','↑','↓','→','Home','End']);
+  spaceBar = '       ';
+
+  layers = {
+    lower:  [['`','1','2','3','4','5','6','7','8','9','0','-','='],
+              ['q','w','e','r','t','y','u','i','o','p','[',']','\\'],
+              ['a','s','d','f','g','h','j','k','l',';',"'"],
+              ['⇧','z','x','c','v','b','n','m',',','.','/','⌫'],
+              ['⋯',this.spaceBar,'↵']],
+    upper:   [['~','!','@','#','$','%','^','&','*','(',')','_','+'],
+              ['Q','W','E','R','T','Y','U','I','O','P','{','}','|'],
+              ['A','S','D','F','G','H','J','K','L',':','"'],
+              ['⇧','Z','X','C','V','B','N','M','<','>','?','⌫'],
+              ['⋯',this.spaceBar,'↵']],
+    sym:     [['á','é','í','ó','ú','à','è','ù','â','ê','î'],
+              ['ô','û','ä','ö','↑','ñ','ç','ß','Home'],
+              ['ã','õ','ü','←','↓','→','å','ø','End'],
+              ['æ','œ','ð','¿','¡','«','»','⌫'],
+              ['Aa',this.spaceBar,'↵']],
+  };
+
+  keyWidths = {'⇧':1.5,'⌫':1.5,'↵':1.5,'⋯':1.5,'Aa':1.5,'↑':1.5,'↓':1.5,'←':1.5,'→':1.5,'Home':2,'End':2.2,[this.spaceBar]:3};
+  navKeys = {'↑':'ArrowUp','↓':'ArrowDown','←':'ArrowLeft','→':'ArrowRight','Home':'Home','End':'End'};
+  repeater = new Schedule(); // implement auto-repeat on long press
+
+  content = helm(`<div class="Surface__outline"><div data-tag="plate" class="Keyboard__rows"></div></div>`) ;
+
+  constructor(panel) {
+    super(panel, ScreenPanel) ;
+    Object.assign(this, dataIndex("tag", this.content));
+    this.layer = 'lower';
+    this.surface.style.width = this.surface.style.height = "unset" ;
+    this.surface.append(this.content) ;
+    this.panel.listeners.push(
+      listen(this.surface, "pointerdown", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        let key = e.target.closest('.Keyboard__key');
+        if (!key) return;
+        e.frozen = true ; // disallow dragging if a key is pressed
+        // add a sentinel so that touch users will see the chosen key.
+        // well use it's dom-connectedness to terminate a repeat
+        let sentinel = key.cloneNode(true) ;
+        let style = getComputedStyle(e.target);
+        Object.assign(sentinel.style, {
+          transform: "scale(1.5)",
+          width: style.width,
+          height: style.height,
+          left: e.clientX + "px",
+          top: e.clientY - 50 + "px",
+          zIndex:_zTop_ + 1,
+          fontSize: style.fontSize,
+          position: "absolute",
+          filter: "invert(1)",
+        });
+        _body_.append(sentinel);
+        key.classList.add('pressed');
+
+        this.handle(key.dataset.label, e.clientX, e.clientY);
+        if (!['⇧','⋯','Aa'].includes(key.dataset.label)) {
+          let repeat = () => {
+            if (!sentinel.isConnected) return;
+            this.handle(key.dataset.label, e.clientX, e.clientY);
+            this.repeater.run(80);
+          };
+          this.repeater.run(500, repeat);
+        }
+
+        listen(document, "pointerup", () => { // must be on document, not surface
+           sentinel.remove();
+           key.classList.remove('pressed');
+        }, {once:true});
+
+      })
+    );
+    this.build();
+  }
+
+  build() {
+    let esc = (s) => s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+    let html = '';
+    this.layers[this.layer].forEach(row => {
+      html += '<div class="Keyboard__row">';
+      row.forEach(label => {
+        let grow = this.keyWidths[label] || 1;
+        let mod  = this.mods.has(label) ? ' mod' : '';
+        html += `<div class="Keyboard__key${mod}" data-label="${esc(label)}" style="flex:${grow} 1 0">${esc(label.trim())}</div>`;
+      });
+      html += '</div>';
+    });
+    this.plate.innerHTML = html;
+  }
+
+  handle(label, x, y) {
+    switch (label) {
+      case '⇧':  this.layer = this.layer == 'upper' ? 'lower' : 'upper'; this.build(); return;
+      case '⋯': this.layer = 'sym';    this.build(); return;
+      case 'Aa': this.layer = 'lower'; this.build(); return;
+    }
+    let ch = label.trim() == '' ? ' ' : label;
+    this.emitKey(ch);
+    if (this.layer == 'upper') { this.layer = 'lower'; this.build(); }
+  }
+
+  emitKey(ch) {
+    let elm = this.target || document.activeElement;
+    if (!elm) return;
+    let isText = elm.tagName == 'INPUT' || elm.tagName == 'TEXTAREA';
+    let dispatch = (event,key) => elm.dispatchEvent(new KeyboardEvent(event,{key:key,code:key,bubbles:true})) ;
+    switch (ch) {
+      case '↑': case '↓': case '←': case '→': {
+        let k = this.navKeys[ch];
+        dispatch('keydown', k);
+        if (isText && (ch == '←' || ch == '→')) {
+          let s = elm.selectionStart, e = elm.selectionEnd;
+          let pos = (s == e) ? (ch == '←' ? Math.max(0, s-1) : Math.min(elm.value.length, s+1))
+                             : (ch == '←' ? s : e);
+          elm.selectionStart = elm.selectionEnd = pos;
+        }
+        dispatch('keyup', k);
+        break;
+      }
+      case 'Home': case 'End': {
+        let k = this.navKeys[ch];
+        dispatch('keydown', k);
+        if (isText) elm.selectionStart = elm.selectionEnd = (ch == 'Home') ? 0 : elm.value.length;
+        dispatch('keyup', k);
+        break;
+      }
+      case '⌫':
+        dispatch('keydown','Backspace') ;
+        if (isText) {
+          let s = elm.selectionStart, e = elm.selectionEnd;
+          if (s == e && s > 0) { elm.value = elm.value.slice(0,s-1) + elm.value.slice(s); elm.selectionStart = elm.selectionEnd = s-1; }
+          else if (s != e)     { elm.value = elm.value.slice(0,s)   + elm.value.slice(e); elm.selectionStart = elm.selectionEnd = s; }
+          elm.dispatchEvent(new InputEvent('input', {bubbles:true}));
+        }
+        dispatch('keyup','Backspace') ;
+        break;
+      case '↵':
+        dispatch('keydown','Enter') ;
+        if (isText && elm.tagName == 'TEXTAREA') {
+          let s = elm.selectionStart, e = elm.selectionEnd;
+          elm.value = elm.value.slice(0,s) + '\n' + elm.value.slice(e);
+          elm.selectionStart = elm.selectionEnd = s + 1;
+          elm.dispatchEvent(new InputEvent('input', {inputType:'insertLineBreak', bubbles:true}));
+        }
+        dispatch('keyup','Enter');
+        break;
+      default:
+        dispatch('keydown', ch);
+        if (isText) {
+          let s = elm.selectionStart, e = elm.selectionEnd;
+          elm.value = elm.value.slice(0,s) + ch + elm.value.slice(e);
+          elm.selectionStart = elm.selectionEnd = s + ch.length;
+          elm.dispatchEvent(new InputEvent('input', {inputType:'insertText', data:ch, bubbles:true}));
+        }
+        dispatch('keyup', ch) ;
+    }
+  }
+}
+
+class KeyboardPanel extends SurfacePanel {
+
+  constructor(cell) {
+    super(cell);
+    // defeat this.body's stylings: we want the this.surface to add padding/margin so
+    // that it has something to grab for detaching/moving
+    this.body.style.padding = "unset" ;
+    this.surface = new Keyboard(this);
+    this.kbFocusListener = null;
+  }
+
+  suppressBrowserKb(elm) {
+    if(!elm?.matches('input,textarea')) return;
+    if(elm.dataset.kbSaved != undefined) return;
+    elm.dataset.kbSaved = elm.getAttribute('inputmode') ?? '';
+    elm.setAttribute('inputmode', 'none');
+  }
+
+  show() {
+    document.querySelectorAll('input,textarea').forEach(elm => this.suppressBrowserKb(elm));
+    this.kbFocusListener = listen(document, 'focus', (e) => this.suppressBrowserKb(e.target), {capture:true});
+    return super.show();
+  }
+
+  hidden() {
+    unlisten(this.kbFocusListener);
+    this.kbFocusListener = null;
+    document.querySelectorAll('[data-kb-saved]').forEach(elm => {
+      let saved = elm.dataset.kbSaved;
+      if(saved) elm.setAttribute('inputmode', saved);
+      else elm.removeAttribute('inputmode');
+      delete elm.dataset.kbSaved;
+    });
+  }
+}
+
+
+class ScreenPanel extends SurfacePanel {
+
+  static pzTarget = null;
+
+  static update(target) {
+    // This sets the (static) target for ScreenPanel pan/zoom operations.
+    ScreenPanel.pzTarget = target || _body_;
+    _panels_.screen?.surface.update();
+  }
+
+  surface = new Pz(this);
+}
+
 
 class SymbolsPanel extends Panel {
 
   static css = css(
     "SymbolsPanel",
-     `.SymbolsPanel__frame {
-        background: var(--panel-header-bg);
-        background-image: var(--panTexture);
-        height: 6em;
-        width: 100%;
-        padding:.8em 0;
-        box-sizing: border-box;
-        margin-bottom: 0.2em;
-        overflow: hidden;
-        border-radius: var(--borderRadius);
-      }
-
-      .SymbolsPanel__sash {
-        font-family:Bravura;
-        position: relative;
-        height:100%;
-        width: max-content;
-        min-width: 100%;
-        padding: 0 0.8em;
-        box-sizing: border-box;
-        display: flex;
-        gap: 0.4em;
-        align-items: flex-start;
-      }
-
-   .SymbolsPanel__symbol {
-      background-color: #f5f5f5;
-      padding: 0 var(--spacing-sm);
+    `
+    .SymbolsPanel__frame {
+      background-color: #fff;
+      background-image:
+        linear-gradient(45deg, #e8e8e8 25%, transparent 25%),
+        linear-gradient(-45deg, #e8e8e8 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #e8e8e8 75%),
+        linear-gradient(-45deg, transparent 75%, #e8e8e8 75%);
+      background-size: 0.5em 0.5em;
+      background-position: 0 0, 0 0.25em, 0.25em -0.25em, -0.25em 0;
+      width: fit-content;
+      padding: 0.25em;
+      box-sizing: border-box;
+      margin-bottom: 0.2em;
+      height: 16em;
+      overflow-y: auto;
+      scrollbar-width: none;
+      border-radius: var(--borderRadius);
+      touch-action: none;
+    }
+    .SymbolsPanel__frame::-webkit-scrollbar {
+      display: none;
+    }
+    .SymbolsPanel__grid {
+      font-family: Bravura;
+      font-size: 2em;
+      display: grid;
+      color: black;
+      grid-template-columns: repeat(6, 1.55em);
+      gap: 2px;
+    }
+    .SymbolsPanel__symbol {
+      width: 1.55em;
+      height: 2em;
+      line-height: 0;
+      padding-top: 1em;
+      box-sizing: border-box;
+      text-align: center;
       border-radius: calc(var(--borderRadius) / 4);
-      opacity: 0.5;
-      height: 100%;
-      line-height: 4.5em;      
+      border: 0.02em solid #d0d0d0;
+      overflow: hidden;
    }
-
    .SymbolsPanel__symbol-active {
-     opacity: 1;
+     background-color: #e0e8fff0;
    }
-
    `);
 
   content = helm(`
-     <div data-tag="body" class="Panel__body" style="width: 13em">
-       <div class="SymbolsPanel__frame" data-tag="frame">
-         <div class="SymbolsPanel__sash" data-tag="sash"></div>
+     <div data-tag="body" class="Panel__body">
+       <div class="SymbolsPanel__frame" data-tag="gridFrame">
+         <div class="SymbolsPanel__grid" data-tag="grid"></div>
        </div>
-      Symbols Group<br>
-      <select data-tag="groups"></select>
+      <div style="padding-top: var(--spacing-sm)">Group<div>
+      <div data-tag="select"></div>
       <div data-tag="picker"></div>
       <div data-tag="staffSpace"></div>
       <div style="margin: var(--spacing-md); height: 2.5em; display: flex; align-items: center; justify-content: center;"><a href="https://www.w3.org/2021/03/smufl14/" rel="noopener noreferrer">SMuFL</a></div>
@@ -1991,57 +2930,65 @@ class SymbolsPanel extends Panel {
     this.body.replaceWith(this.content);
     Object.assign(this, dataIndex("tag", this.content));
     let stash = cell.stash;
-    for (let group of Object.keys(smuflTable)) {
-      this.groups.append(
-        helm(
-          `<option ${
-            stash.group == group ? "selected" : ""
-          }>${group}</option>`
-        )
-      );
-    }
 
-    listen(this.groups, "change", () => {
-      clearChildren(this.sash);
-      for (let codePoint of smuflTable[this.groups.value]) {
-        let symbol = helm(
-          `<div class="SymbolsPanel__symbol ${codePoint == stash.codePoint ? "SymbolsPanel__symbol-active": "" }">${codePoint}</div>`
-        );
-        this.sash.append(symbol);
-        this.sash.style.left = "0";
-        stash.group = this.groups.value;
-      }
-    });
+    // Create a Select (similar to an html <select>)
+    let select = new Select(Object.keys(smuflTable), stash.group, this) ;
+    this.select.replaceWith(select.elm) ;
+    this.select = select ;
 
-    this.groups.dispatchEvent(new Event("change"));
+    listen(select.toggle, "SELECTED", (e) => {
+       let key = stash.group = e.detail;
+       let glyphs = (key == "Recent")
+         ? Object.entries(stash.recent).sort((a, b) => b[1] - a[1]).map(([glyph]) => glyph)
+         : smuflTable[key]; 
+       clearChildren(this.grid) ;
+       for (let codePoint of glyphs) {
+         this.grid.append(helm(
+           `<div class="SymbolsPanel__symbol ${codePoint == stash?.codePoint ? "SymbolsPanel__symbol-active" : ""}">${codePoint}</div>`
+         ));
+       }
 
+    }) ;
 
-    listen(this.sash, "pointerdown", (e) => { 
-      this.sash.setPointerCapture(e.pointerId);
-      let fs = parseFloat(getComputedStyle(this.sash).fontSize);
-      let offsetX = e.clientX - this.sash.offsetLeft;
-      let limit = this.sash.offsetWidth - this.frame.offsetWidth;
+    let l1 = listen(this.gridFrame, "pointerdown", (e) => {
+      e.taken = true; 
+      this.gridFrame.setPointerCapture(e.pointerId);
+      let startY = e.clientY;
+      let startScrollTop = this.gridFrame.scrollTop;
+      let moved = false;
 
-      let mv = listen(this.sash, "pointermove", (emv) => {
-        let leftPx = clamp(emv.clientX - offsetX, -limit, 0);
-        this.sash.style.left = leftPx / fs + "em";
-         mvmt(e, emv);
+      let mv = listen(this.gridFrame, "pointermove", (emv) => {
+        let dy = emv.clientY - startY;
+        if (!moved && Math.abs(dy) > 4) moved = true;
+        if (moved) this.gridFrame.scrollTop = startScrollTop - dy;
       });
 
-      listen(this.sash, ["pointerup", "pointercancel"], (eup) => {
+      let l2 = listen(this.gridFrame, "pointerup", (eup) => {
         unlisten(mv);
-        if(!e.moved) {
-          let target = document.elementFromPoint(e.clientX, e.clientY);
-          if(target?.classList.contains("SymbolsPanel__symbol")) {
-          Array.from(this.sash.children).forEach((child) => child.classList.remove("SymbolsPanel__symbol-active"));
-            target.classList.add("SymbolsPanel__symbol-active");
-            stash.codePoint = target.textContent;
-           _menu_.activateCell(cell);
+        if (!moved) {
+          let target = document.elementFromPoint(eup.clientX, eup.clientY)
+            ?.closest(".SymbolsPanel__symbol");
+          if (target) {
+            if (target.classList.contains("SymbolsPanel__symbol-active")) {
+              target.classList.remove("SymbolsPanel__symbol-active");
+              target.style.transform = '';
+              target.style.color = '';
+              target.style.opacity = '';
+              stash.codePoint = null;
+            } else {
+              Array.from(this.grid.children).forEach(c => { c.classList.remove("SymbolsPanel__symbol-active"); c.style.transform = ''; c.style.color = ''; c.style.opacity = ''; });
+              target.classList.add("SymbolsPanel__symbol-active");
+              stash.codePoint = target.textContent;
+              stash.recent = mergeRecent(stash.recent || {}, { [stash.codePoint]: _recentSelectPts_ });
+              _menu_.activateCell(cell);
+              this.update();
+            }
           }
-       }
-      }, {once:true});
+        }
+      }, {once: true});
     });
 
+    this.listeners.push(l1);
 
     let picker = new ColorPicker(
         "Color",
@@ -2056,9 +3003,9 @@ class SymbolsPanel extends Panel {
     this.picker.replaceWith(picker.elm);
 
     let staffSpace = new SliderGroup(
-      stash,  { size: { min: 5, max: 40, step: 1, value: 8, msg: "Staff Space: {value} px" }},
+      stash,  { size: { min: 1, max: 40, step: .5, value: 8, msg: "Staff Space: {value}px" }},
       (e, tag, value) => {
-        stash.tag = value;
+        stash[tag] = value;
         this.update();
     });
 
@@ -2067,32 +3014,39 @@ class SymbolsPanel extends Panel {
     this.update();
   }
 
-
   update() {
-    let { alpha, group, rgb, size, height } = this.cell.stash;
-     this.groups.value = group;
-     this.sash.style.color = rgb;
-     this.sash.style.transparency = alpha;
-     this.frame.style.fontSize = (size - 5) / 95 + 1 + "em";
-     let active = _score_.getActiveObject();
-     if (active && active.podiumType == "symbols") {
-       let color = fabric.Color.fromHex(rgb);
-       color.setAlpha(alpha);
-       active.setSelectionStyles({fill: color.toRgba(), fontSize: size * 4 }, 0, active.text.length);
-       active.canvas.requestRenderAll();
+    let {alpha = 1, rgb = '#000000', size = 8 } = this.cell.stash;
+    let activeCell = this.grid.querySelector('.SymbolsPanel__symbol-active');
+    if (activeCell) {
+      activeCell.style.transform = `scale(${size / 8})`;
+      activeCell.style.color = rgb;
+      activeCell.style.opacity = parseFloat(alpha);
+    }
+    let active = _score_.getActiveObject();
+    if (active && active.podiumType == "symbols") {
+      let color = fabric.Color.fromHex(rgb);
+      color.setAlpha(parseFloat(alpha));
+      active.set({ fill: color.toRgba(), fontSize: size * 4 });
+      active.setCoords();
+      active.canvas.requestRenderAll();
     }
   }
+
+  show() {
+    super.show();
+    this.select.toggle.focus();
+  }
+
 }
 
 class PianoPanel extends Panel {
   constructor(cell) {
     super(cell);
+    this.panel.style.maxWidth = "none";
+    this.panel.style.maxHeight = "none";
     this.piano = new Piano(this, cell);
     this.body.replaceWith(this.piano.elm);
-    this.panel.style.width =
-      innerWidth / _pxPerEm_ / parseFloat(this.elm.style.fontSize) -
-      4 +
-      "em";
+    this.panel.style.width = "95vw";
   }
 
   destructor() {
@@ -2103,13 +3057,36 @@ class PianoPanel extends Panel {
   show() {
     super.show();
     this.piano.show();
-    this.piano.options.style.visibility = this.optionsVisibility ;
+    // Never reveal the options view while it is parked offscreen. A fling-hide
+    // animates for 500ms and then parks the element at top:-9999px; the saved
+    // visibility can be a stale "visible" captured mid-hide. Restoring it onto
+    // the still-parked element strands it offscreen (the monkey's offscreen
+    // invariant catches this). -9999px is exclusively the park sentinel, so an
+    // element sitting there must stay hidden until something repositions it.
+    let o = this.piano.options;
+    o.style.visibility = o.style.top == "-9999px" ? "hidden" : this.optionsVisibility ;
     return this;
   }
 
   hidden() {
     this.optionsVisibility = this.piano.options.style.visibility ;
     this.piano.options.style.visibility = "hidden" ;
+  }
+
+  constrain() {
+    super.constrain();
+    if (this.piano && this.piano.keyboard) {
+      let W = this.panel.clientWidth;
+      let K = this.piano.keyboard.offsetWidth;
+      if (this.piano.keyboardLeft !== undefined && this.piano.keyboardLeft !== null) {
+        if (K > W) {
+          this.piano.keyboardLeft = clamp(this.piano.keyboardLeft, W - K, 0);
+        } else {
+          this.piano.keyboardLeft = (W - K) / 2;
+        }
+        this.piano.keyboard.style.left = this.piano.keyboardLeft + "px";
+      }
+    }
   }
 }
 
@@ -2217,134 +3194,17 @@ class PrintPanel extends Panel {
       last: {min:1, max:props.last, step:1, value:props.last,  msg: msgCallback},
     });
     this.last.replaceWith(this.lastSlider.elm);
-    listen(_body_, "NUMBERS", (e) => {
+    this.listeners.push(listen(_body_, "NUMBERS", (e) => {
       this.firstSlider.defs.first.max = this.lastSlider.defs.last.max = _score_.pgs.length;
       props.last  = Math.min(_score_.pgs.length, props.last);
       props.first  = Math.min(_score_.pgs.length, props.first);
       this.firstSlider.refresh();
       this.lastSlider.refresh();
-    });
+    }));
   }
 
 }
 
-
-class ImportPanel extends Panel {
-
-  static css = css(
-    "ImportPanel", 
-     `.ImportPanel__frame {
-        background-image: var(--panTexture);
-        height: 6em;
-        width: 100%;
-        padding:.8em 0;
-        box-sizing: border-box;
-        margin-bottom: 0.2em;
-        overflow: hidden;
-        border-radius: var(--borderRadius);
-      }
-      
-      .ImportPanel__sash {
-        position: relative;
-        height:100%;
-        width: max-content;
-        min-width: 100%;
-        padding: 0 0.8em;
-        box-sizing: border-box;
-        display: flex;
-        gap: 0.8em;
-        align-items: flex-start;
-      }
-   `);
-
-  content = helm(`
-     <div data-tag="body" class="Panel__body">
-       <div class="ImportPanel__frame" data-tag="frame">
-         <div class="ImportPanel__sash" data-tag="sash"></div>
-       </div>
-       <div data-tag="buttons" style="border-top: 1px solid var(--color-border);"></div>
-     </div>
-   `);
-
-  constructor(cell) {
-    super(cell);
-
-    this.body.replaceWith(this.content);
-    Object.assign(this, dataIndex("tag", this.content));
-
-    listen(this.sash, "pointerdown", (e) => { 
-      this.sash.setPointerCapture(e.pointerId);
-      let fs = parseFloat(getComputedStyle(this.sash).fontSize);
-      let offsetX = e.clientX - this.sash.offsetLeft;
-      let limit = this.sash.offsetWidth - this.frame.offsetWidth;
-      let mv = listen(this.sash, "pointermove", (emv) => {
-        let leftPx = clamp(emv.clientX - offsetX, -limit, 0);
-        this.sash.style.left = leftPx / fs + "em";
-      });
-      listen(this.sash, "pointerup", (eup) => {
-        unlisten(mv);
-      }, { once: true });
-    });
-
-    let buttons = new ButtonGroup({}, {
-        Clear: { svg: "Cancel" },
-        Undo: { svg: "Undo" },
-      },
-      async (e, tag, value) => {
-        if(value == "Clear") await _podPb_.pgClear();
-        else if(value == "Undo") await _podPb_.pgPop();
-        delay(10, () => {
-          // We don't have a button type for "one shot" (button causes
-          // handler to run, but immediately goes back to initial state),
-          // can easily simulate it:
-          delete buttons.props[value]; 
-          buttons.refresh();
-        });
-      }
-    );
-    buttons.elm.style.borderTop = ".02em solid var(--color-border)";   
-    this.buttons.replaceWith(buttons.elm);
-
-    listen(_body_, "SHAREDBUFFER", async (e) => {
-      _shade_.show("Building...");
-      let score = await _podPb_.getScore();
-      let thumbs = [];
-      for(let pg of score.pgs) thumbs.push(await pg.getThumbElm(true));
-      _shade_.hide();
-      clearChildren(this.sash);
-      if(thumbs.length > 0) { 
-        _menu_.enableCells("page/import",true) ;
-        this.sash.style.fontSize = "1em"; // reset to known "baseline"
-        reflow();
-        thumbs.forEach((thumb) => this.sash.append(thumb));
-        this.sash.style.fontSize = this.sash.offsetHeight / thumbs[0].offsetHeight   + "em";
-        let frameWidth = pxToEm(this.frame.offsetWidth, this.sash);
-        let sashWidth = pxToEm(this.sash.offsetWidth, this.sash);
-        this.sash.style.left = frameWidth;
-        reflow();
-        this.sash.style.transition = `left ${_gs_}ms`;
-        this.sash.style.left = parseFloat(frameWidth) - parseFloat(sashWidth) - .8 + "em";
-        delayMs(_gs_, () => this.sash.style.transition = "unset");
-        buttons.defs.Undo.disabled = false;
-        buttons.defs.Clear.disabled = false;
-      }
-      else {
-        _menu_.enableCells("page/import", false);
-        if (_menu_.activeRing?.activeCell === _menu_.rings.page.cells.paste)
-          _menu_.activateCell(null);
-        buttons.defs.Undo.disabled = true;
-        buttons.defs.Clear.disabled = true;
-      }
-      buttons.refresh() ;
-    })
-  }
-
-  show() {
-    super.show(() => _podPb_.announce());
-    return this;
-  }
-
-}
 
 class StopwatchPanel extends Panel {
   static css = css(
@@ -2390,7 +3250,7 @@ class StopwatchPanel extends Panel {
         if (tag == "Start") stopWatch.start();
         else if (tag == "Stop") stopWatch.stop();
         else if (tag == "Split") stopWatch.split();
-        else if (tag == "Reset") stopWatch.reset();
+        else if (tag == "Reset") stopWatch.reset(); 
       }
     );
     this.options.replaceWith(this.optionsGroup.elm);
@@ -2407,128 +3267,6 @@ class StopwatchPanel extends Panel {
     super.show();
     this.stopWatch.show();
     return this;
-  }
-}
-
-class EditPanel extends Panel {
-
-  content = helm(`
-    <div data-tag="body" class="Panel__body" style="min-width: 15em;">
-      <div data-tag="noSelection" style="padding: 1em; text-align: center; color: #888;">
-        No object selected
-      </div>
-      <div data-tag="slidersContainer" style="display: none;">
-        <div data-tag="objectType" style="text-align: center; font-weight: bold; margin-bottom: 0.5em;"></div>
-      </div>
-    </div>`);
-
-  // Props object that syncs with the active fabric object
-  editProps = { x: 0, y: 0, width: 100, height: 100, angle: 0 };
-
-  slidersDef = {
-    x: { min: 0, max: 1000, step: .1, value: 0, msg: "X: {value} px" },
-    y: { min: 0, max: 1000, step: .1, value: 0, msg: "Y: {value} px" },
-    width: { min: 1, max: 1000, step: .1, value: 100, msg: "Width: {value} px" },
-    height: { min: 1, max: 1000, step: .1, value: 100, msg: "Height: {value} px" },
-    angle: { min: 0, max: 360, step: .1, value: 0, msg: "Angle: {value}°" },
-  };
-
-  constructor(cell) {
-    super(cell);
-    this.body.replaceWith(this.content);
-    Object.assign(this, dataIndex("tag", this.content));
-
-    this.sliderGroup = new SliderGroup(
-      this.editProps,
-      this.slidersDef,
-      (e, tag, value) => this.handleSliderChange(tag, Number(value))
-    );
-    this.slidersContainer.append(this.sliderGroup.elm);
-  }
-
-  handleSliderChange(tag, value) {
-    let obj = this.getActiveObject();
-    if (!obj) return;
-
-    switch (tag) {
-      case 'x': obj.set('left', value); break;
-      case 'y': obj.set('top', value); break;
-      case 'width': obj.set('scaleX', value / obj.width); break;
-      case 'height': obj.set('scaleY', value / obj.height); break;
-      case 'angle': obj.set('angle', value); break;
-    }
-    obj.setCoords();
-    obj.canvas?.requestRenderAll();
-  }
-
-  getActiveObject() {
-    return _score_?.getActiveObject();
-  }
-
-  getObjectTypeName(obj) {
-    if (!obj) return "";
-    if (obj.type == "activeSelection") {
-      let types = obj.getObjects().map(o => this.getObjectTypeName(o));
-      let unique = [...new Set(types)];
-      return unique.length == 1 ? `${unique[0]}s (${types.length})` : `Mixed (${types.length})`;
-    }
-    if (obj.podiumType == "text") return "Text";
-    if (obj.podiumType == "symbols") return "Symbol";
-    if (obj.podiumType == "podPath") return "Path";
-    if (obj.type == "group") return "Rastrum";
-    if (obj.type == "path") return "Path";
-    if (obj.type == "image") return "Image";
-    return obj.type || "Object";
-  }
-
-  show() {
-    super.show();
-    this.refresh();
-    // Poll for selection changes while panel is visible
-    this.pollInterval = setInterval(() => {
-      if (this.elm.style.visibility !== 'visible') {
-        clearInterval(this.pollInterval);
-        return;
-      }
-      this.refresh();
-    }, 200);
-    return this;
-  }
-
-  hide() {
-    if (this.pollInterval) clearInterval(this.pollInterval);
-    super.hide();
-    return this;
-  }
-
-  refresh() {
-    let obj = this.getActiveObject();
-    if (!obj) {
-      this.noSelection.style.display = 'block';
-      this.slidersContainer.style.display = 'none';
-      return;
-    }
-    this.noSelection.style.display = 'none';
-    this.slidersContainer.style.display = 'block';
-
-    // Display object type
-    this.objectType.textContent = this.getObjectTypeName(obj);
-
-    let canvas = obj.canvas;
-    // Update slider ranges based on canvas size
-    this.slidersDef.x.max = canvas.width;
-    this.slidersDef.y.max = canvas.height;
-    this.slidersDef.width.max = canvas.width;
-    this.slidersDef.height.max = canvas.height;
-
-    // Update props from fabric object
-    this.editProps.x = Math.round(obj.left);
-    this.editProps.y = Math.round(obj.top);
-    this.editProps.width = Math.round(obj.getScaledWidth());
-    this.editProps.height = Math.round(obj.getScaledHeight());
-    this.editProps.angle = Math.round(obj.angle);
-
-    this.sliderGroup.refresh();
   }
 }
 
@@ -2549,8 +3287,7 @@ class MagnifyPanel extends Panel {
 
     this.sliderGroup = new SliderGroup(
       cell.stash,
-      {
-        zoom: { throttle: 100, min: 0.25, max: 5, step: 0.05, value: 1, msg: "Zoom: {value}x" },
+      { zoom: { throttle: 100, min: 0.25, max: 5, step: 0.05, value: 1, msg: "Zoom: {value}x" },
       },
       (e, tag, value) => {
         _menu_.magnifier.zoom = Number(value);
@@ -2592,8 +3329,10 @@ class MagnifyPanel extends Panel {
     if (!pg?.canvas) return;
 
     let canvas = pg.canvas;
-    let zoom = _menu_.magnifier.zoom;
+    let zoom = window._menu_.magnifier.zoom;
     let destW = 300, destH = 300;
+    let destCSSW = this.magCanvas.clientWidth || 450;
+    let destCSSH = this.magCanvas.clientHeight || 450;
 
     let ctx = this.magCanvas.getContext("2d", { willReadFrequently: true });
     ctx.clearRect(0, 0, destW, destH);
@@ -2604,8 +3343,8 @@ class MagnifyPanel extends Panel {
       let srcH = pg.mozCanvas.height;
       let srcX = fracX * srcW;
       let srcY = fracY * srcH;
-      let sourceW = destW / zoom;
-      let sourceH = destH / zoom;
+      let sourceW = (destCSSW / zoom) * (srcW / pg.width);
+      let sourceH = (destCSSH / zoom) * (srcH / pg.height);
       ctx.drawImage(
         pg.mozCanvas,
         srcX - sourceW/2, srcY - sourceH/2,
@@ -2619,8 +3358,8 @@ class MagnifyPanel extends Panel {
     let fabH = canvas.lowerCanvasEl.height;
     let fabX = fracX * fabW;
     let fabY = fracY * fabH;
-    let fabSourceW = destW / zoom;
-    let fabSourceH = destH / zoom;
+    let fabSourceW = (destCSSW / zoom) * (fabW / pg.width);
+    let fabSourceH = (destCSSH / zoom) * (fabH / pg.height);
     ctx.drawImage(
       canvas.lowerCanvasEl,
       fabX - fabSourceW/2, fabY - fabSourceH/2,
@@ -2635,8 +3374,18 @@ class MagnifyPanel extends Panel {
       fabSourceW, fabSourceH,
       0, 0, destW, destH
     );
+
+    // Draw touch point indicator (crosshair at center of panel)
+    ctx.strokeStyle = "rgba(255, 0, 0, 0.5)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(destW / 2 - 10, destH / 2);
+    ctx.lineTo(destW / 2 + 10, destH / 2);
+    ctx.moveTo(destW / 2, destH / 2 - 10);
+    ctx.lineTo(destW / 2, destH / 2 + 10);
+    ctx.stroke();
   }
-9
+
   destructor() {
     super.destructor();
     // Release magnifier hold on the page
@@ -2645,7 +3394,76 @@ class MagnifyPanel extends Panel {
   }
 }
 
-let panels = {
+class CurtainSurface extends Surface {
+
+  content = helm(`
+    <div data-tag="surfaceContent" class="Surface__outline">
+      <div data-tag="sliderProxy"></div>
+      <div data-tag="buttonProxy"></div>
+    </div>`) ;
+
+  constructor(panel) {
+    super(panel, ScreenPanel);
+    Object.assign(this, dataIndex("tag", this.content)) ;
+    let stash = panel.cell.stash;
+
+    this.colorGroup = new ButtonGroup(stash, {
+      Black: { svg: "Curtain Black", radio: "color" },
+      Red:   { svg: "Curtain Red",   radio: "color" },
+      },
+      (e, prop, val) => {
+        if(!_curtain_.on) _curtain_.toggle();
+        _curtain_.update();
+      }
+    );
+    this.colorGroup.elm.addEventListener('pointerdown', e => e.stopPropagation());
+    this.buttonProxy.replaceWith(this.colorGroup.elm) ;
+
+    this.slider = new SliderGroup(stash,
+      { alpha: { min: 0, max: 100, step: 1, throttle: 50, value: 60, msg: (tag, value) =>
+          `Curtain: ${Math.trunc(value)}%`
+      }},
+      (e, tag, value) => {
+        if(!_curtain_.on) _curtain_.toggle();
+        _curtain_.update();
+      }
+    );
+    this.sliderProxy.replaceWith(this.slider.elm) ;
+    panel.body.style.minWidth = panel.body.style.padding = "unset"; // defeat default body styles
+    this.surface.style.width = this.content.style.width = "10em";
+    this.surface.style.height = this.content.style.height = "10em";
+    this.surface.append(this.content) ;
+    panel.elm.style.zIndex = this.surface.style.zIndex = getComputedStyle(_curtain_.curtain).zIndex ;
+    delay(2, () => this.slider.refresh());
+  }
+
+}
+
+class CurtainPanel extends Panel {
+
+  constructor(cell) {
+    super(cell);
+    this.surface = new CurtainSurface(this) ;
+  }
+
+  destructor() {
+    super.destructor();
+    this.surface.destructor();
+  }
+
+  show() {
+    super.show();
+    this.surface.show();
+    return this;
+  }
+
+  hide() {
+    super.hide();
+    this.surface.hide();
+  }
+}
+
+let panels = window._panels_ = {
   // This structure maps every Panel to its class.
   // Panels are instantiated on demand, and the
   // singletons are stored here as well, keyed by
@@ -2653,6 +3471,7 @@ let panels = {
   // minus the "Panel" portion, and starting with
   // lowercase. ex: GridPanel -> grid: instance
   Panel,
+  AboutPanel,
   AddPanel,
   BookPanel,
   ClockPanel,
@@ -2661,13 +3480,14 @@ let panels = {
   DetailsPanel,
   GridPanel,
   HorizontalPanel,
-  AboutPanel,
   MagnifyPanel,
+  MergePanel,
   MetronomePanel,
   NewPanel,
   NumbersPanel,
   OpenPanel,
   ImportPanel,
+  KeyboardPanel,
   PencilPanel,
   PenPanel,
   PianoPanel,
@@ -2675,6 +3495,7 @@ let panels = {
   RastrumPanel,
   ReviewPanel,
   SavePanel,
+  ScreenPanel,
   StoragePanel,
   StopwatchPanel,
   TextPanel,
@@ -2682,5 +3503,6 @@ let panels = {
   SymbolsPanel,
   TablePanel,
   VerticalPanel,
+  CurtainPanel,
   VolumePanel,
 };

@@ -34,6 +34,7 @@ A Chrome/Edge browser extension is available for opening PDF scores directly fro
 
 - **App**: https://studiop5.org/podium
 - **Guidebook**: https://studiop5.org/Guidebook.html
+- **Release Notes**: https://studiop5.org/releaseNotes.html
 - **Privacy**: https://studiop5.org/privacy.html
 - **Terms**: https://studiop5.org/terms.html
 
@@ -43,7 +44,9 @@ A Chrome/Edge browser extension is available for opening PDF scores directly fro
 
 - Python 3.x
 - openssl (for SSL certificate generation)
-- ffmpeg (optional, for audio sample processing)
+- ffmpeg (optional, for piano sample processing)
+- emcc (Emscripten compiler, for YIN pitch detector worklet)
+- cairosvg or ImageMagick (optional, for PWA icon generation)
 
 ### Development Server
 
@@ -74,7 +77,7 @@ This project uses a custom Python-based build system.
 | `python3 build.py --guide` | Build Guidebook keyword index |
 | `python3 build.py --font` | Build font assets (embeds Bravura.otf as base64) |
 | `python3 build.py --sample` | Build piano samples (requires ffmpeg) |
-| `python3 build.py --yin` | Build pitch detection worklet |
+| `python3 build.py --yin` | Build pitch detection worklet (requires emcc) |
 | `python3 build.py --cert` | Generate SSL certificate (requires openssl) |
 | `python3 build.py --clean` | Clean build artifacts |
 

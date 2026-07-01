@@ -33,6 +33,9 @@ the Bravura font is used, but theoretically this mechanism will work for any any
 // -skip
 
 let smuflTable = {
+  "Recent": "",
+  "Basic": "",
+  "Signatures": "",
   "4.1. Staff brackets and dividers": "",
   "4.2. Staves": "",
   "4.3. Barlines": "",
@@ -58,11 +61,11 @@ let smuflTable = {
   "4.23. Johnston accidentals (just intonation)": "",
   "4.24. Extended Helmholtz-Ellis accidentals (just intonation)": "",
   "4.25. Spartan Sagittal single-shaft accidentals": "",
-  "4.26. Spartan Sagittal multi-shaft accidentals": "",
+  "4.26. Spartan Sagittal multi-shaft accidentals": "",
   "4.27. Athenian Sagittal extension (medium precision) accidentals": "",
   "4.28. Trojan Sagittal extension (12-EDO relative) accidentals": "",
   "4.29. Promethean Sagittal extension (high precision) single-shaft accidentals": "",
-  "4.30. Promethean Sagittal extension (high precision) multi-shaft accidentals": "",
+  "4.30. Promethean Sagittal extension (high precision) multi-shaft accidentals": "",
   "4.31. Herculean Sagittal extension (very high precision) accidental diacritics": "",
   "4.32. Olympian Sagittal extension (extreme precision) accidental diacritics": "",
   "4.33. Magrathean Sagittal extension (insane precision) accidental diacritics": "",
@@ -110,7 +113,7 @@ let smuflTable = {
   "4.75. Tuplets": "",
   "4.76. Conductor symbols": "",
   "4.77. Accordion": "",
-  "4.78. Beams and slurs": "",
+  // "4.78. Beams and slurs": "", 
   "4.79. Medieval and Renaissance staves": "",
   "4.80. Medieval and Renaissance clefs": "",
   "4.81. Medieval and Renaissance prolations": "",
@@ -130,7 +133,7 @@ let smuflTable = {
   "4.95. Multi-segment lines": "",
   "4.96. Electronic music pictograms": "",
   "4.97. Arrows and arrowheads": "",
-  "4.98. Combining staff positions": "",
+/*  "4.98. Combining staff positions": "", */
   "4.99. Renaissance lute tablature": "",
   "4.100. French and English Renaissance lute tablature": "",
   "4.101. Italian and Spanish Renaissance lute tablature": "",

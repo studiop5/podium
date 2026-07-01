@@ -1,0 +1,39 @@
+{
+  "name": "Podium: Sheet Music Studio",
+  "short_name": "Podium",
+  "description": "A browser-based e-reader for music scores",
+  "start_url": "/podium.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#2d3748",
+  "theme_color": "#000000",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["music", "education", "productivity"],
+  "screenshots": []
+}

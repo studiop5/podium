@@ -12,8 +12,9 @@ import socket
 import sys
 import subprocess
 
+
 if len(sys.argv) == 1:
-   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, yin=True, guide=True, cert=False, clean=False) ;
+   args = argparse.Namespace(verbose=True, font=True, sample=True, podium=True, yin=True, guide=True, cert=False, clean=False, cert_host='') ;
 else:
   parser = argparse.ArgumentParser()
   parser.add_argument('-s','--sample', action='store_true', help='(re)build build/sample.js')
@@ -21,7 +22,8 @@ else:
   parser.add_argument('-p','--podium', action='store_true', help='(re)build build/podium.html')
   parser.add_argument('-y','--yin', action='store_true', help='(re)build build/yin.js')
   parser.add_argument('-g','--guide', action='store_true', help='(re)build guidebook keyword index')
-  parser.add_argument('--certificate', action='store_true', dest='cert', help='(re)build certificate')
+  parser.add_argument('--certificate', '--cert', action='store_true', dest='cert', help='(re)build certificate')
+  parser.add_argument('--cert-host', dest='cert_host', default='', help='comma-separated extra SAN hosts (IPs and/or names) to add to the dev certificate')
   parser.add_argument('-c','--clean', action='store_true', help='clean build artifacts from build/')
   parser.add_argument('-v','--verbose', action='store_true')
   args = parser.parse_args()
@@ -86,26 +88,28 @@ if args.font:
     #      (re)build font.js        #
     #################################
 
-    fontFileName = 'lib/Bravura.otf'
+    # Build the embedded font (build/BravuraText.otf) from pristine lib/BravuraText.otf.
+    from build_font import build_bravura
+    build_bravura()
+
     outFileName = 'build/font.js'
 
     with open(outFileName, 'wb') as outFile:
         outFile.write(b"""
   { window.fontData = {} ;
-    
-    // Store base64 font data once
+
+    // Bravura Text font (registered as "Bravura" for both CSS and PDF embedding)
     const bravuraBase64 = \"""")
 
-        with open(fontFileName,'rb') as inFile:
+        with open('build/BravuraText.otf','rb') as inFile:
             outFile.write(base64.b64encode(inFile.read()))
 
         outFile.write(b"""\";
-    
-    // Load CSS font from the same data
+
     let fontFile = new FontFace("Bravura", "url(data:font/otf;charset=utf-8;base64," + bravuraBase64 + ")");
     document.fonts.add(fontFile);
     await fontFile.load();
-    
+
     // Lazy loading: convert base64 to Uint8Array only when PDF-lib needs it
     window.fontData["Bravura"] = function() {
       if (!this._bytes) {
@@ -471,22 +475,52 @@ if args.podium:
 if(args.cert):
     if shutil.which('openssl') == None:
          sys.exit("Fatal error: creating certificate requires openssl executable in your path.") ;
-    # Discover all LAN IP addresses for the SAN field
-    import subprocess, re
-    lan_ips = set()
+    import subprocess, re, socket
+    # Build the SAN list entirely at runtime, so nothing host-specific is committed:
+    #   - localhost / 127.0.0.1 (always)
+    #   - this machine's short hostname and its <hostname>.local mDNS name
+    #     (an iPad on the same network can resolve .local, and it's stable across DHCP)
+    #   - every current LAN IPv4 address
+    #   - anything passed via --cert-host (comma-separated IPs and/or names)
+    dns_names = {"localhost"}
+    ip_addrs  = {"127.0.0.1"}
+    host = socket.gethostname().split('.')[0]
+    if host: dns_names |= {host, host + ".local"}
     try:
-        result = subprocess.run(['ip', '-4', '-o', 'addr', 'show'], capture_output=True, text=True)
-        for match in re.finditer(r'inet (\d+\.\d+\.\d+\.\d+)', result.stdout):
-            lan_ips.add(match.group(1))
+        out = subprocess.run(['ip', '-4', '-o', 'addr', 'show'], capture_output=True, text=True).stdout
+        ip_addrs |= set(re.findall(r'inet (\d+\.\d+\.\d+\.\d+)', out))
     except: pass
-    lan_ips -= {'127.0.0.1'}
-    san = "DNS:localhost,IP:127.0.0.1" + "".join(f",IP:{ip}" for ip in sorted(lan_ips))
+    for entry in filter(None, (h.strip() for h in args.cert_host.split(','))):
+        (ip_addrs if re.fullmatch(r'\d+\.\d+\.\d+\.\d+', entry) else dns_names).add(entry)
+    san = ",".join([f"DNS:{n}" for n in sorted(dns_names)] + [f"IP:{ip}" for ip in sorted(ip_addrs)])
     print(f"  Certificate SAN: {san}")
-    os.system('openssl req -newkey rsa:2048 -new -nodes -x509 -days 825 '
-               '-keyout key.pem -out cert.pem '
-               '-subj "/CN=Podium Dev Server" '
-              f'-addext "subjectAltName={san}" '
-               '-addext "extendedKeyUsage=serverAuth"') ;
+
+    # Persistent local development CA. Install devCA.pem on each test device ONCE
+    # (iPad: get the file onto it, then Settings > General > VPN & Device Management
+    # to install the profile, and Settings > General > About > Certificate Trust
+    # Settings to enable full trust). The leaf below is signed by it, so you can
+    # re-run --cert any time (new IP, new --cert-host) WITHOUT re-touching the device.
+    if not (os.path.exists('devCA.pem') and os.path.exists('devCA-key.pem')):
+        print("  Creating local dev CA -> devCA.pem  (install this on your test devices)")
+        os.system('openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -sha256 '
+                  '-keyout devCA-key.pem -out devCA.pem -subj "/CN=Podium Dev CA" '
+                  '-addext "basicConstraints=critical,CA:true" '
+                  '-addext "keyUsage=critical,keyCertSign,cRLSign"') ;
+
+    # Leaf cert, signed by the CA. iOS Safari rejects TLS server certs valid for
+    # more than 398 days, so keep it short.
+    with open('cert.ext', 'w') as f:
+        f.write(f"subjectAltName={san}\n"
+                "basicConstraints=critical,CA:false\n"
+                "keyUsage=critical,digitalSignature,keyEncipherment\n"
+                "extendedKeyUsage=serverAuth\n")
+    os.system('openssl req -newkey rsa:2048 -nodes -keyout key.pem -out cert.csr '
+              '-subj "/CN=Podium Dev Server"') ;
+    os.system('openssl x509 -req -in cert.csr -CA devCA.pem -CAkey devCA-key.pem '
+              '-CAcreateserial -days 397 -sha256 -out cert.pem -extfile cert.ext') ;
+    for tmp in ('cert.csr', 'cert.ext'):
+        if os.path.exists(tmp): os.remove(tmp)
+    print("  Wrote cert.pem + key.pem (leaf signed by devCA.pem).")
 
 if args.guide:
     #####################################################
@@ -506,28 +540,30 @@ if args.guide:
     CURATED_KEYWORDS = {
         "Annotations": ["chapter-6", "chapter-1"],
         "Aspect ratio": ["chapter-6-edit"],
-        "Bookmarks": ["chapter-5-book", "chapter-5-horizontal", "chapter-5-table"],
+        "Bookmarks": ["chapter-5-bookmarks"],
         "Bravura font": ["chapter-6-symbols"],
         "Browser extension": ["chapter-2"],
         "Browser tab naming": ["chapter-3"],
-        "Cell auto-deactivation": ["chapter-3"],
-        "Cell locking": ["chapter-3", "chapter-6"],
+        "Cell auto-deactivation": ["chapter-3-auto-deactivation"],
+        "Cell locking": ["chapter-3-cell-locking", "chapter-6"],
         "Cloud storage": ["chapter-4-open-save"],
         "Color chooser": ["chapter-6-pen-pencil", "chapter-7-add"],
         "Conducting patterns": ["chapter-9-metronome"],
         "Cross-instance sharing": ["chapter-7-export-import"],
         "CSS pixels": ["chapter-5-book", "chapter-5-horizontal"],
         "Dark theme": ["chapter-8-theme"],
+        "Delcamp": ["chapter-2"],
         "Display quality": ["chapter-4-details"],
         "Drag and drop": ["chapter-4-open-save"],
         "Dropbox": ["chapter-4-open-save"],
         "E-reader": ["overture"],
         "Equal temperament": ["chapter-9-piano"],
         "Expand mode": ["chapter-4-details"],
+        "Export": ["chapter-7-export-import"],
         "File System Access API": ["chapter-4-open-save"],
         "Firefox settings": ["firefox-settings"],
-        "Fling gesture": ["chapter-3", "chapter-5-book"],
-        "Footpedal": ["chapter-7-numbers"],
+        "Fling gesture": ["chapter-3", "chapter-5-page-turning"],
+        "Foot pedal": ["chapter-2-foot-pedal", "chapter-7-numbers"],
         "Full screen": ["chapter-8-screen", "chapter-3"],
         "Gestures": ["chapter-3"],
         "Google Drive": ["chapter-4-open-save"],
@@ -535,6 +571,7 @@ if args.guide:
         "Group selection": ["chapter-6-edit"],
         "Images, importing": ["chapter-6-cut-copy-paste"],
         "IMSLP": ["chapter-2"],
+        "Import": ["chapter-7-export-import"],
         "Inner ring": ["chapter-3"],
         "Installation": ["chapter-2"],
         "Keyboard shortcuts": ["chapter-7-numbers"],
@@ -543,11 +580,13 @@ if args.guide:
         "Live mode": ["chapter-9-review"],
         "Local storage": ["chapter-8-storage"],
         "Long press": ["chapter-3"],
-        "Manuscript paper": ["chapter-7-merge", "chapter-6-rastrum"],
+        "Magnify": ["chapter-7-magnify"],
+        "Manuscript paper": ["chapter-7-flatten", "chapter-6-rastrum"],
+        "Merge": ["chapter-7-merge"],
         "Metadata": ["chapter-4-details"],
         "Microphone": ["chapter-9-review", "chapter-9-piano"],
         "Mouse controls": ["chapter-3"],
-        "Musopen": ["chapter-2"],
+        "CPDL": ["chapter-2"],
         "Navigation": ["chapter-1", "chapter-5-book"],
         "Offline use": ["chapter-2"],
         "OneDrive": ["chapter-4-open-save"],
@@ -558,7 +597,8 @@ if args.guide:
         "Page ordering": ["chapter-5-table"],
         "Page range": ["chapter-4-print"],
         "Page sizing": ["chapter-4-details"],
-        "Page turn": ["chapter-5-book"],
+        "Page Turning": ["chapter-5-page-turning"],
+        "Pager": ["chapter-5-page-turning"],
         "Password-protected PDF": ["chapter-4-open-save"],
         "Paste buffer": ["chapter-7-export-import"],
         "PDF files": ["chapter-4-open-save", "overture"],
@@ -569,7 +609,7 @@ if args.guide:
         "Precision sliders": ["chapter-6-edit"],
         "Print": ["chapter-4-print"],
         "Privacy": ["chapter-7-export-import", "chapter-8-storage"],
-        "Progressive Web App": ["chapter-2"],
+        "Progressive Web App (PWA)": ["chapter-2"],
         "Recent files": ["chapter-4-open-save", "chapter-8-storage"],
         "Recording": ["chapter-9-review"],
         "Reorder pages": ["chapter-5-table"],
@@ -588,7 +628,7 @@ if args.guide:
         "Staff space": ["chapter-6-rastrum", "chapter-6-symbols"],
         "Staves": ["chapter-6-rastrum"],
         "Sustain mode": ["chapter-9-piano"],
-        "Symbol library": ["chapter-6-edit"],
+        "Symbol library": ["chapter-6-symbols"],
         "Tablature": ["chapter-6-rastrum"],
         "Temperament": ["chapter-9-piano"],
         "Timbre": ["chapter-9-piano"],
@@ -603,20 +643,43 @@ if args.guide:
     with open(GUIDEBOOK_PATH, 'r', encoding='utf-8') as f:
         guide_html = f.read()
 
-    # Extract headings with IDs -> (anchor_id, section_label, heading_text)
+    # Extract headings in order of appearance -> (anchor_id, section_label, heading_text)
     headings = []
-    for m in _re.finditer(r'<section\s+id="([^"]+)"[^>]*>\s*<h2>(.+?)</h2>', guide_html):
-        aid, text = m.group(1), m.group(2)
-        if aid == 'overture':
-            headings.append((aid, 'Overture', text))
-        else:
-            ch = _re.match(r'Chapter (\d+)', text)
-            if ch:
-                headings.append((aid, f'Ch.{ch.group(1)}', text))
-    for m in _re.finditer(r'<h3\s+id="([^"]+)">(\d+\.\d+)\s+.+?:\s+(.+?)</h3>', guide_html):
-        headings.append((m.group(1), m.group(2), m.group(3)))
-    for m in _re.finditer(r'<h4\s+id="([^"]+)">(.+?)</h4>', guide_html):
-        headings.append((m.group(1), '4.1', m.group(2)))
+    current_chapter_label = 'Ch.1'
+    current_section_label = 'Ch.1'
+
+    pattern = (
+        r'<section\s+id="([^"]+)"[^>]*>\s*<h2>(.+?)</h2>|'
+        r'<h3\s+id="([^"]+)">(\d+\.\d+)\s+(?:.+?:\s+)?(.+?)</h3>|'
+        r'<h4\s+id="([^"]+)">(.+?)</h4>'
+    )
+
+    for m in _re.finditer(pattern, guide_html):
+        if m.group(1) is not None:
+            # h2 / section
+            aid, text = m.group(1), m.group(2)
+            # Remove HTML tags to parse chapter name correctly
+            clean_text = _re.sub(r'<[^>]+>', '', text).strip()
+            if aid == 'overture':
+                label = 'Overture'
+            elif aid == 'chapter-10':
+                label = 'Ch.10'
+            else:
+                ch = _re.match(r'Chapter (\d+)', clean_text)
+                label = f'Ch.{ch.group(1)}' if ch else 'Ch.1'
+            current_chapter_label = label
+            current_section_label = label
+            headings.append((aid, label, clean_text))
+        elif m.group(3) is not None:
+            # h3
+            aid, label, text = m.group(3), m.group(4), m.group(5)
+            # Keep raw text (with HTML/SVG) to preserve icons
+            current_section_label = label
+            headings.append((aid, label, text))
+        elif m.group(6) is not None:
+            # h4
+            aid, text = m.group(6), m.group(7)
+            headings.append((aid, current_section_label, text))
 
     section_labels = {h[0]: h[1] for h in headings}
 
@@ -636,25 +699,45 @@ if args.guide:
             if len(sub) >= 2:
                 heading_terms.setdefault(sub, set()).add(aid)
 
-    # Merge heading terms with curated keywords
+    def strip_html(t):
+        return _re.sub(r'<[^>]+>', '', t).strip()
+
+    # Merge heading terms with curated keywords, normalizing by plain text lowercase
     entries = {}
     for term, anchors in heading_terms.items():
-        entries.setdefault(term, set()).update(anchors)
+        norm_key = strip_html(term).lower()
+        if norm_key in entries:
+            entries[norm_key][1].update(anchors)
+            if '<' in term:
+                entries[norm_key][0] = term
+        else:
+            entries[norm_key] = [term, set(anchors)]
+
     for term, anchors in CURATED_KEYWORDS.items():
-        entries.setdefault(term, set()).update(anchors)
+        norm_key = strip_html(term).lower()
+        if norm_key in entries:
+            entries[norm_key][1].update(anchors)
+            if '<' in term:
+                entries[norm_key][0] = term
+        else:
+            entries[norm_key] = [term, set(anchors)]
+
+    # Reconstruct the final entries dictionary
+    final_entries = {item[0]: item[1] for item in entries.values()}
 
     # Validate anchor references
     all_ids = set(_re.findall(r'id="([^"]+)"', guide_html))
-    for term, anchors in entries.items():
+    for term, anchors in final_entries.items():
         for anchor in anchors:
             if anchor not in all_ids:
                 print(f'  WARNING: index keyword "{term}" references missing anchor #{anchor}', file=sys.stderr)
 
     # Generate index HTML
-    sorted_terms = sorted(entries.keys(), key=lambda t: t.lower())
+    sorted_terms = sorted(final_entries.keys(), key=lambda t: strip_html(t).lower())
     groups = {}
     for term in sorted_terms:
-        groups.setdefault(term[0].upper(), []).append(term)
+        first_letter = strip_html(term)[0].upper()
+        groups.setdefault(first_letter, []).append(term)
 
     lines = [INDEX_BEGIN, '<nav id="keyword-index">', '    <style>',
         '        #keyword-index h2 { border-bottom: none; margin-top: 0; }',
@@ -677,7 +760,7 @@ if args.guide:
         lines.append(f'    <div class="idx-letter">{letter}</div>')
         lines.append('    <dl>')
         for term in groups[letter]:
-            sorted_anchors = sorted(entries[term], key=lambda a: section_labels.get(a, a))
+            sorted_anchors = sorted(final_entries[term], key=lambda a: section_labels.get(a, a))
             refs = ', '.join(f'<a href="#{a}">{section_labels.get(a, a)}</a>' for a in sorted_anchors)
             lines.append(f'        <dt>{term}</dt><dd> &mdash; {refs}</dd>')
         lines.append('    </dl>')

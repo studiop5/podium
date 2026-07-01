@@ -20,10 +20,10 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { clamp, clearChildren, delay, dialog, fontUnmap, helm, inflate, rotatePoint } from "./common.js";
+import { clamp, clearChildren, delay, dialog, fontUnmap, helm, inflate, rotatePoint, toast } from "./common.js";
 import { Grid } from "./canvas.js";
 import { Layout } from "./layout.js";
-import { panels } from "./panel.js";
+import { panels, EditPanel } from "./panel.js";
 export { Grid, Pg, Score };
 
 // -skip
@@ -87,7 +87,7 @@ class Pg {
     this.score = score;
     this.height = height;
     this.json = json;
-    this.mozCanvas = null; 
+    this.mozCanvas = null;
     this.mozPn = mozPn;
     this.stretch = 1; // iff score.pgFit == "Expand", will stretch pg to fit math.min(score.max,score.min)
     this.thumbUrl = null;
@@ -104,7 +104,7 @@ class Pg {
     // referenced as this.mozCanvas (short for mozilla pdf library
     // canvas). The code could have rendered the pdf directly into
     // the fabricjs as a fabric "background image", but that route
-    // was found to have poorer resolution that using a decicated
+    // was found to have poorer resolution than using a dedicated
     // dom canvas, sigh.
     if(!this.score.mozDoc) return;
     let mozPg = await this.score.mozDoc.getPage(this.mozPn);
@@ -119,11 +119,22 @@ class Pg {
     this.mozCanvas = mozCanvas;
     let ctx = mozCanvas.getContext("2d", { willReadFrequently: true });
     await mozPg.render({
-      // render *without* annotations
       annotationMode: pdfjsLib.AnnotationMode.DISABLE,
       canvasContext: ctx,
       viewport: viewport,
     }).promise;
+
+    // Detect silently-broken PDFs (e.g. non-standard compression or missing fonts).
+    // These trigger the onUnsupportedFeature callback during loading or rendering.
+    if (this.mozPn == 1 && !this.score._brokenPDFWarned && this.score._unsupportedFeatures?.size > 0) {
+      let unsupported = window.pdfjsLib.UNSUPPORTED_FEATURES;
+      let fatal = [unsupported?.font, unsupported?.jbig2, unsupported?.jpeg2000].filter(v => v !== undefined);
+      if (Array.from(this.score._unsupportedFeatures).some(f => fatal.includes(f))) {
+        this.score._brokenPDFWarned = true;
+        dialog("Warning: This PDF uses advanced features (e.g. non-native compression or fonts) that may not be fully supported in a web browser and may not render correctly.", { OK: { svg: "OK" } });
+      }
+    }
+
     this.rendering = false;
     this.setZoom(this.zoom);
   }
@@ -152,22 +163,26 @@ class Pg {
       this.deferred = true;
       this.canvas = helm(`<div style="text-align:center;color:#eee;background:white;font-family:Bravura"><div style="font-size:5em;">\uE4C4<div></div>`);
       this.elm = this.canvas;
-      this.elm.pg = this; // convenience for accesing pg from dom
+      this.elm.pg = this; // backref on the placeholder too: it's mounted into layouts
+        // immediately, while the real canvas (which also sets .pg) only replaces it
+        // later in the background. Without this, a concurrent ScrollLayout.pgMount
+        // iterating the sash finds a .pg-less child \u2192 pgUnuse(undefined) crash.
       this.style = this.elm.style; // convenient shorthand
       this.inflatePromise = this.inflateAux(render).catch(err => {
         if(err.name == 'AbortError') return; // no error: expected
         console.warn(`Failed to background load/render page ${this.mozPn}:`, err)});
-    } else await this.inflateAux(render);
+    } else await this.inflateAux(render).catch(err => {
+      if(err.name == 'AbortError') return; // no error: expected (nav/layout change cancelled the inflate)
+      throw err;
+    });
   }
 
   async inflateAux(render) {
     try {
-
       let signal = this.inflateCtrl?.signal;
       let checkAbort = () => { if(signal?.aborted)
         throw new DOMException("Inflation aborted","AbortError");}
       checkAbort();
-  
       if(!this.inUse) { // yield to inUse pages
          await new Promise(resolve => delay(1, resolve));
          checkAbort();
@@ -175,7 +190,7 @@ class Pg {
   
       // If indicated, determine scaling factor that will "stretch" score s.t. it
       // will expand pg to fit within score's maxWidth & maxHeight
-      this.stretch = this.score.pgFit == "Expand" ? Math.min(
+      this.stretch = this.score.details?.pgFit == "Expand" ? Math.min(
          this.score.maxWidth / this.width,this.score.maxHeight / this.height) : 1;
   
       let domCanvas = document.createElement("canvas");
@@ -204,11 +219,14 @@ class Pg {
           height: this.height / _pxPerEm_ + "em",
       }, { cssOnly: true } );
   
-      if (this.json) await new Promise((resolve, reject) => 
-        canvas.loadFromJSON(this.json, () => resolve()));
+      if (this.json) {
+        await new Promise((resolve, reject) =>
+          canvas.loadFromJSON(this.json, () => resolve()));
+        Pg.applyFlatten(canvas);
+      }
       checkAbort();
-  
-      if (render && this.mozPn) { 
+
+      if (render && this.mozPn) {
          await this.renderPdf(canvas);
          if(signal?.aborted) {
            canvas.dispose();
@@ -234,10 +252,11 @@ class Pg {
         this.deferred = false;
       }
       this.canvas = canvas;
-  
+      this.canvas.pg = this; // convenience for fetching Pg from it's canvas
       let stateChanged = false; // flag to indicate canvas state has changed s.t. it needs to be pushed to the undoStack
   
       canvas.on("mouse:down:before", async (opts) => {
+        opts.e.taken = true ;
         if(_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell)
           _menu_.pgEvent(opts, this);
       });
@@ -248,7 +267,7 @@ class Pg {
         if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell) _menu_.pgUpEvent(opts, this); 
       });
   
-      canvas.on("selection:created", opts => {
+      let onSelection = opts => {
         // Allow dragging selection by clicking anywhere in bounding box, not just pixels
         canvas.perPixelTargetFind = false;
 
@@ -260,12 +279,27 @@ class Pg {
           }
         }
 
-        if (_menu_.activeRing.key == "ink" && ["cut","copy","edit"].includes(_menu_.activeRing.activeCell.key))
+        if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell && ["cut","copy","edit"].includes(_menu_.activeRing.activeCell.key))
          _menu_.pgEvent(opts, this);
+        EditPanel.update(this.canvas.getActiveObject()) ;
+      };
+
+      canvas.on("selection:created", onSelection);
+      canvas.on("selection:updated", onSelection);
+
+      canvas.on('text:editing:entered', (e) => {
+        // text box's cursor can be misaligned without this:
+        if(e.target && e.target.type == 'textbox') {
+          fabric.charWidthsCache = {} ; // clear this cache
+          e.target.initDimensions() ;
+          e.target.setCoords();
+          e.target.selectionStart = e.target.selectionStart;
+        }
       });
 
       canvas.on("selection:cleared", () => {
         canvas.perPixelTargetFind = true;
+        EditPanel.update(null) ;
       });
 
 
@@ -284,9 +318,17 @@ class Pg {
         this.thumbDirty = true;
       };
   
-      canvas.on("object:added", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
-      canvas.on("object:removed", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
-      canvas.on("object:modified", ((obj) => { if(!this.suppressStateChange) stateChanged = true;}));
+      canvas.on("object:added", (opts) => { 
+        if(!this.suppressStateChange) 
+           stateChanged = true;
+      });
+      canvas.on("object:removed", (opts) => {
+        if(!this.suppressStateChange) stateChanged = true;
+      });
+
+      canvas.on("object:modified", (opts) => { 
+        if(!this.suppressStateChange)  stateChanged = true;
+      });
   
       this.inflated = true;
       this.setEditable(this.editable); // indicate pg is editable. note: called AFTER setting this.inflated
@@ -318,7 +360,7 @@ class Pg {
       } else this.json = this.toJson();
       this.canvas.clear();
       this.canvas.dispose();
-      if(this.thumbElm) clearChildren(this.thumbElm);
+      this.elm?.remove();
       this.canvas = null;
       this.mozCanvas?.remove();
       this.mozCanvas = null;
@@ -356,17 +398,19 @@ class Pg {
       this.thumbElm = helm(
         `<div class="TableLayout__pg" style="width:${maxW / _pxPerEm_}em;height:${maxH / _pxPerEm_}em;"></div>`);
       this.thumbElm.style.backgroundColor = Pg.paddingColor;
-      if(score.pgFit == "Center")
+      if(score.details?.pgFit == "Center")
         this.thumbElm.style.backgroundSize = this.width * 100 / score.maxWidth + "%";
 
       // create object URL for fabric canvas
       let fabCanvas = this.canvas.toCanvasElement(scale * this.stretch);
+      if (this.fabUrl) URL.revokeObjectURL(this.fabUrl);
       this.fabUrl = URL.createObjectURL(await new Promise((res) => fabCanvas.toBlob((b) => res(b))));
 
       if(this.mozCanvas) {
         // create obj URL for mozCanvas (from mozilla pdf src);
         let pdfCanvas = helm(`<canvas width="${maxW}" height="${maxH}"></canvas>`);
         pdfCanvas.getContext("2d").drawImage(this.mozCanvas, 0, 0, maxW, maxH);
+        if (this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
         this.pdfUrl = URL.createObjectURL(await new Promise((res) => pdfCanvas.toBlob((b) => res(b))));
         // set both fabricCanvas (annotations) and pdfCanvas (pdf image) as background to thumbElm
         this.thumbElm.style.backgroundImage = "url('" + this.fabUrl + "'), url('" + this.pdfUrl + "')";
@@ -427,7 +471,16 @@ class Pg {
   toJson() {
     // @return string, the JSON representation of the fabricjs canvas encapsulation.
     if (!this.inflated) return null; // only call this on inflated pg's
-    return this.canvas.toJSON();
+    let oldPrecision = fabric.Object.NUM_FRACTION_DIGITS;
+    fabric.Object.NUM_FRACTION_DIGITS = 2;
+    // "flatten" and "podiumType" are custom properties (see flattenObjects /
+    // PodBrush); fabric drops unknown properties on serialize unless they're
+    // listed here. toPdf relies on "flatten"; "podiumType" must survive so a
+    // stroke keeps its pencil/pen/rastrum tag across deflate/inflate and reload
+    // (rastrum control rendering keys off it — see canvas.js).
+    let json = this.canvas.toJSON(["flatten", "podiumType"]);
+    fabric.Object.NUM_FRACTION_DIGITS = oldPrecision;
+    return json;
   }
 
   async undo( ) {
@@ -438,6 +491,7 @@ class Pg {
       this.suppressStateChange = true;
       stack.pop();
       await new Promise((resolve, reject) => this.canvas.loadFromJSON(stack[stack.length - 1], () => resolve()));
+      Pg.applyFlatten(this.canvas);
       this.canvas.requestRenderAll();
       this.suppressStateChange = false; 
     } 
@@ -450,21 +504,43 @@ class Pg {
     _menu_.activateCell(null);
   }
 
-  mergeObjects() {
-    // This function will effect how a subsequent call of this.toPdf
-    // behaves: it marks all objects on the page with a merge=true
-    // property, and set them un-selectable and un-evented.
-    // When a page is subsequently saved to pdf, objects with this
-    //  merge property are added to the pdf as normal pdf items, i.e.
-    // "merged" into the pdf. Object without this property will be
-    // added as pdf stamp annotations that could, in theory, be further edited
-    // by other pdf tools.
-    for (let obj of this.canvas.getObjects()) {
-      obj.merge = true;
-      obj.selectable = false;
-      obj.evented = false;
-    }
+  flattenObjects() {
+    // Mark every annotation on this page "flattened": read-only in the editor,
+    // and — at save time — baked into the page as ordinary PDF content rather
+    // than an editable stamp annotation (see toPdf / objToPdf). The objects stay
+    // on the canvas, visually unchanged; they're just frozen. Cannot be undone.
+    if (!this.canvas) return; // page not inflated (e.g. flatten fired during a layout transition)
+    for (let obj of this.canvas.getObjects()) Pg.freeze(obj);
+    this.canvas.discardActiveObject();
     this.canvas.requestRenderAll();
+    this.score.setDirty(true);
+  }
+
+  static freeze(obj) {
+    // Make a fabric object genuinely non-interactive. evented:false keeps it out
+    // of hit-testing, but Podium can still force-select via setActiveObject (e.g.
+    // the edit tool's "select last object" fallback), so we also strip controls
+    // and lock every transform — a frozen object can't be moved, scaled, rotated
+    // or text-edited even if something makes it the active object.
+    obj.flatten = true;
+    obj.selectable = false;
+    obj.evented = false;
+    obj.hasControls = false;
+    obj.hasBorders = false;
+    obj.lockMovementX = true;
+    obj.lockMovementY = true;
+    obj.lockScalingX = true;
+    obj.lockScalingY = true;
+    obj.lockRotation = true;
+    obj.lockSkewingX = true;
+    obj.lockSkewingY = true;
+    obj.editable = false; // textbox: block enterEditing
+  }
+
+  static applyFlatten(canvas) {
+    // Re-freeze flattened objects after a loadFromJSON: only the "flatten" flag
+    // is serialized, not the selectable/evented/lock* side effects.
+    for (let obj of canvas.getObjects()) if (obj.flatten) Pg.freeze(obj);
   }
 
   async toPdf(ink, pLibPg) {
@@ -472,6 +548,18 @@ class Pg {
     // @ink determines "how" the objects will be incorprated, see objToPdf below for details.
     // @pLibPg the PDFLib page that will be modified.
     // @return the json-serializion of the fabricjs canvas.
+    let wasInflated = this.inflated;
+    if (!wasInflated) await this.inflate(false, false); // temporarily re-inflate, but skip unnecessary rendering
+    try {
+      return await this.toPdfAux(ink, pLibPg);
+    } finally {
+      // deflate in a finally so a failed save can't leak an inflated pg
+      if (!wasInflated) this.deflate();
+    }
+  }
+
+  async toPdfAux(ink, pLibPg) {
+    // toPdf's body: requires this pg to be inflated.
 
     let toPDFColor = (fabricColor) => {
       // PDFLib doesn't have rgba: instead, it uses rgb  and a
@@ -488,25 +576,62 @@ class Pg {
       return parseFloat(c[3]);
     };
 
-    let wasInflated = this.inflated;
-    if (!wasInflated) await this.inflate(false, false); // temporarily re-inflate, but skip  unnecessary rendering
-    // delete all existing annotations
+    let PDFName = PDFLib.PDFName;
+    let context = pLibPg.doc.context;
+
+    // The fabricjs canvas lives in "display space": the page as PDF.js
+    // displays it, i.e. the cropBox with page /Rotate applied and the origin
+    // at the displayed page's lower-left corner. PDFLib draws in raw,
+    // unrotated page user space, so build the display-to-page mapping that
+    // objToPdf will apply (an identity mapping for the typical unrotated,
+    // zero-origin page).
+    let rot = ((pLibPg.getRotation().angle % 360) + 360) % 360;
+    let box = pLibPg.getCropBox();
+    let xform = {
+      width: rot % 180 == 90 ? box.height : box.width, // display-space dims
+      height: rot % 180 == 90 ? box.width : box.height,
+      rect: [box.x, box.y, box.x + box.width, box.y + box.height],
+      matrix: rot == 90 ? [0, 1, -1, 0, box.x + box.width, box.y]
+        : rot == 180 ? [-1, 0, 0, -1, box.x + box.width, box.y + box.height]
+        : rot == 270 ? [0, -1, 1, 0, box.x, box.y + box.height]
+        : [1, 0, 0, 1, box.x, box.y],
+      identity: rot == 0 && box.x == 0 && box.y == 0,
+    };
+    let pageHeight = xform.height;
+
+    // Delete stamp annotations from previous saves, together with their
+    // appearance streams (which would otherwise linger as orphans), but
+    // preserve other annotations (links, etc) that came with the original pdf.
     let annots = pLibPg.node.Annots();
-    if (annots) annots.array.splice(0, annots.array.length);
-    let pageHeight = pLibPg.getHeight();
+    if (annots) {
+      for (let i = annots.size() - 1; i >= 0; i--) {
+        let ref = annots.get(i);
+        let annot = context.lookup(ref);
+        if (annot?.get?.(PDFName.of("Subtype")) === PDFName.of("Stamp")) {
+          let apN = annot.lookup(PDFName.of("AP"))?.get?.(PDFName.of("N"));
+          if (apN instanceof PDFLib.PDFRef) context.delete(apN);
+          if (ref instanceof PDFLib.PDFRef) context.delete(ref);
+          annots.remove(i);
+        }
+      }
+    }
 
     // Nested function that converts a fabric object to a PDFLib object, with help of this.objToPdf(...)
     let processObj = async(obj, absoluteTransform = null) => {
 
       if(absoluteTransform) {
         obj = fabric.util.object.clone(obj);
+        obj.group = null; // transform is absolute: calcTransformMatrix must not re-apply the group's
         obj.set({
           left: absoluteTransform.left,
           top: absoluteTransform.top,
           scaleX : absoluteTransform.scaleX,
           scaleY: absoluteTransform.scaleY,
-          angle: absoluteTransform.angle });
-      }     
+          angle: absoluteTransform.angle,
+          skewX: absoluteTransform.skewX ?? 0,
+          skewY: absoluteTransform.skewY ?? 0,
+          flatten: absoluteTransform.flatten });
+      }
 
       switch (obj.type) {
 
@@ -525,28 +650,27 @@ class Pg {
           // For PDFLib, y: locates baseline of first (or only) line of text, but fabric's y
           // is position of the bounding box.  We don't have metrics to know where the baseline
           // is in relation to this bounding box, but emperically, it is about 0.9 * the fontSize.
-          let scale = obj.scaleX;
-          let fontSizeToPx = 0.666;
-          let drop = obj.fontSize * 0.9 * scale;
+          let drop = obj.fontSize * 0.9 * obj.scaleY;
           let angle = (obj.angle / 360) * (Math.PI * 2);
           let pp = rotatePoint(obj.left, obj.top + drop, obj.left, obj.top, angle);
+          // Pass fabric's already-wrapped lines instead of letting pdf-lib wrap
+          // via maxWidth: pdf-lib measures with the embedded font, which won't
+          // match the canvas font, so its wrap points would differ from screen.
+          let text = obj.textLines ? obj.textLines.join("\n") : obj.text;
           await this.objToPdf(obj, ink, pLibPg, pLibPg.drawText, [
-            obj.text,
+            text,
             {
               x: pp.x,
               y: pageHeight - pp.y,
               font: pdfFont,
               rotate: PDFLib.degrees(360 - obj.angle),
-              height: obj.height * scale,
-              width: obj.width * scale,
-              maxHeight: obj.height * scale,
-              maxWidth: obj.width * scale,
-              size: obj.fontSize * scale,
+              size: obj.fontSize * obj.scaleY,
               color: toPDFColor(obj.fill),
               opacity: toPDFOpacity(obj.fill),
-              lineHeight: obj.lineHeight * obj.fontSize * fontSizeToPx * scale,
+              // fabric renders line spacing as lineHeight * fontSize * _fontSizeMult
+              lineHeight: obj.lineHeight * obj.fontSize * (fabric.Text.prototype._fontSizeMult || 1.13) * obj.scaleY,
             },
-          ]);
+          ], xform);
           break;
         }
 
@@ -555,38 +679,26 @@ class Pg {
             console.warn("Path object has empty path, skipping", obj);
             break;
           }
+          // Create an svg-style path string. Path points are stored in path
+          // space, offset from the object's center by pathOffset: mapping each
+          // point through the object's full transform matrix accounts for
+          // position, scale, rotation and skew, as well as the strokeWidth/2
+          // bounding-box padding that fabric builds into obj.left/obj.top.
+          let matrix = obj.calcTransformMatrix();
+          let po = obj.pathOffset || { x: 0, y: 0 };
           let pathStr = "";
-          // Create an svg-style path string, where every point is scaled and
-          // rotated by (obj.scaleX, obj.scaleY), and obj.angle
-          let minX = obj.path[0][1];
-          let minY = obj.path[0][2];
-          // ...first find the minimum x and y in the path so that we can initially
-          // translate entire path to upper left corner for convenient scale/rotate
-          obj.path.forEach((pathlet) => {
-            for (let i = 1; i < pathlet.length; i++) {
-              if (i & 1) minX = Math.min(pathlet[i], minX);
-              else minY = Math.min(pathlet[i], minY);
-            }
-          });
-          // ...now scale and rotate, then translate to obj.left/obj.top
-          let xTrans = obj.left;
-          let yTrans = obj.top;
-          let angle = (obj.angle / 360) * (Math.PI * 2);
           obj.path.forEach((pathlet) => {
             pathStr += pathlet[0];
-            // each "pathlet" will have an operator (M or Q) followed by pairs of x,y
-            // coordinates
+            // each "pathlet" will have an operator (M, L, or Q) followed by
+            // pairs of x,y coordinates
             for (let i = 1; i < pathlet.length; ) {
-              let x = (pathlet[i++] - minX) * obj.scaleX;
-              let y = (pathlet[i++] - minY) * obj.scaleY;
-              let sin = Math.sin(angle);
-              let cos = Math.cos(angle);
-              let xx = x * cos - y * sin + xTrans;
-              let yy = x * sin + y * cos + yTrans;
-              pathStr += xx + " " + yy + " ";
+              let p = fabric.util.transformPoint({ x: pathlet[i++] - po.x, y: pathlet[i++] - po.y }, matrix);
+              // toFixed: tiny float artifacts would serialize in scientific
+              // notation, which the svg path parser rejects
+              pathStr += p.x.toFixed(2) + " " + p.y.toFixed(2) + " ";
             }
           });
- 
+
           // we do fill or stroke, but not both
           if(obj.fill) {
           await this.objToPdf(obj, ink, pLibPg, pLibPg.drawSvgPath, [
@@ -595,43 +707,47 @@ class Pg {
               color: toPDFColor(obj.fill),
               opacity: toPDFOpacity(obj.fill),
             },
-           ]);
+           ], xform);
           }
           else await this.objToPdf(obj, ink, pLibPg, pLibPg.drawSvgPath, [
             pathStr,
             { y: pageHeight,
-              borderWidth: obj.strokeWidth * obj.scaleX, // assume obj.scaleX == obj.scaleY
+              // pdf line width is isotropic: approximate non-uniform scale with the mean
+              borderWidth: obj.strokeWidth * (Math.abs(obj.scaleX) + Math.abs(obj.scaleY)) / 2,
               borderColor: toPDFColor(obj.stroke),
               borderOpacity: toPDFOpacity(obj.stroke),
               borderLineCap: PDFLib.LineCapStyle.Round,
             },
-          ]);
+          ], xform);
           break;
         }
 
         case "image": {
-          // the fabricjs image is assumed to have a src property that
-          // must be a dataURL starting with "data:image/jpeg; or "data:image/png;"
+          // the fabricjs image's source must be a dataURL starting with
+          // "data:image/jpeg;" or "data:image/png;". Objects restored from json
+          // carry it as a src property; freshly-pasted images only have it on
+          // their backing element, via getSrc().
           // Decode via atob rather than fetch(): iOS Safari has issues fetching large data URLs.
-          let binary = atob(obj.src.split(",")[1]);
+          let src = obj.src ?? (obj.getSrc && obj.getSrc());
+          let binary = atob(src.split(",")[1]);
           let bytes = new Uint8Array(binary.length);
           for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-          let image = obj.src.startsWith("data:image/jpeg;") ? await pLibPg.doc.embedJpg(bytes) : 
-              obj.src.startsWith("data:image/png;") ? await pLibPg.doc.embedPng(bytes): null;
-          if(!image) throw new Error("Unknown image type in data url:" + obj.src.substring(20) + "...");
-          let scale = obj.scaleX;
-          let angle = (obj.angle / 360) * (Math.PI * 2);
-          // "un"rotate bl.x and bl.y
-          let pp = rotatePoint(obj.aCoords.bl.x, obj.aCoords.bl.y, obj.aCoords.bl.x, obj.aCoords.bl.y, -angle);
+          let image = src.startsWith("data:image/jpeg;") ? await pLibPg.doc.embedJpg(bytes) :
+              src.startsWith("data:image/png;") ? await pLibPg.doc.embedPng(bytes): null;
+          if(!image) throw new Error("Unknown image type in data url:" + src.substring(20) + "...");
+          // pdf-lib rotates the drawn image about its lower-left corner, so place
+          // that corner where fabric puts it: the object-space bottom-left corner
+          // mapped through the object's full transform.
+          let bl = fabric.util.transformPoint({ x: -obj.width / 2, y: obj.height / 2 }, obj.calcTransformMatrix());
           await this.objToPdf(obj, ink, pLibPg, pLibPg.drawImage, [
             image,
-            { x: pp.x,
-              y: pageHeight - pp.y,
+            { x: bl.x,
+              y: pageHeight - bl.y,
               rotate: PDFLib.degrees(360 - obj.angle),
-              height: obj.height * scale,
-              width: obj.width * scale,
+              height: obj.height * obj.scaleY,
+              width: obj.width * obj.scaleX,
             },
-          ]);
+          ], xform);
           break;
         }
  
@@ -643,6 +759,7 @@ class Pg {
               // Nested group: apply parent transformation, then recurse
                 let clonedGroup = fabric.util.object.clone(groupObj);
                 fabric.util.addTransformToObject(clonedGroup, groupMatrix);
+                clonedGroup.flatten = obj.flatten;
                 await processObj(clonedGroup, null);
             } else {
               // Not a group: get absolute coordinates and app get absolute coordinates
@@ -654,6 +771,9 @@ class Pg {
                   scaleX: tmpObj.scaleX,
                   scaleY: tmpObj.scaleY,
                   angle: tmpObj.angle,
+                  skewX: tmpObj.skewX,
+                  skewY: tmpObj.skewY,
+                  flatten: obj.flatten,
               });
             }
           }
@@ -679,63 +799,80 @@ class Pg {
     }
 
     let json = this.toJson();
-    if (!wasInflated) this.deflate();
-    // The returned json will not contain any fabricjs objects with the "merge" property:
-    // these will have been encorporated directly into the pdf.
-    json.objects = json.objects.filter((obj) => !obj.merge);
+    // Objects baked into the page content must not also be saved as fabric json,
+    // or they'd reappear as editable duplicates on reopen. With ink == "pdf"
+    // every object was painted in; otherwise only the flattened ones were.
+    json.objects = ink == "pdf" ? [] : json.objects.filter((obj) => !obj.flatten);
     json.bookmark = this.bookmark;
     return json;
   }
 
-  async objToPdf(obj, ink, pLibPg, func, funcArgs) {
+  async objToPdf(obj, ink, pLibPg, func, funcArgs, xform) {
     // Helper function for creates and adds a pdf object to pLibPg,
     // where that  object is fabricated from the given fabricjs obj.
     //
     // @obj  fabricjs object
     // @ink  "none", "pdf", or "stamp"
-    //   when ink == "none", the object is added to pLibPg whenever obj.mergePdf is true
-    //   when ink == "pdf", the object is added into pLibPg
-    //   when ink == "stamp", the object is added to a "temporary" pLibPg, then copied
-    //     into pLibPg as a stamp annotation
+    //   when ink == "none", nothing is added (used to copy a page verbatim)
+    //   when ink == "pdf", the object is painted into pLibPg as page content
+    //   when ink == "stamp", a flattened object (see flattenObjects) is likewise
+    //     baked into the page content; every other object is drawn on a
+    //     "temporary" page and copied into pLibPg as an editable stamp annotation
     // @pLibPg pdf-lib page to add annotation to
     // @func pdf-lib member function to draw the annotation (drawCircle, drawRect, etc...
     // @funcArgs ... array of arguments to func
+    // @xform display-space-to-page-space mapping, see toPdfAux
     let pLibDoc = pLibPg.doc;
     let context = pLibDoc.context;
-    let { width, height } = pLibPg.getSize();
-    if ((ink == "none" && obj.merge) || ink == "pdf") {
-      // apply func to current page
-      func.apply(pLibPg, funcArgs);
+    let PDFName = PDFLib.PDFName;
+    if (ink == "none") return;
+    if (ink == "pdf" || obj.flatten) {
+      // bake directly onto the page content, mapping display space to page space
+      if (xform.identity) func.apply(pLibPg, funcArgs);
+      else {
+        pLibPg.pushOperators(PDFLib.pushGraphicsState(), PDFLib.concatTransformationMatrix(...xform.matrix));
+        func.apply(pLibPg, funcArgs);
+        pLibPg.pushOperators(PDFLib.popGraphicsState());
+      }
       return;
     }
-    else if(ink == "none") return; 
     // Add object as a Stamp annotation:
-    // - first, create a tmpPage and apply func to it.
+    // - first, create a tmpPage (in display space) and apply func to it.
     // - "re-forge" tmpPage's content into a stamp annotation
     //   whose appearance stream is an XObject Form made from
     //   tmpPage's content.
     // - Add the XObject pLibPg
     // - remove tmpPage from the document
-    let tmpPage = pLibDoc.addPage([width, height]);
-    func.apply(tmpPage, funcArgs);
-    let content = tmpPage.contentStream.clone();
-    let stamp = new PDFLib.PDFAnnotation(
-      context.obj({
-        Type: "Annot",
-        Subtype: "Stamp",
-        Rect: [0, 0, width, height],
-      })
-    );
-    let PDFName = PDFLib.PDFName;
-    content.dict.context = context;
-    content.dict.set(PDFName.of("Type"), PDFName.of("XObject"));
-    content.dict.set(PDFName.of("SubType"), PDFName.of("Form"));
-    content.dict.set(PDFName.of("BBox"), context.obj([0, 0, pLibPg.getWidth(), pLibPg.getHeight()]));
-    content.dict.set(PDFName.of("Resources"), tmpPage.node.dict.get(PDFName.of("Resources")));
-    stamp.setNormalAppearance(context.register(content));
-    if (pLibPg.node.has(PDFName.Annots) && pLibPg.node.Annots()) pLibPg.node.Annots().push(stamp.dict);
-    else pLibPg.node.set(PDFName.Annots, context.obj([stamp.dict]));
-    pLibDoc.removePage(pLibDoc.getPageCount() - 1);
+    let tmpPage = pLibDoc.addPage([xform.width, xform.height]);
+    try {
+      func.apply(tmpPage, funcArgs);
+      let content = tmpPage.contentStream.clone();
+      let stamp = new PDFLib.PDFAnnotation(
+        context.obj({
+          Type: "Annot",
+          Subtype: "Stamp",
+          Rect: xform.rect,
+          F: 4, // print flag: without it most viewers display but won't print the annotation
+        })
+      );
+      content.dict.context = context;
+      content.dict.set(PDFName.of("Type"), PDFName.of("XObject"));
+      content.dict.set(PDFName.of("Subtype"), PDFName.of("Form"));
+      content.dict.set(PDFName.of("BBox"), context.obj([0, 0, xform.width, xform.height]));
+      if (!xform.identity) content.dict.set(PDFName.of("Matrix"), context.obj(xform.matrix));
+      content.dict.set(PDFName.of("Resources"), tmpPage.node.dict.get(PDFName.of("Resources")));
+      stamp.setNormalAppearance(context.register(content));
+      let stampRef = context.register(stamp.dict); // indirect, as the spec expects
+      if (pLibPg.node.has(PDFName.Annots) && pLibPg.node.Annots()) pLibPg.node.Annots().push(stampRef);
+      else pLibPg.node.set(PDFName.Annots, context.obj([stampRef]));
+    } finally {
+      // Drop tmpPage, then delete its now-orphaned page node and original
+      // content stream from the context: pdf-lib serializes every registered
+      // object, reachable or not, so leaving them in would bloat the file.
+      pLibDoc.removePage(pLibDoc.getPageCount() - 1);
+      if (tmpPage.contentStreamRef) context.delete(tmpPage.contentStreamRef);
+      context.delete(tmpPage.ref);
+    }
   }
 }
 
@@ -795,11 +932,14 @@ class Score {
     let score = new Score();
     for (let i = 1; i <= pgKnt; i++) {
       let pg = new Pg(score, width, height, null, null, color);
-      /*
+
+       /*
         // for testing only, add a page number to each page:
         await pg.inflate();
         pg.canvas.add(new fabric.Textbox("pg " + i, { left:80, top:80, fontSize:80}));
         pg.deflate();
+      */
+      /*
         // For testing only, add a small and large pages to test the
         // Pg padding mechanism provided by layouts:
         if (i == 1) pg = new Pg(score, width / 10, height / 2, null, null, "#f00");
@@ -891,7 +1031,8 @@ class Score {
   created = this.now;
   modified = this.now;
   pdfInfo = null; // meta-info extracted from pdf src
-  encrypted = false; // true if PDF has an encryption dictionary
+  encrypted = false;    // true if PDF has an encryption dictionary
+  permissions = null;   // array of allowed PermissionFlag values, or null if no encrypt dict
 
   embeddedFonts = null; // Used by this.toPDF() to prevent fonts from being embedded more than once
   maxHeight = -1; // maxHeight among all pg's in score
@@ -901,16 +1042,11 @@ class Score {
   mozDoc = null; // reference to mozilla pdflib document, if available
   quality = 2; // pdf rendering quality: see Pg.renderPdf()
   dirty = false; // true iff score has been modified (i.e. requires saving) 
-
-  numbers = {
-    pn: 1, // current pn
-    first: 1, // first pn to display
-    prelim: 0, // Number of preliminary (roman numberal) pages
-    forward: "Pages", // Forward arrow behavior: "Pages or "Bookmarks"
-    reverse: "Pages"  // Reverse...
-   }
-
-  pgFit = "Center";
+  numbers = null ; // reference to numbers menu cell stash
+  details = null ; // reference to details menu cell stash
+  layout = null ; // reference to active layout's menu cell stash
+  _unsupportedFeatures = null; // Set of feature IDs reported by PDF.js
+  _brokenPDFWarned = false; // true if user has been notified about broken rendering
 
   constructor() {
     // Since constructing a score calls async functions, and since a constructor
@@ -934,8 +1070,14 @@ class Score {
     // Initialize page undo stack
     this.undoStack = [];
     this.maxUndo = 10;
-    this.pgFit = _menu_.rings.score.cells.details.stash.pgFit ?? this.pgFit;
 
+    // Each score starts with no saved pan-zoom; the score's own (if it saved one)
+    // is restored below by stashFromJsonObj. Clearing here — before that restore,
+    // and before the active layout's destructor runs (which is too late, since the
+    // restore has already happened) — prevents a previous score's pz from carrying
+    // over while letting this score's own restored pz survive.
+    if (activate)
+      for (let c of Object.values(_menu_.rings.layout.cells)) c.stash.pz = null;
 
     if (pdfData) {
       this.size = pdfData.byteLength;
@@ -944,36 +1086,77 @@ class Score {
         // (base64-encoded-gzipped strings defined globally) on demand
         let pdfUrl = URL.createObjectURL(await inflate(mozSrc));
         mozSrc = null; // allow gc
-        await import(pdfUrl);
+        window.pdfjsLib = await import(pdfUrl);
         URL.revokeObjectURL(pdfUrl);
         let mozWorkerUrl = URL.createObjectURL(await inflate(mozWorkerSrc));
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = mozWorkerUrl;
+        let mozWorker = new Worker(mozWorkerUrl, { type: "module" });
+        // A module worker fetches its script asynchronously, so the blob URL
+        // must stay valid until that fetch lands — revoking right after the
+        // constructor returns races the fetch. The worker's first message (or
+        // an error) proves the script has loaded and executed, so it's safe to
+        // release the URL then and let the source blob be GC'd.
+        let revokeMozWorkerUrl = () => {
+          URL.revokeObjectURL(mozWorkerUrl);
+          mozWorker.removeEventListener("message", revokeMozWorkerUrl);
+          mozWorker.removeEventListener("error", revokeMozWorkerUrl);
+        };
+        mozWorker.addEventListener("message", revokeMozWorkerUrl);
+        mozWorker.addEventListener("error", revokeMozWorkerUrl);
+        window.pdfjsLib.GlobalWorkerOptions.workerPort = mozWorker;
         mozWorkerSrc = null; // allow gc
       }
 
       let loadingTask = window.pdfjsLib.getDocument(pdfData);
 
+      // detect non-standard or missing features (fonts, non-standard compression, etc)
+      loadingTask.onUnsupportedFeature = (featureId) => {
+        if (!this._unsupportedFeatures) this._unsupportedFeatures = new Set();
+        this._unsupportedFeatures.add(featureId);
+      };
+
       // is this an encrypted pdf?
-      loadingTask.onPassword = (callback, reason) => {
-        let message = reason === 1 ?
-          "Incorrect password. Please try again." :
-          "This PDF is password-protected. You can view and annotate it, but cannot save changes or copy pages.\n\nEnter password:";
-        let password = prompt(message, "");
-        if (password) callback(password);
-        else throw new Error("pdf password failure");
+      loadingTask.onPassword = async (callback, reason) => {
+        let password = await new Promise(resolve => {
+          let msg = reason == 1
+            ? "Incorrect password. Please try again.<br><br><input type='password' style='width:100%' placeholder='Password'>"
+            : "This PDF is password-protected.<br><br><input type='password' style='width:100%' placeholder='Password'>";
+          let dlg = dialog(msg, { Open: { svg: "Open" }, Cancel: { svg: "Cancel" } }, (e, prop, tag, args) => {
+            let pw = args.elm.querySelector('input').value;
+            args.close();
+            resolve(tag == "Open" && pw ? pw : "");
+          });
+          dlg.addEventListener('cancel', () => resolve(""));
+          setTimeout(() => dlg.querySelector('input')?.focus(), 50);
+        });
+        if (password) { callback(password); return; }
+        loadingTask.destroy();
       };
 
       this.mozDoc = await loadingTask.promise;
+
+      // A score must always have at least one page (see pgCut's last-page guard).
+      // A zero-page PDF is non-conforming per the spec but can be produced (e.g.
+      // pdf-lib's PDFDocument.create()+save()); PDF.js loads it with numPages 0.
+      // Reject it at the door so the rest of the app never sees an empty score.
+      if (this.mozDoc.numPages == 0) {
+        toast("This PDF has no pages.");
+        let err = new Error("PDF has no pages");
+        err.handled = true; // tells open() callers we've already surfaced this to the user
+        throw err;
+      }
+
       // Grab pdf metadata's info, if available
       let meta = await this.mozDoc.getMetadata();
       this.pdfInfo = meta ? meta.info : null;
 
       // Check for encryption — permissions array means an Encrypt dict exists.
-      // Warn early so user knows before spending time annotating.
       let perms = await this.mozDoc.getPermissions();
+      this.permissions = perms;
       if (perms) {
         this.encrypted = true;
-        dialog("This PDF is encrypted. Saving may not be possible.");
+        // Warn only when modification-relevant bits (Modify=8, Annotate=32) are denied.
+        if (!perms.includes(8) || !perms.includes(32))
+          dialog("This PDF restricts modifications — saving annotations or other changes may not be possible.", { OK: { svg: "OK" } });
       }
 
       // Grab podium attachment, if available
@@ -985,16 +1168,23 @@ class Score {
         this.created = scoreJson.created || this.created;
         this.modified = scoreJson.modified || this.modified;
         this.quality = scoreJson.quality ?? this.quality;
-        this.numbers = scoreJson.numbers ?? this.numbers;
         if(activate) // don't use stashed values if not activating!
-          _menu_.stashFromJsonObj(scoreJson.menu);
+          _menu_.stashFromJsonObj(scoreJson.menu, "score");
+      } else if(activate) {
+        let defaults = JSON.parse(_menu_.stashDefaults);
+        let { page, score } = _menu_.rings;
+        Object.assign(page.cells.numbers.stash, defaults.page?.cells?.numbers);
+        Object.assign(score.cells.details.stash, defaults.score?.cells?.details);
+        this.quality = score.cells.details.stash.quality ?? this.quality;
       }
-
       // create a Pg instance for every pdf page, and calculate the
       // max {width/height} over all pgs.
       for (let i = 1; i <= this.mozDoc.numPages; i++) {
         let mozPage = await this.mozDoc.getPage(i);
-        let [left, top, width, height] = mozPage.view;
+        // Use the viewport, not mozPage.view: the viewport applies the page's
+        // /Rotate, so pg dimensions match what renderPdf will actually draw
+        // (a 90/270-rotated page swaps width and height).
+        let { width, height } = mozPage.getViewport({ scale: 1 });
         let pgJson = scoreJson?.pages ? scoreJson.pages[i]:null;
         this.pgs.push(new Pg(this, width, height, pgJson, i));
         if(pgJson?.bookmark) this.pgs[this.pgs.length -1].bookmark = pgJson.bookmark;
@@ -1002,6 +1192,14 @@ class Score {
         this.maxHeight = Math.max(height, this.maxHeight);
       }
     }
+
+    else if(activate) {
+      let defaults = JSON.parse(_menu_.stashDefaults);
+      Object.assign(_menu_.rings.page.cells.numbers.stash, defaults.page?.cells?.numbers);
+      Object.assign(_menu_.rings.score.cells.details.stash, defaults.score?.cells?.details);
+      this.quality = _menu_.rings.score.cells.details.stash.quality ?? this.quality;
+    }
+
     if(activate) await this.activate();
     return this;
   }
@@ -1011,18 +1209,9 @@ class Score {
     // instance the active score
     Score.activeScore = this;
     _score_ = this;
-    if (this.name) {
-      // Show score name in tab, truncated from middle if long, without .pdf extension
-      let name = this.name.replace(/\.pdf$/i, "");
-      const maxLen = 30;
-      if (name.length > maxLen) {
-        let half = (maxLen - 1) >> 1; // -1 for the ellipsis character
-        name = name.slice(0, half) + "\u2026" + name.slice(-half);
-      }
-      document.title = name;
-    } else {
-      document.title = `Podium (${_podId_})`;
-    }
+    this.numbers = _menu_.rings.page.cells.numbers.stash;
+    this.details = _menu_.rings.score.cells.details.stash;
+    this.setTitle();
     // update the _menu_ state for this Score instance:
     _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"]);
     _menu_.enableCells("ink/undo", false); // nothing to undo yet
@@ -1031,7 +1220,7 @@ class Score {
     _menu_.enableCells("page/undo", this.undoStack.length > 0);
     // clear any pg from paste cell...could be left over from previous score, if any
     _menu_.rings.page.cells.paste.pg = null ;
-    _menu_.enableCells("page/paste", false) ;
+    _menu_.enableCells("page/paste", false);
     this.pgRefresh();
     // Sync quality to stash so InfoPanel slider shows correct value
     _menu_.rings.score.cells.details.stash.quality = this.quality;
@@ -1047,137 +1236,6 @@ class Score {
     _menu_.activateRing(_menu_.rings.score) ;
     await Layout.open(cell);
     return this;
-  }
-
-  async toPdf(ink = "stamp", doc = false, pns = null) {
-    // Use PDFLib to create PDF representation of this score.
-    // @ink === none, skip fabric objects entirely (even as attachment??)
-    //      === "stamp" add fabric object as stamp annotation
-    //      === "pdf" add fabric object as pdf object
-    // @doc if true, the PDF-LIB doc object is returned, otherwise the
-    //    pdf bytes that it produces is returned.
-    // @pns array of page numbers (1-based) to include, or null for all pgs
-    try {
-      // When shade is cancelled, set cancelPdf. This will interrupt lib-pdf when
-      // it next calls waitForTick by calling our monkey-patched setTimeout
-      _shade_.onCancel = () => { window.cancelPdf = true; };
-      let srcPLibDoc = null;
-      if (this.mozDoc) {
-        try {
-          // Try loading without ignoreEncryption - getData() should return decrypted data from PDF.js
-          srcPLibDoc = await PDFLib.PDFDocument.load(await this.mozDoc.getData());
-        } catch (err) {
-          if (err.message?.includes('encrypted') || err.message?.includes('Encrypt')) {
-            // Owner-password PDFs: content is viewable but pdf-lib rejects
-            // the Encrypt dict. Retry ignoring encryption since PDF.js
-            // already proved the content is accessible.
-            try {
-              srcPLibDoc = await PDFLib.PDFDocument.load(
-                  await this.mozDoc.getData(), { ignoreEncryption: true }
-              );
-              // Verify pages are readable — AES-256 encrypted streams will
-              // load but produce broken page objects.
-              srcPLibDoc.getPages();
-            } catch (err2) {
-              let msg = pns ? "Due to copy protection, page can't be copied." : "Due to copy protection, score can't be saved.";
-              throw new Error(msg, { cause: "fileSrc" });
-            }
-          } else {
-            throw err; // Re-throw other errors
-          }
-        }
-      }
-
-      // Verify the catalog was parsed correctly
-      if (srcPLibDoc && (!srcPLibDoc.catalog || typeof srcPLibDoc.catalog.Pages !== 'function'))
-          throw new Error("PDF catalog corrupted.<br>File too large?<br>Try splitting into sections.", { cause: "fileSrc"})
-
-      let dstPLibDoc = await PDFLib.PDFDocument.create();
-      dstPLibDoc.registerFontkit(window.fontkit);
-      // Reset the embeddedFonts array: it prevents Pg instances from embedding same font twice.
-      this.embeddedFonts = [];
-      let now = new Date();
-
-      let attachment = {
-        created: this.created,
-        modified: now,
-        maxWidth: this.maxWidth,
-        maxHeight: this.maxHeight,
-        quality: this.quality,
-        numbers: this.numbers,
-        pages: {},
-        menu: _menu_.stashToJsonObj(),
-      };
-      let pLibPg;
-      pns = pns || Array.from({length: this.pgs.length}, (_, i) => i + 1);
-      for(let j = 0; j < pns.length; j++) {
-        let pn = pns[j]; // 1-based
-        let percent = Math.trunc((j / pns.length) * 100);
-        _shade_.update(`Building page ${j + 1} of ${pns.length} (${percent}%)`);
-        let pg = this.pgs[pn-1];
-        // if pg is "backed" by a page in mozDoc (1-based), copy page to dstDoc, otherwise add a new "empty" page
-        if (pg.mozPn) {
-          pLibPg = dstPLibDoc.addPage((await dstPLibDoc.copyPages(srcPLibDoc, [pg.mozPn-1]))[0]);
-        } else {
-          pLibPg = dstPLibDoc.addPage([pg.width, pg.height]);
-          if (pg.background) {
-            let hex = pg.background.replace("#", "");
-            let r = parseInt(hex.slice(0, 2), 16) / 255;
-            let g = parseInt(hex.slice(2, 4), 16) / 255;
-            let b = parseInt(hex.slice(4, 6), 16) / 255;
-            let a = hex.length > 6 ? parseInt(hex.slice(6, 8), 16) / 255 : 1;
-            pLibPg.drawRectangle({
-              x: 0, y: 0,
-              width: pg.width, height: pg.height,
-              color: PDFLib.rgb(r, g, b),
-              opacity: a,
-            });
-          }
-        }
-        setTimeout(_voidFunc_, 0);
-        // add fabric objects to the page
-        let pgJson = await pg.toPdf(ink, pLibPg);
-        attachment.pages[j+1] = pgJson;
-        if(window.gc) window.gc();
-      }
-
-      // Add the pdf attachment
-      let jsonString = JSON.stringify(attachment);
-      await dstPLibDoc.attach(new TextEncoder().encode(jsonString), "podium", {
-        mimeType: "application/json",
-        description: "podium json metadata",
-        creationDate: now,
-        modificationDate: now,
-      });
-      // set pdf doc metadata
-      dstPLibDoc.setModificationDate(now);
-
-      // If this is an original PDF with metadata, preserve it
-      if (this.pdfInfo) {
-        // Preserve original metadata
-        if (this.pdfInfo.Title) dstPLibDoc.setTitle(this.pdfInfo.Title);
-        if (this.pdfInfo.Author) dstPLibDoc.setAuthor(this.pdfInfo.Author);
-        if (this.pdfInfo.Subject) dstPLibDoc.setSubject(this.pdfInfo.Subject);
-        if (this.pdfInfo.Keywords) dstPLibDoc.setKeywords(
-            Array.isArray(this.pdfInfo.Keywords) ? this.pdfInfo.Keywords : this.pdfInfo.Keywords.split(/[,;]\s*/));
-        if (this.pdfInfo.Producer) dstPLibDoc.setProducer(this.pdfInfo.Producer);
-        if (this.pdfInfo.Creator) dstPLibDoc.setCreator(this.pdfInfo.Creator);
-        if (this.pdfInfo.CreationDate) dstPLibDoc.setCreationDate(new Date(this.pdfInfo.CreationDate));
-      } else {
-        // New score created from scratch - set Podium metadata
-        dstPLibDoc.setCreationDate(now);
-        dstPLibDoc.setCreator("Podium vers." + _podiumVersion_);
-        dstPLibDoc.setProducer("pdf-lib v1.17.1");
-      }
-      if (doc) return dstPLibDoc;
-      _shade_.update("Generating Pdf document");
-      let bytes = await dstPLibDoc.save({objectsPerTick: 250});
-      _shade_.update("PDF Generated");
-      return bytes;   
-    } 
-    finally {
-      _shade_.onCancel = null;
-    }
   }
 
   async bindScore(pdfData, pn = null) {
@@ -1222,18 +1280,14 @@ class Score {
     for (let i = pgCount - 1; i >= pn; i--) // need highest->lowest
       mergedScore.pgs[i + copyKnt].json = mergedScore.pgs[i].json;
 
+    // clear stale docA json that Score.init assigned to docB's page slots
+    for (let i = pn; i < pn + copyKnt; i++) mergedScore.pgs[i].json = null;
     if(json) {
       // insert new json from docB
       let pageJson = JSON.parse(json).pages;
       for (let i = pn, j = 1; j <= copyKnt; i++, j++) { // i is 0-based, j is 1-based
-        mergedScore.pgs[i].json = pageJson[j]; 
+        mergedScore.pgs[i].json = pageJson[j];
       }
-    }
-    // Added merged pgs to mergedScore's undo stack
-    for(let i = 0; i < copyKnt; i++) {
-      let pg = mergedScore.pgs[pn + i];
-      pg.undoPn = pn + i + 1;
-      mergedScore.undoStack.push(pg);
     }
     mergedScore.pgRefresh();
     mergedScore.setDirty();
@@ -1324,7 +1378,6 @@ class Score {
     _menu_.enableCells("page/undo", this.undoStack.length);
   }
 
-
   async pgUse(pn, nonblocking=true) {
     // Layouts "use" a Pg when they want to actively display it,
     // and "unuse" when they are done actively displaying it.
@@ -1370,19 +1423,170 @@ class Score {
 
   setSelectable(bool) {
     // when selectable, all objects on all pages
-    // can be selected, rotated, scaled, and translated...otherwise not
+    // can be selected, rotated, scaled, and translated...otherwise not.
+    // Flattened objects are frozen (see Pg.freeze) and never get controls back.
     for(let pg of this.pgs) {
       if(!pg.inflated) continue;
       if(!bool) pg.canvas.discardActiveObject();
         for (let obj of pg.canvas.getObjects()) {
-          obj.hasControls = bool;
+          obj.hasControls = bool && !obj.flatten;
         pg.canvas.requestRenderAll();
-    } } }
+    }}
+  }
+
+  setTitle() {
+    if (!this.name) { document.title = `Podium (${_podId_})`; return; }
+    let name = this.name.replace(/\.pdf$/i, "");
+    let maxLen = 30;
+    if (name.length > maxLen) {
+      let half = (maxLen - 1) >> 1;
+      name = name.slice(0, half) + "…" + name.slice(-half);
+    }
+    document.title = name;
+  }
+
+  async toPdf(ink = "stamp", doc = false, pns = null) {
+    // Use PDFLib to create PDF representation of this score.
+    // @ink === none, skip fabric objects entirely (even as attachment??)
+    //      === "stamp" add fabric object as stamp annotation
+    //      === "pdf" add fabric object as pdf object
+    // @doc if true, the PDF-LIB doc object is returned, otherwise the
+    //    pdf bytes that it produces is returned.
+    // @pns array of page numbers (1-based) to include, or null for all pgs
+    try {
+      // When shade is cancelled, set cancelPdf. This will interrupt lib-pdf when
+      // it next calls waitForTick by calling our monkey-patched setTimeout
+      _shade_.onCancel = () => { window.cancelPdf = true; };
+      let srcPLibDoc = null;
+      if (this.mozDoc) {
+        try {
+          // Try loading without ignoreEncryption - getData() should return decrypted data from PDF.js
+          srcPLibDoc = await PDFLib.PDFDocument.load(await this.mozDoc.getData());
+        } catch (err) {
+          if (err.message?.includes('encrypted') || err.message?.includes('Encrypt')) {
+            // Owner-password PDFs: content is viewable but pdf-lib rejects
+            // the Encrypt dict. Retry ignoring encryption since PDF.js
+            // already proved the content is accessible.
+            try {
+              srcPLibDoc = await PDFLib.PDFDocument.load(
+                  await this.mozDoc.getData(), { ignoreEncryption: true }
+              );
+              // Verify pages are readable — AES-256 encrypted streams will
+              // load but produce broken page objects.
+              srcPLibDoc.getPages();
+            } catch (err2) {
+              let msg = pns ? "Due to copy protection, page can't be copied." : "Due to copy protection, score can't be saved.";
+              let err = new Error(msg, { cause: "fileSrc" });
+              // If full document, attach original data for potential fallback save
+              if (pns == null) err.originalData = await this.mozDoc.getData();
+              throw err;
+            }
+          } else {
+            throw err; // Re-throw other errors
+          }
+        }
+      }
+
+      // Verify the catalog was parsed correctly
+      if (srcPLibDoc && (!srcPLibDoc.catalog || typeof srcPLibDoc.catalog.Pages !== 'function'))
+          throw new Error("PDF catalog corrupted.<br>File too large?<br>Try splitting into sections.", { cause: "fileSrc"})
+
+      let dstPLibDoc = await PDFLib.PDFDocument.create();
+      dstPLibDoc.registerFontkit(window.fontkit);
+      // Reset the embeddedFonts array: it prevents Pg instances from embedding same font twice.
+      this.embeddedFonts = [];
+      let now = new Date();
+
+      // Snapshot the active layout's current pan-zoom into its cell stash so the save
+      // captures the on-screen view (pz is otherwise only written on layout teardown).
+      if (this == _score_) Layout.activeLayout?.capturePz();
+      let attachment = {
+        created: this.created,
+        modified: now,
+        maxWidth: this.maxWidth,
+        maxHeight: this.maxHeight,
+        quality: this.quality,
+        pages: {},
+        menu: _menu_.stashToJsonObj("score"),
+      };
+      let pLibPg;
+      pns = pns || Array.from({length: this.pgs.length}, (_, i) => i + 1);
+      for(let j = 0; j < pns.length; j++) {
+        let pn = pns[j]; // 1-based
+        let percent = Math.trunc((j / pns.length) * 100);
+        _shade_.update(`Building page ${j + 1} of ${pns.length} (${percent}%)`);
+        let pg = this.pgs[pn-1];
+        // if pg is "backed" by a page in mozDoc (1-based), copy page to dstDoc, otherwise add a new "empty" page
+        if (pg.mozPn) {
+          pLibPg = dstPLibDoc.addPage((await dstPLibDoc.copyPages(srcPLibDoc, [pg.mozPn-1]))[0]);
+        } else {
+          pLibPg = dstPLibDoc.addPage([pg.width, pg.height]);
+          if (pg.background) {
+            let hex = pg.background.replace("#", "");
+            let r = parseInt(hex.slice(0, 2), 16) / 255;
+            let g = parseInt(hex.slice(2, 4), 16) / 255;
+            let b = parseInt(hex.slice(4, 6), 16) / 255;
+            let a = hex.length > 6 ? parseInt(hex.slice(6, 8), 16) / 255 : 1;
+            pLibPg.drawRectangle({
+              x: 0, y: 0,
+              width: pg.width, height: pg.height,
+              color: PDFLib.rgb(r, g, b),
+              opacity: a,
+            });
+          }
+        }
+        setTimeout(_voidFunc_, 0);
+        // add fabric objects to the page
+        let pgJson = await pg.toPdf(ink, pLibPg);
+        attachment.pages[j+1] = pgJson;
+        if(window.gc) window.gc();
+      }
+
+      // Add the pdf attachment
+      let jsonString = JSON.stringify(attachment);
+      await dstPLibDoc.attach(new TextEncoder().encode(jsonString), "podium", {
+        mimeType: "application/json",
+        description: "podium json metadata",
+        creationDate: now,
+        modificationDate: now,
+      });
+      // set pdf doc metadata
+      dstPLibDoc.setModificationDate(now);
+
+      // If this is an original PDF with metadata, preserve it
+      if (this.pdfInfo) {
+        // Preserve original metadata
+        if (this.pdfInfo.Title) dstPLibDoc.setTitle(this.pdfInfo.Title);
+        if (this.pdfInfo.Author) dstPLibDoc.setAuthor(this.pdfInfo.Author);
+        if (this.pdfInfo.Subject) dstPLibDoc.setSubject(this.pdfInfo.Subject);
+        if (this.pdfInfo.Keywords) dstPLibDoc.setKeywords(
+            Array.isArray(this.pdfInfo.Keywords) ? this.pdfInfo.Keywords : this.pdfInfo.Keywords.split(/[,;]\s*/));
+        if (this.pdfInfo.Producer) dstPLibDoc.setProducer(this.pdfInfo.Producer);
+        if (this.pdfInfo.Creator) dstPLibDoc.setCreator(this.pdfInfo.Creator);
+        if (this.pdfInfo.CreationDate) dstPLibDoc.setCreationDate(new Date(this.pdfInfo.CreationDate));
+      } else {
+        // New score created from scratch - set Podium metadata
+        dstPLibDoc.setCreationDate(now);
+        dstPLibDoc.setCreator("Podium vers." + _podiumVersion_);
+        dstPLibDoc.setProducer("pdf-lib v1.17.1");
+      }
+      if (doc) return dstPLibDoc;
+      _shade_.update("Generating Pdf document");
+      let bytes = await dstPLibDoc.save({objectsPerTick: 250});
+      _shade_.update("PDF Generated");
+      return bytes;   
+    } 
+    finally {
+      _shade_.onCancel = null;
+    }
+  }
 
   update(props) {
     // Used to update any or all off this.source, this.name, this.path
     // from given object's properties
     Object.assign(this, props);
+    if ('name' in props) this.setTitle();
   }
 
 }
+window._Score_ = Score;

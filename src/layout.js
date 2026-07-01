@@ -20,21 +20,39 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { Spot, animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, delayMs, dialog, getBox,   helm, listen, mvmt, pnToDiv, ptrMsg, rotatePoint, Schedule, unlisten,} from "./common.js";
-import { panels } from "./panel.js";
-import { Pg, Score } from "./score.js";
+import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, Drag, getBox, helm, listen, pnToDiv, ptrMsg, rotatePoint, Schedule, toast, unlisten,} from "./common.js";
+import {ScreenPanel } from "./panel.js";
+import { Pg } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
 // -skip
 
-let randomColor;
-{
-  let hexDigits = "0123456789ABCDEF";
-  randomColor = () => {
-    // Generate random 3-hex color string with fixed alpha used for styling bookmarks.
-    let color = "#";
-    for (let i = 0; i < 2; i++) color += hexDigits[Math.floor(Math.random() * 16)];
-    return color + "0";
-  };
+let bkColors = [
+  "#e58322", "#163799", "#e5e522", "#1a1a1a",
+  "#22e5e5", "#991637", "#22e522", "#8322e5",
+  "#808080", "#379916", "#e522e5", "#167899",
+  "#e52222", "#83e522", "#371699", "#2283e5",
+];
+
+function nextBkColor() {
+  let stash = _menu_.rings.score.cells.details.stash;
+  let color = bkColors[stash.bkColorIdx % bkColors.length];
+  stash.bkColorIdx++;
+  return color;
+}
+
+function contrastColor(hex) {
+  // Return black or white for readable text on a hex background color (#RGB or #RRGGBB).
+  let r, g, b;
+  if (hex.length == 4) {
+    r = parseInt(hex[1], 16) * 17;
+    g = parseInt(hex[2], 16) * 17;
+    b = parseInt(hex[3], 16) * 17;
+  } else {
+    r = parseInt(hex.slice(1, 3), 16);
+    g = parseInt(hex.slice(3, 5), 16);
+    b = parseInt(hex.slice(5, 7), 16);
+  }
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.179 ? "#000" : "#fff";
 }
 
 // The classes Pager and ScrollLayout are used with both horizontal
@@ -63,6 +81,8 @@ let NORMAL_PROPS = {
   CLIENTY: "clientY",
   INNERWIDTH: "innerWidth",
   INNERHEIGHT: "innerHeight",
+  VX: "vX",
+  VY: "vY",
   X: "x",
   Y: "y",
 };
@@ -88,6 +108,8 @@ let ORTHO_PROPS = {
   CLIENTY: "clientX",
   INNERWIDTH: "innerHeight",
   INNERHEIGHT: "innerWidth",
+  VX: "vY",
+  VY: "vX",
   X: "y",
   Y: "x",
 };
@@ -111,8 +133,15 @@ class Layout
 
 class Layout {
   static borderSize = 0.1; // in em's
-  static margin = 20 / _dvPxRt_; // default margin between layout and viewport
+  static margin = 1.5 / _dvPxRt_; // default margin between layout and viewport
   static activeLayout = null;
+
+  // Guard: true while a cut/copy has mutated the score model but the DOM has not
+  // yet been rebuilt (the rebuild happens in build() after the move animation).
+  // onDown() bails while this is set so a new gesture can't read stale DOM state.
+  // Set in onDown()'s "copy" case (cut falls through to it) and in TableLayout's
+  // drag-out cut; always cleared by the build() wrapper below.
+  pasting = false;
 
   static recto =
     // Define the texture/color used as the background 
@@ -128,7 +157,7 @@ class Layout {
             </feComponentTransfer>
             <feComposite in2='SourceGraphic' operator='multiply' result='textured'/>
           </filter>  
-          <rect width='100%' height='100%' fill='#CD853F' filter='url(#paperFilter)'/>
+          <rect width='100%' height='100%' fill='#383838' filter='url(#paperFilter)'/>
         </svg>`) +
       "')";
 
@@ -137,79 +166,61 @@ class Layout {
     .Layout {
       position: absolute;
       box-shadow: var(--layout-shadow);
-      border-radius: var(--borderRadius);
-      border: ${0.1}em solid #8B4513;
+      border-radius: calc(var(--borderRadius) / 2);
+      border: 0.025em solid var(--layout-border-color, #222);
       box-sizing: border-box;
       background-image:
-        linear-gradient(145deg, #f958 0%, #A748 100%),
-        ${Layout.recto}
+        var(--layout-gradient),
+        var(--recto)
     }
+    .Layout__alert {
+      height: 60px !important;
+      width: 60px !important;
+    }
+
   `);
 
-
-  // startElm and endElm are displayed Layout.pgAlert to show a div whenever the user
-  // attempts to navigate to a page that's before the start or past the end of a score.
-  static startElm = document.createElement("canvas");
-  static endElm = document.createElement("canvas");
-  static {
-    document.fonts.load("30px Bravura").then(() => {
-      for (let elm of [Layout.startElm, Layout.endElm]) {
-        elm.width = elm.height = 45;
-        elm.style = "position:absolute;z-index:1000;";
-        let ctx = elm.getContext("2d");
-        ctx.shadowColor = "rgba(0, 0, 0, 0.5)"; // Shadow color
-        ctx.shadowOffsetX = 2; // Horizontal offset
-        ctx.shadowOffsetY = 2; // Vertical offset
-        ctx.shadowBlur = 4; // Blur amount
-        ctx.font = "30px Bravura";
-        ctx.fillText("\ue01a", 0, 32);
-        if (elm === Layout.startElm) ctx.fillText("\ue033", 0, 32);
-        else {
-          // assume Layout.endElm
-          ctx.fillText("\ue032", 16, 32);
-          ctx.font = "italic 12px Bravura";
-          ctx.fillText("Fine", 2, 42);
-        }
-        // This seems like it should be bigger:
-        elm.style.transform = "scale(2.5)";
-      }
-    });
+  // Toast shown when user tries to navigate before the first or past the last page.
+  static pgAlert(which) {
+    // The 5-line staff is drawn with a repeating-linear-gradient rather than the
+    // SMuFL glyph \ue01a (staff5LinesWide): that glyph has zero advance width, so
+    // its ink overflows the inline box \u2014 Blink paints the overflow but iOS/WebKit
+    // does not, leaving the staff blank on iOS. The barlines (\ue033/\ue032) have
+    // normal width and render fine, so they stay as glyphs.
+    // staff geometry (tune by eye in the console): 5 lines, 1.5px thick, 12.5px apart.
+    let staff = (top, left, width) =>
+      `<div style="position:absolute;top:${top}px;left:${left}px;width:${width}px;height:36.5px;
+        background:repeating-linear-gradient(to bottom,currentColor 0 1.5px,transparent 1.5px 8.43px);"></div>`;
+    toast(which == "start"
+      ? `${staff(23.5, 33, 30)}
+         <div style="position:absolute;font:2em/.2 Bravura;top:42px;left:33px;">\ue033</div>`
+      : `<div style="position:absolute;top:5px;left:28px;font:italic bold 0.9em/1 'Times New Roman',serif";>Fine</div>
+         ${staff(36.5, 34.5, 24)}
+         <div style="position:absolute;font:2em/.4 Bravura;left:55px;top:50px;">\ue032</div>`,
+      "Layout__alert", 300) ;
   }
-
-  // Display an alert when user tries to page past end or before
-  // beginning of score using a pointer event.
-  // @e is the pointer event
-  // @elm is on of Layout.startElm or Layout.endElm
-  static pgAlert(e, elm) {
-    // no-op if div already onscreen:
-    if (elm.isConnected) return;
-    let setPos = (e) => {
-      Object.assign(elm.style, {
-        left: e.clientX + "px",
-        top: (e.clientY > 100 ? e.clientY - 100 : e.clientY + 150) + "px",
-      });
-    };
-    setPos(e);
-    _body_.append(elm);
-    let mv = listen(_body_, "pointermove", (emv) => setPos(emv));
-    listen(_body_, ["pointerup", "pointercancel"],() => {
-      unlisten(mv); elm.remove();},
-      { once: true });
-   }
 
   static async open(cell) {
-    if (!_score_) return;
+    // Defensive: never NPE on a null @cell. Callers should pass a valid layout
+    // cell (use rings.layout.cells[stash.active], not the unreliable
+    // activeCell) — this guard is a backstop so a bad caller can't crash here.
+    if (!_score_ || !cell) return;
     _shade_.show("Formatting");
-    let score = _score_; // assumes there is an activeScore
-    if (Layout.activeLayout) Layout.activeLayout.destructor();
-    if (cell.key == "book") await new BookLayout(score, cell).build();
-    else if (cell.key == "horizontal" || cell.key == "vertical") await new ScrollLayout(score, cell).build();
-    else if (cell.key == "table") await new TableLayout(score, cell).build();
-    _menu_.rings.layout.stash.active = cell.key;
-    _shade_.hide();
+    // try/finally guarantees the Shade is released even if a build throws —
+    // otherwise an exception between show() and hide() orphans the overlay,
+    // leaving the user with a permanent "Formatting" screen.
+    try {
+      Layout.activeLayout?.destructor();
+      _score_.layout = cell.stash;
+      if (cell.key == "book") await new BookLayout(_score_, cell).build();
+      else if (cell.key == "horizontal" || cell.key == "vertical") await new ScrollLayout(_score_, cell).build();
+      else if (cell.key == "table") await new TableLayout(_score_, cell).build();
+      _menu_.rings.layout.stash.active = cell.key;
+    } finally {
+      _shade_.hide();
+    }
+    if (Layout.activeLayout) ScreenPanel.update(Layout.activeLayout.elm);
   }
-
-  margin = 12; // in px: initial margin between layout and viewport
 
   constructor(score, cell) {
     Layout.activeLayout = this;
@@ -220,7 +231,10 @@ class Layout {
       if(e.detail.tag == "pn") this.pgGoTo(_score_.numbers.pn);
       else this.renumber();
     });
-    delay(1, () => (this.elm.dataset.tag = this.constructor.name)); // run after subclass constructor
+    delay(1, () => { // run after subclass constructor
+      this.elm.dataset.tag = this.constructor.name; 
+      this.elm.owner = this ;
+    }) ;
   }
 
   renumber() {
@@ -232,26 +246,77 @@ class Layout {
 
   destructor() {
     // Called when layout is about to be replaced by another. Subclasses should call super().
-    if(this.score == _score_) { // When changing layouts for same score, remember user's pz changes, if any:
-      if (this.elm.classList.contains("pz-set")) {
-        let styles = getComputedStyle(this.elm);
-        this.cell.pz = { left: styles.left, top: styles.top, fontSize: (parseFloat(styles.fontSize) / _pxPerEm_) + "em" };
-      }
-    }
-    else // layout for new score: clear any user pz changes
-      for(let cell of Object.values(_menu_.rings.layout.cells)) cell.pz = null ;
-    for(let pg of this.score.pgs) pg.deflate(); 
+    this.capturePz(); // remember user's pan-zoom across a same-score layout switch
+    // (A different score's stale pz is cleared at score-load time, before that
+    //  score's own saved pz is restored — see Score.open. Doing it here would
+    //  wipe the pz that load already restored, since this destructor runs after.)
+    for(let pg of this.score.pgs) pg.deflate();
     unlisten(this.pnListener);
     this.elm.remove();
   }
 
-  build() {
+  capturePz() {
+    // Snapshot the current pan-zoom into cell.stash.pz (which persists with the saved
+    // score). Stamped with the viewport so userPz only re-applies it at the same size.
+    // Called on a same-score layout switch (destructor) AND before a score save — pz
+    // isn't otherwise written until teardown, so a save would miss the current view.
+    if (this.score == _score_ && this.elm.classList.contains("pz-set")) {
+      let styles = getComputedStyle(this.elm);
+      this.cell.stash.pz = { left: styles.left, top: styles.top, fontSize: (parseFloat(styles.fontSize) / _pxPerEm_) + "em", w: innerWidth, h: innerHeight };
+    }
+  }
+
+
+  constrain() {
+    // Call this when translating the layout on screen to enforce that the layout is
+    // always at least partially visible.
+    let offset = Math.max(window.innerHeight, window.innerWidth) * .1 ; // 1/10 of window's max dimension always on screen
+    let layout = this.elm.firstElementChild ;
+    let x = layout.offsetWidth / 2  - offset;
+    let y = layout.offsetHeight / 2 - offset;
+    if(this.elm.offsetTop < -y)
+       this.elm.style.top = -y + "px" ;
+    else if(this.elm.offsetTop > y + window.innerHeight)
+       this.elm.style.top = y + window.innerHeight + "px" ;
+    if(this.elm.offsetLeft < -x)
+       this.elm.style.left = -x + "px" ;
+    else if(this.elm.offsetLeft > x + window.innerWidth)
+       this.elm.style.left = x + window.innerWidth + "px" ;
+  }
+
+
+  userPz() {
+    // The user's saved pan-zoom for this layout's cell, but only if it was captured
+    // at the current viewport size; otherwise null, so the default fit is used.
+    // (left/top/fontSize are absolute, so re-applying them at a different window
+    //  size — another device, or a rotated tablet — could land the score off-screen.)
+    let pz = this.cell.stash.pz;
+    return pz && pz.w == innerWidth && pz.h == innerHeight
+      ? { left: pz.left, top: pz.top, fontSize: pz.fontSize }
+      : null;
+  }
+
+  async build(...args) {
+    // Wrapper around each layout's _build(). Subclasses implement _build(); this
+    // wrapper guarantees the `pasting` guard is cleared once a (re)build completes,
+    // even if _build() returns early (e.g. BookLayout._build returns when
+    // animated==false) or throws. This is the single, traceable reset point for
+    // the guard: every code path that mutates the model then rebuilds passes
+    // through here, so the guard can never leave input permanently frozen.
+    try {
+      return await this._build(...args);
+    } finally {
+      this.pasting = false;
+    }
+  }
+
+  _build() {
     // Subclasses override: (re) build the ui: called on initial
     // display, and any time the layout needs to be updated, due to screen size
     // change, re-orientation, or request to jump to specific page.
   }
 
-  async animateToCell(pg, clone, cell, layoutKey, after=null) {
+  async animateToCell(pg, srcBox, clone, cell, layoutKey, after=null) {
     // Simulate the given pg "Moving" to a menu cell will shrinking to viusally represent
     // copying or deleting. The pg (or the cloned pg) is removed from the dom when the
     // animation completes.
@@ -287,12 +352,11 @@ class Layout {
          elm = clone.elm;
        }
     }    
-    let srcBox = getBox(elm);
     let dstBox = getBox(dataIndex("tag", cell.elm).cellIcon);
     _body_.append(elm);
     let css = elm.style.cssText; 
     animate(elm, 
-     { left: srcBox.x + "px", top: srcBox.y + "px", zIndex:100 },
+     { left: srcBox.x + "px", top: srcBox.y + "px", zIndex:_zTop_+ 1 },
      { left: dstBox.x + dstBox.width/2 + "px", top: dstBox.y + dstBox.height/2 +  "px", fontSize: 0},
       `all ${_gsgs_}ms`, () => { 
          elm.remove();
@@ -309,12 +373,20 @@ class Layout {
     // @param e event, the subclass event handler event argument
     // @return boolean, true if this method handles this event and the subclass
     //   should not process it further.
+    // Don't start a new gesture while a cut/copy mutation+rebuild is in flight:
+    // the score model has been mutated but the DOM hasn't been rebuilt yet, so the
+    // DOM state a new gesture would read is stale. Cleared by the build() wrapper.
+    if (this.pasting) return true;
+    let ae = document.activeElement;
+    if(ae && (ae.tagName == "INPUT" || ae.tagName == "TEXTAREA")) ae.blur();
     if (e.ctrlKey || !e.isPrimary) return true;
     // When magnify cell is active, update magnifier and suppress layout events:
     if (_menu_.magnifier?.active) {
       let pg = e.target.pg || e.target.closest(".canvas-container")?.pg;
       if (pg) {
+        e.taken = true ;
         let updateMag = (ev) => {
+          if (!pg.elm) return; // pg can be released/recycled mid-gesture
           let box = pg.elm.getBoundingClientRect();
           // Calculate position as fraction of displayed size (0 to 1)
           let fracX = (ev.clientX - box.left) / box.width;
@@ -324,7 +396,7 @@ class Layout {
         updateMag(e);
         // Track pointer movement for drag
         let moveListener = listen(this.elm, "pointermove", updateMag);
-        listen(this.elm, ["pointerup", "pointercancel"], () => {
+        listen(this.elm, "pointerup", () => {
           unlisten(moveListener);
           _menu_.autoOff.run();
         }, { once: true });
@@ -339,18 +411,22 @@ class Layout {
 
       let pageCell = _menu_.activeRing.activeCell;
       if (!pageCell) return false;
+      e.taken = true;
       let pageKey = pageCell.key;
       let layoutKey = Layout.activeLayout.cell.key;
       let pasteCell = _menu_.rings.page.cells.paste;
       let pg, pn;
       let score = this.score;
-      // The add/paste  ops insert before page when event is in left (or top) half of e.target,
+      // The add/paste/import/merge ops insert before page when event is in left (or top) half of e.target,
       // and after page when clicked in right (or bottom) half. We use left/right for
       // for most layouts, but VerticalLayout uses top/bottom. 
       pg = e.target.pg || e.target.closest(".canvas-container")?.pg;
       if (!pg) return true;
+      // for animation, get pg.elm's  (or pg.thumbElm's) location before cut/clone/build
+      let srcBox = layoutKey == "table" ? (pg.thumbElm ? getBox(pg.thumbElm) : null)
+         : pg.elm ? getBox(pg.elm) : null ; 
       pn = score.pnOf(pg);
-      if (pageKey == "add" || pageKey == "paste" || pageKey == "import") {
+      if (["add", "paste", "import", "merge"].includes(pageKey)) {
         let box = getBox(e.target);
         if (layoutKey == "vertical" && e.clientY - box.top > box.height / 2) pn++;
         else if (e.clientX - box.x > box.width / 2) pn++;
@@ -375,23 +451,31 @@ class Layout {
             await pg.inflate() ; 
             await pg.getThumbElm() ;
           }
-          await this.build(false);
+          this.build(false);
           break;
         }
 
         case "cut": {
-          if(this.score.pgs.length == 1) break; // no cutting last pg
+          if(this.score.pgs.length == 1) {  // a score must keep at least one page
+            toast("Can't cut last page.");
+            break;
+          }
           score.pgCut(pn);
           if(pn == _score_.numbers.pn) // deleting active pg?
             _score_.numbers.pn = Math.max(1, _score_.numbers.pn - 1) // choose different one
           else if(pn < _score_.numbers.pn) // active pg must decrement
             --_score_.numbers.pn;
+          // note: falls through to case "copy"
         }
 
         case "copy": {
+          // cut falls through to here, so this guards both: model has been mutated
+          // (cut) and/or the page elm is about to detach for the move animation;
+          // block new gestures until build() (run in the animation's after) rebuilds.
+          this.pasting = true;
           if (pasteCell.pg) pasteCell.pg.deflate(true);
           pasteCell.pg = await pg.clone(true);
-          await this.animateToCell(pg, false, _menu_.rings.page.cells.paste, layoutKey, 
+          await this.animateToCell(pg, srcBox, false, _menu_.rings.page.cells.paste, layoutKey, 
             () => this.build(false));
           _menu_.enableCells("page/paste") ;
           break;
@@ -413,26 +497,71 @@ class Layout {
           _shade_.show("Copying...", 250);
           await _podPb_.pgCopy(pn);
           _shade_.hide();
-          await this.animateToCell(pg, true, _menu_.rings.page.cells.import,layoutKey); 
+          await this.animateToCell(pg, srcBox, true, _menu_.rings.page.cells.import,layoutKey); 
           break;
         }
 
-        case "import": { 
+        case "import": {
           // paste from  _podPb_
-          _shade_.show("Importing...", 50);
-          _menu_.activateCell(null); 
-          await _podPb_.pgPaste(pn);
-          _shade_.hide();
-          _menu_.activateRing(_menu_.rings.page);
-          _menu_.activateCell(_menu_.rings.page.cells.import);
+          dialog(`Confirm: Import pages from shared buffer?<br>(clears undo history)`,
+            { Import: { svg: "Import Page" }, Cancel: { svg: "Cancel" } },
+            async (_e, _prop, tag, args) => {
+              if (tag == "Import") {
+                _shade_.show("Importing...", 50);
+                _menu_.activateCell(null);
+                await _podPb_.pgPaste(pn);
+                _shade_.hide();
+                _menu_.activateRing(_menu_.rings.page);
+                _menu_.activateCell(_menu_.rings.page.cells.import);
+              }
+              args.close();
+            });
           break;
         }
 
         case "merge": {
-          dialog(`Confirm: Merge all annotations on this page?<br>(cannot be undone)`, 
+          // splice an entire pdf directly into the current score at pn
+          let mergeCell = _menu_.rings.page.cells.merge;
+          if (!mergeCell.pdfData) break;
+          let pdfData = mergeCell.pdfData;
+          let wasLocked = mergeCell.locked;
+          dialog(`Confirm: Merge entire PDF into score?<br>(clears undo history)`,
             { Merge: { svg: "Merge" }, Cancel: { svg: "Cancel" } },
-            (e, prop, tag, args) => {
-              if(tag == "Merge") pg.mergeObjects();
+            async (_e, _prop, tag, args) => {
+              if (tag == "Merge") {
+                _shade_.show("Merging...", 50);
+                _menu_.busy = true;
+                _menu_.activateCell(null);
+                try {
+                  let mergedScore = await _score_.bindScore(pdfData, pn);
+                  await mergedScore.activate();
+                } finally {
+                  _shade_.hide();
+                }
+                // activate() leaves score ring active; restore page ring with merge
+                // cell active so the user can tap another page without re-loading.
+                _menu_.activateRing(_menu_.rings.page);
+                mergeCell.pdfData = pdfData;
+                _menu_.activateCell(mergeCell);
+                _menu_.busy = false;
+                if (wasLocked) {
+                  mergeCell.locked = true;
+                  mergeCell.elm.classList.add("Menu__cell-locked");
+                  _menu_.autoOff.cancel();
+                } else {
+                  _menu_.autoOff.run(4000 + _gs_ * 3.5);
+                }
+              }
+              args.close();
+            });
+          break;
+        }
+
+        case "flatten": {
+          dialog(`Confirm: Flatten all annotations on this page?<br>(cannot be undone)`,
+            { Flatten: { svg: "Flatten" }, Cancel: { svg: "Cancel" } },
+            (_e, _prop, tag, args) => {
+              if(tag == "Flatten") pg.flattenObjects();
               args.close();
             });
           break;
@@ -453,7 +582,9 @@ class Layout {
     return false;
   }
 
-  async pgOpen(how,unused) {
+  cancelNav() {}
+
+  async pgOpen(how) {
     // Subclasses override with logic to open page, where @how is one
     // of "next","prev","first","last".
     // Ignore rapid page turn requests while operation is in progress
@@ -516,6 +647,7 @@ class Layout {
     // It will stash the pn and fire a NUMBERS event.
     // @param pn 1-based
     // @param force post pn even if it hasn't changed
+    if (!_score_?.numbers) return; // stale flip callback can land mid score-swap (_score_ null or pre-init)
     if (_score_.numbers.pn != pn || force) {
       _score_.numbers.pn = pn;
       _body_.dispatchEvent(new CustomEvent("NUMBERS", { detail: {sender:this} }));
@@ -569,10 +701,23 @@ class BookLayout extends Layout {
           .BookLayout__spine {
             position:absolute;
             left:50%;
-            width: 0; 
+            width: 0;
             height:0;
             z-index: 1;
            }
+          .BookLayout__spine::before, .BookLayout__spine::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: var(--stitch-w, 0.8em);
+            height: 0.1em;
+            background: radial-gradient(circle, #fff8 45%, transparent 45%);
+            background-size: 0.12em 0.1em;
+            background-repeat: repeat-x;
+          }
+          .BookLayout__spine::before { top: -0.2em; }
+          .BookLayout__spine::after  { top: calc(var(--pg-h) + 0.1em); }
           .BookLayout__binding {
              height:100%; 
              width:1em;
@@ -600,10 +745,23 @@ class BookLayout extends Layout {
             position:absolute;
             overflow: hidden;
           }
+          /* iOS/WebKit drops the paint of a page revealed by a flip until
+             pointerup. The slot's transform is churned by the flip animation, so
+             promote the page bitmap itself (which the flip never touches) to a
+             stable own compositing layer so it stays rasterized. Bounded: only a
+             handful of slots are mounted at once. */
+          .BookLayout__slot .canvas-container {
+            transform: translateZ(0);
+          }
           .BookLayout__shadow {
             position:absolute;
             height: 125%; /* extra is clipped off */
             pointer-events: none;
+          }
+          .BookLayout__castShadow {
+            position:absolute;
+            pointer-events: none;
+            overflow: hidden; /* clip the path to the page box (the curl can overhang) like the slot does; the CSS drop-shadow still spills past */
           }
        `
   );
@@ -628,8 +786,8 @@ class BookLayout extends Layout {
   */
 
   elm = helm(`
-    <div class="pz">
-      <div data-tag="book" class="Layout" style="overflow:visible">
+    <div data-tag="BookLayout" class="pz">
+      <div data-tag="layout" class="Layout" style="overflow:visible">
         <div data-tag="binding" class="BookLayout__binding"></div>
         <div data-tag="spine" class="BookLayout__spine">
           <div data-slot="A" class="BookLayout__slot"></div>
@@ -639,6 +797,7 @@ class BookLayout extends Layout {
           <div data-slot="E" class="BookLayout__slot"></div>
           <div data-slot="F" class="BookLayout__slot"></div>
           <div data-tag="shadow" class="BookLayout__shadow"></div>
+          <svg data-tag="castShadow" class="BookLayout__castShadow"><path fill="#fff"></path></svg>
         </div>
       </div>
      </div>
@@ -653,7 +812,7 @@ class BookLayout extends Layout {
   // slot that has a child Page elm will be slot[3].
   pn0 = -2;
   inOp = false;
-  pgFlipAnimator = new Schedule();
+  animId = 0; // prevent multiple pgFlip.animator() threads
 
   constructor(score, cell) {
     super(score, cell);
@@ -668,7 +827,7 @@ class BookLayout extends Layout {
     // a page flips, we circularly rotate the slot divs
     // by assigning this.slot to one of the this.slots members.
     let s = {};
-    Object.assign(s, dataIndex("slot", this.book));
+    Object.assign(s, dataIndex("slot", this.layout));
     this.slotArrays = [
       [s.A, s.B, s.C, s.D, s.E, s.F], // unshifted
       [s.C, s.D, s.E, s.F, s.A, s.B], // left shifted by 2
@@ -685,7 +844,7 @@ class BookLayout extends Layout {
       else if (!adjusting && pn & 1) pn--;
       return pnToDiv(pn, cursor);
     });
-    this.book.append(this.pagerLeft.elm);
+    this.layout.append(this.pagerLeft.elm);
     this.pagerRight = new Pager("right", (stash, adjusting, cursor) => {
       let pn = stash.pn;
       let pgCount = this.score.pgs.length;
@@ -705,7 +864,7 @@ class BookLayout extends Layout {
     unlisten(this.pointerListener);
   }
 
-  async build(animated=true) {
+  async _build(animated=true) {
     Object.assign(this, this.cell.stash);
     this.pn0 = -2;
     let { fit, score } = this;
@@ -714,28 +873,28 @@ class BookLayout extends Layout {
     // Layout scroll g((eo)metry) in units of css pixels
     let g = this.cell.geo = (this.cell.geo || {});
     // top/bottom gap and left/right gap, for a border-radius of .8em
-    g.tbGap = g.lrGap = .8 * _pxPerEm_;
-    g.pagerWidth = 0;
-
-    if(this.pnShow == "On") {
-       // Compensate for width of pager, and remove  gap on left and right
-      g.pagerWidth = Pager.width;
-      g.lrGap = 0;
-    }
+    g.tbGap = .2 * _pxPerEm_; 
+    g.borderPx = 0.025 * _pxPerEm_ * 2; // top+bottom border included in box-sizing:border-box height
+    g.lrGap = this.pnShow ==  "On"? 0: g.tbGap ;
+    // Pager always occupies its own strip (hidden or not), lrGap=0 when pager is present.
+    // Hidden pager gets Layout.margin width — narrow but non-overlapping with pages.
+    g.pagerWidth = this.pnShow == "On" ? Pager.width : Layout.margin;
     g.pgCount = this.score.pgs.length;
+    let spineT = Math.min(g.pgCount / 100, 1);
+    g.bindingWidth = (0.5 + spineT) * _pxPerEm_;
 
     if (fit == "none") {
       g.pgWidth = score.maxWidth;
       g.pgHeight = score.maxHeight;
       g.bookWidth = g.lrGap + g.pagerWidth + g.pgWidth + g.pgWidth + g.pagerWidth + g.lrGap;
-      g.bookHeight = g.tbGap + g.pgHeight + g.tbGap;
-    } 
+      g.bookHeight = g.tbGap + g.pgHeight + g.tbGap + g.borderPx;
+    }
 
     if (fit == "auto" || fit == "width") {
       g.bookWidth = innerWidth - Layout.margin - Layout.margin;
       g.pgWidth = (g.bookWidth - g.pagerWidth - g.lrGap - g.lrGap - g.pagerWidth) / 2;
       g.pgHeight = Math.floor(g.pgWidth * (score.maxHeight / score.maxWidth));
-      g.bookHeight = g.tbGap + g.pgHeight + g.tbGap;
+      g.bookHeight = g.tbGap + g.pgHeight + g.tbGap + g.borderPx;
 
       if(fit == "auto") {
         // Check if layout will fit entirely within window. If not, recalculate with fit = HEIGHT;
@@ -745,15 +904,15 @@ class BookLayout extends Layout {
         if(layoutWidth > innerWidth)
           fit = "height";
         else {
-          let layoutHeight = Math.round(Layout.margin * 2 + g.pgHeight + g.tbGap * 2);
+          let layoutHeight = Math.round(Layout.margin * 2 + g.pgHeight + g.tbGap * 2 + g.borderPx);
           if(layoutHeight > innerHeight) fit = "height";
-        } 
+        }
       }
     }
 
     if (fit == "height") {
       g.bookHeight = innerHeight - Layout.margin - Layout.margin;
-      g.pgHeight = g.bookHeight - g.tbGap - g.tbGap;
+      g.pgHeight = g.bookHeight - g.tbGap - g.tbGap - g.borderPx;
       g.pgWidth = Math.floor(g.pgHeight * (score.maxWidth / score.maxHeight));
       g.bookWidth = g.lrGap + g.pagerWidth + g.pgWidth + g.pgWidth + g.pagerWidth + g.lrGap;
     }
@@ -768,7 +927,7 @@ class BookLayout extends Layout {
     //
 
     // book
-    Object.assign(this.book.style, {
+    Object.assign(this.layout.style, {
       height: toEm(g.bookHeight),
       // Note that book's width is set by adding pagerWidth in px, then subtracting pagerWidth in em's.
       // Initially, they are equal, so contribute nothing, but if/when the book is resized through em change,
@@ -777,13 +936,20 @@ class BookLayout extends Layout {
       width: `calc(${toEm(g.bookWidth)} + ${g.pagerWidth * 2}px - ${toEm(g.pagerWidth * 2)})`,
     });
 
-    // spine...slots attach here.
+    // binding width scales with page count (saturates at 100 pages)
+    this.binding.style.width = toEm(g.bindingWidth);
+    this.binding.style.left = `calc(50% - ${toEm(g.bindingWidth / 2)})`;
+
+    // spine...slots attach here. --stitch-w and --pg-h drive ::before/::after dot strips.
     this.spine.style.top = toEm(g.tbGap);
+    this.spine.style.setProperty('--stitch-w', toEm(g.bindingWidth * 0.8));
+    this.spine.style.setProperty('--pg-h', toEm(g.pgHeight));
 
     // shadow...creates shadow effect across the flipping page
     g.shadowWidth = g.pgWidth / _pxPerEm_;
     this.shadow.style.width = toEm(g.shadowWidth);
     this.shadow.remove(); // initially not visible
+    this.castShadow.remove();
 
     // slots
     for (let slot of this.slots) {
@@ -793,15 +959,13 @@ class BookLayout extends Layout {
     this.layoutSlots();
 
     // pagers
-    if(this.pnShow == "On") {
-      this.book.append(this.pagerLeft.elm);
-      this.book.append(this.pagerRight.elm);
-      this.pagerLeft.build();
-      this.pagerRight.build();
-    } else {
-      this.pagerLeft.elm.remove();
-      this.pagerRight.elm.remove();
-    }
+    this.layout.append(this.pagerLeft.elm);
+    this.layout.append(this.pagerRight.elm);
+    let pagerHidden = this.pnShow != "On";
+    this.pagerLeft.setHidden(pagerHidden, Layout.margin);
+    this.pagerRight.setHidden(pagerHidden, Layout.margin);
+    this.pagerLeft.build();
+    this.pagerRight.build();
     this.pgGoTo(_score_.numbers.pn);
     if(!animated) return;
 
@@ -810,9 +974,10 @@ class BookLayout extends Layout {
     //
     let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
 
-    if(this.cell.pz)  // custom user-set size/position
-      animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0}, this.cell.pz, `left, top, font-size ${_gs_}ms`);
-    else animate(this.elm, 
+    let pz = this.userPz();
+    if(pz)  // custom user-set size/position
+      animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0}, pz, `left, top, font-size ${_gs_}ms`);
+    else animate(this.elm,
        {left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
        this.centerLT({ fontSize: "1em"}),
       `left, top, font-size ${_gs_}ms`);
@@ -820,18 +985,20 @@ class BookLayout extends Layout {
 
   async onDown(e) {
     if (this.inOp && this.closeFunc) {
-      // This block runs when a pointer event is received while the pgFlipAnimator is
-      // running from previous page flip, i.e. user is turning pages faster than they
-      // are flipping closed.
-      this.pgFlipAnimator.cancel();
+      // This block runs when a pointer event is received while a sequence of
+      // pgFlip's animator calls is still running running from previous page flip,
+      // i.e. user is turning pages faster than they are flipping closed.
+      this.animId++;
       await this.closeFunc();
       this.closeFunc = null;
+      this.inOp = false; 
       return this.onDown({
         isPrimary: true,
         target: document.elementFromPoint(e.clientX, e.clientY),
         clientX: e.clientX,
         clientY: e.clientY,
         pointerId: e.pointerId,
+        timeStamp: performance.now(),
       });
     }
 
@@ -843,79 +1010,94 @@ class BookLayout extends Layout {
     let { pgWidth, pgHeight } = this.cell.geo;
     let advancing;
     // When target is slot[3] (right side), we're advancing toward end of book
-    // In this case, if slot[4] has no children, there's no page to advance  to,
+    // In this case, if slot[4] has no children, there's no page to advance to,
     // so just return. Its as if last page was "glued" to the book.
     // When target is slot[2] (left side), we're flipping toward beginning.
     let slot = e.target.closest(".BookLayout__slot");
     if (slot === this.slots[3] && this.slots[4].children.length > 0) advancing = true;
     else if (slot === this.slots[2]) advancing = false;
-    else return Layout.pgAlert(e, Layout.endElm);
+    else 
+    { e.taken = true ;
+      return Layout.pgAlert("end");
+    }
     this.inOp = true;
     this.elm.setPointerCapture(e.pointerId);
     let spineBox = getBox(this.spine);
-    this.pgFlip(advancing ? pgWidth : -pgWidth, pgHeight / 2, e.clientX - spineBox.x, e.clientY - spineBox.y, advancing, null);
 
-    // following 3 vars are used to determine if page is "flung"
-    let xTravel = 0;
-    let prevClientX = e.clientX;
-    let prevTimeStamp = e.timeStamp;
-    let mv = listen(this.elm, "pointermove", (emv) => {
-      this.pgFlipAnimator.cancel();
-      this.pgMove(emv.clientX - spineBox.x, emv.clientY - spineBox.y, advancing);
-      xTravel = emv.clientX - prevClientX;
-      prevClientX = emv.clientX;
-      prevTimeStamp = emv.timeStamp;
+    this.navX = e.clientX - spineBox.x;
+    this.navY = e.clientY - spineBox.y;
+    this.navAdvancing = advancing;
+    this.pgFlip(advancing ? pgWidth : -pgWidth, pgHeight / 2, this.navX, this.navY, advancing);
+
+    let drag = new Drag(e, { minVelocity:0.75 });
+
+    this.navMv = listen(this.elm, "pointermove", (emv) => {
+      this.navX = emv.clientX - spineBox.x;
+      this.navY = emv.clientY - spineBox.y;
+      this.pgMove(this.navX, this.navY, advancing);
+      drag.mv(emv) ;
     });
 
     listen(
       this.elm,
       "pointerup",
-      (eup) => {
-        unlisten(mv);
+      async (eup) =>  {
+        unlisten(this.navMv);
+        this.navMv = null;
         let x = eup.clientX - spineBox.x;
         let y = eup.clientY - spineBox.y;
-        // Determine if we're actually flipping a page (fromX moved past spine)
-        // or letting page flop back to its original position.
         let flipping = (advancing && x <= 0) || (!advancing && x > 0);
-        // Determine if page was "flung": if so, force flipping
-        if (advancing) xTravel = -xTravel;
-        if (eup.timeStamp - prevTimeStamp < 250 && xTravel != 0) flipping = xTravel > 0;
-        // Tap (no drag, quick touch) = page turn
-        else if (xTravel == 0 && eup.timeStamp - e.timeStamp < 500) flipping = true;
-        // Determine x position of where to move page: flip fully to opposite side
-        // of spine, or flop fully back to initial side.
+        drag.up(eup) ;
+        if(drag.jab || drag.vX) flipping = true ;
+        if(drag.vX) drag.boost(1.5, 2) ;
         let toX = flipping ? (advancing ? -pgWidth : pgWidth) : advancing ? pgWidth : -pgWidth;
         // animate the flip (or flop)
         this.closeFunc = async () => {
           if (flipping) await this.pgShift(advancing);
           else this.layoutSlots();
         };
-        this.pgFlip(x, y, toX, pgHeight / 2, advancing, this.closeFunc);
+        this.pgFlip(x, y, toX, pgHeight / 2, advancing, this.closeFunc, drag.vX);
       },
       { once: true }
     );
   }
 
-  pgFlip(x, y, toX, toY, advancing, func) {
-    // Animate page flip from current x and y one step towards toX, toY, all in spineBox coords,
-    // then call myself again for next step.
-    // When x,y is reached, execute func.
-    //    this.inOp = true;
-    if (x == toX && y == toY) {
-      if (func) func();
-      this.inOp = false;
-      return;
-    }
-    // If distance from x to toX <= 1em, go directly to toX. Otherwise
-    // move towards toX by 1/2 of the distance...ditto for y.
-    let minD =  _pxPerEm_;
-    let dX = Math.abs((toX - x) / 2.5);
-    let dY = Math.abs((toY - y) / 2.5);
-    x = dX <= minD ? toX : toX > x ? x + dX : x - dX;
-    y = dY <= minD ? toY : toY > y ? y + dY : y - dY;
-    this.pgMove(x, y, advancing);
-    this.pgFlipAnimator.run(60, () => this.pgFlip(x, y, toX, toY, advancing, func));
+  cancelNav() {
+    if (!this.navMv) return;
+    unlisten(this.navMv);
+    this.navMv = null;
+    let { pgWidth, pgHeight } = this.cell.geo;
+    let toX = this.navAdvancing ? pgWidth : -pgWidth;
+    this.closeFunc = () => this.layoutSlots();
+    this.pgFlip(this.navX, this.navY, toX, pgHeight / 2, this.navAdvancing, this.closeFunc, null);
   }
+
+  pgFlip(x, y, toX, toY, advancing, func=null, pace=null) {
+    // pace in msec/flip. if null, value from stash (which is in msec/flip) is used,
+    // otherwise abs(pace) is used.
+    let pgWidth = this.cell.geo.pgWidth;                                                          
+    let pxPerFlip = pgWidth * 2;
+    let msecPerFlip = pace == null ? this.cell.stash.pace : pxPerFlip * (1/ Math.abs(pace)) ; 
+    let startFlip  = advancing ? (pgWidth - x)   / pxPerFlip : (x   + pgWidth) / pxPerFlip;           
+    let targetFlip = advancing ? (pgWidth - toX)  / pxPerFlip : (toX + pgWidth) / pxPerFlip;          
+    let duration = Math.abs(targetFlip - startFlip) * msecPerFlip;       
+    this.inOp = true;                                                                             
+    let start = performance.now();                                                                
+    let easedStart  = startFlip  * startFlip  * (3 - 2 * startFlip);                            
+    let easedTarget = targetFlip * targetFlip  * (3 - 2 * targetFlip); // 0 for flop, 1 for flip
+    let animId = ++this.animId;                                                                   
+    let animate = (now) => {
+      if (animId != this.animId) return;  // cancelled
+      let t = Math.min((now - start) / duration, 1);                                              
+      let flip = startFlip + (targetFlip - startFlip) * t;
+      let easedFlip = flip * flip * (3 - 2 * flip);                                               
+      let progress = t >= 1 ? 1 : (easedFlip - easedStart) / (easedTarget - easedStart);          
+      this.pgMove(x + (toX - x) * progress, y + (toY - y) * progress, advancing);
+      if (t >= 1) { if (func) func(); this.inOp = false; }                                        
+      else requestAnimationFrame(animate);                                                      
+    }                                                                                             
+    animate(start);                                                                             
+  }      
 
   async pgMount(pn, slot, nonblocking=true) {
     // First, remove all children of this.slots[slot]. When
@@ -956,7 +1138,7 @@ class BookLayout extends Layout {
     //  @advancing when true: the page in slot 3 is pulled to the left,
     //   so advancing toward end of book. This page is the "leader", while
     //   slot 4 is the "follower".
-    let { shadow } = this;
+    let { shadow, castShadow } = this;
     let { pgWidth, pgHeight, shadowWidth } = this.cell.geo;
     let zoom = parseFloat(this.elm.style.fontSize);
     pgWidth *= zoom;
@@ -1005,7 +1187,39 @@ class BookLayout extends Layout {
       shadow.style.left = "unset";
 
       let alpha = Math.min((x + pgWidth) / shadowWidth, 1);
-      follower.style.filter = `drop-shadow(rgba(0, 0, 0, ${alpha * 0.3}) 2em 1em 1.5em)  drop-shadow(rgba(0, 0, 0, ${alpha * 0.15}) 0.5em 0.5em 0.5em) drop-shadow(rgba(0, 0, 0, ${alpha *  0.08}) 0px 0px 1em)`;
+      // CAST SHADOW — keeps the *real* feathered drop-shadow on iOS. The page
+      // itself can't be filtered (its clip-path descendant makes WebKit drop the
+      // shadow), so this <svg> caster carries the curl as an opaque <path> (no
+      // clip-path anywhere), takes the drop-shadow, and sits *behind* the opaque
+      // page so only its shadow shows. Same look as the old follower.filter on
+      // Blink/Gecko; iOS is the bet — verify on device.
+      this.spine.append(castShadow);
+      Object.assign(castShadow.style, {
+        width: pgWidth + "px",
+        height: pgHeight + "px",
+        top: "0",
+        right: "unset",
+        left: follower.style.left,
+        transformOrigin: follower.style.transformOrigin,
+        transform: follower.style.transform,   // coincident with the page
+        zIndex: 1,                             // behind the page (follower z=2)
+        // iOS SEAM FIX: a single large blur (the old 1.5em / 1em terms) gets
+        // tiled by Core Animation at ~512 device-px and blurs each tile in
+        // isolation, producing the hard light->dark seam ~halfway down the page.
+        // So keep every blur radius SMALL (<=0.5em, confirmed seam-free) and get
+        // the shadow's REACH from larger offsets instead (offsets just translate,
+        // they don't make the blur kernel cross a tile). A ramp of offset shadows
+        // at decreasing distance fakes the old soft falloff; the final 0-offset
+        // halo gives direction-independent coverage so BOTH the curl and the
+        // leading edge are shaded regardless of advancing/receding.
+        filter: `drop-shadow(rgba(0, 0, 0, ${alpha * 0.08}) 2.4em 1.2em 0.45em)
+          drop-shadow(rgba(0, 0, 0, ${alpha * 0.10}) 1.6em 0.8em 0.4em)
+          drop-shadow(rgba(0, 0, 0, ${alpha * 0.12}) 0.9em 0.45em 0.4em)
+          drop-shadow(rgba(0, 0, 0, ${alpha * 0.13}) 0.35em 0.18em 0.3em)
+          drop-shadow(rgba(0, 0, 0, ${alpha * 0.07}) 0 0 0.5em)`,
+      });
+      castShadow.setAttribute("viewBox", `0 0 ${pgWidth} ${pgHeight}`);
+      castShadow.firstElementChild.setAttribute("d", follower.firstChild ? follower.firstChild.style.clipPath.replace(/^path\(["']?|["']?\)$/g, "") : "");
       shadow.style.opacity = alpha;
       shadow.style.right = pgWidth - pullingEdgeWidth + "px";
       shadow.style.transform = `rotate(${pulledAngle - pullingAngle}rad)`;
@@ -1049,7 +1263,34 @@ class BookLayout extends Layout {
       follower.append(shadow);
       shadow.style.right = "unset";
       let alpha = Math.min((pgWidth - x) / shadowWidth, 1);
-      follower.style.filter = `drop-shadow(rgba(0, 0, 0, ${alpha * 0.3}) 2em 1em 1.5em)  drop-shadow(rgba(0, 0, 0, ${alpha * 0.15}) 0.5em 0.5em 0.5em) drop-shadow(rgba(0, 0, 0, ${alpha *  0.08}) 0px 0px 1em)`;
+      // CAST SHADOW — see the note above in the advancing branch.
+      this.spine.append(castShadow);
+      Object.assign(castShadow.style, {
+        width: pgWidth + "px",
+        height: pgHeight + "px",
+        top: "0",
+        right: "unset",
+        left: follower.style.left,
+        transformOrigin: follower.style.transformOrigin,
+        transform: follower.style.transform,   // coincident with the page
+        zIndex: 0,                             // behind the page
+        // iOS SEAM FIX: a single large blur (the old 1.5em / 1em terms) gets
+        // tiled by Core Animation at ~512 device-px and blurs each tile in
+        // isolation, producing the hard light->dark seam ~halfway down the page.
+        // So keep every blur radius SMALL (<=0.5em, confirmed seam-free) and get
+        // the shadow's REACH from larger offsets instead (offsets just translate,
+        // they don't make the blur kernel cross a tile). A ramp of offset shadows
+        // at decreasing distance fakes the old soft falloff; the final 0-offset
+        // halo gives direction-independent coverage so BOTH the curl and the
+        // leading edge are shaded regardless of advancing/receding.
+        filter: `drop-shadow(rgba(0, 0, 0, ${alpha * 0.08}) 2.4em 1.2em 0.45em)
+          drop-shadow(rgba(0, 0, 0, ${alpha * 0.10}) 1.6em 0.8em 0.4em)
+          drop-shadow(rgba(0, 0, 0, ${alpha * 0.12}) 0.9em 0.45em 0.4em)
+          drop-shadow(rgba(0, 0, 0, ${alpha * 0.13}) 0.35em 0.18em 0.3em)
+          drop-shadow(rgba(0, 0, 0, ${alpha * 0.07}) 0 0 0.5em)`,
+      });
+      castShadow.setAttribute("viewBox", `0 0 ${pgWidth} ${pgHeight}`);
+      castShadow.firstElementChild.setAttribute("d", follower.firstChild ? follower.firstChild.style.clipPath.replace(/^path\(["']?|["']?\)$/g, "") : "");
       shadow.style.opacity = alpha;
       shadow.style.left = pgWidth - pullingEdgeWidth + "px";
       shadow.style.transform = `rotate(${pulledAngle - pullingAngle}rad)`;
@@ -1121,13 +1362,9 @@ class BookLayout extends Layout {
   async pgGoTo(pn) {
     pn = clamp(pn, 1, this.score.pgs.length);
     let pn0 = pn - (pn & 0x01 ? 3 : 2);
-
-    this.pgFlipAnimator.cancel();
     this.pgResetSlots();
-
     let advancing = pn - 2 > this.pn0;
     if(pn == 1) advancing = false; // can't advance into 1st page
-
     if(advancing) { 
       await this.pgMount(pn0+2, 4, false);
       await this.pgMount(pn0+3, 5, false);
@@ -1143,10 +1380,10 @@ class BookLayout extends Layout {
       this.pn0 = pn0 + 2;
     }
     let {pgWidth, pgHeight} = this.cell.geo;
-    if (advancing) this.pgFlip(pgWidth, 0, -pgWidth, pgHeight / 2, true,
-      async () => await this.pgShift(true, false));
-    else this.pgFlip(-pgWidth, pgHeight, pgWidth, pgHeight / 2, false,
-      async() => await this.pgShift(false, false));
+    if (advancing) this.pgFlip(pgWidth, 0, -pgWidth, pgHeight / 2, true, 
+			       async () => await this.pgShift(true, false));
+    else this.pgFlip(-pgWidth, pgHeight, pgWidth, pgHeight / 2, false, 
+		     async() => await this.pgShift(false, false));
     this.pnPost(pn, true);
     return pn;
   }
@@ -1173,6 +1410,7 @@ class BookLayout extends Layout {
       this.spine.append(slot);
     }
     this.shadow.remove();
+    this.castShadow.remove();
   }
 
 }
@@ -1193,7 +1431,6 @@ class ScrollLayout
 
 
 class ScrollLayout extends Layout {
-
   // Define svg for "back" of scroll, i.e. visible on the left/right scrollers
   static verso = "url('data:image/svg+xml;base64," + btoa(`
   <!-- leather-worn-amber.svg -->
@@ -1211,15 +1448,15 @@ class ScrollLayout extends Layout {
                   0 0 0 1 0" result="contrast"/>
         <feDiffuseLighting in="contrast"
           surfaceScale="2.8" diffuseConstant="1.15"
-          lighting-color="#fff9e0" result="lit">
+          lighting-color="#f0f0f0" result="lit">
           <feDistantLight azimuth="230" elevation="55"/>
         </feDiffuseLighting>
         <feBlend in="contrast" in2="lit" mode="multiply" result="grain"/>
       </filter>
     </defs>
-    <rect width="128" height="128" fill="#f88a2d"/>
+    <rect width="128" height="128" fill="#585858"/>
     <!-- texture overlay -->
-    <rect width="128" height="128" filter="url(#leatherWear)" opacity="0.28"/>
+    <rect width="128" height="128" filter="url(#leatherWear)" opacity="0.32"/>
   </svg>
   `) +  "')";
 
@@ -1233,10 +1470,17 @@ class ScrollLayout extends Layout {
           position: relative;
           pointer-events: auto;
         }
+        /* iOS/WebKit drops the paint of a page scrolled/snapped into view until
+           pointerup. Promote each page bitmap to its own stable compositing layer
+           so it stays rasterized. Bounded: the sash only holds a window of
+           2*pgShow+1 (min 4) pages. (Same fix as BookLayout.) */
+        .ScrollLayout__sash .canvas-container {
+          transform: translateZ(0);
+        }
         .ScrollLayout__roll {
           position:absolute;
           z-index:10;
-          filter:drop-shadow(.1em .7em .5em #0008);
+          filter:drop-shadow(0 .2em .35em #0005);
           overflow:hidden;
         }
         .ScrollLayout__roll-shadow {
@@ -1252,7 +1496,7 @@ class ScrollLayout extends Layout {
           height:100%;
           background-image: 
             linear-gradient(to right, #0000 35% , #ccc2 50%, #0000 65% ),
-            ${ScrollLayout.verso}
+            var(--verso)
         } 
    `
   );
@@ -1274,8 +1518,8 @@ class ScrollLayout extends Layout {
    **/
 
   elm = helm(`
-    <div class="pz">
-      <div data-tag="scroll" class="Layout" style="border:none;">
+    <div data-tag="ScrollLayout" class="pz">
+      <div data-tag="layout" class="Layout" style="border:none;">
         <div data-tag="leftRoll" class="ScrollLayout__roll">
           <div data-tag="leftRollPattern" class="ScrollLayout-texture"></div>
           <div data-tag="leftRollShadow" class="ScrollLayout__roll-shadow"></div>
@@ -1295,6 +1539,8 @@ class ScrollLayout extends Layout {
   frameWidth = 0;
   currentX = 0;
   currentY = 0;
+  snapIndex = 0; // integer count of snap steps from origin
+  snapStep = 1;  // effective pgSnap after snapMap (fractional or integer; 0 = free scroll)
 
   constructor(score, cell) {
     super(score, cell);
@@ -1304,16 +1550,23 @@ class ScrollLayout extends Layout {
     this.pointerListener = listen(this.elm, ["pointerdown"], this.onDown.bind(this));
 
     this.props = cell.key == "horizontal" ? NORMAL_PROPS : ORTHO_PROPS;
+    this.elm.dataset.scrollOrient = cell.key == "horizontal" ? "h" : "v";
 
     // Create left/right (top/bottom) pager instances:
-    this.pagerLeft = new Pager(this.props.LEFT, (stash, adjusting, cursor) => 
-       pnToDiv(stash.pn, cursor));
+    this.pagerLeft = new Pager(this.props.LEFT, (stash, adjusting, cursor) => {
+      if (adjusting) return pnToDiv(stash.pn, cursor);
+      let [left] = this.snapPns();
+      return pnToDiv(left, cursor);
+    });
     Object.assign(this.pagerLeft.elm.style, {
       left: 0,
       zIndex: 20,
     });
-    this.pagerRight = new Pager(this.props.RIGHT, (stash, adjusting, cursor) => 
-       pnToDiv(Math.min(stash.pn + this.cell.geo.pgShow - 1, this.cell.geo.pgCount), cursor));
+    this.pagerRight = new Pager(this.props.RIGHT, (stash, adjusting, cursor) => {
+      if (adjusting) return pnToDiv(Math.min(stash.pn + this.cell.geo.pgShow - 1, this.cell.geo.pgCount), cursor);
+      let [, right] = this.snapPns();
+      return pnToDiv(right, cursor);
+    });
     Object.assign(this.pagerRight.elm.style, {
       right: 0,
       zIndex: 20,
@@ -1329,14 +1582,13 @@ class ScrollLayout extends Layout {
     unlisten(this.pointerListener);
   }
 
-  async build(animated=true) {
-    this.animated = animated; 
+  async _build(animated=true) {
+    this.animated = animated;
     Object.assign(this, this.cell.stash);
     let { fit, gap, pgSnap, sash, score, pgShow } = this;
     let { LEFT, RIGHT, TOP, WIDTH, HEIGHT, MAXWIDTH, MAXHEIGHT, INNERWIDTH, INNERHEIGHT } = this.props;
     fit = fit.toLowerCase();
     clearChildren(sash);
-
     // Layout scroll g((eo)metry) in units of css pixels, and "as if"
     // this is a horizontal scroll, though the values assigned to
     // this.props can effectively make this vertical by swapping
@@ -1401,7 +1653,7 @@ class ScrollLayout extends Layout {
     //
 
     // scroll
-    Object.assign(this.scroll.style, {
+    Object.assign(this.layout.style, {
       [HEIGHT]: toEm(g.scroll[HEIGHT]),
       // Not that scroll's WIDTH is set by adding rollGirth in px, then subtracting rollGirth in em's.
       // Initially, they are equal, so contribute nothing, but if/when the scroll is resized through em change,
@@ -1418,11 +1670,11 @@ class ScrollLayout extends Layout {
       [TOP]: 0,
     });
 
-    // sash
+    // sash — clear any residual transition; LEFT is set by pgGoTo below
+    this.sash.style.transition = "unset";
     Object.assign(this.sash.style, {
       [HEIGHT]: "100%",
       [WIDTH]: toEm(g.sash[WIDTH]),
-      [LEFT]: 0,
       [TOP]: 0,
     });
 
@@ -1434,8 +1686,7 @@ class ScrollLayout extends Layout {
         [roll === this.leftRoll ? LEFT : RIGHT]: 0,
         [TOP]: 0,
        
-        // box shadow adds caps on top & bottom or rolls
-        boxShadow: LEFT == "left" ? "0 -3px 0 #8B4513,0 3px 0 #8B4513" : "-3px 0 0 #8B4513,3px 0 0 #8B4513",
+        // box shadow adds caps on top & bottom or rolls — color via --roll-cap-color CSS var
       });
 
     // left/right roll pattern: simulated rolled-up portion of scroll
@@ -1445,69 +1696,64 @@ class ScrollLayout extends Layout {
         [WIDTH]: "200%", 
       });
 
-    if(this.pnShow == "On") {
-      this.leftRoll.append(this.pagerLeft.elm);
-      this.rightRoll.append(this.pagerRight.elm);
-      this.pagerLeft.build();
-      this.pagerRight.build();
+    this.leftRoll.append(this.pagerLeft.elm);
+    this.rightRoll.append(this.pagerRight.elm);
+    let pagerHidden = this.pnShow != "On";
+    this.pagerLeft.setHidden(pagerHidden, Layout.margin);
+    this.pagerRight.setHidden(pagerHidden, Layout.margin);
+    this.pagerLeft.build();
+    this.pagerRight.build();
+
+    let pn = parseInt(_score_.numbers.pn);
+    if (animated && score.pgs.length > 1) {
+      // Instantly position the sash 1 page away to show a 1-page transition
+      let startPn = (pn > 1) ? (pn - 1) : 2;
+      let pgSpan = g.pg[this.props.WIDTH] + g.gap;
+      let startSashStart = -(startPn - 1) * pgSpan;
+      this.sash.style[this.props.LEFT] = (startSashStart / _pxPerEm_) + "em";
+
+      let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
+      animate(this.elm, 
+        { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
+        this.userPz() ?? this.centerLT({ fontSize: "1em"}),
+        `left, top, font-size ${_gs_}ms`
+      );
+      this.pgGoTo(pn, true);
     } else {
-      this.pagerLeft.elm.remove();
-      this.pagerRight.elm.remove();
+      this.pgGoTo(pn, false);
     }
-    if(!animated) return await this.pgGoTo(_score_.numbers.pn);
-    // 
-    // animate centering of layout's screen position
-    //
-
-    let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
-
-    animate(this.elm,
-      { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
-      this.cell.pz ? this.cell.pz : this.centerLT({ fontSize: "1em"}),
-      `left, top, font-size ${_gs_}ms`);
-    await this.pgGoTo(_score_.numbers.pn);
   }
 
   async onDown(e) {
+    if (this.inOp) {
+      this.commitAnimId++;
+      this.inOp = false;
+    }
     if (await super.onDown(e)) return;
-    let { LEFT, CLIENTX, WIDTH, X } = this.props;
+    let { LEFT, CLIENTX, WIDTH, X, VX } = this.props;
     let sashLimit = this.cell.geo.sashLimit;
-
     this.sash.setPointerCapture(e.pointerId);
     let frameBox = getBox(this.frame);
-    let dir = "none"; // drag direction, "none", "left", or "right"
-    e.mv1 = e.mv0 = e;
-    e.mvBuffer = []; // circular buffer for fling velocity calculation
+    let drag = new Drag(e, { minvelocity: 0.01 });
+    let prevSashStart = this.sashStart ; // Used by pgAlert logic(...)
 
-    let mv = listen(
+    this.navMv = listen(
       this.frame,
       ["pointermove"],
       ((emv) => {
-        e.mv1 = e.mv0;
-        e.mv0 = emv;
-        // Track recent events for fling velocity
-        e.mvBuffer.push({ x: emv[CLIENTX], t: emv.timeStamp });
-        if (e.mvBuffer.length > 5) e.mvBuffer.shift();
         let clientX = emv[CLIENTX];
-        let atStart = this.sashStart == 0; // at start of document
-        let atEnd = sashLimit == Math.round(this.sashStart); // at end of document
         // disallow dragging sash when pointer outside of frame, as it can expose
         // sash locations where no Pg is mounted
         if (clientX < frameBox[X] || clientX > frameBox[X] + frameBox[WIDTH]) return;
-        this.sashStart = clamp(this.sashStart + clientX - e.mv1[CLIENTX], sashLimit, 0);
+        // follow the user's move:
+        this.sashStart = clamp(this.sashStart + clientX - drag.mvBuf.at(-1)[CLIENTX], sashLimit, 0); // drag.mvBuf.at(-1) is previous mv event
+        if(this.sashStart == prevSashStart) // no motion means were at the start or end
+        { Layout.pgAlert(drag.mvBuf.at(-1)[CLIENTX] < clientX ? "start" : "end");
+          e.taken = true ;
+        }
         this.sash.style[LEFT] = toEm(this.sashStart);
         this.spinRollers();
-        dir = clientX > e.mv1[CLIENTX] ? "right" : clientX < e.mv1[CLIENTX] ? "left" : "none";
-        if (dir == "left" && atEnd) {
-          Layout.pgAlert(emv, Layout.endElm);
-          if (Layout.startElm.isConnected) Layout.startElm.remove();
-        } else if (dir == "right" && atStart) {
-          Layout.pgAlert(emv, Layout.startElm);
-          if (Layout.endElm.isConnected) Layout.endElm.remove();
-        } else {
-          if (Layout.startElm.isConnected) Layout.startElm.remove();
-          if (Layout.endElm.isConnected) Layout.endElm.remove();
-        }
+        drag.mv(emv) ;
       }).bind(this)
     );
 
@@ -1515,71 +1761,47 @@ class ScrollLayout extends Layout {
       this.frame,
       "pointerup",
       (async (eup) => {
-        unlisten(mv);
-        // Calculate fling velocity from the event buffer
-        let vel = 0;
-        let buf = e.mvBuffer;
-        if (buf.length >= 2) {
-          // Find the oldest event within the last ~100ms
-          let recent = buf[buf.length - 1];
-          let oldest = buf[0];
-          for (let i = buf.length - 2; i >= 0; i--) {
-            if (recent.t - buf[i].t > 100) break;
-            oldest = buf[i];
-          }
-          let dt = recent.t - oldest.t;
-          let dx = oldest.x - recent.x;
-          // Require reasonable time window AND meaningful movement for fling detection
-          if (dt > 10 && dt < 150 && Math.abs(dx) > 15) {
-            vel = dx / dt;
-            // Non-linear scaling: amplify fast flings more than slow ones
-            vel = Math.sign(vel) * Math.pow(Math.abs(vel), 1.3) / 2;
-          }
+        unlisten(this.navMv);
+        this.navMv = null;
+        drag.up(eup) ;
+        if(drag.jab) {
+          let visStart = Math.max(frameBox[X], 0);
+          let visEnd = Math.min(frameBox[X] + frameBox[WIDTH], window[this.props.INNERWIDTH]);
+          let mid = (visStart + visEnd) / 2;
+          // convert pace from sec/snap to px/msec, reading pgSnap directly to avoid stale snapStep:
+          let snap = this.cell.geo.pgSnap;
+          let step = snap < 1 ? (this.snapMap[snap] ?? 0) : snap;
+          if (step === "visible") step = 0;
+          let pace = (step || 1) * _score_[this.props.MAXWIDTH] / _score_.layout.pace ;
+          return this.pgSnapTo(eup[CLIENTX] > mid ? -pace : pace) ;
         }
-        // Determine direction from last movement, or from tap position
-        let dir;
-        let totalTravel = buf.length > 0 ? Math.abs(buf[buf.length - 1].x - buf[0].x) : 0;
-        if (eup.timeStamp - e.timeStamp < 500 && totalTravel < 10) {
-          // Tap (or mobile micro-movement tap) — direction based on which half was tapped
-          let mid;
-          if (this.cell.geo.pgSnap) {
-            mid = frameBox[X] + frameBox[WIDTH] / 2;
-          } else {
-            // pgSnap=0: use viewport-visible portion of frame to find midpoint
-            let visStart = Math.max(frameBox[X], 0);
-            let visEnd = Math.min(frameBox[X] + frameBox[WIDTH], window[this.props.INNERWIDTH]);
-            mid = (visStart + visEnd) / 2;
-          }
-          dir = eup[CLIENTX] > mid ? "left" : "right";
-          // Nudge sash off the exact boundary so pgSnapTo's ceil/floor will advance
-          this.sashStart += (dir == "left" ? -1 : 1);
-        } else {
-          dir = eup.timeStamp - e.timeStamp > 200 ? "none" :
-              e.mv0[CLIENTX] > e.mv1[CLIENTX] ? "right" :
-              e.mv0[CLIENTX] < e.mv1[CLIENTX] ? "left" : "none";
-        }
-        this.pgSnapTo(dir, vel);
+        else if(drag.lift) return this.pgSnapTo(0);
+        else  return this.pgSnapTo(drag[VX], drag);
       }).bind(this),
       { once: true }
     );
   }
 
-  async pgGoTo(pn) {
-    let { LEFT, WIDTH } = this.props;
-    let { gap, pg, pgCount, sashLimit } = this.cell.geo;
-    pn = clamp(pn, 1, pgCount);
-    let sashOrigin = this.sashStart;
-    this.sashStart = -(pg[WIDTH] + gap) * (pn - 1);
-    this.sashStart = clamp(this.sashStart, sashLimit, 0);
-    pn = Math.round(-this.sashStart / (pg[WIDTH] + gap)) + 1;
-    await this.pgMount(pn);
-    animate(this.sash, { [LEFT]: toEm(sashOrigin) }, { [LEFT]: toEm(this.sashStart) }, `${LEFT} cubic-bezier( 0, 1.01, 0.04, 1 ) ${_gs_}ms`);
-    this.spinRollers(_gs_);
-    this.pnPost(pn, true);
-    return pn;
+  cancelNav() {
+    if (!this.navMv) return;
+    unlisten(this.navMv);
+    this.navMv = null;
+    this.pgSnapTo(0);
+  }
+
+  async pgGoTo(pn, animated = true) {
+    pn = parseInt(pn);
+    let { pg, gap, sashLimit } = this.cell.geo;
+    let pgSpan = pg[this.props.WIDTH] + gap;
+    this.sashStart = clamp(-(pn - 1) * pgSpan, sashLimit, 0);
+    this.snapStep = 1;       // whole-page; pgSnapTo corrects for snap setting on next gesture
+    this.snapIndex = pn - 1;
+    let pace = _score_[this.props.MAXWIDTH] / _score_.layout.pace;
+    await this.pgCommit(pn, pace, animated);
   }
 
   async pgMount(pn) {
+    pn = parseInt(pn);
     // Mount pages to ensure that [pn-pgShow, pn+pgShow] pages are mounted, as well
     // as "pgShow" previous and succeeding pages are checked out and mounted on
     // the sash.  All other pages on the sash are marked as unused.
@@ -1614,91 +1836,134 @@ class ScrollLayout extends Layout {
     }
   }
 
+  commitAnimId = 0; // prevent multiple pgCommit animation threads
+
+  async pgCommit(pn, pace, animated = true) { // pace is px/msec
+    let { LEFT, MAXWIDTH } = this.props;
+    this.inOp = true;
+    this.pnPost(pn);
+    this.pagerLeft.build();
+    this.pagerRight.build();
+    await this.pgMount(pn);
+    let target = this.sashStart / _pxPerEm_;
+    if (!animated) {
+      this.sash.style[LEFT] = target + "em";
+      this.inOp = false;
+      return;
+    }
+    let startLeft = parseFloat(this.sash.style[LEFT]) || 0;
+    let duration = ((this.snapStep || 1) * _score_[MAXWIDTH]) / pace ;
+    this.spinRollers(duration);
+    let start = performance.now();
+    let animId = ++this.commitAnimId;
+    let step = (now) => {
+      if (animId !== this.commitAnimId) return;
+      let t = Math.min((now - start) / duration, 1);
+      let eased = 1 - Math.pow(1 - t, 3); // cubic ease-out: full speed start, decelerates to rest
+      this.sash.style[LEFT] = (startLeft + (target - startLeft) * eased) + "em";
+      if (t < 1) requestAnimationFrame(step);
+      else this.inOp = false;
+    };
+    requestAnimationFrame(step);
+  }
+
   async pgOpen(how, bookMarks) {
     if (bookMarks) return super.pgOpen(how);
-    // flip the page forward to next pair of pages
+    if (this.inOp) return;
     let pn = parseInt(_score_.numbers.pn);
-    let inc = Math.max(this.pgSnap, 1); // at least 1 page
-    let pgCount = this.score.pgs.length;
-
+    // convert msec/snap to px/msec, reading pgSnap directly to avoid stale snapStep:
+    let pgSnap = this.cell.geo.pgSnap;
+    let pgSnapStep = pgSnap < 1 ? (this.snapMap[pgSnap] ?? 0) : pgSnap;
+    if (pgSnapStep === "visible") pgSnapStep = 0;
+    let pxPerMsec = (pgSnapStep || 1) * _score_[this.props.MAXWIDTH] / _score_.layout.pace ;
     switch (how) {
-      case "next":
-        // Don't wrap - stop at end
-        if (pn + inc > pgCount) return;
-        pn += inc;
-        break;
-      case "prev":
-        // Don't wrap - stop at beginning
-        if (pn - inc <= 0) return;
-        pn -= inc;
-        break;
-      case "nextBookmark":
-        pn += pn & 0x01 ? 1 : 2;
-        break;
-      case "prevBookmark":
-        pn -= pn & 0x01 ? 1 : 2;
-        break;
-      case "first":
-        pn = 1;
-        break;
-      case "last":
-        pn = pgCount;
-        break;
+      case "next": return this.pgSnapTo(-pxPerMsec) ;
+      case "prev": return this.pgSnapTo(pxPerMsec) ;
+      case "first": return this.pgGoTo(1) ;
+      case "last": return this.pgGoTo(this.score.pgs.length) ;
     }
-
-    // Clamp to valid range
-    pn = clamp(pn, 1, pgCount);
-    this.pnPost(await this.pgGoTo(pn));
+    await this.pgGoTo(pn) ;
   }
 
   /**
    * After user action scrolls the sash, the code can snap to a specific
    * page boundary (or partial page).
    */
-  async pgSnapTo(dir, vel) {
-    // "snap" displayed pages so that they align with a page boundary.  @dir is "right" or "left" or none (i.e. nearest)
-    // @vel is "velocity". If pgSnap == 0, and dir != none, then vel is used to fling the sash left or right.
-    let { LEFT, WIDTH } = this.props;
-    let { gap, pgCount, pgSnap, pgShow, sashLimit} = this.cell.geo;
+
+  snapMap = {"-4":0, "-3":"visible", "-2":1/4, "-1":1/3, "0":1/2}; // partial page snaps
+
+  snapPns() {
+    // Returns [leftPn, rightPn] using integer arithmetic to avoid float accumulation error.
+    let {gap, pgShow, pgCount} = this.cell.geo ;
+    let ss = this.snapStep, si = this.snapIndex;
+    if (ss <= 0) {
+      // free scroll: no snap grid, derive from sashStart
+      let pgWidth = this.cell.geo.pg[this.props.WIDTH];
+      let offset = (-this.sashStart) / (pgWidth + gap);
+      return [Math.floor(offset) + 1, Math.min(Math.ceil(offset + pgShow), pgCount)];
+    }
+    if (ss >= 1) {
+      // integer snap: each step is ss full pages, product is always exact
+      let left = si * ss + 1;
+      left = Math.min(left, pgCount - pgShow + 1) ; 
+      return [left, Math.min(left + pgShow - 1, pgCount)];
+    }
+    // fractional snap: each step is 1/q pages — use integer division throughout
+    let q = Math.round(1 / ss); // 2, 3, or 4
+    let left  = Math.min(Math.trunc(si / q) + 1, pgCount);
+    let right = Math.min(Math.trunc((si + q * pgShow - 1) / q) + 1, pgCount);
+    return [left, right];
+  }
+
+  async pgSnapTo(vel, drag = null) {
+    // move the page to requested snap point, animating at given velocity
+    // vel is given in px/msec, but note:
+    //            vel == 0 means snap to nearest (a no-op if pgSnap == 0)
+    //                 > 0 means snap to right
+    //                 < 0 means snap to left
+    // (abs(vel) >= 1000) means snap immediately, i.e. no animation
+    let pace = Math.abs(vel) || _score_[this.props.MAXWIDTH] / _score_.layout.pace;
+
+    let { WIDTH, X, INNERWIDTH } = this.props;
+    let { gap, pgSnap, sashLimit } = this.cell.geo;
     let pgWidth = this.cell.geo.pg[WIDTH];
-    // For snap animation speed, ignore negligible velocities to get consistent snap-back timing
-    let animVel = Math.abs(vel) > 0.07 ? vel : 0;
-    let snapDur = Math.min(animVel ? Math.abs(250 / animVel) : 250, 8500); // how long the snap takes, in ms
-    if (pgSnap > 0) {
-      let snapWidth = (pgWidth + gap) * pgSnap;
-      let travel = this.sashStart / snapWidth;
-      if (dir == "right") this.sashStart = Math.ceil(travel) * snapWidth;
-      else if (dir == "left") this.sashStart = Math.floor(travel) * snapWidth;
-      else {
-        // dir = "nearest", i.e. snap to nearest page border that's a multiple of this.pgSnap
-        let dX = (-this.sashStart % snapWidth) / snapWidth;
-        this.sashStart = (dX < 0.5 ? Math.ceil(travel) : Math.floor(travel)) * snapWidth;
-      }
+    let pgSpan = pgWidth + gap;
+    let frameBox = getBox(this.frame);
+    let visSize = Math.min(frameBox[X] + frameBox[WIDTH], window[INNERWIDTH]) - Math.max(frameBox[X], 0);
+
+    // Resolve snap width
+    let snap = pgSnap < 1 ? (this.snapMap[pgSnap] ?? 0) : pgSnap;
+    let snapWidth;
+    if (snap == "visible") {
+      snapWidth = visSize;   // snap by visible screen amount (non-integer pages OK)
+      this.snapStep = 0;     // snapPns() derives page from sashStart
+    } else {
+      this.snapStep = snap;
+      snapWidth = pgSpan * snap;
     }
-    else if(dir != "none") {
-      // Use the visible (viewport-clipped) frame extent as step — the full frame may extend offscreen
-      let { X, INNERWIDTH } = this.props;
-      let frameBox = getBox(this.frame);
-      let visSize = Math.min(frameBox[X] + frameBox[WIDTH], window[INNERWIDTH]) - Math.max(frameBox[X], 0);
-      if (Math.abs(vel) > 0.07)
-        this.sashStart -= vel * visSize; // fling: sign of vel encodes direction
-      else
-        this.sashStart += dir == "left" ? -visSize : visSize; // tap: advance/retreat by visible amount
+
+    if (snapWidth > 0) {
+      // Snap to nearest boundary, then step one unit in the gesture direction
+      let snapIndex = Math.round(-this.sashStart / snapWidth);
+      if (vel > 0) snapIndex--;
+      else if (vel < 0) snapIndex++;
+      this.sashStart = -snapIndex * snapWidth;
+      this.snapIndex = snapIndex;
+    } else if(drag) {
+        // Free-scroll:  drag defined, and pgSnap == 0: kinematic fling 
+        let { to, dt } = Drag.fling(this.sashStart, sashLimit, 0, vel);
+        this.sashStart = to;
+        pace = _score_[this.props.MAXWIDTH] / dt;  // back-compute pace so pgCommit duration = dt
     }
+
+    let targetSash = this.sashStart;
     this.sashStart = clamp(this.sashStart, sashLimit, 0);
-    // what will be the new page number?
-    let pn = Math.round((-this.sashStart) / (pgWidth + gap) + 1);
-    pn = clamp(pn, 1, pgCount);
-
-    // after the snap, the page number is taken as the left[top]most visible page
-    // skip snap-alignment when clamped to limit — position won't be on a snap boundary
-    if (pgSnap > 0 && this.sashStart > sashLimit) pn = Math.floor((pn - 1) / pgSnap) * pgSnap + 1;
-    this.pnPost(pn);
-    this.pgMount(pn, dir);
-
-    // animate the snap, updating on every animation frame
-    animate(this.sash, null, { [LEFT]:this.sashStart / _pxPerEm_ + "em"}, `${LEFT} ${snapDur}ms ease-out`);
-    this.spinRollers(snapDur);
+    if (targetSash != this.sashStart)
+      Layout.pgAlert(targetSash > 0 ? "start" : "end");
+    if (snapWidth > 0)
+      this.snapIndex = Math.round(-this.sashStart / snapWidth);
+    let [newPn] = this.snapPns();
+    await this.pgCommit(newPn, pace);
   }
 
   spinRollers(dur = 0) {
@@ -1713,7 +1978,6 @@ class ScrollLayout extends Layout {
     leftStyle[LEFT] = rightStyle[RIGHT] = "unset";
     let track = () => {
       // rollers and pagers dimensions are px, not ems
-      //      let rollPos = this.sashStart % rollGirth;
       let rollPos = this.sash[OFFSETLEFT] % rollGirth;
       leftStyle[RIGHT] = rollPos + "px";
       rightStyle[LEFT] = -rollPos - rollGirth + "px";
@@ -1787,8 +2051,8 @@ class TableLayout extends Layout {
   active = null; // active pg
 
   elm = helm(`
-    <div class="pz">
-      <div data-tag="table" class="Layout TableLayout__table">
+    <div data-tag="TableLayout" class="pz">
+      <div data-tag="layout" class="Layout TableLayout__table">
         <div data-tag="grid" class="TableLayout__grid">
         </div>
       <div>
@@ -1799,7 +2063,7 @@ class TableLayout extends Layout {
     super(score, cell);
     Object.assign(this, dataIndex("tag", this.elm));
     _body_.append(this.elm);
-    this.pointerListener = listen(this.table, ["pointerdown"], this.onDown.bind(this));
+    this.pointerListener = listen(this.layout, ["pointerdown"], this.onDown.bind(this));
   }
 
   destructor() {
@@ -1807,7 +2071,7 @@ class TableLayout extends Layout {
     unlisten(this.pointerListener);
   }
 
-  async build(animated=true) {
+  async _build(animated=true) {
     // @animated set to false to skip some of the animation effects during building...
     // When true, we build 1 page per animation frame, and move the layout as more
     // rows are added. This works fine for initial builds, but is too much if
@@ -1815,12 +2079,12 @@ class TableLayout extends Layout {
     this.animated = animated;
     if(this.active) {
       this.active.classList.remove("TableLayout__pg-active");
-      let canvas = this.active.querySelector(".canvas-container")?.remove();
+      this.active.querySelector(".canvas-container")?.remove();
       this.active = null;
     }
     Object.assign(this, this.cell.stash);
     // pages is from cell.stash: it determines the number of pages per row
-    let { grid, pages, score, table } = this;
+    let { grid, pages, score, layout } = this;
 
     // Compute layout at a 1em fontSize
     clearChildren(grid);
@@ -1833,7 +2097,7 @@ class TableLayout extends Layout {
     let pgWidth = gridWidth / ((pages - 1) * hStep + 1);
     let pgHeight = (score.maxHeight / score.maxWidth) * pgWidth;
 
-    table.style.width = toEm(tableWidth);
+    layout.style.width = toEm(tableWidth);
     grid.style.width = `calc(${toEm(tableWidth)} - ${gridMargin * 2}px)`;
     this.pgWidth = pgWidth;
     this.pgHeight = pgHeight;
@@ -1844,7 +2108,7 @@ class TableLayout extends Layout {
     let yStep = pgHeight * vStep;
     let pgCount = score.pgs.length;
     for (let pn = 1, top = 0; pn <= pgCount; top += yStep) {
-      for (let col = 0, left = 0; col < pages && pn <= pgCount; pn++, col++, left += xStep) 
+      for (let col = 0, left = 0; col < pages && pn <= pgCount; pn++, col++, left += xStep)
           this.gridCoords.push({pn, top,  left});
     }
 
@@ -1882,7 +2146,7 @@ class TableLayout extends Layout {
     }
     else {
       // ...then all thumbnails already built
-      for(let {pn, top, left} of this.gridCoords) {
+      for(let {pn, top} of this.gridCoords) {
         let gridHeight = top + pgHeight ;
         grid.style.height = toEm(gridHeight);
         let nextTop = innerHeight - gridHeight - Layout.margin;
@@ -1894,15 +2158,22 @@ class TableLayout extends Layout {
   }
 
   buildAux() {
-    // set layout's final position/size, based on this.fit (or this.cell.pz, if set). Called after
+    // set layout's final position/size, based on this.fit (or the saved pan-zoom from userPz(), if any). Called after
     // build one of 2 locations: 1. all thumbnails 2. user cancelled in-flight thumbnail build
     let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
-    if(this.cell.pz)
+    let pz = this.userPz();
+    if(pz)
       animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
-        this.cell.pz, `left, top, font-size ${_gs_}ms`);
-    else { 
-      if(this.fit == "Height") // reduce fontSize so layout fits window's height
-        this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / this.table.offsetHeight  + "em";
+        pz, `left, top, font-size ${_gs_}ms`);
+    else {
+      if(this.fit == "Height") { // reduce fontSize so layout fits window's height
+        // Guard the division: a collapsed layout (offsetHeight 0, e.g. when the
+        // vertical-gap slider stacks every row at top 0) would set fontSize to
+        // "Infinityem" — invalid, so the page would misrender. Only refit when
+        // the measured height is finite and positive.
+        let h = this.layout.offsetHeight;
+        if (h > 0) this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / h + "em";
+      }
       if(this.animated)
         animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
           this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}ms`);
@@ -1926,8 +2197,6 @@ class TableLayout extends Layout {
        left:toEm(left),
        top:toEm(top),
     });  
-
-
     if(this.pnShow == "On") {
       // add a page number elm (or refresh, it elm already has a page number elm) to upper left corner of elm
       let pnElm = elm.getElementsByClassName("TableLayout__pn").item(0) || helm(`<div class="TableLayout__pn"></div>`);
@@ -1943,7 +2212,6 @@ class TableLayout extends Layout {
     }
     else
       clearChildren(elm);
-
     if (pn == _score_.numbers.pn) 
        await this.buildPgActive(pn, elm) 
     else this.score.pgUnuse(pg);
@@ -1974,6 +2242,11 @@ class TableLayout extends Layout {
     }
     // Now build the new active pg:
     let pg = elm.pg = await this.score.pgUse(pn, false);
+    // A null elm means this foreground inflate was aborted — i.e. a newer build
+    // superseded this one (rapid layout switching). Bail the stale build; the
+    // newer one will mount the active page. (Non-abort inflate errors re-throw,
+    // so elm===null here can only be the supersede signal, not a silent failure.)
+    if (!pg || !pg.elm) return;
     elm.pn = pn;
     pg.elm.style.display = "block";
     // increase zoom to help distinguish active pg
@@ -2009,7 +2282,13 @@ class TableLayout extends Layout {
       this.gridMargin = parseInt(this.layout.gridMargin);
       this.active = this.layout.active;
       let actBox = getBox(this.active);
-      Object.assign(this.active.style, { pointerEvents:"none", position: "absolute", opacity: ".75", zIndex: 99});
+      Object.assign(this.active.style, { 
+        pointerEvents: "none", 
+        position: "absolute", 
+        opacity: ".75", 
+        zIndex: 99,
+        fontSize: this.layout.elm.style.fontSize
+      });
       this.offset = { x: actBox.width / 2, y:actBox.height / 2};
       _body_.append(this.active);
       // create list of transitions for our "splits"
@@ -2018,7 +2297,7 @@ class TableLayout extends Layout {
     }
 
     mv(emv) {
-      let {splits, splitsStyle, splitsTrans, transform, active} = this;
+      let {splits, splitsStyle} = this;
       this.active.style.left = emv.clientX - this.offset.x + "px";
       this.active.style.top = emv.clientY - this.offset.y + "px";
       let target = document.elementFromPoint(emv.clientX, emv.clientY);
@@ -2051,18 +2330,21 @@ class TableLayout extends Layout {
          this.toPn = this.active.pn;
     }
 
-    async up(eup) {
+    async up() {
       this.splits.forEach((elm, i) => elm && (elm.style.cssText = this.splitsStyle[i]));
       let score = this.layout.score;
       if(this.toPn == null) {
         // Then this is a cut operation
+        this.layout.pasting = true ;
         let active = this.active;
         score.pgCut(active.pn);
         let pasteCell = _menu_.rings.page.cells.paste ;
         if (pasteCell.pg) pasteCell.pg.deflate(true);
-          pasteCell.pg = await active.pg.clone(true);
-        this.layout.animateToCell(active.pg, false, _menu_.rings.page.cells.cut, "table",
-              () => this.layout.build(false));
+        pasteCell.pg = await active.pg.clone(true);
+        // Restore styles before animating so they are captured cleanly for undo
+        Object.assign(active.style, { pointerEvents: "auto", opacity: "1", zIndex: 2, fontSize: ""});
+        this.layout.animateToCell(active.pg, getBox(active.pg.elm), false, _menu_.rings.page.cells.paste, "table",
+          () => this.layout.build(false));  // build() wrapper clears layout.pasting
         _menu_.enableCells("page/paste") ;
         return;
       }        
@@ -2075,10 +2357,11 @@ class TableLayout extends Layout {
          let sibling = this.layout.grid.children.item(this.toPn-2);
          sibling.after(this.active);
       }
-      Object.assign(this.active.style, { pointerEvents: "auto", opacity: "1", zIndex: 2});
+      Object.assign(this.active.style, { pointerEvents: "auto", opacity: "1", zIndex: 2, fontSize: ""});
       // put each thumbElm into its correct grid location
       for(let {left, pn, top} of this.layout.gridCoords) {
-        let elm = score.pgs[pn-1].thumbElm;
+        let elm = score.pgs[pn-1]?.thumbElm;
+        if (!elm) continue; // unbuilt thumbnail (e.g. cancelled build): nothing to re-place
         let pnElm = elm.querySelector(".TableLayout__pn");
         if(pnElm) pnToDiv(pn, pnElm, false);
         elm.pn = pn;
@@ -2091,19 +2374,21 @@ class TableLayout extends Layout {
 
 
   async onDown(e) {
+    // The pasting guard (set during an in-flight cut/copy) is checked in super.onDown().
     if (await super.onDown(e)) return;
-    this.table.setPointerCapture(e.pointerId);
+    this.layout.setPointerCapture(e.pointerId);
     let elm = e.target.closest(".TableLayout__pg");
     if(!elm) return;
+e.taken = true ; 
     let {pg, pn} = elm;
     let pnElm = elm.querySelector(".TableLayout__pn");
     if(pnElm) {
-      this.bMarkTimer.run(_longPressMs_, () => {
+      this.bMarkTimer.run(_gs_, () => {
         // toggle bookmark for this pg
         if(pg.bookmark) {
           pg.bookmark = null;
           pnElm.style.background = "unset";
-        } else pnElm.style.background = pg.bookmark = randomColor();
+        } else pnElm.style.background = pg.bookmark = nextBkColor();
       });
       _body_.dispatchEvent(new CustomEvent("BOOKMARK"));
     };
@@ -2114,16 +2399,18 @@ class TableLayout extends Layout {
     // pg "becomes" the active pg before the move. For this reason, we register
     // pointerup immediately, but it's actually work is delay'ed until
     // built is true, after this.pgGoTo has returned.
+    let drag = new Drag(e) ;
     let cursor = null;
-    let mv = null;
+    this.navMv = null;
     let built = false;
 
-    listen(this.table, "pointerup", async (eup) => {
+    listen(this.layout, "pointerup", async (eup) => {
       this.bMarkTimer.cancel();
       let finale = () => {
         if(!built) delay(1, () => finale());
         else {
-          unlisten(mv);
+          unlisten(this.navMv);
+          this.navMv = null;
           if(cursor) cursor.up(eup);
         }
       }
@@ -2135,10 +2422,13 @@ class TableLayout extends Layout {
     await this.pgGoTo(pn);
     built = true;
 
-    mv = listen(this.table, "pointermove", (emv) => {
-      if(this.score.pgs.length == 1) return; // disallow action on last pg
-       mvmt(e, emv);
-       if(e.moved) {
+    this.navMv = listen(this.layout, "pointermove", (emv) => {
+      drag.mv(emv) ;
+       if(drag.moved) {
+         if(this.score.pgs.length == 1) {  // can't drag/cut the only page out of the table
+           toast("Can't cut last page.");
+           return;
+         }
          this.bMarkTimer.cancel();
          if(!cursor) cursor = new this.Organizer(e, this);
          cursor.mv(emv);
@@ -2146,12 +2436,23 @@ class TableLayout extends Layout {
     });
   }
 
+  cancelNav() {
+    this.bMarkTimer.cancel();
+    if (!this.navMv) return;
+    unlisten(this.navMv);
+    this.navMv = null;
+  }
+
   async pgGoTo(pn) {
     if (this.active?.pn == pn) return pn; // active page was reselected, noop
+    // After a cancelled build, thumbnails beyond the cancel point don't
+    // exist; navigating to one (e.g. End key) is a noop rather than a crash.
+    let elm = this.grid.children.item(pn - 1);
+    if (!elm) return pn;
     this.inOp = true;
     this.pnPost(pn);
     // turn elm at pn into an active (full) pg
-    await this.buildPgActive(pn, this.grid.children.item(pn - 1));
+    await this.buildPgActive(pn, elm);
     this.inOp = false;
     return pn;
   }
@@ -2237,7 +2538,9 @@ class Pager {
        position:absolute;
        opacity:.75;
        border-radius:.5em;
-     }`);
+     }
+     .Pager--hidden .Pager__cursor,
+     .Pager--hidden .Pager__bookmark { visibility: hidden; }`);
 
   static id = 0;
   static width = 45 / _dvPxRt_; // px
@@ -2283,6 +2586,12 @@ class Pager {
     unlisten(this.pnListener, this.bookmarkListener, this.pointerListener);
   }
 
+  setHidden(hidden, narrowWidthPx) {
+    let { WIDTH } = this.props;
+    this.pager.style[WIDTH] = (hidden ? narrowWidthPx : Pager.width) + "px";
+    this.pager.classList.toggle("Pager--hidden", hidden);
+  }
+
   build() {
     this.buildCursor();
     this.buildBookmarks();
@@ -2292,7 +2601,8 @@ class Pager {
     let { HEIGHT, WIDTH, TOP } = this.props;
     let pagerBox = getBox(this.pager);
     let cursorHeight = pagerBox[WIDTH]; // cursor height matches pager width
-    this.cursor.style[HEIGHT] = this.cursor.style.lineHeight = cursorHeight + "px";
+    this.cursor.style[HEIGHT] = cursorHeight + "px";
+    this.cursor.style.lineHeight = this.cursor.style.fontSize ;
     // The cursor is positioned s.t. pg 1 is always at the top of the pager, and the max page is always at the bottom
     // of the pager.  Its Position is expressed as a percentage so that when a layout is scaled by adjusting
     // the font size of its pz element, the pager position will automatically adjust.
@@ -2324,7 +2634,9 @@ class Pager {
   }
 
   onDown(e) {
+    e.taken = true ;
     e.stopImmediatePropagation(); // don't let event propagate to the layout
+    let drag = new Drag(e) ;
     let { TOP, WIDTH, HEIGHT, CLIENTX, CLIENTY, X, Y } = this.props;
     let { cursor, pager } = this;
     let pgCount = _score_.pgs.length;
@@ -2333,56 +2645,66 @@ class Pager {
     pager.setPointerCapture(e.pointerId);
     cursor.classList.add("Pager__cursor-active");
 
-    let ptrDiv = ptrMsg(e,(e,div) => this.formatFunc(_score_.numbers, true, div) && false, `width: ${cursor.style.width};`);
-    let origin = e[CLIENTY];
-    let cursorOffset = pagerBox[Y] + cursorBox.height;
+    // display:block (overriding .floatingMsg's flex): the page number is drawn with
+    // zero-advance Bravura time-sig glyphs whose ink overflows the box; iOS/WebKit
+    // clips that overflow inside a flex item, so the readout shows blank. Block layout
+    // paints it (same as the cursor, which is why the cursor renders fine).
+    let ptrDiv = ptrMsg(e, (e,div) => this.formatFunc(_score_.numbers, true, div) && false, `width: ${cursor.style.width};display:block;text-align:center;`);
+    let prevPos = e[CLIENTY];
+    let cursorTop = clamp(e[CLIENTY] - pagerBox[Y] - cursorBox[HEIGHT] / 2, 0, pagerBox[HEIGHT] - cursorBox[HEIGHT]);
+    let cursorOffset = pagerBox[Y] + cursorBox.height ;
 
     let setCursor = (clientPos, delta) => {
-      // clientPos is vertical (horizontal) position of cursor
-      // delta is horizontal (vertical) distance of pointer from middle of cursor...
-      delta = Math.max(1, delta / pagerBox.width);
-      if(delta == 1) origin = clientPos; // reset origin when delta is 1
-      let dY = (clientPos - origin) / delta ;
-      dY += cursorBox[HEIGHT] / 2; // middle of cursor
-      let newPos = origin + dY - cursorOffset ;
-      cursor.style[TOP] = clamp(newPos, 0, pagerBox[HEIGHT] - cursorBox[HEIGHT]) + "px"; 
-      newPos += cursorBox[HEIGHT] / 2; // compensate for cursor height
-      _score_.numbers.pn = clamp(Math.floor((newPos / pagerBox[HEIGHT]) * pgCount) + 1, 1, pgCount);
+      let dPos = clientPos - prevPos ;
+      prevPos = clientPos;
+      let t = Math.max(0, delta / pagerBox[WIDTH] - 0.5);
+      let unitsPerPx = pgCount / pagerBox[HEIGHT];
+      let sensitivity = 1 + t * unitsPerPx * _sliderPrecision_;
+      cursorTop = clamp(cursorTop + dPos / sensitivity, 0, pagerBox[HEIGHT] - cursorBox[HEIGHT]);
+      cursor.style[TOP] = cursorTop + "px";
+      // pn calculation will equal pgCount at last pixel of slider, so we need Math.min
+      _score_.numbers.pn = Math.min(Math.floor(pgCount * cursorTop / (pagerBox[HEIGHT] - cursorBox[HEIGHT])) + 1, pgCount);
       // are we at a bookmark? 
       let bkCl = _score_.pgs[_score_.numbers.pn -1].bookmark;
-      if(bkCl) cursor.style.color = ptrDiv.style.color = bkCl;
-      else cursor.style.color = ptrDiv.style.color = "black";
+      cursor.style.color = bkCl || "";
+      ptrDiv.style.backgroundColor = bkCl || "";
+      ptrDiv.style.color = bkCl ? contrastColor(bkCl) : "";
       clearChildren(cursor);
       clearChildren(this.cursor);
-
       this.formatFunc(_score_.numbers, true, this.cursor);
     };
 
-    setCursor(e[CLIENTY], Math.abs(e[CLIENTX] - cursorBox[X] - cursorBox[WIDTH]/2));
+    setCursor(e[CLIENTY], 0) ;
 
-    this.bMarkTimer.run(_longPressMs_, () => {
+    this.bMarkTimer.run(_gs_, () => {
       let pn = _score_.numbers.pn;
       let pg = _score_.pgs[pn - 1];
       if (pg.bookmark) {
         pg.bookmark = null;
-        cursor.style.color = "black";
-        ptrDiv.style.color = "black";
+        cursor.style.color = "";
+        ptrDiv.style.backgroundColor = "";
+        ptrDiv.style.color = "";
       }
       else {
-        let bkCl = pg.bookmark = randomColor();
-        cursor.style.color = ptrDiv.style.color = bkCl;
+        let bkCl = pg.bookmark = nextBkColor();
+        cursor.style.color = bkCl;
+        ptrDiv.style.backgroundColor = bkCl;
+        ptrDiv.style.color = contrastColor(bkCl);
       }
       _body_.dispatchEvent(new CustomEvent("BOOKMARK"));
     });
 
     let mv = listen(pager, "pointermove", (emv) => {
-      let moved = mvmt(e, emv, 6, 6);
-      if(moved) this.bMarkTimer.cancel();
-      setCursor(emv[CLIENTY], Math.abs(emv[CLIENTX] - cursorBox[X] - cursorBox[WIDTH] / 2));
+      drag.mv(emv) ;
+      if(drag.moved) this.bMarkTimer.cancel();
+      setCursor(emv[CLIENTY], Math.abs(emv[CLIENTX] - cursorBox[X] - cursorBox[WIDTH]/2));
     });
 
-    listen(pager, "pointerup", (e) => {
+    listen(pager, "pointerup", (eup) => {
+        setCursor(eup[CLIENTY], Math.abs(eup[CLIENTX] - cursorBox[X] - cursorBox[WIDTH]/2));
         unlisten(mv);
+
+
         this.cursor.classList.remove("Pager__cursor-active");
         this.bMarkTimer.cancel();
         this.buildCursor();
@@ -2392,3 +2714,30 @@ class Pager {
     );
   }
 }
+
+// Per-theme layout CSS vars (recto/verso backgrounds, border, gradient overlay, roll cap color)
+let rectoWarm = "url('data:image/svg+xml;base64,ICAgICAgPHN2ZyB3aWR0aD0nM2VtJyBoZWlnaHQ9JzNlbScgdmlld0JveD0nMCAwIDEwMCAxMDAnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+CiAgICAgICAgPGZpbHRlciBpZD0ncGFwZXJGaWx0ZXInPgogICAgICAgICAgPGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9JzAuNScgCiAgICAgICAgICAgcmVzdWx0PSdub2lzZScgbnVtT2N0YXZlcz0iNCIgc3RpdGNoVGlsZXM9J3N0aXRjaCcgc2VlZD0nNDInLz4KICAgICAgICAgIDxmZUNvbG9yTWF0cml4IGluPSdub2lzZScgdHlwZT0nc2F0dXJhdGUnIHZhbHVlcz0nMCcvPgogICAgICAgICAgPGZlQ29tcG9uZW50VHJhbnNmZXI+CiAgICAgICAgICAgIDxmZUZ1bmNBIHR5cGU9J2xpbmVhcicgc2xvcGU9JzAuMycgaW50ZXJjZXB0PScwLjUnLz4KICAgICAgICAgICAgPC9mZUNvbXBvbmVudFRyYW5zZmVyPgogICAgICAgICAgICA8ZmVDb21wb3NpdGUgaW4yPSdTb3VyY2VHcmFwaGljJyBvcGVyYXRvcj0nbXVsdGlwbHknIHJlc3VsdD0ndGV4dHVyZWQnLz4KICAgICAgICAgIDwvZmlsdGVyPiAgCiAgICAgICAgICA8cmVjdCB3aWR0aD0nMTAwJScgaGVpZ2h0PScxMDAlJyBmaWxsPScjQ0Q4NTNGJyBmaWx0ZXI9J3VybCgjcGFwZXJGaWx0ZXIpJy8+CiAgICAgICAgPC9zdmc+')";
+let versoWarm = "url('data:image/svg+xml;base64,ICA8IS0tIGxlYXRoZXItd29ybi1hbWJlci5zdmcgLS0+CiAgPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4Ij4KICAgIDxkZWZzPgogICAgICA8ZmlsdGVyIGlkPSJsZWF0aGVyV2VhciIgY29sb3ItaW50ZXJwb2xhdGlvbi1maWx0ZXJzPSJzUkdCIj4KICAgICAgICA8IS0tIGxhcmdlIG9yZ2FuaWMgZ3JhaW4gcGF0dGVybiAtLT4KICAgICAgICA8ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIKICAgICAgICAgIGJhc2VGcmVxdWVuY3k9IjAuMjMiIG51bU9jdGF2ZXM9IjMiIHNlZWQ9IjgiCiAgICAgICAgICBzdGl0Y2hUaWxlcz0ic3RpdGNoIiByZXN1bHQ9Im5vaXNlIi8+CiAgICAgICAgPGZlQ29sb3JNYXRyaXggaW49Im5vaXNlIiB0eXBlPSJtYXRyaXgiCiAgICAgICAgICB2YWx1ZXM9IjEuNyAwIDAgMCAwCiAgICAgICAgICAgICAgICAgIDAgMS43IDAgMCAwCiAgICAgICAgICAgICAgICAgIDAgMCAxLjcgMCAwCiAgICAgICAgICAgICAgICAgIDAgMCAwIDEgMCIgcmVzdWx0PSJjb250cmFzdCIvPgogICAgICAgIDxmZURpZmZ1c2VMaWdodGluZyBpbj0iY29udHJhc3QiCiAgICAgICAgICBzdXJmYWNlU2NhbGU9IjIuOCIgZGlmZnVzZUNvbnN0YW50PSIxLjE1IgogICAgICAgICAgbGlnaHRpbmctY29sb3I9IiNmZmY5ZTAiIHJlc3VsdD0ibGl0Ij4KICAgICAgICAgIDxmZURpc3RhbnRMaWdodCBhemltdXRoPSIyMzAiIGVsZXZhdGlvbj0iNTUiLz4KICAgICAgICA8L2ZlRGlmZnVzZUxpZ2h0aW5nPgogICAgICAgIDxmZUJsZW5kIGluPSJjb250cmFzdCIgaW4yPSJsaXQiIG1vZGU9Im11bHRpcGx5IiByZXN1bHQ9ImdyYWluIi8+CiAgICAgIDwvZmlsdGVyPgogICAgPC9kZWZzPgogICAgPHJlY3Qgd2lkdGg9IjEyOCIgaGVpZ2h0PSIxMjgiIGZpbGw9IiNmODhhMmQiLz4KICAgIDwhLS0gdGV4dHVyZSBvdmVybGF5IC0tPgogICAgPHJlY3Qgd2lkdGg9IjEyOCIgaGVpZ2h0PSIxMjgiIGZpbHRlcj0idXJsKCNsZWF0aGVyV2VhcikiIG9wYWNpdHk9IjAuMjgiLz4KICA8L3N2Zz4KICA=')";
+
+css("layout-themes", `
+  :root {
+    --recto: ${Layout.recto};
+    --verso: ${ScrollLayout.verso};
+    --layout-gradient: linear-gradient(145deg, #ffffff0a 0%, #00000055 100%);
+    --layout-border-color: #222;
+    --roll-cap-color: #181818;
+  }
+  [data-theme="Light"] {
+    --recto: ${rectoWarm};
+    --verso: ${versoWarm};
+    --layout-gradient: linear-gradient(145deg, #f958 0%, #A748 100%);
+    --layout-border-color: #8B4513;
+    --roll-cap-color: #8B4513;
+  }
+  [data-scroll-orient="h"] .ScrollLayout__roll {
+    box-shadow: 0 -3px 0 var(--roll-cap-color), 0 3px 0 var(--roll-cap-color);
+  }
+  [data-scroll-orient="v"] .ScrollLayout__roll {
+    box-shadow: -3px 0 0 var(--roll-cap-color), 3px 0 0 var(--roll-cap-color);
+  }
+`);

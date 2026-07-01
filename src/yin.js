@@ -26,20 +26,26 @@ class Yin {
     this.highPassFilter.frequency.value = 40;
     this.highPassFilter.Q.value = 0.7;
 
-    // Load worklet with embedded WASM via blob URL
-    let workletCode;
+    if (!this.audioContext.audioWorklet._yinModulePromise) {
+      // Load worklet with embedded WASM via blob URL
+      let workletCode;
 // #include build/yin-worklet.js as workletCode
 // +skip
-    let workletUrl;
-    if (typeof chrome !== 'undefined' && chrome.runtime?.id)
-      workletUrl = chrome.runtime.getURL('yin-worklet.js');
-    else {
-      workletCode = await (await fetch('yin-worklet.js')).text();
-      workletUrl = URL.createObjectURL(new Blob([workletCode], { 'type': 'application/javascript' }));
-    }
+      let workletUrl;
+      if (typeof chrome !== 'undefined' && chrome.runtime?.id)
+        workletUrl = chrome.runtime.getURL('yin-worklet.js');
+      else {
+        workletCode = await (await fetch('yin-worklet.js')).text();
+        workletUrl = URL.createObjectURL(new Blob([workletCode], { 'type': 'application/javascript' }));
+      }
 // -skip
-// #write     let workletUrl = URL.createObjectURL(new Blob([workletCode], { 'type': 'application/javascript' }));
-    await this.audioContext.audioWorklet.addModule(workletUrl);
+// #write       let workletUrl = URL.createObjectURL(new Blob([workletCode], { 'type': 'application/javascript' }));
+      this.audioContext.audioWorklet._yinModulePromise = this.audioContext.audioWorklet.addModule(workletUrl).catch((err) => {
+        this.audioContext.audioWorklet._yinModulePromise = null;
+        throw err;
+      });
+    }
+    await this.audioContext.audioWorklet._yinModulePromise;
 
     this.workletNode = new AudioWorkletNode(this.audioContext, 'yin');
     this.workletNode.port.postMessage({ sampleRate: this.audioContext.sampleRate });
