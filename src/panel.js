@@ -1181,8 +1181,8 @@ class GridPanel extends Panel {
 
 class GuidePanel extends Panel {
   static guidebookUrl = typeof chrome !== "undefined" && chrome.runtime?.id
-    ? `https://studiop5.org/Guidebook${window._podiumVersion_}.html`
-    : `Guidebook${window._podiumVersion_}.html`;
+    ? `https://studiop5.org/Guidebook.html`
+    : `Guidebook.html`;
 
   content = helm(
     `<div style="padding:0;width:100%;height:100%;box-sizing:border-box;overflow:hidden;position:relative;">
