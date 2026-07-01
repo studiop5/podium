@@ -21,8 +21,7 @@
 **/
 
 
-import { delay, dialog, listen, sleep, toast } from "./common.js";
-import { Layout } from "./layout.js";
+import { dialog, listen } from "./common.js";
 import { Score } from "./score.js";
 export { SharedBuffer }
 
@@ -94,6 +93,10 @@ class SharedBuffer {
             case "pod-pgs-changed": // Another tab has modified the shared buffer
               this.score = null;
               this.announce();
+              // Enable/disable the import cell here (the always-on storage listener,
+              // registered once per tab) rather than relying on the buffer panel's
+              // SHAREDBUFFER listener, which is torn down when that panel is closed.
+              _menu_.enableCells("page/import", (await this.getScore()).pgs.length > 0);
               break;
     
             case "pod-pgs-clear": 
@@ -120,9 +123,9 @@ class SharedBuffer {
     });
   }
 
-  announce() {
-   // Create and send a SHAREDBUFFER event
-   _body_.dispatchEvent(new CustomEvent("SHAREDBUFFER"));
+  async announce() {
+    _menu_.enableCells("page/import", (await this.getScore()).pgs.length > 0);
+    _body_.dispatchEvent(new CustomEvent("SHAREDBUFFER"));
   }
 
   signal(msg, data={}) {

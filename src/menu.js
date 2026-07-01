@@ -20,11 +20,11 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, clamp, css, dataIndex, delay, delayMs, flung, fontMap, getBox, helm, hide, listen, mvmt, Schedule, schedule, toast, unlisten } from "./common.js";
+import { animate, clamp, css, dataIndex, delay, delayMs, Drag, fontMap, getBox, helm, hide, listen, mergeRecent,Schedule, schedule, svgWrap, toast, unlisten } from "./common.js";
 import { checkUnsaved, FileSrc } from "./file.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
-import { Panel, panels } from "./panel.js";
+import { panels, EditPanel } from "./panel.js";
 import { Grid, Score } from "./score.js";
 
 export { Menu };
@@ -54,6 +54,16 @@ class Menu {
       will-change: transform; /* fix for ipad compositing */
       border-radius: 50%;
       overflow: hidden;
+      /* clip-path (unlike border-radius/overflow) clips hit-testing too, so the
+         corners — and the cell clip-path triangles, which extend to the bbox
+         corners — are not hittable outside the circle. */
+      clip-path: circle(50%);
+      /* border-radius clips the corners visually but NOT for hit-testing, so a
+         pointerdown in a rounded-off bbox corner would otherwise land on this
+         rectangular container (which carries no data-key) and opDown's
+         dataset.key-or-grip fallback would treat it as a grip. Make the
+         containers non-hittable; the interactive cells/grip opt back in below. */
+      pointer-events: none;
     }
     .Menu__ring {
       position: absolute;
@@ -66,6 +76,7 @@ class Menu {
       background: var(--menu-cell-bg);
       color: var(--menu-icon-color);
       box-shadow: var(--menu-cell-box-shadow);
+      pointer-events: auto; /* opt back in: the holder above is pointer-events:none */
     }
     .Menu__cell-contents {
       margin-top: var(--spacing-sm);
@@ -94,8 +105,9 @@ class Menu {
       box-shadow: -0.02em -0.02em 0.04em var(--menu-panel-indicator-highlight) inset,
                   0.02em 0.02em 0.04em var(--menu-panel-indicator-shadow) inset;
     }
-    .Menu__cellIcon {
-      transform: translateY(5%);
+    .cellIcon {
+      transform: translateZ(0); /* fix for iOS partial-path SVG rendering glitch */
+      will-change: transform;
     }
     .Menu__disk {
       position: relative;
@@ -110,6 +122,7 @@ class Menu {
       position: absolute;
       background: var(--menu-disk-bg);
       color: var(--menu-icon-color);
+      pointer-events: auto; /* opt back in: the holder above is pointer-events:none */
     }
     .Menu__cell-disabled {
       color: var(--color-text-muted);
@@ -237,8 +250,10 @@ class Menu {
   }
 
   constructor() {
+    window._menu_ = this;
     Object.assign(this, dataIndex("tag", this.elm));
     let elm = this.elm;
+    elm.owner = this ;
     _body_.append(elm);
 
     this.sizes = this.getSizes();
@@ -294,10 +309,20 @@ class Menu {
     this.enableCells(["layout", "ink", "ink/paste", "page", "score/close", "score/save", "score/details", "score/print", "page/import"], false);
 
     this.stashDefaults = this.stashToJson();
-    // load menu stash from localStorage
+    // load menu stash from localStorage, resetting immediately if version is
+    // out of date so that localStorage is always at the current version.
+    // This guarantees that when a score stash is rejected for version mismatch,
+    // the existing localStorage state is always valid — mergeRecent is therefore
+    // never called with a stale local side.
     try {
       let json = localStorage.getItem("menu") ?? this.stashDefaults;
-      this.stashFromJson(json);
+      let parsed = JSON.parse(json);
+      if (parsed.version !== _podiumVersion_) {
+        this.stashFromJson(this.stashDefaults, "local");
+        localStorage.setItem("menu", this.stashToJson("local"));
+      } else {
+        this.stashFromJson(json, "local");
+      }
     } catch (Error) {
       toast("Clearing invalid local storage stash.");
       localStorage.clear();
@@ -310,6 +335,58 @@ class Menu {
       else this.activateCell(this.rings.layout.cells.book);
       // now activate Score ring
       this.activateRing(this.rings.score);
+    }
+
+    // Apply local-only cell states restored from stash
+    {
+      let themeCell = this.rings.app.cells.theme;
+      let theme = themeCell.stash.theme || "Light";
+      document.documentElement.setAttribute("data-theme", theme);
+      dataIndex("tag", themeCell.elm).cellIcon.innerHTML = iconPaths[theme];
+      this.applyGaps(theme);
+
+      let wakeLockCell = this.rings.app.cells.wakeLock;
+      if (wakeLockCell.stash.on) {
+        (async () => {
+          try {
+            wakeLockCell._wakeLock = await navigator.wakeLock.request("screen");
+            dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Wakelock On"];
+          } catch {
+            // Silently ignore page-load failures. The wake lock will be requested
+            // again on subsequent user interactions until successful.
+            dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Wakelock On"];
+            let l = listen(document, "pointerup", async () => {
+              if (wakeLockCell.stash.on) {
+                if (wakeLockCell._wakeLock) {
+                  unlisten(l);
+                  return;
+                }
+                try {
+                  wakeLockCell._wakeLock = await navigator.wakeLock.request("screen");
+                  unlisten(l);
+                } catch (err) {
+                  if (err.name !== "NotAllowedError") {
+                    wakeLockCell.stash.on = false;
+                    dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Wakelock Off"];
+                    toast("Couldn't turn on wake lock.");
+                    unlisten(l);
+                  }
+                }
+              } else {
+                unlisten(l);
+              }
+            }, { capture: true });
+          }
+        })();
+      }
+
+      let curtainCell = this.rings.app.cells.curtain;
+      if (curtainCell.stash.on) {
+        window._curtain_.on = true;
+        let cellIcon = dataIndex("tag", curtainCell.elm).cellIcon;
+        cellIcon.innerHTML = iconPaths["Curtain On"];
+        window._curtain_.update(true);
+      }
     }
 
     // initialize user interaction operation object
@@ -336,7 +413,6 @@ class Menu {
   async buildRings() {
     // Build the data structures (but not the dom elements)
     // that compose the menu's rings.
-
     let rings = this.rings;
 
     // Score ring
@@ -364,7 +440,7 @@ class Menu {
         },
         close: { name: "Close", svgPath: iconPaths["Close"] },
         print: { name: "Print", svgPath: iconPaths["Print"] },
-        details: { name: "Details", svgPath: iconPaths["Details"], stash: { quality: 2, pgFit: "Center"} },
+        details: { name: "Details", svgPath: iconPaths["Details"], stash: { quality: 3, pgFit: "Center", bkColorIdx: 0 }, storage: "score" },
       },
       svgPath: iconPaths["Score"],
     };
@@ -381,13 +457,13 @@ class Menu {
     this.listen("score/save/up", async (cell) => {
        this.activateCell(cell);
        await FileSrc.saveActiveScore(cell);
-       this.activateCell(null);
+       this.activateCell(null, rings.score);
     });
 
     this.listen("score/open/up", async (cell) => {
        this.activateCell(cell);
        await FileSrc.openActiveScore(cell);
-       this.activateCell(null);
+       this.activateCell(null, rings.score);
     });
 
     this.listen(["score/details/out", "score/open/out","score/save/out","score/new/out","score/print/out"], (cell) => this.openPanel(cell));
@@ -410,7 +486,6 @@ class Menu {
       Layout.activeLayout.elm.remove();
       Layout.activeLayout = null;
       _score_ = null;
-      _score_ = null;
       _menu_.closePanels();
       _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"], false);
       document.dispatchEvent(new CustomEvent("scoreClosed"));
@@ -422,46 +497,53 @@ class Menu {
       cells: {
         book: {
           name: "Book",
-          pz: null, // when set, the pz (pan-zoom) structures format is always { left:"0px",top:"0px",fontSize:"2em"} 
+          storage: "score", // layout settings (incl. pz pan-zoom) persist per-score, not as a global localStorage default
           stash: {
             fit: "Auto", // "Auto","Width","Height","None",
             pnShow: "On", // "On" or "Off"
+            pace: 350, // pace: animation speed in msecs/flip
+            pz: null, // user pan-zoom saved with the score. When set: { left, top, fontSize, w, h }; applied only when w/h match the current viewport (see Layout.userPz)
           },
           svgPath: iconPaths["Book"],
         },
         horizontal: {
           name: "Horizontal",
-          pz: null,
+          storage: "score",
           stash: {
             fit: "Auto", // "Auto", "Width","Height","None"
             gap: 0.2, // [0,10]% of fit dimension
             pnShow: "On",
             pgShow: 2,
-            pgSnap: 2,
+            pgSnap: 2, // -4:none, -3:visible, -2:1/4pg, -1:1/3 pg, 0:1/2 pg
+            pace: 350, // msec/snap
+            pz: null, // see book cell
           },
           svgPath: iconPaths["Horizontal Scroll"],
         },
         vertical: {
           name: "Vertical",
-          pz: null, 
+          storage: "score",
           stash: {
             fit: "Auto", // "Auto", "Width","Height","None"
             gap: 0.2, // [0,10]% of fit dimension
             pnShow: "On",
             pgShow: 1, // [1,_score_.pages.length)
-            pgSnap: 0, // 0 = disabled
+            pgSnap: 0,  // i.e. 1/2 pg
+            pace: 350, // msec/snap
+            pz: null, // see book cell
           },
           svgPath: iconPaths["Vertical Scroll"],
         },
         table: {
           name: "Table",
-          pz: null,
+          storage: "score",
           stash: {
             fit: "Auto", // "Auto", "Width","Height" (note: no "None")
             pages: 15, // [2,_score_.pages.length)
             horizontalGap: 0, // [-100,100]%
             verticalGap: 0, // [-100,100]%
             pnShow: "On",
+            pz: null, // see book cell
           },
           svgPath: iconPaths["Table"],
         },
@@ -515,7 +597,7 @@ class Menu {
         symbols: {
           name: "Symbols",
           svgPath: iconPaths["Symbols"],
-          stash: {alpha:"1", rgb:"#000000", font: "Bravura", size: 5, group: "4.5. Clefs", codePoint: "\ue050"},
+          stash: {alpha:"1", rgb:"#000000", font: "Bravura", size: 5, group: "Basic", codePoint: "\ue050", recent: {}},
         },
         cut: {
           name: "Cut",
@@ -552,7 +634,7 @@ class Menu {
     this.listen("ink/up", () => this.activateRing(rings.ink));
 
     paths = Object.keys(rings.ink.cells).map((key) => `ink/${key}/`);
-    this.listen(paths.map((path) => path + "up"),(cell) => this.activateCell(rings.ink.activeCell === cell ? null :cell));
+    this.listen(paths.map((path) => path + "up"),(cell) => this.activateCell(rings.ink.activeCell === cell ? null :cell, rings.ink));
     this.listen(paths.map((path) => path + "long"),(cell) => this.toggleLock(cell));
     // All but 4 cells in the ink ring have panels...remove those from paths...
     paths = paths.filter((key) => !["ink/undo/","ink/cut/","ink/paste/"].includes(key));
@@ -565,7 +647,8 @@ class Menu {
         numbers: {
           name: "Numbers",
           svgPath: iconPaths["Numbers"],
-          stash: { forward: "Pages", reverse: "Pages" },
+          stash: { pn: 1, first: 1, prelim: 0, forward: "Pages", reverse: "Pages" },
+          storage: "score",
         },
         add: {
           name: "Add",
@@ -575,12 +658,12 @@ class Menu {
         cut: { name: "Cut", svgPath: iconPaths["Cut Page"] },
         copy: { name: "Copy", svgPath: iconPaths["Copy Page"] },
         paste: { name: "Paste", svgPath: iconPaths["Paste Page"] },
-
         undo: { name: "Undo", svgPath: iconPaths["Undo"] },
         export: { name: "Export", svgPath: iconPaths["Export Page"] },
         import: { name: "Import", svgPath: iconPaths["Import Page"] },
         merge: { name: "Merge", svgPath: iconPaths["Merge"] },
-        magnify: { name: "Magnify", svgPath: iconPaths["Magnify"], stash: { zoom: 1 } },
+        flatten: { name: "Flatten", svgPath: iconPaths["Flatten"] },
+        magnify: { name: "Magnify", svgPath: iconPaths["Magnify"], stash: { zoom: 2 } },
       },
       name: "Page",
       stash: {},
@@ -591,25 +674,38 @@ class Menu {
 
     this.listen("page/up", () => this.activateRing(rings.page));
     paths = Object.keys(rings.page.cells).map((path) => `page/${path}/`);
-    this.listen(paths.map((path) => path + "up"), (cell) => this.activateCell(rings.page.activeCell === cell ? null :cell));
+    this.listen(paths.map((path) => path + "up"), (cell) => this.activateCell(rings.page.activeCell === cell ? null :cell, rings.page));
     this.listen(paths.map((path) => path + "long"), (cell) => this.toggleLock(cell));
-    this.listen(["page/numbers/","page/import/","page/add/","page/magnify/"].map((path) => path + "out"), (cell) =>  this.openPanel(cell));
+    this.listen(["page/numbers/","page/import/","page/add/","page/magnify/","page/merge/"].map((path) => path + "out"), (cell) =>  this.openPanel(cell));
+
+    this.listen("page/merge/long", (cell) => {
+      this.toggleLock(cell);
+      if (cell.locked) this.openPanel(cell);
+    });
+
+    this.listen("page/merge/up", (cell) => {
+      if (rings.page.activeCell === cell) { this.activateCell(null, rings.page); return; }
+      if (cell.pdfData) { this.activateCell(cell); return; }
+      this.openPanel(cell);
+    });
 
     this.listen("page/undo/up", async () => {
        _score_.pgUndo();
        await Layout.activeLayout.build(false);
-   })
+    })
 
     
     rings.app = {
       name: "App",
       cells: {
         about: { name: "About", svgPath: iconPaths["About"], stash: {} },
-        theme: { name: "Theme", svgPath: iconPaths["Light"], stash: {} },
+        theme: { name: "Theme", svgPath: iconPaths["Light"], stash: { theme: "Light" }, storage: "local" },
         guide: { name: "Guide", svgPath: iconPaths["Guide"], stash: {} },
         storage: { name: "Storage", svgPath: iconPaths["Storage"], stash: {} },
-        screen: {  name: "Screen",  stash: { },  svgPath: iconPaths["Full Screen"],
-        },
+        curtain: { name: "Curtain", svgPath: iconPaths["Curtain"], stash: { color:"Black", alpha: 60, on: false }, storage: "local" },
+        wakeLock: { name: "Wakelock", svgPath: iconPaths["Wakelock Off"], stash: { on: false }, storage: "local" },
+        screen: { name: "Screen", stash: {}, svgPath: iconPaths["Full Screen"], storage: "local" },
+
       },
       svgPath: iconPaths["Podium"],
 
@@ -618,8 +714,12 @@ class Menu {
     this.listen("app/up", () => this.activateRing(rings.app));
 
     this.listen("app/about/out", (cell) => this.openPanel(cell));
+    this.listen("app/curtain/out", (cell) => this.openPanel(cell));
+    this.listen("app/curtain/up", (cell) => _curtain_.toggle());
+    this.listen("app/screen/out", (cell) => this.openPanel(cell));
     this.listen("app/storage/out", (cell) => this.openPanel(cell));
     this.listen("app/guide/out", (cell) => this.openPanel(cell));
+    this.listen("app/volume/out", (cell) => this.openPanel(cell));
 
     this.listen("app/screen/up", (cell) => {
       let cellIcon = dataIndex("tag", rings.app.cells.screen.elm).cellIcon;
@@ -633,11 +733,42 @@ class Menu {
     });
 
     this.listen("app/theme/up", (cell) => {
+      const themes = ["Light", "Glass", "Dark"];
       let theme = cell.stash.theme || "Light";
-      theme = theme == "Dark" ? "Light" : "Dark";
+      theme = themes[(themes.indexOf(theme) + 1) % themes.length];
       document.documentElement.setAttribute("data-theme", theme);
       dataIndex("tag", cell.elm).cellIcon.innerHTML = iconPaths[theme];
       cell.stash.theme = theme;
+      this.applyGaps(theme);
+    });
+
+    this.listen("app/wakeLock/up", async (cell) => {
+      let cellIcon = dataIndex("tag", rings.app.cells.wakeLock.elm).cellIcon;
+      if (cell.stash.on) {
+        cell.stash.on = false;
+        cell._wakeLock?.release();
+        cell._wakeLock = null;
+        cellIcon.innerHTML = iconPaths["Wakelock Off"];
+      } else {
+        try {
+          cell._wakeLock = await navigator.wakeLock.request("screen");
+          cell.stash.on = true;
+          cellIcon.innerHTML = iconPaths["Wakelock On"];
+        } catch {
+          toast("Couldn't turn on wake lock.");
+        }
+      }
+    });
+
+    listen(document, "visibilitychange", async () => {
+      let cell = rings.app?.cells?.wakeLock;
+      if (cell?.stash.on && document.visibilityState == "visible") {
+        try {
+          cell._wakeLock = await navigator.wakeLock.request("screen");
+        } catch {
+          // silently ignore — e.g. low power mode
+        }
+      }
     });
 
     // More ring
@@ -649,7 +780,10 @@ class Menu {
           stash: {
             tempo: 60,
             state: "Pause",
+            trace: "Hide", 
+            mute: "Mute",
             pattern: "metronome",
+            latency: 0,
           },
         },
         stopwatch: {
@@ -675,11 +809,12 @@ class Menu {
             replay: 15,  // mimimum replay time in seconds
           },
         },
-        volume: {
-          name: "Volume",
-          svgPath: iconPaths["Volume"],
-          stash: { volume:1},
+        keyboard: {
+          name: "Keyboard",
+          svgPath: iconPaths["Keyboard"],
+          stash: {},
         },
+        volume: { name: "Volume", svgPath: iconPaths["Volume"], stash: { volume:1}, },
       },
       name: "More",
       stash: { active: null },
@@ -734,10 +869,7 @@ class Menu {
             class="Menu__diskCell" data-key="${diskKey}">
           <div data-tag="cellContents" class="Menu__cell-contents" style="transform:rotate(${-rotation}turn)">
             <div data-tag="cellName" style="font-size:${fontSize}em;pointer-events:none;"><br>${ring.name}</div>
-            <svg data-tag="cellIcon"
-              style="width:${cellIcon}em;height:${cellIcon}em;pointer-events:none" class="cellIcon" viewBox="0 0 24 24">
-              ${ring.svgPath}
-            </svg>
+            ${svgWrap(ring.svgPath, { tag: "cellIcon", class: "cellIcon", size: cellIcon + "em", style: `width:${cellIcon}em;height:${cellIcon}em;pointer-events:none` })}
          </div>
 
        </div>`
@@ -766,9 +898,7 @@ class Menu {
              data-key="${diskKey + "/" + cellKey}">
            <div data-tag="cellContents" class="Menu__cell-contents" style="transform:rotate(${-rotation}turn);">
              <div data-tag="cellName" style="font-size:${fontSize}em;"><br>${cell.name}</div>
-             <svg data-tag="cellIcon" style="width:${cellIcon}em;height:${cellIcon}em;" class="cellIcon" viewBox="0 0 24 24">
-               ${cell.svgPath}
-             </svg>
+             ${svgWrap(cell.svgPath, { tag: "cellIcon", class: "cellIcon", size: cellIcon + "em", style: `width:${cellIcon}em;height:${cellIcon}em;` })}
           </div>
         </div>`);
           ring.elm.append(cell.elm);
@@ -782,11 +912,60 @@ class Menu {
     }); // forEach(([key, ring
   }
 
+  applyGaps(theme) {
+    // Recompute and reapply cell clip-paths with theme-specific gaps.
+    // Glass mode uses gap=0 (seamless cells); all other themes use the default getSizes() gaps.
+    let gap = theme == "Glass" ? 0 : this.sizes.cellGap;
+    let { diskDiameter, diskRadius, ringDiameter, ringRadius } = this.sizes;
+    let diskEntries = Object.entries(this.rings);
+    let ringKnt = diskEntries.length;
+
+    let diskClipPath = "circle(50%)";
+    if (ringKnt >= 2) {
+      let c = diskRadius;
+      let theta = (2 * Math.PI) / (ringKnt * 2);
+      let x = Math.sin(theta) * diskDiameter;
+      let y = Math.cos(theta) * diskDiameter;
+      diskClipPath = `polygon(${c - gap}em ${c}em,${c + x - gap}em ${c - y}em,${c - x + gap}em ${c - y}em,${c + gap}em ${c}em)`;
+    }
+
+    diskEntries.forEach(([, ring]) => {
+      ring.cellElm.style.clipPath = diskClipPath;
+      let cellEntries = Object.entries(ring.cells);
+      let cellKnt = cellEntries.length;
+      let ringClipPath = "circle(50%)";
+      if (cellKnt >= 2) {
+        let c = ringRadius;
+        let theta = (2 * Math.PI) / (cellKnt * 2);
+        let x = Math.sin(theta) * ringDiameter;
+        let y = Math.cos(theta) * ringDiameter;
+        ringClipPath = `polygon(${c - gap}em ${c}em,${c + x - gap}em ${c - y}em,${c - x + gap}em ${c - y}em,${c + gap}em ${c}em)`;
+      }
+      cellEntries.forEach(([, cell]) => {
+        cell.elm.style.clipPath = ringClipPath;
+      });
+    });
+  }
+
+  constrain() {
+    if(this.elm.offsetTop < 0) this.elm.style.top = 0 ;
+    else if(this.elm.offsetTop > window.innerHeight) this.elm.style.top = window.innerHeight + "px";
+    if(this.elm.offsetLeft < 0) this.elm.style.left = 0 ;
+    else if(this.elm.offsetLeft > window.innerWidth) this.elm.style.left = window.innerWidth + "px";
+  }
+
   // event operation handles:
 
   opDown(e) {
+    e.taken = true; 
     if (e.ctrlKey || e.shiftKey) return;
-    this.elm.style.zIndex = ++Panel._zTop;
+    this.elm.style.zIndex = ++_zTop_;
+    this.clearSpinFling();
+    // Cancel any active spin flings on touch
+    Object.values(this.rings).forEach(r => {
+      if (r._spinRaf) { cancelAnimationFrame(r._spinRaf); r._spinRaf = null; }
+    });
+    if (this.disk._spinRaf) { cancelAnimationFrame(this.disk._spinRaf); this.disk._spinRaf = null; }
     let op = this.op;
     op.schedule.cancel();
     let keys = e.target.dataset.key || "grip";
@@ -801,7 +980,8 @@ class Menu {
       cellKey: cellKey,
       completed: false,
       e: e, // initial event
-      emv: null, // lasttest mv event, or initial event if none
+      emv: e, // latest mv event, or initial event if none
+      drag: new Drag(e, { minVelocity:0.1}),
       moved: false,
       origin: { x: e.clientX, y: e.clientY },
       out: false,
@@ -813,7 +993,6 @@ class Menu {
       turn: null, // current turn, updates with rotation
       turn0: null, // initial turn on pointerDown
     });
-
     this.elm.setPointerCapture(e.pointerId);
     // op.turn will be in  "turns", with range (.75, 1.75),
     // and with 1 at the top.  This allows us to turn without
@@ -838,7 +1017,7 @@ class Menu {
         this.notify(`${ringKey}/${cellKey}/down`);
         // Schedule long press detection for cells
         op.schedule.run(
-          _longPressMs_,
+          _gs_,
           () => {
             op.completed = true;
             this.notify(`${ringKey}/${cellKey}/long`);
@@ -860,7 +1039,7 @@ class Menu {
         this.notify("down");
         this.grip.classList.add("Menu__grip-selected");
         op.schedule.run(
-          _longPressMs_,
+          _gs_,
           () => {
             op.completed = true;
             this.notify("long");
@@ -871,14 +1050,14 @@ class Menu {
       }
     }
     op.moveListener = listen(this.elm, "pointermove", this.opMove.bind(this));
-    op.upListener = listen(this.elm, ["pointerup", "pointercancel"], this.opUp.bind(this));
+    op.upListener = listen(this.elm, "pointerup", this.opUp.bind(this));
   }
 
   opMove(emv) {
     let op = this.op;
     if (op.completed) return;
     op.emv = emv;
-
+    op.drag.mv(emv);
     if (op.out)
       return this.notify(`${op.ringKey}/${op.cellKey}/out`); // if cell has panel, then this will pass move operation to it
 
@@ -889,11 +1068,10 @@ class Menu {
     op.turn = Math.atan2(dxdy[1] - op.ringRadiusPx, dxdy[0] - op.ringRadiusPx) / (Math.PI * 2) + 1.25;
 
     // Was there significant pointer motion in either ring?
-    op.moved = mvmt(op.e, emv, 15, 15);
-    if(op.moved) op.schedule.cancel();
-    if (op.moved && !op.spun && !op.out) {
+    if(op.drag.moved) op.schedule.cancel();
+    if (op.drag.moved && !op.spun && !op.out) {
       if (op.state == "disk") {
-        op.spun = true; // Significant mvmt in a disk cell is always interpreted as a spin
+        op.spun = true; // Significant movement in a disk cell is always interpreted as a spin
       } else if (op.state == "ring") {
         // Calculate tangent vs radial components of the gesture
         let centerX = this.elm.offsetLeft;
@@ -937,10 +1115,9 @@ class Menu {
           let rotation = 1 / op.ring.elm.childElementCount;
           [...op.ring.elm.children].forEach((elm, i) => (elm.firstElementChild.style.transform =
             `rotate(${-rotation * i - op.ring.turn}turn)`));
-          if (!op.spun) return; // insufficient movement
-          // issue spin notification, i.emv. spin in progress
           this.notify(`${op.ringKey}/${op.cellKey}/spin`);
           op.cell.elm.classList.remove("Menu__cell-selected");
+          emv.turn = op.turn;
         }
         break;
       }
@@ -949,17 +1126,16 @@ class Menu {
           this.disk.turn = op.turn - this.disk.turnOffset;
           this.disk.style.transform = `rotate(${this.disk.turn}turn)`;
           let rotation = 1 / this.disk.childElementCount;
-          [...this.disk.children].forEach((elm, i) => (elm.firstElementChild.style.transform = 
+          [...this.disk.children].forEach((elm, i) => (elm.firstElementChild.style.transform =
             `rotate(${-rotation * i - this.disk.turn}turn)`));
-          if (!op.spun) return; // insufficient movement
           this.notify(`${op.ringKey}/spin`);
           op.ring.cellElm.classList.remove("Menu__diskCell-selected");
+          emv.turn = op.turn;
         }
         break;
       }
       case "grip": {
-        if (!op.moved) return; // insufficient movement
-        flung(emv); // store event for fling detection
+        if (!op.drag.moved) return; // insufficient movement
         // Move the menu while ensuring that the grip cannot be dragged out of the viewport
         this.elm.style.left = clamp(emv.clientX, 0, innerWidth) + "px";
         this.elm.style.top = clamp(emv.clientY, 0, innerHeight) + "px";
@@ -971,16 +1147,51 @@ class Menu {
     }
   }
 
+  spinFling(op, eup) {
+    let buf = op.drag.mvBuf.filter(e => e.turn != undefined);
+    if (buf.length < 2) return;
+    let recent = buf.filter(e => eup.timeStamp - e.timeStamp <= op.drag.terminalWindow);
+    if (recent.length < 2) return;
+    let dT = recent[recent.length - 1].timeStamp - recent[0].timeStamp;
+    if (!dT) return;
+    let vel = (recent[recent.length - 1].turn - recent[0].turn) / dT; // turns/ms
+    if (Math.abs(vel) < 0.0005) return;
+    let isRing = op.state == "ring";
+    let obj = isRing ? op.ring : this.disk;
+    let spinElm = isRing ? op.ring.elm : this.disk;
+    let rotation = 1 / spinElm.childElementCount;
+    let coast = clamp(Math.abs(vel) * 300, 0.5, 1) * Math.sign(vel); // turns to coast
+    let dur   = clamp(Math.abs(coast / vel / 2), 0.3, 2).toFixed(2); // seconds
+    obj.turn += coast;
+    spinElm.style.transition = `transform ${dur}s ease-out`;
+    spinElm.style.transform  = `rotate(${obj.turn}turn)`;
+    [...spinElm.children].forEach((child, i) => {
+      child.firstElementChild.style.transition = `transform ${dur}s ease-out`;
+      child.firstElementChild.style.transform  = `rotate(${-rotation * i - obj.turn}turn)`;
+    });
+    this._spinElm = spinElm;
+  }
+
+  clearSpinFling() {
+    if (!this._spinElm) return;
+    this._spinElm.style.transition = "unset";
+    [...this._spinElm.children].forEach(child => child.firstElementChild.style.transition = "unset");
+    this._spinElm = null;
+  }
+
   opUp(eup) {
     let op = this.op;
+    op.drag.up(eup);
     op.schedule.cancel();
     unlisten(op.moveListener, op.upListener);
     op.cell && op.cell.elm.classList.remove("Menu__cell-selected");
     op.ring && op.ring.cellElm.classList.remove("Menu__diskCell-selected");
     this.grip.classList.remove("Menu__grip-selected");
-    if (op.spun) return;
+    if (op.spun) { this.spinFling(op, eup); return; }
     if(op.out) {
-      if(flung(null, eup)) {
+      // hide with quick fling...but only after at least 500 msecs to a quick drag out
+      // gesture won't immediately hide the panel
+      if(op.drag.vXY && op.drag.vXY > 0.75 && eup.timeStamp - op.e.timeStamp > 500) {
         let panel = panels[op.cell.name + "Panel"]?.get(op.cell);
         if (panel) hide(panel.elm, dataIndex("tag", op.cell.elm).cellIcon);
       }
@@ -995,34 +1206,35 @@ class Menu {
         this.notify(`${op.ringKey}/up`);
         break;
       case "grip":
-        if(op.moved) {
-          if (flung(null, eup)) { // fling detected
-            if (!this.collapsed) this.collapse();
-            this.elm.style.transition = "left .5s, top .5s";
-            // Calculate direction and position using array lookup
-            let dx = eup.clientX - op.e.clientX;
-            let dy = eup.clientY - op.e.clientY;
-            let angle = Math.atan2(dy, dx);
-            let direction = Math.round(((angle + Math.PI) / (Math.PI /  4))) % 8;
-            // Don't use vw....we need the styles to be in px
-            let wwb2 = innerWidth / 2 + "px";
-            let ww = innerWidth + "px";
-            let whb2 = innerHeight / 2 + "px";
-            let wh = innerHeight + "px";
-            let positions = [
-              [0, whb2],    // left edge
-              [0,0],     // top-left corner
-              [wwb2, 0],    // top edge
-              [ww, 0] ,  // top-right corner
-              [ww, whb2],  // right edge
-              [ww,wh], // bottom-right corner
-              [wwb2,wh],  // bottom edge
-              [0, wh],   // bottom-left corner
-            ];
-            [this.elm.style.left, this.elm.style.top] = positions[direction];
-          }
+        if (op.drag.dXY) {
+          if (!this.collapsed) this.collapse();
+          let dx = Math.cos(op.drag.dXY), dy = Math.sin(op.drag.dXY);
+          let iW  = innerWidth,  iH  = innerHeight;
+          let mx = this.elm.offsetLeft,  my = this.elm.offsetTop;
+          let tx = dx > 0 ? (iW - mx) / dx : dx < 0 ? -mx / dx : Infinity;
+          let ty = dy > 0 ? (iH - my) / dy : dy < 0 ? -my / dy : Infinity;
+          let t  = Math.min(tx, ty);
+          let corners = [
+            [iW, 0, Math.PI/4 * 7],
+            [0,  0, Math.PI/4 * 5],
+            [0,  iH, Math.PI/4 * 3],
+            [iW, iH, Math.PI/4 * 1],
+          ];
+          let pull = Math.PI / 8;
+          let snapped = corners.find(([,, ca]) => {
+            let diff = Math.abs(((op.drag.dXY - ca + 3*Math.PI) % (2*Math.PI)) - Math.PI);
+            return diff < pull;
+          });
+          let ex = snapped ? snapped[0] : mx + t*dx;
+          let ey = snapped ? snapped[1] : my + t*dy;
+          let dist = Math.hypot(ex - mx, ey - my);
+          op.drag.power(0.5);
+          let dur = clamp(dist / (op.drag.vXY * 1000), 0.1, 3.0).toFixed(2);
+          this.elm.style.transition = `left ${dur}s, top ${dur}s`;
+          this.elm.style.left = ex + "px";
+          this.elm.style.top  = ey + "px";
         }
-        else if(eup.timeStamp - op.e.timeStamp < 200) this.notify("up");
+       else if(eup.timeStamp - op.e.timeStamp < 200) this.notify("up");
     }
   }
 
@@ -1050,16 +1262,22 @@ class Menu {
     if(_score_) _score_.setEditable(ring.key == "ink" && ring.activeCell);
   }
 
-  activateCell(cell) {
+  activateCell(cell, fallbackRing = null) {
     // Overlay a div onto given cell of active ring visually mark it as active.
     // Call with cell = null to deactivate active cell (if any) on the active ring
+    // (or, if a cell's own ring isn't otherwise known, on fallbackRing - needed
+    // when deactivating, since a null cell carries no ring of its own; without it
+    // this falls back to whatever ring is currently visually active in the menu
+    // disk, which is wrong whenever that isn't the ring being deactivated - e.g.
+    // deactivating via a panel header double-click while a different ring is on
+    // screen).
     // Only 1 cell per ring can be active at a time, so if the ring
     // had an active cell before this call, it will be deactivated.
     // Special cases:
     //  -  if currently editing a fabric text object, exit text editing
     //  -  when the ink/edit cell activates/deactivates, must call Score's setSelectable method
     this.checkEditing();
-    let ring = cell?.ring || this.activeRing;
+    let ring = cell?.ring || fallbackRing || this.activeRing;
 
     // Will this operation toggle the edit cell?
     let editCell = this.rings.ink.cells.edit;
@@ -1073,6 +1291,11 @@ class Menu {
       if (ring.activeCell.locked) {
         ring.activeCell.locked = false;
         ring.activeCell.elm.classList.remove("Menu__cell-locked");
+      }
+      // Discard loaded merge data when merge cell deactivates; reset autoOff delta
+      if (ring.activeCell.key == "merge") {
+        ring.activeCell.pdfData = null;
+        this.autoOff.delta = 4000;
       }
     }
     if (cell) {
@@ -1089,7 +1312,6 @@ class Menu {
       // Score is editable iff ink is activeRing, and it has an activeCell
       _score_.setEditable(ring.activeCell);
       // Score is selectable iff ink is activeRing, and edit cell is active
-///
     if(editToggle && cell && (cell.key == "cut" || cell.key == "copy"))
     { // check for active selection
       for(let pg of _score_.pgs) {
@@ -1158,35 +1380,32 @@ class Menu {
     // then moves ths panel's header to pointer location (this.op.e)
     let panel = panels[cell.name + "Panel"]?.get(cell);
     if (!panel) return;
-    if (panel.elm.style.visibility != "visible") {
-       this.op.launched = performance.now();
-       panel.show();
-     }
-
-     // we want the ability to fling-to-close the opened panel using same gesture that
-     // was used to open it, but don't want a quick fling after first open to have it
-     // close immediately, so no fling processing until 1/2 second after launching
-     // panel.
-     if(performance.now() - this.op.launched > 500)
-       flung(this.op.emv);
-
+    if (!panel.elm.isConnected) {
+      panel.elm.style.visibility = "hidden"; // prevent flash at default top:0 before positioning
+      _body_.append(panel.elm);
+    }
     Object.assign(panel.elm.style, {
       left: this.op.emv.clientX - panel.elm.offsetWidth / 2 + "px",
       top: this.op.emv.clientY + panel.panel.offsetHeight / 2 - panel.header.offsetHeight / 2 + "px",
     });
+    if (panel.elm.style.visibility != "visible") panel.show();
     cell.elm.classList.remove("Menu__panel");
     panel.constrain();
+    _pzTarget_ = panel.elm ;
   }
 
   // stash serialization functions:
 
-  stashFromJson(stashJson) {
+  stashFromJson(stashJson, source) {
     // Load all stashes from given data string, stashJson.
-    this.stashFromJsonObj(JSON.parse(stashJson));
+    this.stashFromJsonObj(JSON.parse(stashJson), source);
   }
 
-  stashFromJsonObj(stashJsonObj) {
-    // This merges stashJsonObj onto menu's stashes
+  stashFromJsonObj(stashJsonObj, source) {
+    // This merges stashJsonObj onto menu's stashes.
+    // source: "local" (from localStorage) or "score" (from saved score) or
+    // undefined (no filtering). Cells whose storage property doesn't match
+    // source are skipped as a safeguard.
     let version = stashJsonObj.version;
     if (!version) return;
     if (version != _podiumVersion_) {
@@ -1203,34 +1422,37 @@ class Menu {
         for (let [cellKey, cellStash] of Object.entries(cells)) {
           let cell = ring.cells[cellKey];
           if (!cell) continue;
+          if (source && cell.storage && cell.storage != source) continue;
           cell.stash = cell.stash ?? {};
-          Object.assign(cell.stash, cellStash);
+          if (source === 'score' &&
+              cellStash.recent !== undefined && typeof cellStash.recent === 'object' &&
+              cell.stash.recent !== undefined && typeof cell.stash.recent === 'object') {
+            const { recent: incoming, ...rest } = cellStash;
+            Object.assign(cell.stash, rest);
+            cell.stash.recent = mergeRecent(cell.stash.recent, incoming);
+          } else {
+            Object.assign(cell.stash, cellStash);
+          }
         }
       } catch {
         // ignore corrupt entry
       }
     }
-    // Apply theme from loaded stash
-    let themeCell = this.rings.app?.cells?.theme;
-    if (themeCell) {
-      let theme = themeCell.stash.theme || "Light";
-      document.documentElement.setAttribute("data-theme", theme);
-      dataIndex("tag", themeCell.elm).cellIcon.innerHTML = iconPaths[theme];
-    }
   }
 
-  stashToJson() {
-    return JSON.stringify(this.stashToJsonObj());
+  stashToJson(source) {
+    return JSON.stringify(this.stashToJsonObj(source));
   }
 
-  stashToJsonObj() {
+  stashToJsonObj(source) {
     try {
       let stash = {};
       for (let [ringKey, ring] of Object.entries(this.rings)) {
         stash[ringKey] = {};
         let cells = {};
         for (let [cellKey, cell] of Object.entries(ring.cells)) {
-          if (cell.stash) cells[cellKey] = cell.stash;
+          if (cell.stash && (!source || !cell.storage || cell.storage == source))
+            cells[cellKey] = cell.stash;
         }
         stash[ringKey].stash = ring.stash;
         stash[ringKey].cells = cells;
@@ -1243,15 +1465,48 @@ class Menu {
     }
   }
 
+  factoryReset() {
+    // Preserve active environment settings
+    let theme = this.rings.app.cells.theme.stash.theme;
+    let wakeLock = { ...this.rings.app.cells.wakeLock.stash };
+    let curtain = { ...this.rings.app.cells.curtain.stash };
+    let screen = { ...this.rings.app.cells.screen.stash };
+
+    this.stashFromJson(this.stashDefaults);
+
+    // Restore the preserved environment settings
+    this.rings.app.cells.theme.stash.theme = theme;
+    Object.assign(this.rings.app.cells.wakeLock.stash, wakeLock);
+    Object.assign(this.rings.app.cells.curtain.stash, curtain);
+    Object.assign(this.rings.app.cells.screen.stash, screen);
+
+    // Reset curtain explicitly if it's on
+    if (window._curtain_ && window._curtain_.on) window._curtain_.toggle();
+
+    localStorage.setItem("menu", this.stashToJson("local"));
+
+    // Close all open panels
+    this.closePanels(["app"]);
+
+    if (Layout.activeLayout) {
+      let layout = Layout.activeLayout;
+      layout.elm.classList.remove("pz-set");
+      layout.elm.style.fontSize = "1em";
+      Object.assign(layout.elm.style, layout.centerLT({ fontSize: "1em" }));
+      layout.build(false);
+    }
+  }
+
   stash() {
-    localStorage.setItem("menu", this.stashToJson());
+    localStorage.setItem("menu", this.stashToJson("local"));
   }
 
   // menu positioning functions:
 
   center(reset = false) {
+    this.clearSpinFling();
     // move to the center of the current window
-    animate(this.elm, null, { 
+    animate(this.elm, null, {
       left: innerWidth / 2 + "px",
       top: innerHeight / 2 + "px",
     }, ` ${_gs_}ms`);
@@ -1295,7 +1550,7 @@ class Menu {
   }
 
   park() {
-    this.collapse() ;
+    if(!this.collapsed) this.collapse() ;
     this.elm.style.transition = `all ${_gs_}ms ease-in`;
     this.elm.style.left = this.elm.style.top = 0 ;
     schedule(_gs_, () => this.elm.style.transition = "unset");
@@ -1305,12 +1560,8 @@ class Menu {
     // reset cells to state for new score:
     // i.e. deactivate active cell (if any) on ink and page rings
     // is deactivated
-    let activeRing = this.activeRing;
-    this.activeRing = this.rings.ink;
-    this.activateCell(null);
-    this.activeRing = this.rings.page;
-    this.activateCell(null);
-    this.activeRing = activeRing;
+    this.activateCell(null, this.rings.ink);
+    this.activateCell(null, this.rings.page);
   }
 
   // Score Pg event handlers, called from Pg's to interpret
@@ -1335,18 +1586,37 @@ class Menu {
 
     if (!activeCell) return;
 
+    let target = opts.target;
+    let key = activeCell.key ;
+
+    // If the user taps on an already-editing textbox while in text mode,
+    // let Fabric handle the cursor repositioning — don't create a new textbox.
+    if (key == "text" && target?.type == "textbox" && target.isEditing) return target;
+
+    if (key == "text" && target?.type == "textbox" && !target.isEditing) {
+      this.checkEditing();
+      this.newlyCreated = target;
+      canvas.setActiveObject(target);
+      target.enterEditing();
+      target.hiddenTextarea?.focus();
+      canvas.renderAll();
+      return target;
+    }
+
     if(this.checkEditing()) return;
 
     this.newlyCreated = null;
-    let target = opts.target;
 
-    switch (activeCell.key) {
+    switch (key) {
 
       case "edit":
-        if(target && !target.hasControls) {
-          target.hasControls = true;
-          canvas.requestRenderAll();
+        if(target && !target.flatten && !target.hasControls) target.hasControls = true;
+        else if (!target && !canvas.getActiveObject()) {
+          // select the most-recent *editable* object (skip frozen/flattened ones)
+          let editable = canvas.getObjects().filter(o => !o.flatten);
+          if (editable.length) delay(1, () => canvas.setActiveObject(editable.at(-1)));
         }
+        canvas.requestRenderAll();
         return;
 
       case "undo":
@@ -1360,10 +1630,12 @@ class Menu {
         let rgba = color.toRgba();
         let brush;
         if (style == "Free") {
-          brush = new fabric.PencilBrush(canvas);
+          // PencilBrush subclasses PencilBrush, adding a podiumType=pencil||pen  key to the created path.
+          // This allows us to determine whether a path was created from the Pencil tool or the Pen tool.
+          brush = new fabric.PodBrush(canvas, key); 
           brush.width = width;
           brush.color = rgba;
-        } else brush = new fabric.LineBrush(canvas, activeCell.stash, rgba);
+        } else brush = new fabric.LineBrush(canvas, activeCell.stash, rgba, key);
         canvas.freeDrawingBrush = brush;
         canvas.isDrawingMode = true;
         return;
@@ -1384,6 +1656,7 @@ class Menu {
         this.newlyCreated = new fabric.RastrumBrush(canvas, activeCell.stash, rgba);
         canvas.freeDrawingBrush = this.newlyCreated;
         return (canvas.isDrawingMode = true);
+
       }
 
       case "text": { // actually, a fabric textbox obj
@@ -1400,25 +1673,31 @@ class Menu {
           cursorColor: "black",
           left: opts.absolutePointer.x,
           top: opts.absolutePointer.y,
+          objectCaching: false, ///
           hasControls: false,
-          podiumType: "text", 
         };
         Object.assign(config, fontMap[font]);
         let textbox = addObj(new fabric.Textbox("Abc", config));
-        // Handle double-click on the textbox to enter editing mode
-        textbox.on('mousedblclick', function() {
-          this.enterEditing();
-          this.selectAll();
-        });
+        canvas.setActiveObject(textbox);
+        textbox.enterEditing();
+        textbox.hiddenTextarea?.focus();
+        textbox.selectAll();
+        canvas.renderAll();
         return textbox;
       }
 
       case "symbols": { // actually, a fabric text obj
         let { alpha, codePoint, height, rgb, size } = activeCell.stash;
+        // No symbol selected (the panel deselects to null, see SymbolsPanel):
+        // tell the user and insert nothing, rather than building a
+        // fabric.Text(null), which throws in _splitTextIntoLines and takes down
+        // the whole canvas.
+        if (!codePoint) { toast("No symbol selected."); return; }
         let color = fabric.Color.fromHex(rgb);
         color.setAlpha(alpha);
         let rgba = color.toRgba();
         let config = {
+          podiumType: "symbols",
           fill: rgba,
           fontSize: size * 4, // * 4 because size is in "pixels per staff space" and there's normally 4 spaces / staff
           editable: false,
@@ -1426,49 +1705,18 @@ class Menu {
           left: opts.absolutePointer.x,
           top: opts.absolutePointer.y,
           hasControls: false,
-          podiumType: "symbols", 
         };
         Object.assign(config, fontMap["Bravura"]);
+        activeCell.stash.recent = mergeRecent(activeCell.stash.recent || {}, { [codePoint]: _recentInsertPts_ });
         return addObj(new fabric.Text(codePoint, config));
       }
 
       case "cut":
       case "copy": {
-        // Handle both single click (target) and rectangle selection (opts.selected)
         let targets = opts.selected || (target ? [target] : []);
         if (targets.length == 0) return;
-
-        // Create target for cloning - single object or ActiveSelection
-        let cloneSource = targets.length == 1  ? targets[0] : new fabric.ActiveSelection(targets, { canvas });
-
-        cloneSource.clone((clone) => this.pasteObj = this.newlyCreated = clone);
-        this.enableCells("ink/paste", true);
-
-        // Animate operation
-        if (opts.e) {
-          let emWidth = cloneSource.getScaledWidth() / _pxPerEm_;
-          let bounds = cloneSource.getBoundingRect();
-          let canvasRect = canvas.lowerCanvasEl.getBoundingClientRect();
-          let left = canvasRect.left + bounds.left + bounds.width / 2;
-          let top = canvasRect.top + bounds.top + bounds.height / 2;
-          let elm = helm(`<img src=${cloneSource.toDataURL()} style=
-             "width:${emWidth}em;height:auto;z-index:1000;left:${left}px;top:${top}px;position:absolute;"></img>`);
-          _body_.append(elm);
-          hide(elm, dataIndex("tag", _menu_.rings.ink.cells.paste.elm).cellIcon);
-          delayMs(500, () => elm.remove());
-        }
-
-        if (activeCell.key == "cut") {
-          delay(1, () => {
-            targets.forEach(obj => canvas.remove(obj));
-            canvas.discardActiveObject();
-            canvas.requestRenderAll();
-          });
-        } else {
-          // For copy, just discard selection
-          canvas.discardActiveObject();
-          canvas.requestRenderAll();
-        }
+        let obj = targets.length == 1 ? targets[0] : new fabric.ActiveSelection(targets, { canvas });
+        this.cutCopyObject(obj, canvas, activeCell.key == "cut");
         return;
       }
 
@@ -1515,6 +1763,49 @@ class Menu {
       }
       return;
      }
+
+    }
+  }
+
+  cutCopyObject(obj, canvas, isCut) {
+    if (this.cutting) return;
+    this.cutting = true;
+    obj.clone((clone) => { this.pasteObj = this.newlyCreated = clone; });
+    this.enableCells("ink/paste", true);
+    // Animate: object image flies to paste cell icon
+    let zoom = canvas.pg.zoom ; // account for "additional" pg zoom
+    let emWidth = obj.getScaledWidth() * zoom / _pxPerEm_;
+    let objBox = obj.getBoundingRect();
+    let canvasBox = getBox(canvas.lowerCanvasEl) ;
+    let left = canvasBox.left + objBox.left * zoom;
+    let top  = canvasBox.top  + objBox.top * zoom;
+    let elm = helm(`<img src=${obj.toDataURL()} style=
+       "border:1px solid red;width:${emWidth}em;height:auto;z-index:1000;left:${left}px;top:${top}px;position:absolute;"></img>`);
+    _body_.append(elm);
+    hide(elm, dataIndex("tag", this.rings.ink.cells.paste.elm).cellIcon);
+    delayMs(500, () => elm.remove());
+
+    if (isCut) {
+      // Remove object(s) and auto-select next
+      let members = obj.type === 'activeSelection' ? [...obj._objects] : [obj];
+      let objs = canvas.getObjects();
+      let idxArr = members.map(o => objs.indexOf(o)).filter(i => i >= 0);
+      let idx = idxArr.length > 0 ? Math.min(...idxArr) : 0;
+      delay(1, () => {
+        members.forEach(o => canvas.remove(o));
+        let remaining = canvas.getObjects();
+        if (remaining.length > 0)
+          canvas.setActiveObject(remaining[Math.min(idx, remaining.length - 1)]);
+        else
+          canvas.discardActiveObject();
+        this.cutting = false;
+        canvas.requestRenderAll();
+        _score_.setDirty(true);
+      });
+    } else {
+      this.cutting = false;
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
     }
   }
 
@@ -1526,7 +1817,7 @@ class Menu {
       if (this.newlyCreated && this.newlyCreated.podiumType == "text") {
         // For text objects, immediately enter editing:
         this.newlyCreated.enterEditing();
-        this.newlyCreated.selectAll(); 
+        this.newlyCreated.selectAll();
       }
     }
     for (let pg of _score_.pgs) if (pg.inflated) pg.canvas.isDrawingMode = false;
@@ -1536,7 +1827,7 @@ class Menu {
     // When called, this method checks if we are currently editing a fabric text object. If so, it
     // deactivates editing.
     // @return true iff editing was deactivated
-    if(this.newlyCreated && this.newlyCreated.podiumType == "text" && this.newlyCreated.isEditing) {
+    if(this.newlyCreated?.isEditing) {
       this.newlyCreated.exitEditing();
       this.newlyCreated = null;
       return true;

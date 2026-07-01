@@ -23,21 +23,21 @@
 
 
 
-// Podium usies in own build system that can package the entire application
+// Podium uses in own build system that can package the entire application
 // into a single file, build/podium.html. This file is built by running
 // python3 build.py --podium.  All text  between +/- skip fill be stripped out,
 // and all the following // #include files will be  textually included.
 
-import { animate, delay, dialog, helm, listen, reflow, schedule, Schedule, toast, unlisten } from "./common.js";
+import { animate, clamp, delay, delayMs, helm, listen, schedule, Schedule, unlisten } from "./common.js";
 import "./font.js";
-import { escapeHtml } from "./file.js";
 import { Menu } from "./menu.js";
 import { Layout } from "./layout.js";
-import { Score } from "./score.js";
+import "./score.js";
+import { ScreenPanel } from "./panel.js";
 import { initFabric } from "./canvas.js";
 import { SharedBuffer } from "./sharedBuffer.js";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
+window.pdfjsLib.GlobalWorkerOptions.workerPort = new Worker("pdf.worker.min.mjs", { type: "module" });
 // -skip
 
 // #include build/font.js
@@ -46,8 +46,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
 // #include lib/fabric.min.js
 // #include lib/pdf-lib.min.js
 // #include lib/fontkit.umd.min.js
-// #include lib/pdf.min.js deflateAs mozSrc
-// #include lib/pdf.worker.min.js deflateAs mozWorkerSrc
+// #include lib/pdf.min.mjs deflateAs mozSrc
+// #include lib/pdf.worker.min.mjs deflateAs mozWorkerSrc
 // #include src/canvas.js minified
 // #include src/common.js minified
 // #include src/menu.js minified
@@ -60,11 +60,209 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
 // #include src/yin.js minified
 // #include src/tool.js minified
 // #include src/sharedBuffer.js minified
-async function main() {
 
-  // Initialize theme from localStorage
-  let savedTheme = localStorage.getItem("theme") || "light";
-  document.documentElement.setAttribute("data-theme", savedTheme);
+/**
+    class Gestures implements global pan/zoom (pz) operations:
+
+    - Mouse: ctrl-drag to move, ctrl-wheel to zoom (shift for fine mode)
+    - Touch: 2-finger pinch to zoom, 1-finger drag to pan
+
+    ...and background swipe/long-press gestures:
+
+    - bottom->top swipe (up):   toggle menu (center/expand <-> park)
+    - top->bottom swipe (down): toggle fullscreen (the app/fullscreen cell does the same;
+                                it's the only way in on iOS, which refuses fullscreen-by-swipe)
+    - long press:               move menu to pointer location and expand
+**/
+
+class Gestures {
+  tr1 = null;
+  tr2 = null;
+  timer = new Schedule();
+  minEmSize = 0.1;
+
+  constructor() {
+    window._pzTarget_ = _body_;
+    listen(_body_, "wheel", e => this.onWheel(e), { passive: false });
+    listen(_body_, "pointerdown", e => this.onDown(e), { capture: true });
+  }
+
+  pzTargets() {
+    return _pzTarget_ === _body_
+      ? [..._body_.getElementsByClassName("pz")]
+      : [_pzTarget_];
+  }
+
+  toggleFullscreen() {
+    document.fullscreenElement
+      ? document.exitFullscreen()
+      // iOS refuses requestFullscreen outside a direct tap (no transient
+      // activation from a swipe handler); swallow the rejection so it stays a
+      // clean no-op there. Entry on iOS is via the app/fullscreen menu cell.
+      : document.documentElement.requestFullscreen().catch(() => {});
+  }
+
+  onWheel(e) {
+    e.preventDefault();
+    if (!e.ctrlKey) return;
+    let dXY = -Math.sign(e.deltaY) / 100;
+    if (e.shiftKey) dXY /= 10;
+    for (let target of this.pzTargets()) {
+      target.style.fontSize = Math.max((parseFloat(target.style.fontSize) || 1) + dXY, this.minEmSize) + "em";
+      target.classList.add("pz-set");
+    }
+  }
+
+  onDown(e) {
+    if (e.target.dataset.midi) return; // piano keys are polyphonic
+    if (e.button != 0) return;        // ignore right-click / middle-click
+    if (e.target.closest("input, textarea, [contenteditable]")) return;
+
+    if (e.isPrimary) {
+      this.tr2 = null;
+      this.tr1 = { e, pz: e.target.closest(".pz") || _body_ };
+      this.tr1.dX = e.clientX - this.tr1.pz.offsetLeft;
+      this.tr1.dY = e.clientY - this.tr1.pz.offsetTop;
+      window._pzTarget_ = this.tr1.pz;
+      if (!(e.target.closest(".Panel__closer") || e.target.closest(".Pz__control")))
+        ScreenPanel.update(this.tr1.pz);
+      if (e.ctrlKey) { this.startCtrlPan(e); return; }
+      if (e.target === _body_) _body_.setPointerCapture(e.pointerId);
+      this.watch(e);
+      return;
+    }
+    if (this.tr2) return;                // ignore 3rd+ pointers
+    if (!this.tr1) return;               // primary pointer not tracked
+    _menu_.op.schedule.cancel();
+    this.timer.cancel();
+    e.stopImmediatePropagation();
+    Layout.activeLayout?.cancelNav();
+    this.startPinch(e);
+  }
+
+  watch(e) {
+    let onBody = e.target === _body_;
+    let gestureDelta = Math.min(innerWidth, innerHeight) * 0.15;
+    let cancelDelta = 16;
+    this.timer.run(_gs_, () => {
+      // when e.taken == true, the long-press timer is a no-op.
+      if(e.taken) return;
+      if (!onBody) Layout.activeLayout?.cancelNav();
+      animate(_menu_.elm, null, { left: e.clientX + "px", top: e.clientY + "px" }, `${_gsgs_}ms`);
+      if (_menu_.collapsed) _menu_.collapse();
+      _menu_.opDown(e);
+      _menu_.op.schedule.cancel();
+      _menu_.op.moved = true;
+    });
+
+    // capture:true so these fire even when a layout element has pointer capture
+    let mv = listen(_body_, "pointermove", emv => {
+      if (Math.hypot(emv.clientX - e.clientX, emv.clientY - e.clientY) > cancelDelta)
+        this.timer.cancel();
+    }, { capture: true });
+
+    listen(_body_, "pointerup", eup => {
+      unlisten(mv);
+      this.timer.cancel();
+      if (!onBody) return;   // swipe gestures only from background
+      let dY = eup.clientY - e.clientY;
+      if (Math.abs(dY) > gestureDelta) {
+        if (dY < 0) // bottom->top (swipe up): toggle the menu (center/expand <-> park)
+          delay(1, () => _menu_.collapsed ? _menu_.center(true) : _menu_.park());
+        else        // top->bottom (swipe down): toggle fullscreen
+          this.toggleFullscreen();
+      }
+      // horizontal swipes are unused (iPad reserves them to dismiss fullscreen)
+    }, { once: true, capture: true });
+  }
+
+  startCtrlPan(e) {
+    _menu_.op.schedule.cancel();
+    this.timer.cancel();
+    e.stopImmediatePropagation();
+    // Pan the grabbed element, or ALL pz elements when the drag starts on the
+    // background (mirrors the two-finger background pan). pzTargets() already
+    // returns [grabbed] or all-pz based on _pzTarget_. Snapshot start positions,
+    // then translate by the pointer delta, clamping each 0x0 anchor on-screen.
+    let startX = e.clientX, startY = e.clientY;
+    let starts = new Map();
+    for (let target of this.pzTargets())
+      if (target !== _body_)
+        starts.set(target, { left: parseFloat(target.style.left) || 0, top: parseFloat(target.style.top) || 0 });
+    let mv = listen(_body_, "pointermove", emv => {
+      emv.stopImmediatePropagation();
+      let dx = emv.clientX - startX, dy = emv.clientY - startY;
+      for (let [target, { left, top }] of starts) {
+        target.style.left = left + dx + "px";
+        target.style.top = top + dy + "px";
+        target.owner.constrain() ;
+        target.classList.add("pz-set");
+      }
+    }, { capture: true });
+    listen(_body_, "pointerup", eup => {
+      eup.captured = true;
+      unlisten(mv);
+    }, { capture: true, once: true });
+  }
+
+  startPinch(e) {
+    this.pinchEnd?.();   // clear any pinch left dangling (e.g. torn down by a tab-blur synthetic up)
+    this.tr2 = { e, pz: e.target.closest(".pz") || _body_ };
+    let mid0X = (this.tr1.e.clientX + this.tr2.e.clientX) / 2;
+    let mid0Y = (this.tr1.e.clientY + this.tr2.e.clientY) / 2;
+    let hypot = Math.hypot(this.tr1.e.clientX - this.tr2.e.clientX, this.tr1.e.clientY - this.tr2.e.clientY);
+    let targets = new Map();
+    for (let target of this.pzTargets())
+      targets.set(target, {
+        fontSize: parseFloat(target.style.fontSize) || 1,
+        left: parseFloat(target.style.left) || 0,
+        top:  parseFloat(target.style.top)  || 0,
+      });
+    let mv = listen(_body_, "pointermove", emv => {
+      if (!this.tr1 || !this.tr2) return;   // pinch already ended
+      emv.stopImmediatePropagation();
+      if (emv.pointerId === this.tr1.e.pointerId) this.tr1.e = emv;
+      else this.tr2.e = emv;
+      let ratio = Math.hypot(this.tr1.e.clientX - this.tr2.e.clientX, this.tr1.e.clientY - this.tr2.e.clientY) / hypot;
+      ratio = 1 + (ratio - 1) / 3;  // dampen zoom ratio
+      let midX = (this.tr1.e.clientX + this.tr2.e.clientX) / 2;
+      let midY = (this.tr1.e.clientY + this.tr2.e.clientY) / 2;
+      for (let [target, { fontSize, left, top }] of targets) {
+        target.style.fontSize = Math.max(fontSize * ratio, this.minEmSize) + "em";
+        if (target !== _body_) {
+          // Clamp the 0x0 anchor into the viewport so a zoom/translate can't shove
+          // the element off-screen. Every .pz is a 0x0 div with its content flex-
+          // centered on it, so keeping the anchor on-screen keeps the content's
+          // center visible (same rule the menu/panel one-finger drag use).
+          target.style.left = clamp(midX - (mid0X - left) * ratio, 0, innerWidth) + "px";
+          target.style.top  = clamp(midY - (mid0Y - top)  * ratio, 0, innerHeight) + "px";
+        }
+        target.classList.add("pz-set");
+      }
+    }, { capture: true });
+    // End the pinch ONLY on a real finger lift. When both fingers land on the
+    // same surface, iOS/Android WebKit/Blink fire a spurious `pointercancel` for
+    // the captured first pointer as the second finger joins; the pointer-watchdog
+    // turns that into a SYNTHETIC `pointerup` — which would abort the pinch even
+    // though both fingers are still physically down (the reported "doesn't work
+    // unless the fingers straddle layout+background" bug). Synthetic events have
+    // isTrusted=false, so ignore them; the pinch survives and the still-moving
+    // finger keeps driving the zoom. (Not `once`, so an ignored up doesn't consume it.)
+    let up = listen(_body_, "pointerup", eup => {
+      if (!eup.isTrusted) return;
+      eup.stopImmediatePropagation();
+      this.pinchEnd();
+    }, { capture: true });
+    this.pinchEnd = () => {
+      unlisten(mv);
+      unlisten(up);
+      this.pinchEnd = null;
+      this.tr1 = this.tr2 = null;
+    };
+  }
+}
+
+async function main() {
 
   initFabric();
   // Create the menu. It's fontSize is set s.t. it's outer ring
@@ -91,225 +289,74 @@ async function main() {
     }
   }) ;
 
-  {
-    /** 
-        This block implements global pan/zoom (pz) operations:
-
-        - With mouse: ctrl-drag to move, ctrl-wheel to zoom
-          ...adding shift key increases accuracy
-        - With pointers: 2 simultaneous touches to move, 
-          2 successive touches (> 150 msec apart) to pinch zoom
-
-        ..and gestures:
-
-        - left->right: enter fullscreen
-        - right->left: exit fullscreen
-        - top->bottom: center and expand menu
-        - bottom->top: park menu
-        - long press (actually, quite short!...and without significant movement)->
-          move menu to pointer location and expand
-    **/
-
-    // store element to pan/zoom globally
-    window._pzTarget_ = _body_;
-
-    // react to background long-press
-    let timer = new Schedule() ;
-
-    let tr1 = null, tr2 = null; // event tracks 1 (1st pointer) and 2 (2nd pointer)
-    let minEmSize = 0.1;
-
-    // this mouse-wheel listener is used as an alternative to pinch-to-zoom
-    listen(_body_, "wheel", (e) => {
-      e.preventDefault();
-      if (e.ctrlKey) {
-        let dXY = -Math.sign(e.deltaY) / 100;
-        if (e.shiftKey) dXY /= 10; // fine sizing mode
-        for (let target of _pzTarget_ == _body_ ? document.getElementsByClassName("pz") : [_pzTarget_]) {
-          let fontSize = parseFloat(target.style.fontSize)  || 1 ;
-          target.style.fontSize = Math.max(fontSize + dXY, minEmSize) + "em";
-          target.classList.add("pz-set") ;
-        }
-      }
-    },
-    { passive: false }
-    );
-
-    listen(_body_, "pointerdown", (e) => {
-        if (e.isPrimary) {
-          if(e.target == _body_) {
-            // Gestures are potentially initiated by pointerdown on body.
-            //   left->right: enter fullscreen
-            //   right->left: exit fullscreen
-            //   top->bottom: center and expand menu
-            //   bottom->top: park menu
-            //   long press (actually, quite short!...and without significant movement)->
-            //      move menu to pointer location and expand
-            _body_.setPointerCapture(e.pointerId);
-
-            timer.run(_gsgs_, () => {
-              e.timedOut = true ;
-              animate(_menu_.elm, null, { left: e.clientX + "px", top: e.clientY + "px" },`${_gsgs_}ms`) ;
-              if (_menu_.collapsed) _menu_.collapse(); // i.e. toggle open
-              _menu_.opDown(e) ;
-              _menu_.op.schedule.cancel() ;  // defeat menu's long-press park
-              _menu_.op.moved = true ;  // defeat menu's pointerup collapse
-            }) ;
-
-            // pointer movement in px required to cancel long press (overcomes jitter)
-            let cancelDelta = 16 ;
-
-            // pointer movement in px required to invoke gestures: 15% of narrower screen dimension
-            let gestureDelta = Math.min(innerWidth, innerHeight) * 0.15 ;
-
-            let mv = listen(_body_, "pointermove", (emv) => Math.hypot(emv.movementX, emv.movementY) > cancelDelta ? timer.cancel() : null) ;
-
-            listen(_body_, ["pointerup", "pointercancel"], (eup) => {
-              unlisten(mv) ;
-              timer.cancel() ;
-              if(e.timedOut) return ; // timer ran, so don't do anything else
-              let dX = eup.clientX - e.clientX ;
-              let dY = eup.clientY - e.clientY ;
-              if(dX > gestureDelta) document.documentElement.requestFullscreen() ;
-              else if(-dX > gestureDelta && document.fullscreenElement) document.exitFullscreen() ;
-              delay(1, () => { // this delay ensures any fullscreen change is executed *before* menu
-                if(dY > gestureDelta) _menu_.center(true) ;
-                else if(-dY > gestureDelta) _menu_.park() ;
-              }) ;
-            }, { once:true} ) ;
-          }
-
-          // Define track 1: state of first pointer down
-          tr1 = { e: e, pz: e.target.closest(".pz") || _body_ };
-          tr1.dX = e.clientX - tr1.pz.offsetLeft;
-          tr1.dY = e.clientY - tr1.pz.offsetTop;
-          _pzTarget_ = tr1.pz ?? _body_; // make target globally available
-          tr2 = null;
-
-          // ctrl-mouse-down initiates pan (via mouse move)/ zoom (via mouse wheel)
-          if (e.ctrlKey) {
-            _menu_.op.schedule.cancel();
-            timer.cancel(); // cancel any pending long-press operation on background
-            e.stopImmediatePropagation();
-
-            let mv = listen(
-              _body_,
-              "pointermove",
-              (emv) => {
-                emv.stopImmediatePropagation();
-                if(tr1.pz == _body_) return ;
-                tr1.pz.style.left = emv.clientX - tr1.dX + "px";
-                tr1.pz.style.top = emv.clientY - tr1.dY + "px";
-                tr1.pz.classList.add("pz-set") ;
-              },
-              { capture: true }
-            );
-
-            listen(
-              _body_,
-              ["pointerup", "pointercancel"],
-              (eup) => {
-                eup.captured = true;
-                unlisten(mv);
-              },
-              { capture: true, once: true }
-            );
-          }
-          return;
-        }
-        if (tr2) return; // ignore 3rd, 4th,...pointers
-        // The Piano tool is polyphonic, so ignore the second (third, fourth...) touch
-        // when it looks like a piano key:
-        if(e.target.dataset.midi) return ;
-        // If we reach here, this is the 2nd pointer: prepare for 2-pointer pan/zoom
-        _menu_.op.schedule.cancel(); // cancel any pending long-press operation in menu
-        timer.cancel(); // cancel any pending long-press operation in background
-        e.stopImmediatePropagation();
-        tr2 = { e: e, pz: e.target.closest(".pz") || _body_ };
-        tr2.dX = e.clientX - tr2.pz.offsetLeft;
-        tr2.dY = e.clientY - tr2.pz.offsetTop;
-        let hypot = Math.hypot(tr1.e.clientX - tr2.e.clientX, tr1.e.clientY - tr2.e.clientY);
-        let targets = new Map(); // map target -> current, original fontSize in em's
-        for (let target of tr1.pz == _body_ ? _body_.getElementsByClassName("pz") : [tr1.pz])
-           targets.set(target, parseFloat(target.style.fontSize) || 1);
-
-        // For translations, we only consider one pointer track...tr1 by default unless tr1.pz is body, then tr2,
-        // unless it also is on body: in this case, skip translation entirely.
-        let transTr = tr1.pz != _body_ ? tr1 : tr2.pz != _body_ ? tr2 : null ;
-        let mv = listen(_body_, "pointermove", (emv) => {
-          emv.stopImmediatePropagation();
-
-          // translate:
-          if (emv.pointerId == transTr?.e?.pointerId) {
-            transTr.pz.style.left = emv.clientX - transTr.dX + "px";
-            transTr.pz.style.top = emv.clientY - transTr.dY + "px";
-             transTr.pz.classList.add("pz-set") ;
-          }
-
-          // scale:
-          if (emv.pointerId == tr1.e.pointerId) tr1.e = emv;
-          else tr2.e = emv;
-          let ratio = (Math.hypot(tr1.e.clientX - tr2.e.clientX, tr1.e.clientY - tr2.e.clientY) / hypot)  ;
-          ratio = 1 + (ratio - 1) / 3 ; // dampen the zoom ratio 
-          for (let [target, fontSize] of targets) {
-            target.style.fontSize = Math.max(fontSize * ratio, minEmSize)  + "em";
-            target.classList.add("pz-set") ;
-          }
-        },
-        { capture: true }
-        );
-
-        listen(_body_, ["pointerup", "pointercancel"], (eup) => {
-             unlisten(mv);
-             tr1 = tr2 = null ;
-          },
-          { capture: true, once: true }
-        );
-      },
-      { capture: true }
-    );
-  }
+  new Gestures();
 
   {
     /**
-        This block implements keyboard events
-        They are primarily used to implement external page-turning 
-        devices, but of course they work from regular keyboards
-        as well.
+        This block implements keyboard events. They are primarily used to implement external page-turning 
+        devices, but of course they work from regular keyboards as well.
      **/
+    let pedalKeys = ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'];
+    let lastPedalTime = 0;
+
     listen(document, "keydown", (e) => {
-      if(e.target.type == "text") return ;  // ignore keydown from a text input
-      let layout = Layout.activeLayout;
-      if (!layout || !_score_) return;
-      let forward = _score_.numbers.forward ;
-      let reverse = _score_?.numbers?.reverse
-      let forwardBookMarks = e.ctrlKey || forward == "Marks";
-      let reverseBookMarks = e.ctrlKey || reverse == "Marks";
-      switch (e.code) {
-        case "ArrowLeft":
-        case "ArrowUp":
-        case "PageUp":
-          e.preventDefault(); // Prevent iOS from generating pointer events
-          layout.pgOpen("prev", reverseBookMarks);
-          break;
-        case "ArrowRight":
-        case "ArrowDown":
-        case "PageDown":
-          e.preventDefault(); // Prevent iOS from generating pointer events
-          layout.pgOpen("next", forwardBookMarks);
-          break;
-        case "Home":
-          e.preventDefault(); // Prevent iOS from generating pointer events
-          layout.pgOpen("first", e.ctrlKey);
-          break;
-        case "End":
-          e.preventDefault(); // Prevent iOS from generating pointer events
-          layout.pgOpen("last", e.ctrlKey);
-          break;
-        default:
-          return;
+      if (e.target.nodeName === 'TEXTAREA' || e.target.nodeName === 'INPUT') {
+        // we don't want to process inputs to fabricjs text boxes or other text input sources
+        _menu_.autoOff.run() ; // keep cell from de-activating 
+        return ;
       }
-    });
+      // if there is a focused element, let it process the event:
+      if(document.activeElement != _body_) return ;
+      // cut selected annotation (recoverable via paste):
+      if ((e.key == "Delete" || e.key == "Backspace") && _score_) {
+        let active = _score_.getActiveObject();
+        if (active) {
+          e.preventDefault();
+          _menu_.cutCopyObject(active, active.canvas, true);
+          return;
+        }
+      }
+      // otherwise let active layout process navigation keys:
+      if (Layout.activeLayout && pedalKeys.includes(e.key)) {
+        if (e.repeat) return;
+        let now = performance.now();
+        if (now - lastPedalTime < 200) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        lastPedalTime = now;
+        e.preventDefault();
+        e.stopPropagation();
+        let layout = Layout.activeLayout;
+        if (!layout || !_score_) return;
+        let forward = _score_.numbers.forward ;
+        let reverse = _score_?.numbers?.reverse
+        let forwardBookMarks = e.ctrlKey || forward == "Marks";
+        let reverseBookMarks = e.ctrlKey || reverse == "Marks";
+        switch (e.code) {
+          case "ArrowLeft":
+          case "ArrowUp":
+          case "PageUp":
+            layout.pgOpen("prev", reverseBookMarks);
+            break;
+          case "ArrowRight":
+          case "ArrowDown":
+          case "PageDown":
+            layout.pgOpen("next", forwardBookMarks);
+            break;
+          case "Home":
+            layout.pgOpen("first", e.ctrlKey);
+            break;
+          case "End":
+            layout.pgOpen("last", e.ctrlKey);
+            break;
+          default:
+            return;
+        }
+      }
+    },
+    { capture:true});
   }
 
   let rebuildThrottle = new Schedule();
@@ -325,7 +372,7 @@ async function main() {
       let iW = innerWidth ;
       let iH = innerHeight ;
       for(let child of _body_.children) {
-        if(child.classList.contains("Menu") || child.classList.contains("Panel")) {
+        if(child.classList.contains("pz")) {
           child.style.left = (parseFloat(child.style.left) / window.iW) * iW + "px" ;
           child.style.top = (parseFloat(child.style.top) / window.iH) * iH + "px" ;
         }
@@ -349,16 +396,11 @@ async function main() {
     }) ;
   });
 
-  // don't allow context menu to appear
-  document.addEventListener("contextmenu", function (e) {
-    e.preventDefault();
-  });
-
   {
     /**
        Implement automatic "stashing" of Menu's settings:
         - stash after every pointerup event (throttled to 6.18 seconds)
-       Implement automatic extension of menu's autooff timer
+      Implement automatic extension of menu's autooff timer
     **/
     let stasher = new Schedule();
     let busyGuard = new Schedule();
@@ -374,7 +416,7 @@ async function main() {
       if(_menu_.activeRing?.activeCell) _menu_.autoOff.run() ; // extend activation
       // run the stasher
       stasher.cancel();
-      stasher.run(3500, () => localStorage.setItem("menu", _menu_.stashToJson())) ;;
+      stasher.run(3500, () => localStorage.setItem("menu", _menu_.stashToJson("local"))) ;;
     })
   }
 
@@ -385,7 +427,7 @@ async function main() {
        on the screen rather than relying on console.log
     */
     let msgs = [];
-    let x = helm("<div></div>");
+    let x = helm(`<div data-tag="dbg"></div>`);
     _body_.append(x);
     window.dbg = (...args) => {
       if (args.length == 0) msgs = [];
@@ -397,6 +439,79 @@ async function main() {
   }
 }
 
+{ // pointer-event watchdog — prevents stuck pointers from freezing UI
+  let period = 7000; // watchdog interval: nothing magic here: just a heuristic
+  // pointerId -> { target, lastMove, clientX, clientY, pointerType, isPrimary }.
+  // lastMove is per-pointer so a stuck pointer is reclaimed even while another
+  // keeps moving (multi-touch); the coords are remembered so the synthetic
+  // pointerup carries the pointer's last known position rather than (0,0).
+  let activePointers = new Map();
+
+  let upEvent = (id, p) => new PointerEvent("pointerup", {
+    pointerId: id,
+    pointerType: p.pointerType,
+    isPrimary: p.isPrimary,
+    clientX: p.clientX,
+    clientY: p.clientY,
+    bubbles: true,
+    cancelable: true
+  });
+
+  let cancel = (id, p) => {
+    p.target.dispatchEvent(upEvent(id, p));
+    // A detached target can't bubble to document/window, so up listeners
+    // registered there (rather than on the element itself) would be missed.
+    if (!p.target.isConnected) document.dispatchEvent(upEvent(id, p));
+  };
+
+  let cancelAll = () => {
+    for (let [id, p] of activePointers) cancel(id, p);
+    activePointers.clear();
+  };
+
+  // Surgically release a single pointer (by id) — used for events that name the
+  // pointer that was lost, so other simultaneous pointers (e.g. a piano chord)
+  // are left untouched.
+  let cancelOne = (e) => {
+    let p = activePointers.get(e.pointerId);
+    if (p) { cancel(e.pointerId, p); activePointers.delete(e.pointerId); }
+  };
+
+  let track = (e) => {
+    let p = activePointers.get(e.pointerId);
+    if (p) { p.lastMove = performance.now(); p.clientX = e.clientX; p.clientY = e.clientY; }
+  };
+
+  listen(document, "pointerdown", (e) => activePointers.set(e.pointerId, {
+    target: e.target, lastMove: performance.now(),
+    clientX: e.clientX, clientY: e.clientY,
+    pointerType: e.pointerType, isPrimary: e.isPrimary
+  }), { capture: true });
+  listen(document, "pointermove", track, { capture: true });
+  listen(document, "pointerup",   (e) => activePointers.delete(e.pointerId), { capture: true });
+  // pointercancel (system gesture, scroll, native drag) and lostpointercapture both
+  // name the lost pointer, so release just that one with a synthetic pointerup — this
+  // runs the app's own cleanup (opUp, unlisten(mv), etc.) without a bare delete that
+  // would orphan those listeners, and without disturbing other live pointers.
+  listen(document, "pointercancel",      cancelOne, { capture: true });
+  listen(document, "lostpointercapture", cancelOne, { capture: true });
+
+  // These give no pointerId and mean every pointer is gone, so clear them all.
+  listen(document, "visibilitychange",   cancelAll, { capture: true });
+  listen(window,   "blur", cancelAll);
+
+  let watchdogLoop = () => {
+    let now = performance.now();
+    for (let [id, p] of [...activePointers])
+      if (now - p.lastMove > period) { cancel(id, p); activePointers.delete(id); }
+    delayMs(period, watchdogLoop);
+  };
+  delayMs(period, watchdogLoop);
+}
+
+// don't allow the contextmenu to appear, ever!
+listen(document, "contextmenu", (e) => {
+  if (!e.target.closest("input, textarea, [contenteditable]")) e.preventDefault();
+}) ;
 
 main();
-

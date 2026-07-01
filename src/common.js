@@ -25,7 +25,7 @@ export {
   css,
   cssIndex,
   dialog,
-  flung,
+  Drag,
   Schedule,
   schedule,
   clamp,
@@ -40,9 +40,9 @@ export {
   getBox,
   hide,
   iconSvg,
+  svgWrap,
   inflate,
   listen,
-  mvmt,
   pnToDiv,
   pnToString,
   reflow,
@@ -50,14 +50,15 @@ export {
   ptrMsg,
   sleep,
   Spot,
+  Surface,
   unlisten,
   strToHash,
   toast,
   ButtonGroup,
   SliderGroup,
   TabView,
-  Timer,
   ColorPicker,
+  mergeRecent,
 };
 import { iconPaths } from "./icon.js";
 // -skip
@@ -73,32 +74,55 @@ Element.prototype["replace"] = function(newElm) {
 // properties defined on the window "global" namespace
 // are distinguished using the convention of leading+trailing underscores:
 
-window._podiumVersion_ = "2.0.2";
+// window._menu_  // defined in main.js
+window._podiumVersion_ = "2.1.0";
 window._body_ = document.body;
+window._lastTarget_ = null; // last touched .pz element, excluding EditPanel
 window._dvPxRt_ = 1 + (devicePixelRatio - 1) * 0.3;
-window._frMs_ = 0.06; // initial estimate of number of frames per millisecond (60fps)
 window._gs_ = 618; // golden section (reciprocal) msec (.618 seconds)
 window._gsgs_ = (_gs_ * _gs_) / 1000; // shorter golden section!
-window._longPressMs_ = 750;
+window._sliderPrecision_ = 4; // sensitivity multiplier for slider/pager precision mode
+window._zTop_ = 300; // continuously incrementing z-index counter for panels, menu, surfaces
 window._mobile_ = window.matchMedia('(pointer: coarse)').matches;
-window._maxMoveEvents_ = 5; // see flung() below
-window._moveEvents_ = []; // see flung() below
 window._msPerObj_ = 1; // for pdf printing, see score.toPdf()
 window._pxPerEm_ = 25; // initial document.body's font size value: defines pixels in 1 em
+window._Score_ = null; // current active score class (assigned in score.js)
 window._score_ = null; // current active score instance
-window._voidFunc_ = () => {}; 
+window._FileSrc_ = null; // base file source class (assigned in file.js)
+window._CachedSrc_ = null; // base cached source class (assigned in file.js)
+window._maxRecent_ = 72;      // SymbolsPanel recent-list size (multiple of 6); see mergeRecent below
+window._recentSelectPts_ = 1; // points awarded when a symbol is selected in the panel
+window._recentInsertPts_ = 4; // points awarded when a symbol is inserted into the score (4:1 ratio
+                               // ensures symbols you actually use dominate over ones merely browsed)
+window._voidFunc_ = () => {};
+window._curtain_ = null; // set in class Curtain below: used to dim the screen
+window._svgId_ = 0; // continuously incrementing counter: uniquifies ids in embedded icon svg markup
 
 // svg texture used for all draggable elements
-let panSvg =
+let panSvgWarm =
   // Note: you must escape second / in a url, otherwise builder.py will parse
   // them as comments.
   "url('data:image/svg+xml;base64," + btoa(`
       <svg width='3em' height='3em' viewBox='0 0 175 175' xmlns='http:/\/www.w3.org/2000/svg'>
-        <filter id='noiseFilter'>
+        <filter id='noiseFilterWarm'>
           <feTurbulence type='turbulence' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/>
           <feComponentTransfer>
             <feFuncA type='linear' slope='0.3'/>
           </feComponentTransfer>
+        </filter>
+        <g><rect width='100%' height='100%' filter='url(#noiseFilterWarm)'/></g>
+      </svg>`) +
+  "')";
+
+let panSvgCool =
+  "url('data:image/svg+xml;base64," + btoa(`
+      <svg width='3em' height='3em' viewBox='0 0 175 175' xmlns='http:/\/www.w3.org/2000/svg'>
+        <filter id='noiseFilter'>
+          <feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/>
+          <feColorMatrix type='matrix' values='0.30 0.30 0.30 0 -0.07
+                                               0.30 0.30 0.30 0 -0.03
+                                               0.30 0.30 0.30 0  0.20
+                                               0    0    0    0  0.27'/>
         </filter>
         <g><rect width='100%' height='100%' filter='url(#noiseFilter)'/></g>
       </svg>`) +
@@ -109,7 +133,7 @@ let panSvgDark =
       <svg width='3em' height='3em' viewBox='0 0 175 175' xmlns='http:/\/www.w3.org/2000/svg'>
         <defs>
           <filter id='noiseFilterDark'>
-            <feTurbulence type='turbulence' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/>
+            <feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/>
             <feComponentTransfer>
               <feFuncA type='linear' slope='0.3'/>
             </feComponentTransfer>
@@ -144,7 +168,7 @@ function cssIndex(name = null, selector = null, key = null) {
   let sheets = document.styleSheets;
   if (!name) return sheets;
   for (let sheet of sheets) {
-    if (sheet.ownerNode.dataset.tag == name) {
+    if (sheet.ownerNode.dataset.style == name) {
       if (!selector) return sheet;
       for (let rule of sheet.rules) {
         if (rule.selectorText == selector)
@@ -158,7 +182,7 @@ let css = (name, rules) => {
   // define a named css style sheet
   document.head.insertAdjacentHTML(
     "beforeend",
-    `<style data-tag="${name}">` + rules + "</style>"
+    `<style data-style="${name}">` + rules + "</style>"
   );
   return cssIndex(name);
 };
@@ -174,8 +198,9 @@ css( // common css declarations.
     --panelWidth: 12em;
 
     /* Light theme colors */
-    --bodyColor: #efefef;
-    --panTexture: ${panSvg};
+    --bodyColor: #b8b8b8;
+    --panTexture: ${panSvgCool};
+    --bodyVignette: radial-gradient(ellipse at 50% 45%, transparent 30%, rgba(0,0,0,0.13) 100%);
 
     /* Typography */
     --body-font-family: Vercetti, sans-serif;
@@ -192,10 +217,10 @@ css( // common css declarations.
     --layout-shadow: .25em .25em 1.5em #888;
 
     /* Menu colors */
-    --menu-cell-bg: radial-gradient(#c9c9c9 45%, #ccc 66%, #b4b4b4 72%);
-    --menu-cell-selected-bg: radial-gradient(#aaa 25%, #fff 100%);
-    --menu-cell-active-bg: radial-gradient(#fff 64%, #ccc 73%);
-    --menu-disk-bg: radial-gradient(#888, #c9c9c9 25%, #ccc 58%, #b4b4b4 75%);
+    --menu-cell-bg: radial-gradient(rgba(210,215,225,0.88) 0%, rgba(195,205,220,0.80) 50%, rgba(170,178,195,0.78) 100%);
+    --menu-cell-selected-bg: radial-gradient(rgba(235,238,245,0.92) 0%, rgba(210,218,232,0.88) 100%);
+    --menu-cell-active-bg: radial-gradient(rgba(250,252,255,0.95) 0%, rgba(225,232,245,0.90) 100%);
+    --menu-disk-bg: radial-gradient(rgba(205,212,225,0.85) 0%, rgba(190,200,218,0.78) 60%, rgba(165,175,195,0.75) 100%);
     --menu-grip-bg: #b8b8b8;
     --menu-grip-selected-bg: #b0b0b0;
     --menu-panel-indicator: #a8a8a8;
@@ -211,17 +236,19 @@ css( // common css declarations.
     --menu-disk-shadow: none;
 
     /* Panel colors */
-    --panel-bg: #c8c8c8;
+    --panel-bg: rgba(200, 208, 222, 0.93);
     --panel-header-bg: #b8b8b8;
     --panel-header-selected-bg: #b0b0b0;
-    --panel-inset-shadow: -0.15em -0.15em 0.3em #fff3 inset,
-                          0.15em 0.15em 0.3em #0002 inset;
+    --panel-inset-shadow: 0.15em 0.15em 0.35em rgba(255,255,255,0.55) inset,
+                          -0.15em -0.15em 0.35em rgba(0,0,0,0.14) inset;
 
     /* Slider colors */
+    --slider-indicator: #666;
+    --slider-indicator-active: #eef;
     --slider-knob-bg: #b8b8b8;
     --slider-knob-selected-bg: #b0b0b0;
-    --slider-knob-shadow: -0.1em -0.1em 0.2em #fff2 inset,
-                          0.1em 0.1em 0.2em #0001 inset,
+    --slider-knob-shadow: 0.1em 0.1em 0.2em #fff2 inset,
+                          -0.1em -0.1em 0.2em #0001 inset,
                           0.1em 0.125em 0.2em #6668;
 
     /* Select dropdown colors */
@@ -278,13 +305,25 @@ css( // common css declarations.
     --z-sticky: 20;
     --z-menu: 100;
     --z-modal: 1000;
-    --z-topmost: 1000000000;
+    --z-toast: 9000;
+    --z-shade: 9001;
+    --z-curtain: 9002;
+    --z-topmost: 9003;
+
+    mark {
+     background:black;
+     color: white;
+     border-radius: .12em;
+}
+
+
   }
 
   /* Dark theme */
   [data-theme="Dark"] {
     --bodyColor: #242424;
     --panTexture: ${panSvgDark};
+    --bodyVignette: radial-gradient(ellipse at 50% 45%, transparent 20%, rgba(0,0,0,0.45) 100%);
 
     /* File list colors */
     --file-properties-color: #ddd;
@@ -320,9 +359,9 @@ css( // common css declarations.
     --menu-disk-bg: linear-gradient(135deg, #3a3a3a 0%, #303030 100%);
     --menu-grip-bg: #2e2e2e;
     --menu-grip-selected-bg: #404040;
-    --menu-panel-indicator: #505050;
-    --menu-panel-indicator-highlight: #fff1;
-    --menu-panel-indicator-shadow: #0003;
+    --menu-panel-indicator: #a0a0a0;
+    --menu-panel-indicator-highlight: #fff3;
+    --menu-panel-indicator-shadow: #0002;
     --menu-icon-color: #e5e5e5;
     --menu-drawer-front: #404040;
     --menu-cell-box-shadow: -0.15em -0.15em 0.3em #0004 inset,
@@ -344,10 +383,12 @@ css( // common css declarations.
                           0.15em 0.15em 0.3em #fff1 inset;
 
     /* Slider colors - dark theme */
+    --slider-indicator: #444;
+    --slider-indicator-active: #eef;
     --slider-knob-bg: #2c2c2c;
     --slider-knob-selected-bg: #404040;
-    --slider-knob-shadow: -0.1em -0.1em 0.2em #fff1 inset,
-                          0.1em 0.1em 0.2em #0003 inset,
+    --slider-knob-shadow: 0.1em 0.1em 0.2em #fff1 inset,
+                          -0.1em -0.1em 0.2em #0003 inset,
                           0.1em 0.125em 0.2em #000a;
 
     /* Select dropdown colors - dark theme */
@@ -356,6 +397,33 @@ css( // common css declarations.
 
     /* Text shadow for contrast - dark theme */
     --text-shadow-contrast: 0 0 0.3em rgba(0, 0, 0, 0.8);
+  }
+
+
+  /* Light theme (original neutral grey/amber) */
+  [data-theme="Light"] {
+    --bodyColor: #efefef;
+    --panTexture: ${panSvgWarm};
+
+    /* Menu colors - warm theme */
+    --menu-cell-bg: radial-gradient(#c9c9c9 45%, #ccc 66%, #b4b4b4 72%);
+    --menu-cell-selected-bg: radial-gradient(#aaa 25%, #fff 100%);
+    --menu-cell-active-bg: radial-gradient(#fff 64%, #ccc 73%);
+    --menu-disk-bg: radial-gradient(#888, #c9c9c9 25%, #ccc 58%, #b4b4b4 75%);
+    --menu-cell-box-shadow: none;
+    --menu-grip-shadow: drop-shadow(-0.08em -0.1em 0.15em rgba(255,255,255,0.4))
+                        drop-shadow(0.1em 0.12em 0.2em #8884);
+    --menu-grip-box-shadow: -0.2em -0.2em 0.4em #888c inset,
+                            0.2em 0.2em 0.4em #aaa4 inset;
+    --menu-disk-shadow: none;
+
+    /* Panel colors - warm theme */
+    --panel-bg: #c8c8c8;
+    --panel-inset-shadow: 0.15em 0.15em 0.3em #fff3 inset,
+                          -0.15em -0.15em 0.3em #0002 inset;
+
+    --slider-indicator: #888;
+    --slider-indicator-active: #eef;
   }
 
   body {
@@ -367,6 +435,7 @@ css( // common css declarations.
     margin: 0;
     padding: 0;
     background-color: var(--bodyColor);
+    background-image: var(--bodyVignette);
     height: 100svh; /* small (min) viewport height */
     width: 100lvw;  /* large (max) viewport width */
     position:fixed;
@@ -383,6 +452,7 @@ css( // common css declarations.
   *:not(input):not(textarea) {
     -webkit-user-select: none;  /* disable selection/Copy of UIWebView */
     -webkit-touch-callout: none; /* disable the IOS popup when long-press on a link */
+    -webkit-tap-highlight-color: transparent; /* iOS tap-flash; set on every element (not just keys) so delegated handlers on a container can't paint it */
   }
   hr {
     border: .12em solid white;
@@ -435,6 +505,9 @@ css( // common css declarations.
       color:blue;
       background:inherit;
   }
+  .taken
+   /* marker for elements that should not be processed by main.py's Gesture class's long press action */
+  {}
   .dialog {
     border: var(--border);
     border-radius:var(--borderRadius);
@@ -471,13 +544,6 @@ css( // common css declarations.
     width: .5em;
     background-image: linear-gradient(to right, transparent, var(--panel-header-bg) 53%, var(--panel-header-bg));
   }
-  /* Create illusion of a raised edge */
-  .raisedEdge {
-    border-radius: var(--borderRadius);
-    filter: var(--bodyShadow);
-    box-shadow: 0.1em 0.1em 0.6em #888 inset, 0 0 19px #0000;
-    background: var(--bodyColor);
-  }
   /* Shared styling for floating messages (toast, ptrMsg) */
   .floatingMsg {
     border-radius: var(--borderRadius);
@@ -510,6 +576,7 @@ document.addEventListener("click", (e) => {
     window.open(anchor.href, "_blank");
   }
 });
+
 
 /**
 class ButtonGroup
@@ -653,6 +720,7 @@ class ButtonGroup {
     //      be any object.
     //   @prevTag: iff property is non null, then the previous
     //      value (i.e. tag) of the property
+    e.taken = true;
     let path = e.composedPath();
     for (let i = 0; i < path.length; i++) {
       let elm = path[i];
@@ -729,15 +797,13 @@ class ColorPicker {
   static css = css(
     "ColorPicker",
     `.ColorPicker {
-       margin: 0 var(--spacing-md);
        position: relative;
        text-align: center;
-       font-size: var(--font-size-sm);
+       font-size: var(--font-size-base);
        display: flex;
        align-items: center;
        gap: var(--spacing-md);
        box-sizing: border-box;
-       width: calc(100% - var(--spacing-md) * 2);
       }
       .ColorPicker__colorWrapper {
         position: relative;
@@ -780,19 +846,18 @@ class ColorPicker {
      }
      .ColorPicker__alphaSlider {
       z-index: var(--z-modal);
-      background: #c8c8c8;
+      background: #999; 
       border-radius: var(--borderRadius);
       padding: var(--spacing-md);
       position: absolute;
-      left: -2.7em;
-      width: 80%;
+      width:60%;
      }
       `
   );
 
   elm = helm(`
-   <div>
-   <div style="font-size:.8em; margin-bottom: var(--spacing-xs)" data-tag="title"></div>
+   <div class="Panel__item">
+   <div data-tag="title"></div>
    <div class="ColorPicker">
       <div class="ColorPicker__colorWrapper">
         <input data-tag="color" class="ColorPicker__color" type="color" colorpick-eyedropper-active="true" list="recentColors"></input>
@@ -831,7 +896,7 @@ class ColorPicker {
           min: 0,
           max: 1,
           step: 0.01,
-          value: `${rgb}`,
+          value: alpha, // numeric alpha (was mistakenly `${rgb}` — the hex colour — which made the slider value NaN)
           msg: (tag, value) => `Opacity: ${Math.round(value * 100)}%`,
         },
       },
@@ -866,6 +931,202 @@ class ColorPicker {
   }
 }
 
+
+/**
+class Curtain
+  The Curtain is a div that overlays the entire window. It is used
+  to dim the screen during performance situations where, for example,
+  a tablet screen might be too bright for the a darkened stage. It can
+  dim to black or to red. Red allows easier reading the score s.t. eyes stay
+  "dark-adapged" for the rest of the room, as eyse are less sensitive to
+  long-wavelength red light.
+
+  If level is in 0-100, dim color is black, opacity = level / 100.
+  otherwise level should be in 101 - 201: dim color is #A00000 (deep red), opacity = (201 - level) / 100
+
+**/
+
+class Curtain {
+
+  on = false ;
+  level = 60 ;
+
+  curtain = helm(`<div data-tag="Curtain" style=
+     "position:fixed;inset:0;pointer-events:none;opacity:0;transition: opacity 1.5s ease;z-index:var(--z-curtain)">
+      </div>`) ; // singleton div
+
+  constructor() {
+    _body_.append(this.curtain);
+    delay(1, () => {
+      try {
+        let json = localStorage.getItem("menu");
+        if (json) {
+          let parsed = JSON.parse(json);
+          let stash = parsed?.app?.cells?.curtain?.stash;
+          if (stash && stash.on) {
+            this.on = true;
+            let { color, alpha } = stash;
+            let curtain = this.curtain;
+            curtain.style.transition = "none";
+            if (color == 'Black') {
+              curtain.style.background = "#000" ;
+              curtain.style.opacity = alpha / 100 * .7 ;
+              curtain.style.mixBlendMode = "normal";
+            }
+            else { // color == 'Red'
+              curtain.style.background = "#A00000";
+              curtain.style.opacity = alpha / 100;
+              curtain.style.mixBlendMode = "multiply";
+            }
+            curtain.style.visibility = "visible" ;
+            curtain.offsetHeight;
+            curtain.style.transition = "opacity 1.5s ease";
+          }
+        }
+      } catch (err) {}
+    });
+  }
+
+  toggle() {
+    this.on = !this.on ;
+    let cell = window._menu_.rings.app.cells.curtain;
+    cell.stash.on = this.on;
+    let cellIcon = dataIndex("tag", cell.elm).cellIcon;
+    cellIcon.innerHTML = iconPaths[this.on ? "Curtain On" : "Curtain"];
+    this.update() ;
+    window._menu_.stash();
+  }
+
+  update (immediate = false) {
+    let curtain = this.curtain ;
+    let {color, alpha} = window._menu_.rings.app.cells.curtain.stash;
+    if (immediate) {
+      curtain.style.transition = "none" ;
+    }
+    if(this.on) {
+      if(color == 'Black') {
+        curtain.style.background = "#000" ;
+        curtain.style.opacity = alpha / 100 * .7 ;
+        curtain.style.mixBlendMode = "normal";
+      }
+      else { // color == 'Red'
+        curtain.style.background = "#A00000";
+        curtain.style.opacity = alpha / 100;
+        curtain.style.mixBlendMode = "multiply";
+      }
+      curtain.style.visibility = "visible" ;
+    }
+    else curtain.style.opacity = 0 ;
+    if (immediate) {
+      curtain.offsetHeight ; // force reflow
+      curtain.style.transition = "opacity 1.5s ease" ;
+    }
+  }
+
+} 
+
+window._curtain_ = new Curtain() ; // create the singleton
+
+/**
+  class Drag
+**/
+
+
+class Drag {
+  jabMaxDuration     = 150;  // ms
+  jabMaxDisplacement = 10;   // px
+  jitterThreshold    = 8;    // px
+  terminalWindow     = 100;  // ms
+  minVelocity        = 0.3;  // px/ms
+  mvBufMax           = 20;   // max pointermove events to retain
+
+  constructor(edown, opts = {}) {
+    Object.assign(this, opts);
+    this.edown    = edown;
+    this.mvBuf    = [edown];
+    this.jab      = false;
+    this.lift     = false;
+    this.moved    = false;
+    this.duration = 0;
+  }
+
+  mv(e) {
+    this.mvBuf.push(e);
+    if (this.mvBuf.length > this.mvBufMax) this.mvBuf.shift();
+    if (!this.moved)
+      this.moved = Math.hypot(e.clientX - this.edown.clientX, e.clientY - this.edown.clientY) > this.jitterThreshold;
+  }
+
+  up(e) {
+    this.duration = e.timeStamp - this.edown.timeStamp;
+    let displacement = Math.hypot(e.clientX - this.edown.clientX, e.clientY - this.edown.clientY);
+    if (this.duration < this.jabMaxDuration && displacement < this.jabMaxDisplacement)
+      { this.jab = true; return this; }
+    if (displacement < this.jitterThreshold)
+      { this.lift = true; return this; }
+    let termBuf = this.mvBuf.filter(ev => e.timeStamp - ev.timeStamp <= this.terminalWindow);
+    if (termBuf.length < 2) { this.lift = true; return this; }
+    let first = termBuf[0], last = termBuf[termBuf.length - 1];
+    if (Math.hypot(last.clientX - first.clientX, last.clientY - first.clientY) < this.jitterThreshold)
+      { this.lift = true; return this; }
+    let dt = last.timeStamp - first.timeStamp;
+    if (dt == 0) { this.lift = true; return this; }
+    this.vX = (last.clientX - first.clientX) / dt;
+    this.vY = (last.clientY - first.clientY) / dt;
+    this.vXY = Math.hypot(this.vX, this.vY);
+    let d = Math.atan2(this.vY, this.vX);
+    this.dXY = d < 0 ? d + 2 * Math.PI : d;
+    if (this.vXY < this.minVelocity) {
+      let scale = this.minVelocity / this.vXY;
+      this.vX *= scale; this.vY *= scale;
+      this.vXY = this.minVelocity;
+    }
+    return this;
+  }
+
+  power(exp = 1.5) {
+    // experimental: currenly unused
+    let apply = v => Math.sign(v) * Math.pow(Math.abs(v), exp);
+    this.vX  = apply(this.vX);
+    this.vY  = apply(this.vY);
+    this.vXY = Math.hypot(this.vX, this.vY);
+    return this;
+  }
+
+  boost(threshold = 0.5, exp = 1.5) {
+    // apply a power curve to velocity calculation, but with a minimum threshold
+    let apply = v => {
+      let a = Math.abs(v);
+      return a <= threshold ? v : Math.sign(v) * (threshold + Math.pow(a - threshold, exp));
+    };
+    this.vX  = apply(this.vX);
+    this.vY  = apply(this.vY);
+    this.vXY = Math.hypot(this.vX, this.vY);
+    return this;
+  }
+
+  // Compute kinematic fling destination and duration using constant deceleration.
+  // vel: drag velocity in px/msec. Usually drag.vX or drag.vY.
+  // pos: current position in px; min/max: clamped bounds for the destination.
+  // k: deceleration constant (px/ms²) — larger = shorter flings.
+  // Returns { to: destination in px, dt: animation duration in ms }.
+  static fling(pos, min, max, vel, k = 0.001) {
+    let dT = clamp(Math.abs(vel) / k, 200, 3000);
+    let d  = vel * dT / 2;
+    let to = clamp(pos + d, min, max);
+    let dt = Math.abs(to - pos) > 1 ? clamp(Math.abs(2 * (to - pos) / vel), 200, 3000) : 0;
+    return { to, dt };
+  }
+
+   // Compute transition duration using an exponential curve.
+  static scrollDur(distance) {
+    return clamp( 80 * Math.pow(Math.abs(distance), 0.45), 60, 650) ;
+  }
+
+
+}
+
+
 /**
 class PodumSlider
   A custom html element that replaces <input type="range"> for use in
@@ -874,21 +1135,21 @@ class PodumSlider
   the PodiumSlider and PodiumInput defines a new, "custom" html elements.
 **/
 
+
 class PodiumSlider extends HTMLElement {
   static get observedAttributes() {
-    return ["min", "max", "value", "step", "dilate"];
+    return ["min", "max", "value", "step", "curve"];
   }
 
   static css = css(
     "PodiumSlider",
     `.Slider {
        position: absolute;
-       width: calc(100% - 4em);
+       width: calc(100% - 2.5em);
        height: 2em;
-       left: 2em;
+       left: 1.25em;
      }
      .Slider__track {
-       flex-box;
        position: absolute;
        top: calc(50% - .2em);
        height: .5em;
@@ -901,10 +1162,10 @@ class PodiumSlider extends HTMLElement {
        width: 2.8em;
        height: 2.8em;
        top: calc(50% - 1.4em);
+       border-radius: var(--borderRadius); /* was inherited from .raisedEdge */
        background: var(--slider-knob-bg);
        background-image: var(--panTexture);
-       box-shadow: var(--slider-knob-shadow);
-       filter: none; /* iOS: suppress raisedEdge filter; drop shadow is in box-shadow instead */
+       box-shadow: var(--slider-knob-shadow); /* drop-shadow is here, not a filter (iOS) */
      }
      .Slider__knob-selected {
        background: var(--slider-knob-selected-bg);
@@ -917,11 +1178,11 @@ class PodiumSlider extends HTMLElement {
         height: .6em;
         top: calc(50% - .3em);
         left: calc(50% - .3em);
-        background: var(--color-border);
+        background: var(--slider-indicator);
      }
      .Slider__knob__indicator-active {
         position: relative;
-        background-color: #6c6;
+        background-color: var(--slider-indicator-active);
      }
      `
   );
@@ -929,13 +1190,14 @@ class PodiumSlider extends HTMLElement {
   elm = helm(`
     <div data-tag="slider" class="Slider">
        <div data-tag="track" class="Slider__track"></div>
-       <div data-tag="knob" class="Slider__knob raisedEdge">
+       <div data-tag="knob" class="Slider__knob">
           <div data-tag="indicator" class="Slider__knob__indicator"></div>
        </div>
      </div>`);
 
   adjusting = false;
   pos = 0; // in [0,1]
+  curve = 1; // 1 = linear; >1 = more resolution at low end
   sliderBox;
   knobBox;
 
@@ -946,14 +1208,14 @@ class PodiumSlider extends HTMLElement {
       (this[key] = this.hasAttribute(key)
         ? parseFloat(this.getAttribute(key))
         : this[key]);
-    ["min", "max", "value", "step"].forEach((attr) => setAttr(attr));
+    ["min", "max", "value", "step", "curve"].forEach((attr) => setAttr(attr));
     this.disabled = this.hasAttribute("disabled") ? true : this.disabled;
 
     Object.assign(this, dataIndex("tag", this.elm));
     this.append(this.elm);
 
     listen([this.knob, this.track], "pointerdown", (e) => {
-
+      e.taken = true;
       e.stopImmediatePropagation();
       this.adjusting = true;
       _menu_.busy = true;
@@ -963,22 +1225,18 @@ class PodiumSlider extends HTMLElement {
       let { knobBox, sliderBox } = this;
       this.knob.setPointerCapture(e.pointerId);
 
-      let origin = e.clientX;
-      // This function converts pointer position into a value in 0,1
-      // used in  call of this.setPos(pos). The also allows a user to gain
-      // increased precision by moving the pointer further away,
-      // vertically, from the sliderBox.  clientPos is clientX, and
-      // delta is absulute value of pixel distance between clientY and
-      // middle of sliderBox
-      let set = (clientPos, delta) => {
-        if (delta / knobBox.height <= 1) origin = clientPos;
-        let mvm = clientPos - origin;
-        // the "* 5" in following increases the "sensitivity" of the slider as
-        // delta increases
-        delta = Math.max(1, (delta / knobBox.height) * 5);
-        let posPx = origin + mvm / delta;
-        let posFrac = (posPx - sliderBox.x) / sliderBox.width;
-        this.setPos(clamp(posFrac, 0, 1));
+      let prevX = e.clientX;
+      // frac accumulates continuously so sub-step progress isn't lost when
+      // setPos snaps to the nearest step each frame.
+      let frac = this.pos;
+      let set = (clientX, delta) => {
+        let dx = clientX - prevX;
+        prevX = clientX;
+        let t = Math.max(0, delta / knobBox.height - 0.5);
+        let unitsPerPx = this.curve * (this.max - this.min) * Math.pow(Math.max(frac, 0.001), this.curve - 1) / sliderBox.width / this.step;
+        let sensitivity = 1 + t * unitsPerPx * _sliderPrecision_;
+        frac = clamp(frac + (dx / sliderBox.width) / sensitivity, 0, 1);
+        this.setPos(frac);
       };
 
       set(
@@ -1001,8 +1259,7 @@ class PodiumSlider extends HTMLElement {
       });
 
       let done = listen(
-        this.knob,
-        ["pointerup", "pointercancel"],
+        this.knob, "pointerup",
         (eup) => {
           unlisten(done);
           e.stopImmediatePropagation();
@@ -1032,21 +1289,29 @@ class PodiumSlider extends HTMLElement {
     if (this.adjusting) return;
     if (which != "value") {
       this[which] = parseFloat(is);
-      this.updateGeometry();
     } else {
-      this.updateGeometry();
-      let pos = (is - this.min) / (this.max - this.min);
+      let v = parseFloat(is);
+      if (!Number.isFinite(v)) return; // ignore a non-numeric "value" attribute
+      let t = clamp((v - this.min) / (this.max - this.min), 0, 1);
+      let pos = this.curve == 1 ? t : Math.pow(t, 1 / this.curve);
       this.setPos(pos);
     }
   }
 
   setPos(pos) {
-    // set the pos, which represents slider position in [0,1]
+    // set the pos, which represents slider position in [0,1].
+    // NaN-safety: never emit a non-finite value. A degenerate drag (zero-width
+    // geometry → div-by-zero) or a bad `value` attribute can produce a NaN pos;
+    // bail rather than corrupt this.pos/this.value, which would otherwise poison
+    // whatever stash the slider is bound to (e.g. numbers.pn → pgUse crash).
+    if (!Number.isFinite(pos)) return;
     this.pos = pos;
-    let value = pos * (this.max - this.min) + this.min;
-    this.value = (Math.round(value / this.step) * this.step).toPrecision(6); // discrete-ize value in this.step
-    let knobLeft = pos * this.sliderBox.width - this.knobBox.width / 2;
-    this.knob.style.left = pxToEm(knobLeft, this.slider);
+    let value = (this.max - this.min) * Math.pow(pos, this.curve) + this.min;
+    let snapped = Math.round(value / this.step) * this.step;
+    this.value = Number.isInteger(snapped) ? snapped : parseFloat(snapped.toPrecision(6)); // discrete-ize value in this.step
+    // Position knob as % of track width minus half the knob's fixed 2.8em width.
+    // Using calc() avoids pxToEm, which breaks during font-size transitions.
+    this.knob.style.left = `calc(${(pos * 100).toFixed(4)}% - 1.4em)`;
   }
 }
 
@@ -1161,7 +1426,7 @@ class Shade {
       align-items: center;
       justify-content: center;
       position: absolute;
-      z-index: 999999999;
+      z-index: var(--z-shade);
       }
       .Shade__body {
        font-family: Bravura;
@@ -1219,8 +1484,8 @@ class Shade {
   }
 
   hide() {
-    this.msgStack = [];
-    this.elm.style.transition = "opacity .5s ease-in";
+   this.msgStack = [];
+    this.elm.style.transition = "opacity 5.5s ease-in";
     this.elm.style.opacity = 0;
     this.scheduler.run(500, () => this.elm.remove());
   }
@@ -1235,7 +1500,6 @@ class Shade {
 }
 
 window._shade_ = new Shade();
-
 
 async function sleep(ms) {
   // sleep for (at least) ms
@@ -1256,9 +1520,8 @@ class SliderGroup {
   static css = css(
     "SliderGroup",
     `.SliderGroup {
-       font-size: var(--font-size-sm);
+       font-size: var(--font-size-base);
        color: var(--color-text);
-       margin: var(--spacing-md) var(--spacing-md) 0 var(--spacing-md);
        text-align: center;
       }
     .SliderGroup__SliderBlock {
@@ -1266,6 +1529,7 @@ class SliderGroup {
      }
      .SliderGroup__SliderBlock__Slider {
         display: block;
+        position: relative;
         width: 100%;
         height: 2em;
         margin-top: var(--spacing-sm);
@@ -1274,10 +1538,16 @@ class SliderGroup {
        opacity: 0.35;
        pointer-events: none;
      }
+    .SliderGroup--grid {
+       display: grid;
+       grid-template-columns: 1fr 1fr;
+       column-gap: var(--spacing-sm);
+       font-size: 75%;
+     }
    `
   );
 
-  elm = helm(`<div data-tag="sliderGroup" class="SliderGroup">`);
+  elm = helm(`<div data-tag="sliderGroup" class="Panel__item SliderGroup">`);
 
   dataIndex = null;
   handler = null;
@@ -1288,6 +1558,7 @@ class SliderGroup {
     // but any object will do), to read/write the slider value from/to.
     // handler is a (possibly empty) callback invoked when slider value changes,
     //    throttle: <<msecs>>, throttle calling of any handler
+    // Grid mode is activated automatically when any def has col, row, or fullWidth set.
     this.props = props;
     // Any keys not assigned in def are given default values:
     this.defs = defs;
@@ -1299,6 +1570,7 @@ class SliderGroup {
           max: 1,
           step: 1,
           value: 1,
+          curve: 1,
           disabled: false,
           throttle: -1,
         },
@@ -1310,11 +1582,16 @@ class SliderGroup {
           tag
         )}
              <pod-slider class="SliderGroup__SliderBlock__Slider" data-tag="${tag}_slider"
-               min="${tagDef.min}" max="${tagDef.max}" step="${tagDef.step}" value="${tagDef.value}">
+               min="${tagDef.min}" max="${tagDef.max}" step="${tagDef.step}" value="${tagDef.value}" curve="${tagDef.curve}">
           </pod-slider></div>`
       );
+      if (tagDef.fullWidth) elm.style.gridColumn = "1 / -1";
+      else if (tagDef.col != null) elm.style.gridColumn = tagDef.col;
+      if (tagDef.row != null) elm.style.gridRow = tagDef.row;
       this.elm.append(elm);
     }
+    let useGrid = Object.values(defs).some(d => d.col != null || d.row != null || d.fullWidth);
+    if (useGrid) this.elm.classList.add("SliderGroup--grid");
     this.dataIndex = dataIndex("tag", this.elm);
     listen(this.elm, ["input", "change"], this.handle.bind(this));
 
@@ -1326,10 +1603,11 @@ class SliderGroup {
     // it  can be a callback that returns a string, or it can be a string
     // that will be formatted using {min},{max},{value},{step}
     // substitutions. If value is non-null, it's used instead of
-    // the value in the tag def: see this.progress
+    // the value in the tag def: see this.progress. If the msg
+    // contains "...", everything after any "..." is removed.
     let tagDef = this.defs[tag];
     let value = this.props[tag];
-    if (tagDef.msg instanceof Function) return tagDef.msg(tag, value);
+    if (tagDef.msg instanceof Function) return tagDef.msg(tag, value) ;
     else if (typeof tagDef.msg == "string")
       return tagDef.msg.format({
         min: tagDef.min,
@@ -1384,7 +1662,7 @@ class SliderGroup {
       if (tagDef.disabled)
         elm.classList.add("SliderGroup__SliderBlock__Slider-disabled");
       else elm.classList.remove("SliderGroup__SliderBlock__Slider-disabled");
-      elm.firstChild.data = this.formatMsg(tag);
+      elm.firstChild.data = this.formatMsg(tag).replace(/(.*?\.\.\.).*/, "$1");
     }
   }
 
@@ -1425,6 +1703,163 @@ class Spot {
 }
 
 /**
+class Surface
+  Base class for widgets that are normally attached to a panel but
+  can be detached and moved/zoomed independently.
+**/
+
+class Surface {
+  static css = css(
+    "Surface",
+    `
+    .Surface {
+      font-size:1em;
+      position:absolute; 
+      width:8em;
+      height:8em;
+      z-index:100;
+    }
+    /* Some Surface subclasses need an outline */
+    .Surface__outline 
+    { border: 1px solid #444;
+      border-radius:var(--borderRadius);
+      padding:1em;
+      touch-action:none;
+      box-sizing:border-box;
+      background: #4444;
+    }
+    [data-theme="Dark"] .Keyboard__outline
+    { border: 1px solid #aaa;
+    }
+  `);
+
+  surface = helm(`<div data-tag="surface" class="Surface"></div>`);
+  // When defined, cicular part of the surface that reacts to drag gestures
+  // ...used by Clock and StopWatch to disallow dragging ouside of circle
+  surfaceDragElm = null; 
+
+  constructor(panel, ScreenPanel) {
+    this.panel = panel;
+    let surface = this.surface;
+    // Give surface same tag as its panel:
+    this.surface.dataset.tag = this.panel.elm.dataset.tag;
+    let longPresser = new Schedule();
+
+    panel.listeners.push(listen(surface, "pointerdown", (e) => {
+      if(surface.style.parentElement === _body_) surface.style.zIndex = ++_zTop_; // move to top of stacking order
+      e.taken = true;
+      // set z-index to bring surface on top (note: Curtain class manages its own z-index)
+      if(this.constructor.name != "Curtain" && surface.parentElement == _body_) surface.style.zIndex = ++_zTop_;
+
+      let box = getBox(surface) ;
+      let maxLeft = window.innerWidth - box.width;
+      let maxTop = window.innerHeight - box.height;
+      // When this.surfaceDragElm defined, we Ignore pointerdown outside of circular area enclosed by it.
+      // This is used to diable dragging outside of Clock/Stopwatch's circular faces
+      if(this.surfaceDragElm) {
+        box = getBox(this.surfaceDragElm) ;
+        if (Math.hypot(e.clientX - box.x - box.width / 2, e.clientY - box.y - box.height / 2) > box.width / 2) return;
+      }
+      _body_.setPointerCapture(e.pointerId);
+      longPresser.run(_gs_, () => this.onSurfaceEvent("press")) ;
+      let dX = e.offsetX, dY = e.offsetY; // warning: e can be gc'ed before mv references it.
+      let fling = new Drag(e);
+      let mv = listen(_body_, "pointermove", (emv) => {
+        // subclasses can set e.frozeon=true to disable move processing
+        // for this event (see, for example, class Keyboard in panel.js)
+        if(e.frozen) return ; 
+        fling.mv(emv) ;
+        if (surface.parentElement == _body_ && !e.noMove) {
+          surface.style.left = clamp(emv.clientX - dX, 0, maxLeft) + "px";
+          surface.style.top = clamp(emv.clientY - dY, 0, maxTop) + "px";
+        }
+        else if (fling.moved) {
+          // attach surface to document body
+          longPresser.cancel();
+          surface.style.fontSize = panel.elm.style.fontSize;
+          surface.style.position = "absolute";
+          surface.classList.add("pz"); // this makes it pan-zoomable
+          surface.style.zIndex = panel.elm.style.zIndex;
+          _body_.append(surface);
+          _pzTarget_ = surface; // this allows pan-zooming without having to reselect
+          ScreenPanel.pzTarget = surface ; 
+//          hide(this.panel.elm, dataIndex("tag", this.panel.cell.elm).cellIcon);
+          hide(this.panel.elm, dataIndex("tag", this.panel.cell.elm).cellIcon);
+          surface.style.left = emv.clientX - dX + "px";
+          surface.style.top = emv.clientY - dY + "px";
+        }
+      });
+
+      listen(_body_, "pointerup", (eup) => {
+        fling.up(eup) ;
+        longPresser.cancel();
+        unlisten(mv);
+        if (fling.dXY) { // fling detected
+          this.hide();
+          if (this.panel.constructor != ScreenPanel) ScreenPanel.update(null);
+        }
+        else if (eup.timeStamp - e.timeStamp < _gs_) this.onSurfaceEvent("click");
+      }, { once: true });
+    }));
+    delay(2, () => this.build());
+  }
+
+  hide() {
+    // Animate the detached surface flying back to its menu cell, then hide it.
+    // We deliberately do NOT use the global hide(): that animates via left/top +
+    // font-size, which iOS Safari refuses to interpolate on the surface (an
+    // absolutely-positioned, composited element) — it snaps to the destination.
+    // A `transform` (translate + scale) animation is honored on iOS. That's safe
+    // here because the surface is self-positioned with no position:fixed
+    // descendants; on a Panel a wrapper transform would re-anchor its fixed child
+    // (the "glue" bug), which is why the global hide() stays left/top-based.
+    let surface = this.surface;
+    if (surface.parentElement != _body_ || surface.hiding) return;
+    surface.hiding = true;
+    let ms = 500;
+    let onElmBox = getBox(dataIndex("tag", this.panel.cell.elm).cellIcon);
+    let elmBox = getBox(surface);
+    // translate the surface's CENTER onto the cell icon's CENTER, shrinking to nothing
+    let dx = (onElmBox.x + onElmBox.width / 2) - (elmBox.x + elmBox.width / 2);
+    let dy = (onElmBox.y + onElmBox.height / 2) - (elmBox.y + elmBox.height / 2);
+    let saved = {
+      transform: surface.style.transform,
+      transition: surface.style.transition,
+      transformOrigin: surface.style.transformOrigin,
+    };
+    surface.style.transformOrigin = "center center";
+    surface.style.transform = "translate(0px, 0px) scale(1)"; // FROM
+    surface.style.transition = `transform ${ms}ms`; // default `ease`; stay opaque, scale(0) vanishes it
+    reflow();
+    surface.style.transform = `translate(${dx}px, ${dy}px) scale(0)`; // TO
+    schedule(ms, () => {
+      surface.style.visibility = "hidden";
+      surface.style.transition = saved.transition;
+      surface.style.transform = saved.transform; // reset so a later show() is clean
+      surface.style.transformOrigin = saved.transformOrigin;
+      surface.hiding = false;
+    });
+  }
+
+  destructor() {
+    this.surface.remove();
+  }
+
+  build() {}
+
+  onSurfaceEvent(e, eup, type) {}
+
+  show() {
+    let surface = this.surface;
+    surface.style.position = "static";
+    surface.style.fontSize = "1em";
+    surface.classList.remove("pz");
+    surface.style.visibility = "unset"; // *not* visible: want to inherit
+    this.panel.body.prepend(surface);
+  }
+}
+
+/**
 class TabView
   Class implementing a gui Tabbed Panel view for
   use by Panel subclasses
@@ -1458,6 +1893,8 @@ class TabView {
        height: 3em;
        background: var(--panel-header-bg);
        background-image: var(--panTexture);
+       -webkit-mask-image: linear-gradient(to right, transparent, black .8em, black calc(100% - .8em), transparent);
+       mask-image: linear-gradient(to right, transparent, black .8em, black calc(100% - .8em), transparent);
     }
     .TabView__sash-edge {
       top: 3.5em;
@@ -1542,18 +1979,18 @@ class TabView {
       delay(5, () =>
         this.panel.listeners.push(
           listen(this.sash, "pointerdown", (e) => {
+            let fling = new Drag(e);
             let offsetX = e.clientX - this.sash.offsetLeft;
             let limit = this.sash.offsetWidth - this.frame.offsetWidth;
             let mv = listen(this.sash, "pointermove", (emv) => {
-              if (mvmt(e, emv, 96, 1000))
+              fling.mv(emv) ;
+              if (fling.moved)
                 this.sash.setPointerCapture(e.pointerId);
               this.sash.style.left =
                 clamp(emv.clientX - offsetX, -limit, 0) + "px";
               e.emv = emv;
             });
-            listen(
-              this.sash,
-              ["pointerup", "pointercancel"],
+            listen(this.sash,"pointerup",
               (eup) => {
                 unlisten(mv);
               },
@@ -1575,29 +2012,6 @@ class TabView {
         ? select(tab)
         : tab.deselect();
     }
-  }
-}
-
-/**
-class Timer
-   Used only for development performance testing.
-**/
-class Timer {
-  constructor(title = "unnamed") {
-    this.title = title;
-    this.startTime = performance.now();
-    this.prevTime = this.startTime;
-    console.log(`Timer ${this.title} started.`);
-  }
-
-  lap(tag = "") {
-    let now = performance.now();
-    console.log(
-      `Timer ${this.title}/${tag}  lap: ${now - this.prevTime} et: ${
-        now - this.startTime
-      }`
-    );
-    this.prevTime = now;
   }
 }
 
@@ -1654,19 +2068,16 @@ function delay(frameCount, func) {
   requestAnimationFrame(() => delay(frameCount - 1, func));
 }
 
-function delayMs(msec = -1, func) {
-  // delay execution of a function the given number of @msecs.
-  // Initially, this runs assuming 60 frames/second. However,
-  // to "recalibrate" this value, call this function with
-  // @msec < 0: in this case,  both @func and @args are ignored,
-  // and the frame rate will be (re) calibrated by measuring the mean
-  // time between frames over 60 frames.
-  if (msec >= 0) return delay(Math.round(msec * _frMs_), func);
-  let now = performance.now();
-  delay(60, () => (_frMs_ = 60 / (performance.now() - now)));
+function delayMs(msec, func) {
+  // delay execution of @func until @msec real milliseconds have elapsed.
+  // Deadline-based against the wall clock, so it needs no frame-rate
+  // calibration and is immune to variable refresh rates: unlike delay(),
+  // which counts a fixed number of animation frames, this counts time.
+  if (!(msec > 0)) return func(); // 0/negative/NaN: run now (no rAF, no wedge)
+  let runTime = performance.now() + msec;
+  let loop = () => (performance.now() < runTime ? requestAnimationFrame(loop) : func());
+  loop();
 }
-
-delayMs(); // force initial calibration of _frMs_ (frames per millisecond)
 
 function dialog(
   innerHtml,
@@ -1706,41 +2117,6 @@ function dialog(
   elm.showModal();
   return elm;
 }
-
-
-
-function flung(emv, eup=null) {
-  // flung(eup) (past tense of fling!) is used to decide
-  // when user has "flung" a div.
-  // Assumes caller populates _moveEvents_ with pointermove events from
-  // same pointerdown/pointermove/pointerup sequence as eup.
-  // @emv is a movement event that, when non-null, is pushed onto the _moveEvents_ array,
-  //    to be used in a subsequent call to flung.
-  // @eup: pointerup event. When non-null, triggers logic to determine if this
-  //     was a user fling.
-
-  if(emv) {
-    _moveEvents_.push(emv);
-    if(_moveEvents_.length > _maxMoveEvents_) _moveEvents_.shift();
-    return;
-  }
-
-  // Calculate velocity over the last 200ms window
-  let recent = _moveEvents_.filter(e => eup.timeStamp - e.timeStamp <= 200);
-  _moveEvents_.length = 0; // done with _moveEvents, so clear
-  if (recent.length > 1) {
-    let last = recent[recent.length - 1];
-    let first = recent[0];
-    let dT = last.timeStamp - first.timeStamp;
-    if (dT) {
-      let dXY = Math.hypot(last.clientX - first.clientX, last.clientY - first.clientY);
-      let velocity = dXY / dT; // pixels per ms
-      return velocity > 0.5; // threshold for "flung" - adjust as needed
-    }
-    return false;
-  }
-}
-
 
 let fontMap = {
   // map pdf font names to html canvas font structures.
@@ -1834,45 +2210,89 @@ function hide(elm, onElm) {
   // then elm's visibility will be set hidden, and its size restored.
   if (elm.hiding) return;
   else elm.hiding = true; // prevent hiding until schedule(500...) has run
-  let { left, top } = getComputedStyle(elm);
   let fontSize = elm.style.fontSize; // this MUST come from style, NOT from getComputedStyle
+  let elmBox = getBox(elm); // getBox forces layout, so this is the current (source) position
+  let onElmBox = getBox(onElm);
+  let offsetParentBox = elm.offsetParent ? getBox(elm.offsetParent) : { x: 0, y: 0 };
+  // FROM in explicit px, derived from getBox (the SAME basis as the TO below). Do NOT
+  // read getComputedStyle(elm).left here: for a position:absolute element Safari/iOS
+  // returns the specified value ("auto"), not the used px. CSS can't transition from
+  // "auto", so on iOS left/top snapped straight to the destination while font-size/
+  // opacity still animated — the "fling plays at the destination" bug. (Chrome papers
+  // over it by returning the used px from getComputedStyle.)
+  let left = (elmBox.x - offsetParentBox.x) + "px";
+  let top  = (elmBox.y - offsetParentBox.y) + "px";
   elm.style.left = left;
   elm.style.top = top;
-  elm.style.transition = "top 0.5s, left 0.5s,font-size 0.5s, opacity 2.5s";
+  elm.style.transition = "top .5s, left .5s,font-size .5s, opacity .5s";
   reflow();
-  let elmBox = getBox(elm);
-  let onElmBox = getBox(onElm);
-  elm.style.left = onElmBox.x + onElmBox.width / 2 + "px";
-  elm.style.top = onElmBox.y + onElmBox.height / 2 + "px";
+  elm.style.left = (onElmBox.x + onElmBox.width / 2 - offsetParentBox.x) + "px"; 
+  elm.style.top = (onElmBox.y + onElmBox.height / 2 - offsetParentBox.y) + "px";  
   elm.style.fontSize = 0;
   schedule(500, () => {
     elm.style.left = left;
-    elm.style.top = top;
     elm.style.visibility = "hidden";
+    elm.style.top = "-9999px";
     elm.style.transition = "unset";
     elm.style.fontSize = fontSize;
     elm.hiding = false;
   });
 }
 
-function iconSvg(iconName, props = {}) {
-  // Returns a string that can be included in html to display an icon whose path is defined
-  // in the icon.js iconPaths object.
-  // @iconName key in the iconPaths object.
-  // @props option object that contain overrides of the default properties defined here:
+function uniqueSvgIds(svgMarkup) {
+  // iOS WebKit resolves <mask>/<clipPath> url(#id) references ambiguously when
+  // the same id string appears more than once in the live document (e.g. a menu
+  // cell's icon and its open panel's header embed the identical icon markup
+  // simultaneously) - it can silently fail to render the masked content, while
+  // other browsers tolerate the duplicate. Suffix every id (and matching url(#id)
+  // reference) defined in this markup so each embedded copy is unique, regardless
+  // of how many times the same icon is on screen at once.
+  let ids = new Set();
+  svgMarkup.replace(/\sid=\x22([^\x22]+)\x22/g, (_, id) => { ids.add(id); return ''; });
+  if (ids.size === 0) return svgMarkup;
+  let suffix = "-" + ++_svgId_;
+  for (let id of ids) {
+    svgMarkup = svgMarkup.split(`id="${id}"`).join(`id="${id}${suffix}"`);
+    svgMarkup = svgMarkup.split(`url(#${id})`).join(`url(#${id}${suffix})`);
+  }
+  return svgMarkup;
+}
+
+function svgWrap(svgMarkup, props = {}) {
+  // Returns a string that can be included in html to display the given svg markup
+  // (the contents of an <svg>) wrapped in an <svg> tag, with its ids uniquified
+  // (see uniqueSvgIds above) so multiple simultaneous copies (e.g. a menu cell and
+  // its open panel's header showing the same icon) never collide on iOS WebKit.
+  // @svgMarkup raw svg markup (e.g. one of the icon.js iconPaths values).
+  // @props option object that contain overrides of the default properties defined here.
+  //   Note: the (square) icon size comes from `size`, emitted as width/height ATTRIBUTES,
+  //   NOT from `style`. Attributes sit below class/style in the cascade, so a caller can
+  //   still override the size via `class` or `style`, but can never accidentally drop it.
+  //   Previously the size lived in the default `style`, so any caller that passed its own
+  //   `style` wiped it out, leaving a dimensionless <svg> — which renders at the 300x150
+  //   replaced-element default on WebKit/iOS (Blink/Gecko shrink it to fit). Pass `size`
+  //   (e.g. size:"3em") to resize.
   props = Object.assign(
     {
-      style: "width:2em;height:2em;",
+      size: "2em",
       viewBox: "0 0 24 24",
       class: "",
       type: "",
       tag: "iconSvg",
+      style: "",
     },
     props
   );
-  // return svg tag do display named icon  (assumed to be square) at given size.
-  return `<svg viewBox="${props.viewBox}" class="${props.class}" style="${props.style}" data-tag="${props.tag}" >
-          ${iconPaths[iconName]}</svg>`;
+  return `<svg viewBox="${props.viewBox}" width="${props.size}" height="${props.size}" class="${props.class}" style="${props.style}" data-tag="${props.tag}" >
+          ${uniqueSvgIds(svgMarkup)}</svg>`;
+}
+
+function iconSvg(iconName, props = {}) {
+  // Returns a string that can be included in html to display an icon whose path is defined
+  // in the icon.js iconPaths object.
+  // @iconName key in the iconPaths object.
+  // @props see svgWrap above.
+  return svgWrap(iconPaths[iconName], props);
 }
 
 async function inflate(b64GzipString) {
@@ -1942,22 +2362,49 @@ function unlisten(...listenerArgs) {
   }
 }
 
-function mvmt(e, emv, xLimit = 48, yLimit = 36) {
-  // Helper function used when dragging div's: purpose is to ignore
-  // jitter that occurs when a user uses a finger or stylus as a pointer.
-  // It takes two events: a down event @e, and a move event @emv,
-  // and sets e.moved to true when the total of movement in either
-  // x or y exceeds the corresponding limit.
-  // @xLimit in CSS px (default 48 works well for touch/stylus/mouse)
-  // @yLimit in CSS px (default 36 works well for touch/stylus/mouse)
-
-  if (!e.moved) {
-    e.sumX = (e.sumX || 0) + Math.abs(emv.movementX);
-    e.sumY = (e.sumY || 0) + Math.abs(emv.movementY);
-    e.moved = e.sumX > xLimit || e.sumY > yLimit;
+// ── SymbolsPanel "Recent" list ────────────────────────────────────────────────
+// stash.recent is a plain object mapping each Unicode codepoint character to an
+// integer frequency score, e.g. { "\uE522": 45, "\uE52D": 12, ... }.  Higher
+// score = used more often.  The panel displays entries sorted by score
+// descending, truncated to _maxRecent_ entries (12 rows × 6 columns).
+//
+// mergeRecent(existing, incoming) is the single entry point for all mutations:
+//   • symbol selected in panel:   mergeRecent(stash.recent, { [cp]: _recentSelectPts_ })
+//   • symbol inserted into score: mergeRecent(stash.recent, { [cp]: _recentInsertPts_ })
+//   • merging on score open:      mergeRecent(localStorage.recent, score.recent)
+// Points are weighted so that actual insertions outrank casual browsing: at the
+// default 4:1 ratio a symbol inserted 10 times (40 pts) beats one merely tapped
+// ~39 times to preview it.  Both signals contribute, giving the best of both
+// worlds: browsing still pre-populates the list, but genuine use dominates.
+// It sums counts from both objects, then applies "normalise-on-cap":
+//   • when any score reaches the cap (_maxRecent_ * 4), every score is halved
+//     (integer division) and entries that fall to 0 are pruned.
+// This scheme:
+//   • prevents unbounded growth with no hard ceiling on raw values
+//   • preserves relative rankings faithfully through each halving
+//   • gives natural expiry to rarely-used symbols (score 1 → 0 → deleted)
+//   • stays responsive: after halving the winner sits at half-cap, so a newly
+//     favoured symbol can rise to the top within a modest number of sessions
+//   • makes cross-score merging trivial: just sum and normalise
+//
+// The cap (_maxRecent_ * 4) scales with the list size, so changing _maxRecent_
+// automatically re-tunes the normalisation cadence.  _maxRecent_ must be a
+// multiple of 6 (the SymbolsPanel grid column count).
+function mergeRecent(existing, incoming) {
+  let merged = (existing && typeof existing === 'object') ? { ...existing } : {};
+  for (let [cp, count] of Object.entries(incoming))
+    if ([...cp].length <= 2) merged[cp] = (merged[cp] || 0) + count;
+  if (Object.values(merged).some(v => v >= _maxRecent_ * 4)) {
+    for (let k in merged) {
+      merged[k] = Math.floor(merged[k] / 2);
+      if (merged[k] === 0) delete merged[k];
+    }
   }
-  return e.moved;
+  return Object.fromEntries(
+    Object.entries(merged).sort((a, b) => b[1] - a[1]).slice(0, _maxRecent_)
+  );
 }
+
 
 function pnToDiv(pn, div, autoSize = true) {
   // Standard way to display a page number in a div using Bravura font,
@@ -1971,6 +2418,11 @@ function pnToDiv(pn, div, autoSize = true) {
   let roman = pn - prelim <= 0;
   div.style.fontFamily = roman ? "Times" : "Bravura";
   div.style.fontStyle = roman ? "italic" : "normal";
+  // The time-sig digits (E080-E089) now carry real advance widths (set by
+  // build_bravura() in build.py), so they flow as normal text — no
+  // letter-spacing hack, which also fixes the multi-digit overlap/blank on iOS.
+  div.style.letterSpacing = "normal";
+  if(!roman) div.style.paddingTop = 0 ; // this keeps or bravura chars more centererd
   let str = pnToString(pn, true);
 
   if (autoSize && div.offsetWidth > 0) {
@@ -2002,10 +2454,10 @@ function pnToString(pn, useSMuFL = false) {
   //  @pn, into a string for displaying to the user, potentially
   //   converting the pn to a Roman Numberal.
   //
-  // If pn is 0 or negative, flip its sign and add 1, then return the
-  // resulting number's representation as a lower-case roman number.
-  // Design purpose is to allow prelim "front matter" pages to be
-  //  presented as is traditionally done in book publishing.
+  // Pages 1..prelim are presented as lower-case roman numerals, as is
+  // traditionally done for "front matter" pages in book publishing.
+  // A pn of 0 or below (transient values can occur mid-gesture, e.g.
+  // overscroll) is clamped to 0 and renders as an empty string.
   //
   // @useSMuFL when true, resulting string is designed to be
   // displayed using a SMuFL compliant font using "time signature"
@@ -2020,6 +2472,7 @@ function pnToString(pn, useSMuFL = false) {
   first = parseInt(first);
   let str = "";
   if (pn <= prelim) {
+    if (pn < 0) pn = 0; // negative q would make repeat() below throw
     let roman = {
       m: 1000,
       cm: 900,
@@ -2068,7 +2521,6 @@ css(
       transition: opacity ease-out ${_gsgs_}ms;
       z-index: var(--z-topmost);
       background-color: var(--bodyColor);
-      will-change: transform, left, top;
    }`
 );
 
@@ -2077,7 +2529,13 @@ function ptrMsg(e, msgFunc, styles) {
   // displaying a message. It displays the message s.t. it is not
   // obscured by the pointer: normally, above the pointer, but
   // to the left or right of the pointer as the pointer approaches
-  // the top of the screen, etc.
+  // the top of the screen, etc.  In some cases, the ptrMsg will
+  // have an embedded string "..." which we remove: the idea is that
+  // some sliders don't have room for a lot of text, so they display
+  // "...".  The slider then deletes all chars following the 3 dots,
+  // whereas here we delete the 3 dots and show the following chars,
+  // ex. a...b c d e shows a a... in the slider, but as a b c d e
+  // in the ptrMsg. 
   let div = helm(`<div class="ptrMsg floatingMsg" style="${styles}"></div>`);
   _body_.append(div);
 
@@ -2089,7 +2547,7 @@ function ptrMsg(e, msgFunc, styles) {
   let expander = e.pointertype == "mouse" ? 1 : 2;
   let put = (ev) => {
     let result = msgFunc(ev, div);
-    if (result) div.innerHTML = result;
+    if (result) div.innerHTML = result.replace("...","") ; // remove "...continuation
 
     // Measure true content width (only clear minWidth if it's already set)
     if (maxWidth > 0) div.style.minWidth = "";
@@ -2127,13 +2585,12 @@ function ptrMsg(e, msgFunc, styles) {
   let mv = listen(_body_, "pointermove", (emv) => put(emv));
 
   let done = listen(
-    _body_,
-    ["pointerup", "pointercancel"],
+    _body_, "pointerup",
     (eup) => {
       unlisten(done);
       put(eup);
       div.style.opacity = 0;
-      delay(_gsgs_, () => div.remove());
+      delayMs(_gsgs_, () => div.remove());
       unlisten(mv);
     }
   );
@@ -2184,17 +2641,22 @@ function strToHash(str) {
   return Math.abs(hash);
 }
 
-function toast(innerHtml) {
+function toast(innerHtml, addClass=null, duration=null,) {
   // display a "toast", i.e. a brief message that automatically dismisses
   // after _gs_ msecs.
   // @param innerHtml the html content of the toast.
+  // @param addClass optional additonal css class
+  // @param duration optional float that replaces _gs_ as duration basis
+  if(document.getElementById("toast")) return ; // only 1 toast at a time!
+  let dur = duration ? duration: _gs_ ;
   let elm = helm(
-    `<div style="position:absolute;display:flex;justify-content:center;align-items: center;height: 100vh;width:100vw;">
-       <div class="floatingMsg" style="z-index:999999998;position:absolute;width:fit-content;height:fit-content;opacity:0;transition:opacity ${_gs_}ms ease-in">${innerHtml}</div>
+    `<div id="toast" style="position:absolute;pointer-events:none;display:flex;justify-content:center;align-items:center;height:100vh;width:100vw;pointer-events:none">
+       <div class="floatingMsg" style="z-index:var(--z-toast);position:absolute;width:fit-content;height:fit-content;opacity:0;transition:opacity ${dur}ms ease-in">${innerHtml}</div>
      </div>`
   );
+  if(addClass) elm.firstElementChild.classList.add(addClass) ;
   _body_.append(elm);
   delay(1, () => elm.firstElementChild.style.opacity = "1");
-  delayMs(_gs_ * 2.5, () => elm.firstElementChild.style.opacity = "0");
-  delayMs(_gs_ * 3.5, () => elm.remove());
+  delayMs(dur * 2.5, () => elm.firstElementChild.style.opacity = "0");
+  delayMs(dur * 3.5, () => elm.remove());
 }

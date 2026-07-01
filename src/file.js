@@ -21,7 +21,7 @@
 **/
 
 export { checkUnsaved, escapeHtml, FileSrc, FileListView, FileSystemView, LocalFileView };
-import { css, ButtonGroup, clamp, clearChildren, dataIndex, delay, getBox, helm, iconSvg, listen, mvmt, dialog, Schedule, strToHash, toast, unlisten } from "./common.js";
+import { css, ButtonGroup, clamp, clearChildren, dataIndex, delay, Drag, getBox, helm, iconSvg, listen, dialog, Schedule, strToHash, toast, unlisten } from "./common.js";
 import { Score } from "./score.js";
 import { panels } from "./panel.js";
 // -skip
@@ -57,6 +57,41 @@ let errDialog = (error, msg) => {
   }
 };
 
+
+let checkMergePdf = async (data) => {
+  // Try loading pdfData with pdf-lib before storing it for merge.
+  // Returns data if loadable, null if rejected by user or unreadable.
+  let { PDFDocument } = PDFLib;
+  try {
+    await PDFDocument.load(data);
+    return data;
+  } catch (err) {
+    if (!(err.message?.includes('encrypted') || err.message?.includes('Encrypt'))) throw err;
+    let readable = false;
+    try { let doc = await PDFDocument.load(data, { ignoreEncryption: true }); doc.getPages(); readable = true; } catch {}
+    if (!readable) {
+      dialog("This PDF is write-protected and cannot be merged.",
+        { OK: { svg: "Cancel" } }, (e, prop, tag, args) => args.close());
+      return null;
+    }
+    return await new Promise(resolve => {
+      let dlg = dialog(
+        "This PDF has copy protection. Merging may not preserve all content.",
+        { Merge: { svg: "Merge" }, Cancel: { svg: "Cancel" } },
+        (e, prop, tag, args) => { args.close(); resolve(tag == "Merge" ? data : null); }
+      );
+      dlg.addEventListener('cancel', () => resolve(null));
+    });
+  }
+};
+
+let activateMerge = (pdfData) => {
+  let mergeCell = _menu_.rings.page.cells.merge;
+  mergeCell.pdfData = pdfData;
+  if (_menu_.rings.page.activeCell !== mergeCell) _menu_.activateCell(mergeCell);
+  _menu_.autoOff.run(4000 + _gs_ * 3.5);
+  toast("Tap score to merge");
+};
 
 let checkUnsaved = async (msg = "Warning: current score has unsaved changes. Open anyway?", close = false) => {
   // Display a confirm dialog if there is a dirty _score_ that would be overriden
@@ -262,7 +297,7 @@ class FileSrc {
     let score = _score_;
     let src = FileSrc.get(score.source);
     // If no source, or source doesn't support saving (like URL/WWW), show the save panel
-    if (!src || typeof src.putFile !== 'function') {
+    if (!src || typeof src.putFile != 'function') {
       let panel = panels[cell.name + "Panel"].get(cell);
       if (panel.elm.style.visibility != "visible") {
         panel.show();
@@ -295,7 +330,27 @@ class FileSrc {
         score.setDirty(false);
         toast("File saved.");
       } catch (error) {
-        if (error.name !== 'AbortError') {
+        if (error.originalData) {
+          dialog(`${error.message}<br><br>Save original PDF instead (without Podium modifications)?`,
+            { Save: { svg: "Save" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
+              args.close();
+              if (tag == "Save") {
+                try {
+                  _shade_.show("Saving original file");
+                  let data = error.originalData;
+                  await src.putFile(score.path, score.name, data, handle);
+                  Score.visit(score, { size: data.length, modified: Date.now() });
+                  score.setDirty(false);
+                  toast("Original file saved.");
+                } catch (err) {
+                  errDialog(err, "Failed to save original file");
+                } finally {
+                  _shade_.hide();
+                }
+              }
+            }
+          );
+        } else if (error.name != 'AbortError') {
           errDialog(error, "Error: failed to save file.<br>Details in Console.");
         }
       } finally {
@@ -1160,7 +1215,6 @@ class GDriveSrc extends CachedSrc {
     }
   }
 
-
   async trashFileSrc(path, name, dir, file) {
     let url = this.filesUrl + file.id;
     let fetchPromise = await fetch(url, {
@@ -1611,10 +1665,9 @@ class UrlSrc extends FileSrc {
 class LocalFileView:
    Since browser's give very limited access to the local file
    system, the LocalFileView is nothing more than a mechanism
-   for involing the Browser's built in load/save file interface,
+   for invoking the Browser's built in load/save file interface,
    including drag/drop.
 **/
-///
 class LocalFileView {
   static css = css(
     "LocalFileView",
@@ -1700,6 +1753,11 @@ class LocalFileView {
           Score.visit({ source:Score.sources.local, name:file.name, path:"n/a"}, visitUpdate);
           toast("File opened");
         }
+        else if (this.mode == "merge") {
+          let data = await checkMergePdf(await file.arrayBuffer());
+          if (!data) return;
+          activateMerge(data);
+        }
         else {
           if(await checkUnsaved()) {
             try {
@@ -1707,7 +1765,7 @@ class LocalFileView {
               Score.visit(score, visitUpdate);
               toast("File opened");
             } catch (error) {
-              dialog(`Error opening file <i>${escapeHtml(file.name)}</i><br>${error.message || error}`);
+              if (!error.handled) dialog(`Error opening file <i>${escapeHtml(file.name)}</i><br>${error.message || error}`);
             }
           }
         }
@@ -1730,14 +1788,17 @@ class LocalFileView {
   async putFile() {
     let score = _score_;
     try {
-      // Get file handle immediately while still in user gesture
-      let handle = await this.src.getFileHandle(score.name);
-
       _shade_.show("Saving file");
       _shade_.onCancel = () => { throw new Error() };
 
       score.source = Score.sources.local;
       let data = await score.toPdf();
+
+      // Get file handle. MUST be called from a user gesture context.
+      // Although toPdf is async, it usually completes quickly enough to 
+      // preserve the gesture for the file picker.
+      let handle = await this.src.getFileHandle(score.name);
+
       let { name, modified } = await this.src.putFile(score.path, score.name, data, handle);
       score.fileHandle = handle; // remember for future quick-saves
       score.update({ source: this.source, name: name, path: null });
@@ -1745,7 +1806,31 @@ class LocalFileView {
       score.setDirty(false);
       toast("File saved");
     } catch (error) {
-      if (error.name !== 'AbortError') {
+      if (error.originalData) {
+        dialog(`${error.message}<br><br>Save original PDF instead (without Podium modifications)?`,
+          { Save: { svg: "Save" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
+            args.close();
+            if (tag == "Save") {
+              try {
+                _shade_.show("Saving original file");
+                let data = error.originalData;
+                // Since toPdf failed, we never got a handle. Request one now.
+                let handle = await this.src.getFileHandle(score.name);
+                let { name, modified } = await this.src.putFile(score.path, score.name, data, handle);
+                score.fileHandle = handle;
+                score.update({ source: this.source, name: name, path: null });
+                Score.visit(score, { size: data.length, modified: modified });
+                score.setDirty(false);
+                toast("Original file saved");
+              } catch (err) {
+                errDialog(err, "Failed to save original file to local storage");
+              } finally {
+                _shade_.hide();
+              }
+            }
+          }
+        );
+      } else if (error.name != 'AbortError') {
         errDialog(error, "Failed to save file to local storage");
       }
     } finally {
@@ -1769,29 +1854,20 @@ class FileListView {
   static css = css(
     "FileListView",
     `
-    Flv-fade-top {
-      z-index: 1;
-      position: absolute;
-      top: 0px;
-      display: block;
-      width: 100%;
-      height: .8em;
-      background-image: linear-gradient(to top, transparent, var(--panel-bg));
-    }
-    Flv-fade-bottom {
-      z-index: 1;
-      position: absolute;
-      bottom: 0;
-      display: block;
-      width: 100%;
-      height: .8em;
-      background-image: linear-gradient(to bottom, transparent, var(--panel-header-bg) 53%, var(--panel-header-bg));
-    }
     .Flv {
       position: absolute;
       height:100%;
       width:100%;
       color: var(--color-text);
+
+       -webkit-mask-image: linear-gradient(to right, transparent, black .8em, black calc(100% - .8em), transparent);
+       mask-image: linear-gradient(to right, transparent, black .8em, black calc(100% - .8em), transparent);
+
+
+    }
+    .Flv:focus {
+      outline: none;
+      background-color: #fff;
     }
     .Flv-list {
       position:relative;
@@ -1803,6 +1879,8 @@ class FileListView {
       position:relative;
       overflow:hidden;
       height: calc(100% - 6.5em);
+      -webkit-mask-image: linear-gradient(to bottom, transparent, black .8em, black calc(100% - .8em), transparent);
+      mask-image: linear-gradient(to bottom, transparent, black .8em, black calc(100% - .8em), transparent);            
     }
     .Fsv-list__frame {
       height: calc(100% - 10em);
@@ -1848,10 +1926,6 @@ class FileListView {
       height: 3em;
       background-image: var(--panTexture);
       margin-top: .5em;
-    }
-    .Flv-path__sash-edge {
-      top: .5em;
-      height: 10em;
     }
     .Flv-path {
       position:relative;
@@ -1906,20 +1980,29 @@ class FileListView {
   };
 
   elm = helm(`
-      <div class="Flv">
-        <div data-tag="flvList__frame" class="Flv-list__frame">
-          <Flv-fade-top></Flv-fade-top>
-          <div data-tag="flvList" class="Flv-list"></div>
-          <Flv-fade-bottom></Flv-fade-bottom>
-       </div>
-
+    <div class="Flv">
+      <div data-tag="flvList__frame" class="Flv-list__frame">
+        <div data-tag="flvList" class="Flv-list"></div>
+      </div>
     </div>`);
+
+  keyBuf = "" ;
 
   constructor(panel) {
     this.panel = panel;
     this.mode = panel.mode;
     Object.assign(this, dataIndex("tag", this.elm));
-    listen(this.flvList, "pointerdown", this.onListDown.bind(this));
+    panel.listeners.push(listen(this.elm, "pointerdown", this.onListDown.bind(this)));
+
+    delay(1, () => { // delayed so subclass constructor, if any, can run...it might replace this.elm
+      this.elm.tabIndex = 0 ; // required for list to be focused for keydown events
+      this.elm.focus({preventScroll:true}) ;
+      let l1 = listen(this.elm, "keydown", this.onKeyDown.bind(this)) ;
+      let l2 = listen(this.elm, "wheel", (e) => {
+        this.flvList.style.top = 
+             clamp(this.flvList.offsetTop + e.deltaY, this.flvList__frame.offsetHeight - this.flvList.offsetHeight, 0) + "px";}) ;
+      panel.listeners.push(l1, l2) ;
+    });
   }
 
   // regex to parse off extension via extensionRegex.exec(fileName)[1]
@@ -1974,7 +2057,7 @@ class FileListView {
     let input = dataIndex("tag", dialog).input;
     listen(input, "keyup", (e) => {
       if (e.key == "Enter") dialog.buttonsElm.self.fire(tag);
-    }, { once:true});
+    });
   }; 
 
   async makeFileElm(properties) {
@@ -2003,8 +2086,8 @@ class FileListView {
              ${modified ? "Modified: "+ modified + "<br>" : ""}
            </div>
            <div>
-             ${source == "Local" ? "" : this.mode == "copy" ? "" : iconSvg("Pencil", {tag: "rename", style: "width:2.75em;padding:.5em;"})}
-             ${source == "Local" ? "" : this.mode == "copy" ? "" : iconSvg("Trash", {tag: "trash", style: "width:3em;padding:.5em;"})} </div>
+             ${source == "Local" ? "" : this.mode == "copy" ? "" : iconSvg("Pencil", {tag: "rename", size: "2.75em", style: "padding:.5em;"})}
+             ${source == "Local" ? "" : this.mode == "copy" ? "" : iconSvg("Trash", {tag: "trash", size: "3em", style: "padding:.5em;"})} </div>
            </div>
        </div>`);
     elm.style.background = color;
@@ -2028,30 +2111,118 @@ class FileListView {
     return "#" + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
   }
 
+
+  // keyState stores state ulsed by the progressive match algorithms implemented by onKeyDown and markSelected.
+  keyState = { keys: "",
+    fileElm: null, // currently target fileElm, if any
+    span: null, // current title <span> node
+    txt: null // previous title text node, if any
+  } ;
+  
+  markSelected(fileElm) {
+    // Helper for the progressive match algorithm implemented in onKeyDown below. It 
+    // marks the "key state" of the given fileElm by replacing the title (file or directory name), which
+    // is a simple text node, by a <span>marked-title</span>. The title itself will have any characters that
+    // match keyState.keys enclosed in <mark>...</mark> tags so user knows how much of the title's
+    // name has matched. 
+    if(this.keyState.span) // then restore previous target's txt
+      this.keyState.span.replaceWith(this.keyState.txt) ; // replace span node with original text node
+    if(!fileElm) {
+      this.keyState.keys = "" ;
+      this.keyState.fileElm = this.keyState.span = this.keyState.txt = null ; 
+      return ;
+    }
+    this.keyState.fileElm = fileElm ;
+    let txt = fileElm.querySelector(".Flv-list__file-header")?.querySelector("svg")?.nextSibling ;
+    if(txt) {
+      this.keyState.txt = txt;
+      let tc = txt.textContent ;
+      let re = new RegExp(this.keyState.keys.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
+      // The filename is attacker-influenced (cloud/downloaded files), so each
+      // segment must be HTML-escaped before going into innerHTML; only the
+      // <mark> wrapper around the matched run is literal markup.
+      let m = tc.match(re) ;
+      let marked = m
+        ? escapeHtml(tc.slice(0, m.index)) + `<mark>${escapeHtml(m[0])}</mark>` + escapeHtml(tc.slice(m.index + m[0].length))
+        : escapeHtml(tc) ;
+      this.keyState.span = helm(`<span>${marked}</span>`) ;
+      txt.replaceWith(this.keyState.span) ;
+    }
+  }
+
+  onKeyDown(e) {
+    let frame = this.flvList.parentElement ;
+    let sash = this.flvList ;
+    let sashTop = null ;
+    switch(e.key) {
+      case "Home": sashTop = "0" ; break ;
+      case "End": sashTop = frame.offsetHeight - sash.offsetHeight ; break;
+      case "ArrowDown": // down 1 entry
+        sashTop = sash.children[0].offsetHeight + sash.offsetTop ; break ;
+      case "ArrowUp":  // up 1 entry
+        sashTop = -sash.children[0].offsetHeight + sash.offsetTop ; break ;
+      case "ArrowLeft": // up directory (FileSystemView only)
+        if(this.constructor.name != "FileSystemView") return ;
+        let pathLen = this.fsvPath.children.length ;
+        if(pathLen > 2) { // path will always start with root and end with "New": we ignore them
+          let target = this.fsvPath.children[pathLen - 3] ;
+          this.setPath(target.dataset.path);
+        }
+        return ; 
+      case "Enter": // open selection
+        if(this.keyState.fileElm) {
+          let { source, name, path, dir } = this.keyState.fileElm.dataset;
+          if (dir && path !=null && name) this.getDir(path, name); // need !=null because path can be ""
+          else if(source && path !=null && name) this.getFile(source, path, name) ;
+          this.markSelected(null) ; // clear selection
+        }
+        return ;
+      case "Backspace":
+      case "Delete": 
+        this.keyState.keys = this.keyState.keys.slice(0,-1) ;
+      default: 
+        let isNormal = /^[a-zA-Z0-9 .]$/.test(e.key) ; // normal key, i.e. not a navigational key
+        if(isNormal) this.keyState.keys += e.key;
+        let names = {}; // maps each file/directory name to containing fileElm
+        Array.from(sash.children).forEach((child) => names[child.dataset.name] = child) ;
+        let match = Object.keys(names).find((str) => { return new RegExp(this.keyState.keys.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i").test(str);}) ;
+        if(match) {
+          let fileElm = names[match] ;
+          sashTop =  frame.offsetHeight / 2 - fileElm.offsetTop - fileElm.offsetHeight / 2 ;
+          this.markSelected(this.keyState.keys.length > 0 ? fileElm:null) ;
+        }
+        else {
+          if(isNormal) this.keyState.keys = this.keyState.keys.slice(0,-1) ; // no match...remove last key
+        }
+    }
+    if(sashTop != null) sash.style.top = clamp(sashTop, frame.offsetHeight - sash.offsetHeight, 0) + "px" ;
+  }
+
   onListDown(e) {
+    e.taken = true; 
+    this.elm.focus({ preventScroll: true}) ; // need preventScroll!
     let elm = this.flvList;
     elm.style.transition = "unset";
     let origin = elm.offsetTop;
     let minTop = this.flvList__frame.offsetHeight - elm.offsetHeight;
     if (this.panel.mode == "save") minTop -= this.fsvSave.offsetHeight;
     elm.setPointerCapture(e.pointerId);
-    e.mv1 = e.mv0 = e;
+    let drag = new Drag(e);
 
     let mv = listen(elm, "pointermove", (emv) => {
-      if (mvmt(e, emv)) elm.style.top = clamp(origin + emv.clientY - e.clientY, minTop, 0) + "px";
-      e.mv1 = e.mv0;
-      e.mv0 = emv;
+      drag.mv(emv) ;      
+      if (drag.moved) elm.style.top = clamp(origin + emv.clientY - e.clientY, minTop, 0) + "px";
     });
 
     listen(
       elm,
       "pointerup",
       async (eup) => {
+        drag.up(eup);
         unlisten(mv);
-        if (mvmt(e, eup)) {
+        if (drag.moved) {
           elm.style.transition = "1s top ease-out";
-          let speed = (e.mv0.clientY - e.mv1.clientY) / Math.max(eup.timeStamp - e.mv0.timeStamp, e.mv0.timeStamp - e.mv1.timeStamp);
-          return (elm.style.top = clamp(elm.offsetTop + speed * 500, minTop, 0) + "px");
+          return (elm.style.top = clamp(elm.offsetTop + drag.vY * 1000, minTop, 0) + "px");
         }
         let fileElm = e.target.closest(".Flv-list__file");
         if (!fileElm) return;
@@ -2070,7 +2241,7 @@ class FileListView {
   }
 
   async getFile(source, requestedPath, requestedName) {
-    if(this.mode != "copy" && !await checkUnsaved())
+    if(this.mode != "copy" && this.mode != "merge" && !await checkUnsaved())
       return;
     _shade_.show("Downloading file");
     return new Promise(async (accept, reject) => {
@@ -2083,13 +2254,20 @@ class FileListView {
           if (ext) {
             _menu_.setPasteObj(await bytesToBase64DataUrl(data, this.mimeTypes[ext]), this.mimeTypes[ext]);
             Score.visit({ source, name, path }, visitUpdate);
+            toast("File downloaded");
+          }
+        } else if (this.panel.mode == "merge") {
+          let checked = await checkMergePdf(data);
+          if (checked) {
+            Score.visit({ source, name, path }, visitUpdate);
+            activateMerge(checked);
           }
         } else {
           let score = await new Score().init(source, path, name, data);
           if (fileHandle) score.fileHandle = fileHandle;
           Score.visit(score, visitUpdate);
+          toast("File downloaded");
         }
-        toast("File downloaded");
       } catch (error) {
         if (!error.handled) errDialog(error, "Error: failed to download file from cloud server.");
       } finally {
@@ -2205,20 +2383,14 @@ class FileSystemView extends FileListView {
       <div data-tag="fsv" class="Flv">
          <![CDATA[currently selected file path, left-to-right]]>
          <div data-tag="fsvPath" class="Flv-path__sash"></div>
-         <div class="Flv-path__sash-edge fadeLeft"></div>
-         <div class="Flv-path__sash-edge fadeRight"></div>
-  
          <![CDATA[text input for save filename (plus button), void for save panel]]>
          <div data-tag="fsvSave" class="void" style="display:flex;width:100%";justify-content:center>
            <input is="pod-input" type="text" data-tag="fsvSave__file" class="Flv-save__file"/>
-           <div data-tag="uploadButton"></div>
+           <div data-tag="uploadButton"></div>  
          </div>
-
          <![CDATA[list of files, top-to-bottom]]>
          <div data-tag="flvList__frame" class="Flv-list__frame Fsv-list__frame">
-           <Flv-fade-top></Flv-fade-top>
            <div data-tag="flvList" class="Flv-list"></div>
-           <Flv-fade-bottom></Flv-fade-bottom>
          </div>
   
       </div>`);
@@ -2268,7 +2440,7 @@ class FileSystemView extends FileListView {
 
       dirElm = helm(
         `<div dir-source="${escapeHtml(this.source)}" data-path="${escapeHtml(path)}" style="background:${background}"{ class="Flv-path__dir">
-         ${iconSvg(icon, { style: "width:1.5em;" })}&nbsp${escapeHtml(dir)}&nbsp/</div>`
+         ${iconSvg(icon, { size: "1.5em" })}&nbsp${escapeHtml(dir)}&nbsp/</div>`
       );
       elm.append(dirElm);
     });
@@ -2288,18 +2460,21 @@ class FileSystemView extends FileListView {
   }
 
   onPathDown(e) {
+    let drag = new Drag(e);
     let elm = this.fsvPath;
     let origin = elm.offsetLeft;
     let minLeft = this.fsv.offsetWidth - elm.offsetWidth;
     elm.setPointerCapture(e.pointerId);
 
     let mv = listen(elm, "pointermove", (emv) => {
-      if(mvmt(e,emv)) elm.style.left = clamp(origin + emv.clientX - e.clientX, minLeft, 0) + "px";
+      drag.mv(emv) ;
+      if(drag.moved) elm.style.left = clamp(origin + emv.clientX - e.clientX, minLeft, 0) + "px";
     });
 
     listen(elm, "pointerup", async (eup) => {
+      drag.up(eup) ;
       unlisten(mv);
-      if (!mvmt(e,eup)) {
+      if (drag.jab) {
         if(e.target.dataset.tag == "newDir") return await this.putDir(this.path);
         let target = e.target.closest(".Flv-path__dir");
         if (target) {
@@ -2422,10 +2597,11 @@ class FileSystemView extends FileListView {
       let listing = await this.src.getDir(this.path, true);
       if (listing.files[name])
         await new Promise((accept, reject) =>
-          dialog(`Confirm. Replace <i>${escapeHtml(name)}</i> ?`, { Replace: { svg: "Replace" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
-            args.close();
-            if (tag == "Cancel") reject(new Error("", { cause: "cancelled" }));
-            accept();
+          dialog(`Confirm. Replace <i>${escapeHtml(name)}</i> ?`,
+            { Replace: { svg: "Replace" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
+              args.close();
+              if (tag == "Cancel") reject(new Error("", { cause: "cancelled" }));
+              accept();
           })
         );
       _shade_.show("Uploading file");
@@ -2439,7 +2615,32 @@ class FileSystemView extends FileListView {
 
       toast("File uploaded");
     } catch (error) {
-      errDialog(error, "Error: failed to upload file to cloud server.<br>Details in Console.");
+      if (error.originalData) {
+        dialog(`${error.message}<br><br>Upload original PDF instead (without Podium modifications)?`,
+          { Upload: { svg: "Upload" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
+            args.close();
+            if (tag == "Upload") {
+              try {
+                _shade_.show("Uploading original file");
+                let data = error.originalData;
+                await this.src.putFile(this.path, name, data);
+                let score = _score_;
+                score.update({ source: this.source, name: name, path: this.path });
+                Score.visit(score, { size: data.length, modified: Date.now() });
+                score.setDirty(false);
+                await this.setPath(this.path, true);
+                toast("Original file uploaded");
+              } catch (err) {
+                errDialog(err, "Failed to upload original file to cloud server");
+              } finally {
+                _shade_.hide();
+              }
+            }
+          }
+        );
+      } else {
+        errDialog(error, "Error: failed to upload file to cloud server.<br>Details in Console.");
+      }
     } finally {
       _shade_.hide();
       this.panel.hide();
@@ -2448,7 +2649,6 @@ class FileSystemView extends FileListView {
 
   async setPath(path, force = false) {
     if (this.source == "Local") return; // no path for Local files.
-
     _shade_.show("Reading folder");
     return new Promise(async (accept, reject) => {
       try {
@@ -2488,3 +2688,4 @@ class FileSystemView extends FileListView {
     });
   }
 }
+window._FileSrc_ = FileSrc; window._CachedSrc_ = CachedSrc;

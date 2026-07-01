@@ -20,13 +20,14 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, flung, getBox, helm, hide, iconSvg, listen, mvmt, schedule, Schedule, SliderGroup, TabView, toast, unlisten, pxToEm } from "./common.js";
+import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, Drag, helm, hide, iconSvg, listen, schedule, Schedule, SliderGroup, Surface, TabView, toast, unlisten, pxToEm,} from "./common.js";
 import { pianoSamples } from "./sample.js";
-import { panels } from "./panel.js"; 
+import { panels, ScreenPanel } from "./panel.js";
 import { Yin } from "./yin.js";
 export { Review, Metronome, Clock, Stopwatch, Piano, Volume };
 
 // -skip
+
 
 /**
 class Actx
@@ -104,7 +105,10 @@ class Piano {
     .Piano__keyboard {
       display:flex;
       position:relative;
-      width:fit-content; 
+      width:max-content;
+      flex-shrink:0; /* keep full width; otherwise the body's flexbox shrinks
+                        this element to the panel width, so offsetWidth (used as
+                        the range button's bounds) collapses and scroll offset calculation fails */
     }
     .Piano__key-white {
       flex-shrink:0;
@@ -120,9 +124,8 @@ class Piano {
       background:linear-gradient(to bottom,#eee 0%,#fff 100%);
       touch-action: manipulation; 
       user-select: none;
-      -webkit-tap-highlight-color: transparent;
     }
-    .Piano__key-white:active {
+    .Piano__key-white:active, .Piano__key-white.pressed {
       border-top:.06em solid #777;
       border-left:.06em solid #999;
       border-bottom:.06em solid #999;
@@ -143,9 +146,8 @@ class Piano {
       background:linear-gradient(45deg,#222 0%,#555 100%);
       touch-action: manipulation;
       user-select: none;
-      -webkit-tap-highlight-color: transparent;
     }
-    .Piano__key-black:active {
+    .Piano__key-black:active, .Piano__key-black.pressed {
       box-shadow:-.06em -.06em .18em rgba(255,255,255,0.2) inset,0 -.18em .18em 3px rgba(0,0,0,0.6) inset,0 .06em .18em rgba(0,0,0,0.5);
       background:linear-gradient(to right,#444 0%,#222 100%)
       touch-action: manipulation;
@@ -227,7 +229,7 @@ class Piano {
     Young: { description: "Thomas Young well temperament (1807), also Luigi Malerbi nr.2 (1794)", frequencies: [261.6255653006, 275.62199471997, 293.00227310437, 310.07474405997, 328.14198392915, 348.83408706747, 367.49599295996, 391.5530240856, 413.43299207996, 438.51190905657, 465.11211608996, 491.10256480205, 523.2511306012], name: "Young" },
   };
 
-  elm = helm(`<div style="justify-content:center;display:flex;" data-tag="body">
+  elm = helm(`<div style="justify-content:flex-start;display:flex;" data-tag="body">
                 <div data-tag="keyboard" class="Piano__keyboard">${this.buildKeyboard()}</div>
                 <div data-tag="options" class="Piano__options"></div>
              </div>`);
@@ -246,7 +248,9 @@ class Piano {
   constructor(panel, cell) {
     this.panel = panel;
     this.cell = cell;
+    this.keyboardLeft = null;
     this.userWidth = null;
+    this.pointerKeys = new Map();
     Object.assign(this, dataIndex("tag", this.elm));
     this.c4Elm = dataIndex("sample", this.elm)["60/0"];
 
@@ -263,10 +267,10 @@ class Piano {
 
     // pedal button...swaps Pedal and PedalUp icons
     let pedalDownButton = helm(
-      `<div class="Piano__button-holder" style="right: calc(50% + 6em)">
+      `<div class="Piano__button-holder" style="right: calc(50% + 10em)">
         ${iconSvg("Pedal", { tag: "pedal", class: "Piano__button" })}</div>`);
     let pedalUpButton = helm(
-      `<div class="Piano__button-holder" style="right: calc(50% + 6em)">
+      `<div class="Piano__button-holder" style="right: calc(50% + 10em)">
         ${iconSvg("Pedal Up", {tag: "pedalup", class: "Piano__button" })}</div>`);
 
     this.panel.header.append(pedalDownButton);
@@ -274,6 +278,7 @@ class Piano {
     this.panel.listeners.push(
       listen(pedalDownButton, ["pointerdown", "spacebar"], (e) => {
         e.stopPropagation();
+        e.taken = true ;
         this.sustaining = true;
         pedalDownButton.replace(pedalUpButton);
       })
@@ -282,6 +287,7 @@ class Piano {
     this.panel.listeners.push(
       listen(pedalUpButton, ["pointerdown", "spacebar"], (e) => {
         e.stopPropagation();
+        e.taken = true ;
         this.sustaining = false;
         pedalUpButton.replace(pedalDownButton);
       })
@@ -298,39 +304,94 @@ class Piano {
       })
     );
 
-    // stretcher: control to allow adjusting keyboard width
+    // stretcher button
     let stretcherButton = helm(
-      `<div class="Piano__button-holder" style="right: calc(50% + 1em)">
-        ${iconSvg("Stretch", { tag: "tune", class: "Piano__button" })}</div>`);
+      `<div class="Piano__button-holder" style="right: calc(50% + 5.5em)">
+        ${iconSvg("Stretcher", { tag: "tune", class: "Piano__button" })}</div>`);
 
     this.panel.header.append(stretcherButton);
 
     this.panel.listeners.push(
       listen(stretcherButton, "pointerdown", (e) => {
         e.stopPropagation();
-        e.offWidth = this.panel.panel.offsetWidth;
-        e.offLeft = this.panel.panel.offsetLeft;
+        e.taken = true ;
+        let W = this.panel.panel.clientWidth;
+        let K = this.keyboard.offsetWidth;
+        let emSize = parseFloat(getComputedStyle(this.panel.elm).fontSize);
+        let minDrag = -5 * emSize;
+        let maxDrag = 16 * emSize;
+        let labelWidth = this.panel.title ? this.panel.title.offsetWidth : 100;
+        let minWidth = this.c4Elm.offsetWidth * 10; // minimum 10 white keys
+        let maxWidth = Math.min(K, 2 * window.innerWidth - labelWidth / 2);
 
-        e.keyWidth = this.keyboard.offsetWidth;
-        e.keyOffLeft = this.keyboard.offsetLeft;
+        e.startWidth = W;
         e.target.setPointerCapture(e.pointerId);
         stretcherButton.firstElementChild.classList.add("Piano__button-active");
         this.panel.header.classList.add("Panel__header-selected");
 
         let mv = listen(e.target, "pointermove", (emv) => {
           let delta = emv.clientX - e.clientX;
-          let minWidth = this.c4Elm.offsetWidth * 8.75; // minimum display - reduced for mobile
-          let newWidth = clamp(e.offWidth + delta + delta, minWidth, this.keyboard.offsetWidth);
+          // Linear mapping: delta of minDrag -> minWidth, maxDrag -> maxWidth
+          // Width factor: (maxWidth - minWidth) / (maxDrag - minDrag)
+          let factor = (maxWidth - minWidth) / (maxDrag - minDrag);
+          let newWidth = clamp(e.startWidth + delta * factor, minWidth, maxWidth);
+          
           this.panel.panel.style.width = pxToEm(newWidth, this.panel.elm);
           this.userWidth = newWidth;
+
+          // Clamp internal keyboard position to prevent blank spaces
+          if (K > newWidth) {
+            this.keyboardLeft = clamp(this.keyboardLeft, newWidth - K, 0);
+          } else {
+            this.keyboardLeft = (newWidth - K) / 2;
+          }
+          this.keyboard.style.left = this.keyboardLeft + "px";
         });
 
-        listen(
-          e.target,
-          ["pointerup", "pointercancel"],
+        listen(e.target, "pointerup",
           () => {
             unlisten(mv);
             stretcherButton.firstElementChild.classList.remove("Piano__button-active");
+            this.panel.header.classList.remove("Panel__header-selected");
+          },
+          { once: true }
+        );
+      })
+    );
+
+    // range: control to allow adjusting visible keyboard range
+    let rangeButton = helm(
+      `<div class="Piano__button-holder" style="right: calc(50% + 1em)">
+        ${iconSvg("Range", { tag: "tune", class: "Piano__button" })}</div>`);
+
+    this.panel.header.append(rangeButton);
+
+    this.panel.listeners.push(
+      listen(rangeButton, "pointerdown", (e) => {
+        e.stopPropagation();
+        e.taken = true ;
+        let W = this.panel.panel.clientWidth;
+        let K = this.keyboard.offsetWidth;
+        if (K <= W) return;
+
+        e.startLeft = parseFloat(this.keyboard.style.left) || 0;
+        e.target.setPointerCapture(e.pointerId);
+        rangeButton.firstElementChild.classList.add("Piano__button-active");
+        this.panel.header.classList.add("Panel__header-selected");
+
+        let mv = listen(e.target, "pointermove", (emv) => {
+          let delta = emv.clientX - e.clientX;
+          // Moving 1/4 of keyboard width to the right moves keys all the way to the right
+          let shiftDelta = delta * 4 * (K - W) / K;
+          let newLeft = clamp(e.startLeft + shiftDelta, W - K, 0);
+          this.keyboard.style.left = newLeft + "px";
+          this.keyboardLeft = newLeft;
+        });
+
+        listen(e.target, "pointerup",
+          () => {
+            unlisten(mv);
+            rangeButton.firstElementChild.classList.remove("Piano__button-active");
             this.panel.header.classList.remove("Panel__header-selected");
           },
           { once: true }
@@ -349,11 +410,13 @@ class Piano {
     this.panel.listeners.push(
       listen(this.optionsButton, "pointerdown", (e) => {
         e.stopPropagation();
+        e.taken = true ;
         if (this.optionsButton.firstElementChild.classList.contains("Piano__button-active")) {
           this.optionsButton.firstElementChild.classList.remove("Piano__button-active");
           this.optionsView.elm.style.visibility = "hidden";
         } else {
           this.optionsButton.firstElementChild.classList.add("Piano__button-active");
+          this.optionsView.elm.style.top = "" ;
           this.optionsView.elm.style.left = "calc(50% - 13.5em);";
           this.optionsView.elm.style.visibility = "visible";
         }
@@ -369,6 +432,7 @@ class Piano {
     this.panel.listeners.push(
       listen(this.repeatButton, "pointerdown", (e) => {
         e.stopPropagation();
+        e.taken = true ;
         this.repeatButton.firstElementChild.classList.toggle("Piano__button-active");
         this.tuning = this.repeatButton.firstElementChild.classList.contains("Piano__button-active");
         if (this.repeatScheduler) {
@@ -388,16 +452,45 @@ class Piano {
     this.panel.listeners.push(
       listen(this.pitchButton, "pointerdown", (e) => {
         e.stopPropagation();
+        e.taken = true ;
         this.marker.remove();
         if (this.pitchButton.firstElementChild.classList.contains("Piano__button-active")) {
           this.pitchButton.firstElementChild.classList.remove("Piano__button-active");
           this.yin.stop();
         } else {
           this.pitchButton.firstElementChild.classList.add("Piano__button-active");
-          this.yin.start(this.cell.stash.a4);
+          // A mike can be present but unusable (permission denied, claimed by
+          // another app): revert the button and tell the user.
+          this.yin.start(this.cell.stash.a4).catch((err) => {
+            this.pitchButton.firstElementChild.classList.remove("Piano__button-active");
+            toast(err.name == "NotAllowedError"
+              ? "Microphone access denied"
+              : "No usable microphone found");
+          });
         }
       })
     );
+
+    // Disable the pitch detector when no microphone is present. devicechange
+    // fires on hot-(un)plug, so the button enables the moment a mike is
+    // connected, and detection stops cleanly if the mike disappears mid-use.
+    let updateMicAvailability = async () => {
+      let hasMic = false;
+      try {
+        let devices = await navigator.mediaDevices.enumerateDevices();
+        hasMic = devices.some((d) => d.kind == "audioinput");
+      } catch (e) {} // no mediaDevices API: stay disabled
+      this.pitchButton.style.opacity = hasMic ? "" : "0.35";
+      this.pitchButton.style.pointerEvents = hasMic ? "" : "none";
+      if (!hasMic && this.pitchButton.firstElementChild.classList.contains("Piano__button-active")) {
+        this.pitchButton.firstElementChild.classList.remove("Piano__button-active");
+        this.marker.remove();
+        this.yin?.stop();
+      }
+    };
+    updateMicAvailability();
+    if (navigator.mediaDevices?.addEventListener)
+      this.panel.listeners.push(listen(navigator.mediaDevices, "devicechange", updateMicAvailability));
 
     this.marker = helm(`<div style="z-index:1000;position:relative;top:50%;left:calc(50% - 1.75em);width:3.5em;
         display:flex;flex-direction:column;align-items:center;pointer-events:none;">
@@ -409,6 +502,10 @@ class Piano {
       let self = this;
       let [actx] = Actx.get();
       this.yin = new Yin((arg) => {
+        if (!self.pitchButton.firstElementChild.classList.contains("Piano__button-active")) {
+          self.marker.remove();
+          return;
+        }
         let key = arg.freq > 0 ? dataIndex("midi",self.elm)["" + arg.midi] : null;
         if(key) {
           let isBlack = [1,3,6,8,10].includes(arg.midi % 12);
@@ -462,6 +559,9 @@ class Piano {
     });
 
     let noteOff = (tag, force=false) => {
+      let keyElm = this.keyboard.querySelector(`[data-sample="${tag}"]`);
+      if (keyElm) keyElm.classList.remove("pressed");
+
       let note = this.activeNotes.get(tag);
       if(note && (force || !(this.sustaining || this.tuning)))  {
         note.envelope.gain.setTargetAtTime(0, actx.currentTime, 0.015);
@@ -518,8 +618,20 @@ class Piano {
         this.damper.run(piano ? 2200:7500, () => envelope.gain.setTargetAtTime(0.0, now, 0.015));
       }
       else {
-        if (!piano) envelope.gain.setValueAtTime(0, now);
-        envelope.gain.setTargetAtTime(1.0, now, 0.005);
+        if (!piano) {
+          envelope.gain.setValueAtTime(0, now);
+          envelope.gain.setTargetAtTime(1.0, now, 0.005);
+          envelope.gain.setTargetAtTime(0.0, now + 1.0, 3.0);
+          let noteSource = source;
+          schedule(12000, () => {
+            let currentNote = this.activeNotes.get(midiOffset);
+            if (currentNote && currentNote.source === noteSource) {
+              noteOff(midiOffset, true);
+            }
+          });
+        } else {
+          envelope.gain.setTargetAtTime(1.0, now, 0.005);
+        }
       }
 
       // Don't allow same note to sound more than once
@@ -528,18 +640,48 @@ class Piano {
       // Trim activeNotes to current "voices" setting
       while(this.activeNotes.size > this.cell.stash["voices"] - 1) noteOff(this.activeNotes.keys().next().value, true);
       // ...and now sound the new Note
+      let keyElm = this.keyboard.querySelector(`[data-sample="${midiOffset}"]`);
+      if (keyElm) keyElm.classList.add("pressed");
+
       source.start(0);
       this.activeNotes.set(midiOffset, { midiOffset, envelope, source});
     };
 
-    // piano key press handler
+    // piano key press handler (supports glissando)
     this.panel.listeners.push(listen(this.keyboard, "pointerdown", (e) => {
-      e.target.setPointerCapture(e.pointerId);
-      let midiOffset = e.target.dataset.sample;
+      let key = e.target.closest('[data-sample]');
+      if (!key) return;
+      e.stopPropagation();
+      this.keyboard.setPointerCapture(e.pointerId);
+      let midiOffset = key.dataset.sample;
+      this.pointerKeys.set(e.pointerId, midiOffset);
       noteOn(midiOffset);
-      listen(e.target, "pointerup", (e) => {
-        noteOff(midiOffset);
-      }, {once:true});
+    }));
+
+    this.panel.listeners.push(listen(this.keyboard, "pointermove", (e) => {
+      if (!this.pointerKeys.has(e.pointerId)) return;
+      let target = document.elementFromPoint(e.clientX, e.clientY);
+      let key = target ? target.closest('[data-sample]') : null;
+      let currentMidiOffset = this.pointerKeys.get(e.pointerId);
+      if (key) {
+        let newMidiOffset = key.dataset.sample;
+        if (newMidiOffset !== currentMidiOffset) {
+          if (currentMidiOffset) noteOff(currentMidiOffset);
+          this.pointerKeys.set(e.pointerId, newMidiOffset);
+          noteOn(newMidiOffset);
+        }
+      } else {
+        if (currentMidiOffset) {
+          noteOff(currentMidiOffset);
+          this.pointerKeys.set(e.pointerId, null);
+        }
+      }
+    }));
+
+    this.panel.listeners.push(listen(this.keyboard, ["pointerup", "pointercancel"], (e) => {
+      let currentMidiOffset = this.pointerKeys.get(e.pointerId);
+      if (currentMidiOffset) noteOff(currentMidiOffset);
+      this.pointerKeys.delete(e.pointerId);
     }));
   }
 
@@ -575,7 +717,7 @@ class Piano {
       let clazz = noteName.includes("s") ? "Piano__key-black" : "Piano__key-white" + " " + noteName;
       let realMidiNumber = midiTable[midi0][0] + octave;
       let midiOffset = realMidiNumber + "/" + midiTable[midi0][1];
-      keyHtml += `<div data-sample="${midiOffset}" data-midi=${"" + midi} class="${clazz}"}></div>\n`;
+      keyHtml += `<div data-sample="${midiOffset}" data-midi=${"" + midi} class="${clazz}"></div>\n`;
     }
     // last high f taken from lower d2 + 200 cents
     keyHtml += `<div data-sample="87/200" class="Piano__key-white f"></div>`;
@@ -598,17 +740,18 @@ class Piano {
         optionsView.sash.classList.add("Panel__header-selected");
         let offsetX = e.clientX - optionsView.frame.offsetLeft;
         let limit = this.body.offsetWidth - optionsView.frame.offsetWidth;
+        let drag = new Drag(e) ;
         let mv = listen(optionsView.frame, "pointermove", (emv) => {
-          mvmt(e,emv) ;
-          if(e.moved) {
-            _moveEvents_.push(emv);
+          drag.mv(emv) ;
+          if(drag.moved) {
             if(emv.movementX) optionsView.sash.setPointerCapture(e.pointerId);
             optionsView.frame.style.left = clamp(emv.clientX - offsetX, 0, limit) + "px";
             e.emv = emv;
           }
         });
-        listen(optionsView.sash, ["pointerup", "pointercancel"], (eup) => {
-          if(flung(null, eup)) {
+        listen(optionsView.sash, "pointerup", (eup) => {
+          drag.up(eup) ;
+          if(!drag.lift && !drag.jab && drag.vXY > 0.75) {
             hide(elm, this.optionsButton);
             delay(10, () => this.optionsButton.firstElementChild.classList.remove("Piano__button-active"));
           }
@@ -680,8 +823,9 @@ class Piano {
       tags.a4.replace(a4Group.elm);
 
       this.panel.listeners.push(listen(tags.options, "pointerup", (e) => {
-        optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active"));
         let active = e.target.closest(".Piano__options__option");
+        if (!active) return;
+        optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active"));
         active.classList.add("Piano__options__option-active");
         this.cell.stash.a4 = hzToCents(active.dataset.hz);
         a4Group.refresh();
@@ -720,8 +864,9 @@ class Piano {
       let optionElms = Object.values(dataIndex("temper", tags.options));
 
       this.panel.listeners.push(listen(tags.options, "pointerup", (e) => {
-        optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active"));
         let active = e.target.closest(".Piano__options__option");
+        if (!active) return;
+        optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active"));
         active.classList.add("Piano__options__option-active");
         this.cell.stash.temperament = active.dataset.temper;
       }));
@@ -787,113 +932,33 @@ class Piano {
   }
 
   show() {
-    // Move c4 (middle C) to center of keyboard.
-    // note: this assumes middle C key's tag is
-    // "60/0", i.e. midi 60 plus 0 cents adjustment.
-    // Note: the -2  here subtracts half the width of a key
-    this.keyboard.style.left = (this.elm.offsetWidth / 2 - this.c4Elm.offsetLeft) / _pxPerEm_ - 2 + "em";
-
-    // Force reflow to ensure DOM is laid out, then defer width calculation
+    // Force reflow to ensure DOM is laid out, then defer position calculation
     this.c4Elm.offsetWidth; // force reflow
     delay(4, () => {
-      // Set panel width - use same minimum as stretcher button
-      let keyWidth = this.c4Elm.offsetWidth;
-      let minKeyCount = 8.75; // same as stretcher button minimum
-      let minWidth = keyWidth * minKeyCount;
-      let maxWidth = this.keyboard.offsetWidth; // full keyboard
-
-      // Use user-adjusted width if set (preserved across fling-hide/reopen),
-      // otherwise start with minimum width
-      let panelWidth = this.userWidth !== null ? this.userWidth : Math.min(minWidth, maxWidth);
-
-      this.panel.panel.style.width = pxToEm(panelWidth, this.panel.elm);
+      let labelWidth = this.panel.title ? this.panel.title.offsetWidth : 100;
+      let maxWidth = Math.min(this.keyboard.offsetWidth, 2 * window.innerWidth - labelWidth / 2);
+      if (this.userWidth !== null && this.userWidth !== undefined) {
+        this.userWidth = Math.min(this.userWidth, maxWidth);
+        this.panel.panel.style.width = pxToEm(this.userWidth, this.panel.elm);
+      }
+      let W = this.panel.panel.clientWidth;
+      let K = this.keyboard.offsetWidth;
+      if (this.keyboardLeft === undefined || this.keyboardLeft === null) {
+        let c4Center = this.c4Elm.offsetLeft + this.c4Elm.offsetWidth / 2;
+        if (K > W) {
+          this.keyboardLeft = clamp(W / 2 - c4Center, W - K, 0);
+        } else {
+          this.keyboardLeft = (W - K) / 2;
+        }
+      } else {
+        if (K > W) {
+          this.keyboardLeft = clamp(this.keyboardLeft, W - K, 0);
+        } else {
+          this.keyboardLeft = (W - K) / 2;
+        }
+      }
+      this.keyboard.style.left = this.keyboardLeft + "px";
     });
-  }
-}
-
-/**
-class Surface
-
-  Superclass of Volume, Clock, Stopwatch, and Metronome.  These panels
-  all contain a "subwidget", their "surface", that can be dragged off
-  the panel and attached directly to document.body. The surface can be
-  flung (...hide()), long-pressed or clicked (this.onSurfaceEvent(...))
-*/
-class Surface {
-  static css = css(
-    "Surface",
-    `
-    .Surface {
-      font-size:1em;
-      position:absolute;
-      width:8em;
-      height:8em;
-      z-index:100;
-    }`
-  );
-
-  surface = helm(`<div data-tag="surface" class="Surface"></div>`);
-  surfaceDragElm = null; // subclasses must define
-
-  constructor(panel) {
-    this.panel = panel;
-    let surface = this.surface;
-    let longPresser = new Schedule();
-
-    panel.listeners.push(listen(surface, "pointerdown", (e) => {
-      // Ignore pointerdown outside of circular area enclosed by this.surfaceDragElm
-      let box = getBox(this.surfaceDragElm);
-      if(Math.hypot(e.clientX - box.x - box.width / 2, e.clientY - box.y - box.height /2) > box.width / 2) return;
-      _body_.setPointerCapture(e.pointerId);
-      longPresser.run(_longPressMs_,() => this.onSurfaceEvent("press"));
-      let dX = e.offsetX, dY = e.offsetY; // warning: e can be gc'ed before mv references it.
-      let mv = listen(_body_, "pointermove", (emv) => {
-        flung(emv); // store event for fling detection
-        if(surface.parentElement == _body_) {
-          surface.style.left = emv.clientX - dX + "px";
-          surface.style.top = emv.clientY - dY + "px";
-          mvmt(e,emv);
-        }
-        else if(mvmt(e,emv)) {
-          // attach surface to document body
-          longPresser.cancel();
-          surface.style.fontSize = panel.elm.style.fontSize;
-          surface.style.position = "absolute";
-          surface.classList.add("pz"); // this makes it pan-zoomable 
-          _body_.append(surface);
-          _pzTarget_ = surface; // this allows pan-zooming without having to reselect
-          hide(this.panel.elm, dataIndex("tag", this.panel.cell.elm).cellIcon);
-          surface.style.left = emv.clientX - dX + "px";
-          surface.style.top = emv.clientY - dY  + "px";
-
-        }
-      });
-
-      listen(_body_, ["pointerup", "pointercancel"],(eup) => {
-          longPresser.cancel();
-          unlisten(mv);
-          let downTime = eup.timeStamp - e.timeStamp;
-          if (flung(null, eup))  // fling detected
-             hide(surface, dataIndex("tag", this.panel.cell.elm).cellIcon);
-          else if(downTime < _longPressMs_) this.onSurfaceEvent("click");
-        },  { once: true });
-    }));
-    delay(2, () => this.build());
-  }
-
-  destructor() {}
-
-  build() {}
-
-  onSurfaceEvent(e, eup, type) {}
-
-  show() {
-    let surface = this.surface;
-    surface.style.position = "static";
-    surface.style.fontSize = "1em";
-    surface.classList.remove("pz");
-    surface.style.visibility = "unset"; // *not* visible: want to inherit
-    this.panel.body.prepend(surface);
   }
 }
 
@@ -902,21 +967,22 @@ class Volume
 */
 class Volume extends Surface {
   constructor(panel) {
-    super(panel);
-    this.surface.style.height = "4em";
-    this.surface.style.width = "12em";
-    let stash = _menu_.rings.more.cells.volume.stash;
-    this.volumeSlider = new SliderGroup(stash,
+    super(panel, ScreenPanel);
+    this.volumeSlider = new SliderGroup(panel.cell.stash,
     { volume: { min: 0, max: 1, step: 0.1, value: 1, msg: "Volume: {value}" } },
     (e, tag, value) => {
       this.panel.cell.stash.tag = value;
       _body_.dispatchEvent(new CustomEvent("VOLUME", { detail: value }));
     });
+    this.surface.style.height = "4em" ;
+    this.surface.style.width = "13em" ;
+    this.volumeSlider.elm.style.width = "13em" ;
     this.surface.prepend(this.volumeSlider.elm);
     this.surfaceDragElm = this.volumeSlider.elm;
     delay(2, () => this.volumeSlider.refresh());
   }
 }
+
 
 /**
 class Clock
@@ -926,7 +992,7 @@ class Clock extends Surface {
   clockSchedule = new Schedule(0, () => this.refreshClock());
 
   constructor(panel) {
-    super(panel);
+    super(panel, ScreenPanel);
   }
 
   destructor() {
@@ -935,13 +1001,27 @@ class Clock extends Surface {
   }
 
   build() {
+    // transform:translateZ(0) forces compositing...overcomes iOS rendering wierdness
     let clock = helm(`
-      <svg data-tag="clock" transform="scale(1,1)"
-        style="position:relative;pointer-events:none;"
+      <svg data-tag="clock"
+        style="position:relative;width:100%;height:100%;pointer-events:none;transform:translateZ(0);filter:drop-shadow(0 0.2em 0.5em rgba(0,0,0,0.22))"
         viewBox="0 0 1200 1200">
-        <defs><path id="face" d="M 600,250 A 350,350 0 0 1 600 950 A 350,350 0 1 1 600,250"/></defs>
+        <defs>
+          <path id="face" d="M 600,250 A 350,350 0 0 1 600 950 A 350,350 0 1 1 600,250"/>
+          <radialGradient id="clockBezel" cx="40%" cy="35%" r="60%">
+            <stop offset="0%" stop-color="#ddd"/>
+            <stop offset="70%" stop-color="#bbb"/>
+            <stop offset="100%" stop-color="#777"/>
+          </radialGradient>
+          <radialGradient id="clockDome" cx="38%" cy="32%" r="75%">
+            <stop offset="0%"   stop-color="white" stop-opacity="0.55"/>
+            <stop offset="50%"  stop-color="white" stop-opacity="0.06"/>
+            <stop offset="70%"  stop-color="black" stop-opacity="0.02"/>
+            <stop offset="100%" stop-color="black" stop-opacity="0.18"/>
+          </radialGradient>
+        </defs>
         // Circular outline of clock
-        <circle data-tag="surfaceDragElm" cx="600" cy="600" r="480" fill="#eee"/>
+        <circle data-tag="surfaceDragElm" cx="600" cy="600" r="480" fill="url(#clockBezel)"/>
         <circle cx="600" cy="600" r="450" fill="white"/>
         // Major ticks on outer face: every 5 seconds
         <circle pathLength="120" fill="none" stroke="currentColor" cx="600" cy="600" r="300"
@@ -971,6 +1051,8 @@ class Clock extends Surface {
         <circle cx="600" cy="600" r="10" fill="white"/>      
         // date (dynamically assigned)
         <text x="380" y="730" data-tag="date" style="font-size:65px;font-family:Liminari;font-style:italic;">1/1/2024</text>
+        // dome overlay: curved glass effect
+        <circle cx="600" cy="600" r="450" fill="url(#clockDome)" pointer-events="none"/>
       </svg>`);
 
     Object.assign(this, dataIndex("tag", clock));
@@ -991,6 +1073,7 @@ class Clock extends Surface {
 
   hide() {
     this.clockSchedule.cancel();
+    super.hide(); // run the Surface fly-to-cell + hide animation (don't just stop ticking)
   }
 }
 
@@ -1007,7 +1090,7 @@ class Stopwatch extends Surface {
   splitCount = 0;
 
   constructor(panel) {
-    super(panel);
+    super(panel, ScreenPanel);
   }
 
   destructor() {
@@ -1026,8 +1109,8 @@ class Stopwatch extends Surface {
     };
 
     let watch = helm(`
-       <svg data-tag="watch" transform="scale(1,1)"
-           style="position:relative;width:100%;"
+       <svg data-tag="watch"
+           style="position:relative;width:100%;height:100%;transform:translateZ(0);filter:drop-shadow(0 0.2em 0.5em rgba(0,0,0,0.22))"
            viewBox="0 0 1200 1200">
           <defs>
             <path id="hourPointer" d="M585,640 L600,210 L615,640,Z"/>
@@ -1035,10 +1118,16 @@ class Stopwatch extends Surface {
             <path id="secondPointer" d="M590,640 L600,390 L610,640,Z"/>
             <circle id="outerFace" pathLength="600" fill="none" stroke="black" cx="600" cy="600" r="400"/>
             <circle id="innerFace"  pathLength="600" fill="none" stroke="black" cx="600" cy="600" r="200"/>
-            <radialGradient id="casingGradient">
-              <stop offset="0%" stop-color="grey" />
-              <stop offset="93%" stop-color="white" />
-              <stop offset="100%" stop-color="grey" />
+            <radialGradient id="casingGradient" cx="40%" cy="35%" r="60%">
+              <stop offset="0%"   stop-color="#ddd"/>
+              <stop offset="70%"  stop-color="#bbb"/>
+              <stop offset="100%" stop-color="#777"/>
+            </radialGradient>
+            <radialGradient id="watchDome" cx="38%" cy="32%" r="75%">
+              <stop offset="0%"   stop-color="white" stop-opacity="0.55"/>
+              <stop offset="50%"  stop-color="white" stop-opacity="0.06"/>
+              <stop offset="70%"  stop-color="black" stop-opacity="0.02"/>
+              <stop offset="100%" stop-color="black" stop-opacity="0.18"/>
             </radialGradient>
             <linearGradient id="stemGradient" >
               <stop offset="0" stop-color="darkgrey" />
@@ -1096,6 +1185,8 @@ class Stopwatch extends Surface {
          <rect data-tag="splitArea" x="800" y="75" width="300" height="300" fill="#0000"/>
         // logo
         <text x="510" y="500" style="font-size:45px;font-family:Liminari;font-style:italic;">PODIUM</text>
+        // dome overlay: curved glass effect
+        <circle cx="600" cy="600" r="450" fill="url(#watchDome)" pointer-events="none"/>
        </svg>`);
     this.surface.prepend(watch);
     Object.assign(this, dataIndex("tag", watch));
@@ -1167,6 +1258,8 @@ class Stopwatch extends Surface {
   }
 }
 
+
+
 /**
 class Metronome
   Implements a graphic metronome with options to display as a conductor's hand+baton showing a
@@ -1174,7 +1267,17 @@ class Metronome
 */
 class Metronome extends Surface {
   // svg definition of a baton held in a conductor's hand
-  conductor = `<defs><g transform="scale(3.5 3.5) translate(-25 -25)" id="marker"><path fill="#eebb99" stroke="#000000" strokeWidth="0.264583px" strokeLinecap="butt" strokeLinejoin="miter" strokeOpacity="1"   d="M 25.5,20.36 c 0.26,1.14 0.95,2.13 1.71,2.99 m -0.31,-0.44 c -0.01,0.012 -0.007,-0.0115 0,0 z m -1.004,-2.39 c -0.00,0.012 -0.007,-0.0115 0,0 z m -0.95,-0.59 c 0.095,-0.01 1.16,0.34 0.64,0.1 m 2.09,2.92 c 0.87,0.36 1.68,-0.24 2.42,-0.594 m -1.38,2.38 c 1.05,-1.68 3.027,-3.045 5.087,-2.639 m -7.127,1.74 c -1.57,0.485 -3.148,0.971 -4.723,1.456 -1.776,-2.465 4.076,-3.67 4.6,-1.78 l 0.06,0.18 z m 7.09,-1.4 c -0.28,1.13 -0.56,2.26 -0.85,3.397 M 10.1,18.479 9.44,18.79 8.78,19.1 m 12.25,6.539 c -1.05,2.657 -3.37,3.397 -5.85,4.0 m 12.57,1.219 c -2.48,0.434 -3.875,2.805 -5.225,4.677 m 6.93,-5.28 c -1.68,-1.88 1.21,-6.0 -2.439,-6.328 m -6.239,-4.836 c 0.278,2.41 3.407,3.627 4.523,1.29 l -0.227,-0.52 m -4.75,0.69 c -1.079,3.217 -5.996,0.273 -6.008,0.2183 0.328,0.593 0.649,1.191 0.974,1.787 M 27.725,21.294 c 0.35,-0.53 1.238,-0.97 1.736,-0.34 m -7.41,-1.47 c 0.554,-0.136 1.109,-0.273 1.664,-0.41 m -2.173,0.06 c 0.542,-0.553 1.26,-0.99 2.05,-1.0 m -5.89,0.22 c -1.67,0.02 -0.61,2.54 0.29,0.667 l 0.348,0.0035 0.695,0.041 m 1.975,0.223 c -1.66,-2.678 -5.959,-5.164 -8.04,-1.686 -0.103,1.445 -0.484,5.746 -1.658,2.215 -1.158,-1.846 0.063,-7.422 -3.634,-5.42 -1.91,3.911 1.68,7.86 1.188,11.904 0.46,5.432 3.89,10.2 3.59,15.760 -0.458844,2.908405 2.189074,6.00493 4.542393,2.969325 3.20974,-1.930224 7.578167,-0.868896 10.08736,-4.049567 3.700552,-2.077991 7.831857,-4.873712 8.203995,-9.526807 0.845687,-3.582 -2.892,-5.964 -0.741,-9.497 m -16.321,-5.4 c 1.401,-3.342 6.217,-1.822 6.211,1.61 1.163,2.03 1.149,3.904 -1.61,3.48 -1.57,-1.596 -2.97,-3.49 -4.59,-5.095 z m 7.03,1.330 c 0.227,-4.66 6.585,-2.96 5.94,0.921 0.549,2.319 0.689,7.12 -3.013,5.24 -2.157,-1.246 -2.489,-3.77 -2.92,-5.984 M 93.24,5.7 C 69.413,11.724 45.5,17.748 21.752,23.772 c 0.044,2.554 2.97,0.48 4.442,0.375 C 48.608,18.212 71.021,12.276 93.435,6.341 93.37,6.127 93.307,5.913 93.244,5.7 Z" /></g></defs>`;
+conductor = `<defs>
+  <g transform="scale(3.5 3.5) translate(-25 -25)" id="marker" fill="#eb9" stroke="#aaa" strokeWidth="0.2px" strokeLinecap="butt" strokeLinejoin="miter" strokeOpacity="1"> <path d="M 25.5,20.4 c 0.3,1.1 1.0,2.1 1.7,3.0 m -0.3,-0.4 z m -1.0,-2.4 z m -1.0,-0.6 c 0.1,0.0 1.2,0.3 0.6,0.1 m 2.1,2.9 c 0.9,0.4 1.7,-0.2 2.4,-0.6 m -1.4,2.4 c 1.1,-1.7 3.0,-3.0 5.1,-2.6 m -7.1,1.7 c -1.6,0.5 -3.1,1.0 -4.7,1.5 -1.8,-2.5 4.1,-3.7 4.6,-1.8 l 0.1,0.2 z m 7.1,-1.4 c -0.3,1.1 -0.6,2.3 -0.9,3.4 M 10.1,18.5 9.4,18.8 8.8,19.1 m 12.3,6.5 c -1.1,2.7 -3.4,3.4 -5.9,4.0 m 12.6,1.2 c -2.5,0.4 -3.9,2.8 -5.2,4.7 m 6.9,-5.3 c -1.7,-1.9 1.2,-6.0 -2.4,-6.3 m -6.2,-4.8 c 0.3,2.4 3.4,3.6 4.5,1.3 l -0.2,-0.5 m -4.8,0.7 c -1.1,3.2 -6.0,0.3 -6.0,0.2 0.3,0.6 0.6,1.2 1.0,1.8 M 27.7,21.3 c 0.4,-0.5 1.2,-1.0 1.7,-0.3 m -7.4,-1.5 c 0.6,-0.1 1.1,-0.3 1.7,-0.4 m -2.2,0.1 c 0.5,-0.6 1.3,-1.0 2.1,-1.0 m -5.9,0.2 c -1.7,0.0 -0.6,2.5 0.3,0.7 l 0.3,0.0 0.7,0.0 m 2.0,0.2 c -1.7,-2.7 -6.0,-5.2 -8.0,-1.7 -0.1,1.4 -0.5,5.7 -1.7,2.2 -1.2,-1.8 0.1,-7.4 -3.6,-5.4 -1.9,3.9 1.7,7.9 1.2,11.9 0.5,5.4 3.9,10.2 3.6,15.8 -0.5,2.9 2.2,6.0 4.5,3.0 3.2,-1.9 7.6,-0.9 10.1,-4.0 3.7,-2.1 7.8,-4.9 8.2,-9.5 0.8,-3.6 -2.9,-6.0 -0.7,-9.5 m -16.3,-5.4 c 1.4,-3.3 6.2,-1.8 6.2,1.6 1.2,2.0 1.1,3.9 -1.6,3.5 -1.6,-1.6 -3.0,-3.5 -4.6,-5.1 z m 7.0,1.3 c 0.2,-4.7 6.6,-3.0 5.9,0.9 0.5,2.3 0.7,7.1 -3.0,5.2 -2.2,-1.2 -2.5,-3.8 -2.9,-6.0 "/>
+   <!-- wand -->
+   <path stroke="#fff" stroke-width=".2px" fill="#333" d="M 93.2,5.7 C 69.4,11.7 45.5,17.7 21.8,23.8 c 0.0,2.6 3.0,0.5 4.4,0.4 C 48.6,18.2 71.0,12.3 93.4,6.3 93.4,6.1 93.3,5.9 93.2,5.7 Z" />
+   <!-- overlay index finger so it appears on top of the wand-->
+   <path d="M 25.3,18.0 c 0.2,-4.7 6.6,-3.0 5.9,0.9 0.5,2.3 0.7,7.1 -3.0,5.2 -2.2,-1.2 -2.5,-3.8 -2.9,-6.0"/> 
+   <!-- add index fingernail -->
+    <path  d="M 27.75, 22 Q 29 21 31 22 M 27.75, 22 Q 28.5 25 31 22 "/>
+  </g>
+</defs>`;
+
 
   // List of objects with svg path definitions that defines the Metronome graphic and the paths used to
   // animate the conductor according to several beat patterns.
@@ -1184,30 +1287,30 @@ class Metronome extends Surface {
       background: `
        <g transform="translate(0 -10)">
        <path  style="display:inline;fill:#966f33;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
-         d="m 360.52,814.24 31.96,-130.95 225.33,-0.08 34.69,130.76 z"/>
+         d="m 361,814 32,-131 225,0 35,131 z"/>
        <path style="display:inline;fill:#966f33;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
-         d="m 467.48,375.0 0.10,-7.47 38.85,-17.69 41.72,17.21 0.07,8.09 z"/>
+         d="m 467,375 0,-7 39,-18 42,17 0,8 z"/>
        <path style="display:inline;fill:#000000;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
-         d="m 392.95,682.35 74.43,-306.33 80.94,0.15 68.93,305.88 z" />
+         d="m 393,682 74,-306 81,0 69,306 z" />
        <path style="display:inline;fill:#c0c0c0;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
-         d="m 492.31,683.69 32.15,-0.42 -0.23,-275.76 -31.88,0.31 c 0,0 -0.79,275.87 -0.03,275.87 z"/>
+         d="m 492,684 32,0 0,-276 -32,0 c 0,0 -1,276 0,276 z"/>
        <path style="display:inline;fill:#000000;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
-         d="m 388.24,814.41 30.5,-0.11 -4.52,16.34 -21.20,0.005 z" />
+         d="m 388,814 30,0 -5,16 -21,0 z" />
        <path style="fill:none;stroke:#808080;stroke-width:20;stroke-linecap:round;stroke-dasharray:2,20;stroke-dashoffset:0;"
-         d="M 509.56,659.32 507.29,425.61"/>
+         d="M 510,659 507,426"/>
        <path  style="display:inline;fill:#000000;stroke:#000000;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
-         d="m 591.87,814.24 3.45,15.41 22.26,-0.06 3.97,-14.87 z"/>
+         d="m 592,814 3,15 22,0 4,-15 z"/>
       </g>`,
       // The metronome pattern alone defines a markerCenter, used as the center of rotation of the marker (i.e. its pendulum).
       // The values are the center of the circle in the following marker.
-      markerCenter: "507.92 674.26",
+      markerCenter: "508 674",
       marker: `<defs><g id="marker">
          <path style="display:inline;fill:#909090;stroke:#808080;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;"
-            d="m 508.06,719.07 -0.009,-325.48"/>
+            d="m 508,719 0,-325"/>
          <path style="display:inline;fill:#808080;stroke:#404040;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;"
-           d="m 484.84,465.21 44.4,-0.37 -6.69,24.69 -30.9,0.24 z"/>
-         <circle style="display:inline;fill:#966f33ff;" cx="507.92" cy="674.256" r="30.0" />
-         <circle fill="#c0c0c0" cx="507.92" cy="674.256" r="14" />
+           d="m 485,465 44,0 -7,25 -31,0 z"/>
+         <circle style="display:inline;fill:#966f33ff;" cx="508" cy="674" r="30.0" />
+         <circle fill="#c0c0c0" cx="508" cy="674" r="14" />
          </g></defs>`,
       paths: [""],
       ticks: [600],
@@ -1216,42 +1319,42 @@ class Metronome extends Surface {
       name: "one",
       background: "",
       marker: this.conductor,
-      paths: ["m 506.73987,600 c 6.61502,-38.23927 11.32736,-81.3433 0.14187,-119.35666 -10.87718,38.2011 -5.97916,82.76755 -0.52949,119.7081"],
+      paths: ["m 507,600 c 7,-38 11,-81 0,-119 -11,38 -6,83 -1,120"],
       ticks: [600],
     },
     {
       name: "two",
       background: "",
       marker: this.conductor,
-      paths: ["m 416.19116,601.33252 c 53.32433,-1.50986 91.37258,-125.82247 123.02771,-266.07837 7.01455,139.97771 68.02774,325.60495 -58.41431,324.64563", "m 480.66077,659.87543 c -64.55381,-7.10515 -82.91038,-41.96037 -111.87744,-80.65662 20.45255,28.45694 33.40312,22.89527 47.40783,22.11371"],
+      paths: ["m 381,601 c 53,-2 91,-126 123,-266 7,140 68,326 -58,325", "m 406,660 c -65,-7 -83,-42 -112,-81 20,28 33,23 47,22"],
       ticks: [900, 600],
     },
     {
       name: "three",
       background: "",
       marker: this.conductor,
-      paths: ["m 341.86386,581.55834 c 93.73074,5.44531 116.02278,-141.66317 163.9969,-233.92882 l 3.7363,350.63385", "m 509.59706,698.26337 c -37.3781,-65.22699 -155.15681,-30.9108 -176.69037,-81.1292", "m 332.90669,617.13417 c -12.6349,-17.28785 -21.71707,-34.35916 -31.06652,-51.44676 7.49126,10.66109 22.45935,15.51248 40.02369,15.87093"],
+      paths: ["m 342,582 c 94,5 116,-142 164,-234 l 4,351", "m 510,698 c -37,-65 -155,-31 -177,-81", "m 333,617 c -13,-17 -22,-34 -31,-51 7,11 22,16 40,16"],
       ticks: [900, 600, 600],
     },
     {
       name: "four",
       background: "",
       marker: this.conductor,
-      paths: ["m 376.10444,604.03666 c 83.82548,-4.33549 100.4673,-148.67456 130.70217,-264.68715 l -0.8127,354.01067", "m 505.99391,693.36018 c 5.54426,-104.50552 158.21364,32.74145 152.10007,-16.52096", "M 658.09398,676.83922 C 607.13391,486.65696 427.49525,749.70781 354.41215,643.21089", "m 354.41215,643.21089 c -14.99447,-12.02509 -24.94658,-36.43392 -36.45036,-57.03192 18.43908,10.39582 37.22045,19.17676 58.14265,17.85769"],
+      paths: ["m 376,604 c 84,-4 100,-149 131,-265 l -1,354", "m 506,693 c 6,-105 158,33 152,-17", "M 658,677 C 607,487 427,750 354,643", "m 354,643 c -15,-12 -25,-36 -36,-57 18,10 37,19 58,18"],
       ticks: [900, 600, 800, 600],
     },
     {
       name: "five",
       background: "",
       marker: this.conductor,
-      paths: ["m 319.92518,588.07556 c 11.80525,18.61901 33.0238,17.89221 53.03571,16.41642 135.04318,-11.45713 97.41506,-212.3433 134.1337,-262.92175 l -0.39504,343.91851", "m 506.69955,685.48874 c 25.57708,-50.13643 68.82968,-17.79013 73.18297,-0.0919", "m 579.88252,685.39684 c 19.29798,-42.16075 54.40153,-30.27801 74.20525,-2.42061", "M 654.08777,682.97623 C 632.24026,494.87209 423.90302,742.50987 361.04223,640.13568", "M 361.04223,640.13568 C 332.12758,608.14594 349.77337,628.97772 319.92518,588.07556"],
+      paths: ["m 320,588 c 12,19 33,18 53,16 135,-11 97,-212 134,-263 l 0,344", "m 507,685 c 26,-50 69,-18 73,0", "m 580,685 c 19,-42 54,-30 74,-2", "M 654,683 C 632,495 424,743 361,640", "M 361,640 C 332,608 350,629 320,588"],
       ticks: [900, 600, 600, 800, 600],
     },
     {
       name: "six",
       background: "",
       marker: this.conductor,
-      paths: ["m 267.49902,581.87503 c 13.95648,6.41218 27.92331,13.92614 41.70899,2.14118 134.17928,-68.21655 194.07653,-206.22909 197.22543,-231.35532 l -3.17343,318.24762", "m 503.26001,670.90851 c 17.21164,-35.14343 53.30776,-45.01018 80.3864,-0.96755", "m 583.64641,669.94096 c 22.00066,-45.35491 37.25197,-44.97481 77.96339,4.9612", "M 661.6098,674.90216 C 737.13215,527.23351 482.78179,534.1961 441.99445,662.5065", "M 441.99445,662.5065 C 387.69865,618.6899 335.08632,626.46228 302.98419,665.112", "m 302.98419,665.112 c 14.56048,-29.52995 -0.94459,-38.12573 -35.48517,-83.23697"],
+      paths: ["m 267,582 c 14,6 28,14 42,2 134,-68 194,-206 197,-261 l -3,318", "m 503,671 c 17,-35 53,-45 80,-1", "m 584,670 c 22,-45 37,-45 78,5", "M 662,675 C 737,527 483,534 442,663", "M 442,663 C 388,619 335,626 303,665", "m 303,665 c 15,-30 -1,-38 -35,-83"],
       ticks: [900, 600, 600, 800, 600, 600],
     },
   ];
@@ -1261,6 +1364,8 @@ class Metronome extends Surface {
   tempo = 90;
   delta = 0.5; // Schedule-ahead
   gain = 1;
+  latency = 0; // ms; positive = audio later, negative = earlier (Bluetooth compensation)
+  mute = false;
   ticker = new Schedule();
   tickCount = 0;
   tickTime = 0;
@@ -1272,7 +1377,7 @@ class Metronome extends Surface {
   secondsPerTick = 1;
 
   constructor(panel) {
-    super(panel);
+    super(panel, ScreenPanel);
     this.beatPattern = this.beatPatterns[0];
     this.volumeStash = _menu_.rings.more.cells.volume.stash;
     [this.actx, this.bus] = Actx.get();
@@ -1291,35 +1396,39 @@ class Metronome extends Surface {
   }
 
   build() {
+    this.pendulumDur = null;
     this.motionPaths.forEach((motionPath) => motionPath.endElement());
     Object.values(this.pathTransforms).forEach((pathTransform) => pathTransform.endElement());
     clearChildren(this.surface);
     let beatPattern = this.beatPattern || this.beatPatterns[0];
     // Outermost svg tag. Transforms at this level effect entire surface. Note: the svg transform tag doesn't
     // work on ios devices, so we use the css style version instead
-    let svg = `<svg style="transform:scale(1.75, 1.75);position:relative;pointer-events:none;" viewBox="0 0 1024 1024">`;
+    let svg = `<svg style="width:100%;height:100%;transform:scale(1.75, 1.75);position:relative;pointer-events:none;" viewBox="0 0 1024 1024">`;
     // Display the background
     svg += beatPattern.background;
     // pause indicator at top of metronome
-    svg += `<text data-tag="pause" width="4em" style="font-family:Bravura;font-size:100px;" x="505" y="280" text-anchor="middle">\ue4c0</text>`;
+    svg += `<text data-tag="pause" width="4em" style="font-family:Bravura;font-size:100px;fill:var(--body-color);" x="505" y="280" text-anchor="middle">\ue4c0</text>`;
     // bpm (beats/minute) readout on bottom of metronome
-    svg += `<text data-tag="bpm" width="4em" style="font-family:Bravura;font-size:60px;" x="505" y="780" text-anchor="middle">60</text>`;
+    svg += `<text data-tag="bpm" width="4em" style="font-family:Bravura;font-size:60px;fill:var(--body-color);" x="505" y="780" text-anchor="middle">${Math.round(this.tempo)}</text>`;
     // Define the "marker", i.e.  the object to animate along the conducting paths
     svg += beatPattern.marker;
     // Stroke the conducting paths
-    beatPattern.paths.forEach((path) => (svg += `<path style="fill:none;stroke:#88f8;stroke-width:4" d="${path}"/>`));
+    beatPattern.paths.forEach((path, i) => (svg += `<path data-trace="${i}" style="fill:none;stroke:#88f8;stroke-width:4" d="${path}"/>`));
     // Define each path within <svg><use>  ...</use></svg>
     svg += `<svg><use href="#marker">`;
     // The metronome pattern has a specific center of rotation:
     let cxy = beatPattern.markerCenter ? beatPattern.markerCenter : "";
     if (beatPattern.name == "metronome") {
-      // Metronome uses two separate transforms to avoid iOS rendering bugs
+      // Single continuous oscillation with spline easing; beginElementAt() re-syncs to audio each beat
       svg += `
           <animateMotion data-path="0" calcMode="paced" fill="freeze" path="" dur="0" />
-          <animateTransform data-transform="left" calcMode="paced" fill="freeze"
-            attributeName="transform" type="rotate" from="-45 ${cxy}" to="45 ${cxy}" dur=".1" />
-          <animateTransform data-transform="right" calcMode="paced" fill="freeze"
-            attributeName="transform" type="rotate" from="45 ${cxy}" to="-45 ${cxy}" dur=".1" />`;
+          <animateTransform data-transform="pendulum"
+            begin="indefinite"
+            calcMode="spline" keyTimes="0;0.5;1" keySplines="0.45 0 0.55 1; 0.45 0 0.55 1"
+            fill="freeze" attributeName="transform" type="rotate"
+            values="-45 ${cxy}; 45 ${cxy}; -45 ${cxy}"
+            repeatCount="indefinite" dur="2" />`;
+
     } else {
       beatPattern.paths.forEach((path, index) => {
         svg += `
@@ -1342,15 +1451,20 @@ class Metronome extends Surface {
     this.surfaceDragElm = svgElm;
     this.surface.prepend(svgElm);
     this.motionPaths = Object.values(dataIndex("path", svgElm));
-    // Metronome uses string keys ("left"/"right"), conductor uses numeric indices
+    // Metronome uses string key ("pendulum"), conductor uses numeric indices
     let transforms = dataIndex("transform", svgElm);
     this.pathTransforms = beatPattern.name == "metronome" ? transforms : Object.values(transforms);
+    this.tracePaths = [...svgElm.querySelectorAll("[data-trace]")];
+    if (this.traceVisible === false) this.tracePaths.forEach(p => p.style.stroke = "none");
   }
 
   play(bool) {
     this.ticker.cancel();
     this.pause.textContent = bool ? "" : "\ue4c0";
+    this.playGen = (this.playGen | 0) + 1;
     if (bool) {
+      this.pathTransforms?.["pendulum"]?.endElement();
+      this.pendulumDur = null;
       this.tickTime = this.actx.currentTime + 0.05;
       this.secondsPerTick = 60 / this.tempo;
       this.tick();
@@ -1360,8 +1474,23 @@ class Metronome extends Surface {
         this.ticker.run(60000 / this.tempo);
         this.bpm.textContent = Math.floor(this.tempo);
       });
+    } else {
+      this.pathTransforms?.["pendulum"]?.endElement();
+      this.gainNode.gain.cancelScheduledValues(this.actx.currentTime);
+      this.gainNode.gain.setValueAtTime(0.0001, this.actx.currentTime);
     }
   }
+
+
+  showTrace(bool) {
+    this.traceVisible = bool;
+    this.tracePaths?.forEach(p => p.style.stroke = bool ? "#88f8" : "none");
+  }
+
+  setMute(bool) {
+    this.mute = bool;
+  }
+
 
   setPattern(name) {
     // Switch to the named beatPattern.
@@ -1379,16 +1508,13 @@ class Metronome extends Surface {
     if (this.gain == 0) return;
     let tickPattern = this.beatPattern.ticks;
     let time = this.tickTime;
-    time += 0.3; // adjust for skim
-    this.oscillator = new OscillatorNode(this.actx, { frequency: tickPattern[tickCount % tickPattern.length] });
-    // Note: gain value must not be 0
-    this.gainNode.gain.exponentialRampToValueAtTime(Math.max(this.volumeStash.volume, 0.0000001), time + 0.001);
-    this.gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.02);
-    this.oscillator.connect(this.gainNode);
-    this.oscillator.start(time);
-    this.oscillator.stop(time + 0.03);
-    // Schedule next path animation to
+
+    time += 0.16 + (this.latency / 1000); // compensates for audio device latency
+    this.tock(tickPattern[tickCount % tickPattern.length], time) ; // sound the tick
+    // Schedule visual animation to fire at tickTime; gen guard drops stale callbacks after play(false)
+    let gen = this.playGen;
     schedule((this.tickTime - this.actx.currentTime) * 1000, () => {
+      if (this.playGen != gen) return;
       if (this.secondsPerTick != this.animDur) {
         // tempo has changed, so adjust all
         this.animDur = this.secondsPerTick;
@@ -1396,11 +1522,26 @@ class Metronome extends Surface {
         this.tickCount = 0;
       }
       if (this.beatPattern.name == "metronome") {
-        let left = this.tickCount & 0x01;
-        // Use separate transform elements for left/right to avoid iOS rendering bugs
-        let transform = this.pathTransforms[left ? "left" : "right"];
-        transform.setAttribute("dur", this.animDur);
-        transform.beginElement();
+        let dur = 2 * this.secondsPerTick;
+        if (dur != this.pendulumDur) {
+          // RESTART path — taken after play() (which tempo/latency changes route
+          // through) resets pendulumDur to null. iOS WebKit FREEZES a
+          // repeatCount="indefinite" <animateTransform> that is re-triggered in
+          // place (setAttribute("dur")+beginElement leaves it stuck: the tick keeps
+          // sounding but the pendulum stops). Swapping in a fresh clone restarts it
+          // reliably — the same thing switching beat patterns (a full rebuild) does,
+          // which is why that "cures" it. Conductor patterns use one-shot per-beat
+          // animations and never hit this.
+          this.pendulumDur = dur;
+          let old = this.pathTransforms["pendulum"];
+          let fresh = old.cloneNode(true);
+          fresh.setAttribute("dur", dur);
+          old.replaceWith(fresh);
+          this.pathTransforms["pendulum"] = fresh;
+          fresh.beginElement();
+        } else {
+          this.pathTransforms["pendulum"].beginElementAt((this.tickCount & 0x01) ? -this.secondsPerTick : 0);
+        }
         return;
       }
       let beatNumber = this.tickCount % this.beatPattern.paths.length;
@@ -1409,22 +1550,42 @@ class Metronome extends Surface {
     });
   }
 
+  tock(freq, time) {
+    // Implements the "talking" (== tocking, get it?) part of the tick
+    if(this.mute) return ;
+    this.oscillator = new OscillatorNode(this.actx, { frequency: freq });
+    // Note: gain value must not be 0
+    this.gainNode.gain.exponentialRampToValueAtTime(Math.max(this.volumeStash.volume, 0.0000001), time + 0.001);
+    this.gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.02);
+    this.oscillator.connect(this.gainNode);
+    this.oscillator.start(time);
+    this.oscillator.stop(time + 0.03);
+  }
+
   onSurfaceEvent(type) {
-    if (type == "press") this.panel.mediaGroup.fire(this.panel.cell.stash.state == "Play" ? "Pause" : "Play");
+    let stash = this.panel.cell.stash ;
+    if (type == "press") 
+      this.panel.mediaGroup.fire(stash.state) ;
     else if (type == "click") {
       let now = performance.now();
-      let prevClick = this.prevClick || Number.MIN_SAFE_INTEGER;
-      let tempo = 1 / ((now - prevClick) / 60000);
-      if (tempo >= 10 && tempo <= 220) {
-        this.panel.cell.stash.tempo = Math.round(tempo);
-        this.bpm.textContent = Math.round(tempo);
-        this.panel.tempoGroup.refresh();
-        this.tempo = tempo;
-      }
+      if(stash.state == "Pause")  this.play(false) ;
+      let prevClick = this.prevClick || now -1;
+      let dur = now - prevClick ;
+      let tempo = 1 / (dur / 60000);
+      tempo = clamp(tempo, 20, 220) ;
+      this.panel.cell.stash.tempo = Math.round(tempo);
+      this.bpm.textContent = Math.round(tempo);
+      this.panel.tempoGroup.refresh();
+      this.tempo = tempo;
+      this.tock(1200,this.actx.currentTime) ;
+      // if not paused (stash.state == "Run" when paused, strange I know, but it represents
+      //  state were going to, not state we're in)...then restart the metronome
+      if(stash.state == "Pause") this.panel.adjuster.run(dur * 1.5) ;
       this.prevClick = now;
     }
   }
 }
+
 
 
 /**
@@ -1630,12 +1791,15 @@ class Review {
       -webkit-transform:rotateY(180deg); /* Safari and Chrome */
       -moz-transform:rotateY(180deg); /* Firefox */
     }
+    .Review__videoControls
+    { height: 5.5em; /* tall enough for scrubber, including time readout */
+    }
     .Review__mediaControls
     { width:30%;
       padding: 1em 0em 0em 1em;
       position:absolute;
       left: 0;
-      bottom: 0;      
+      bottom: .8em;      
     }
     .Review__scrubber
     { width:65%;
@@ -1710,8 +1874,11 @@ class Review {
            <div data-tag="spectrogram" class="Review__spectrogram"></div>
            <canvas height="256" width="${this.bufSize}" data-tag="waveform" class="Review__waveform"></canvas>
          </div>
-         <div data-tag="scrubberElm"></div>
-         <div data-tag="mediaControlsElm"></div>
+
+         <div data-tag="videoControls" class="Review__videoControls">
+           <div data-tag="mediaControlsElm"></div>
+           <div data-tag="scrubberElm"></div>
+         </div>
        </div>
 
        <!--  Options Panel -->
@@ -1826,11 +1993,19 @@ class Review {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
     } catch (error) {
-      dialog(`Error: no accessible audio/video device(s) found.<br>
-        <div style="text-align:left">
-        <ul><li>This device doesn't have any audio/video device(s) ?</li>
-        <li>Device(s) in use by another app ?</li>
-        <li>Wrong permissions ?</li></ul></div>Hint: To check browser permissions:<br>
+      // Report the actual failure rather than always blaming permissions — the
+      // most common real cause is NotReadableError (device busy, or the OS audio/
+      // video stack was reset out from under a long-lived tab), which a reload fixes.
+      console.error("Review getUserMedia failed:", error.name, error.message);
+      let detail =
+        error.name == "NotAllowedError"  ? "Permission to use the camera/microphone was denied or dismissed." :
+        error.name == "NotReadableError" ? "The camera/microphone is unavailable — it's in use by another app, or the system audio/video stack was reset. <strong>Reloading Podium usually fixes this.</strong>" :
+        error.name == "NotFoundError"    ? "No camera or microphone was found on this device." :
+        error.name == "OverconstrainedError" ? "No device matches the requested audio+video constraints." :
+        `${error.name}: ${error.message}`;
+      dialog(`<strong>Can't access the audio/video device.</strong><br><br>
+        <div style="text-align:left">${detail}</div><br>
+        Also worth checking: the device is plugged in and not held by another app, and this site's browser permissions.<br>
         <a href="http://www.google.com/search?q=How+to+set+browser+permissions">How to set browser permissions</a>`);
       return false;
     }
@@ -1936,6 +2111,7 @@ class Review {
         }
       }
     });
+
     this.mediaControlsElm.replace(this.mediaControls.elm);
     this.mediaControls.elm.classList.add("Review__mediaControls");
 
@@ -1969,15 +2145,15 @@ class Review {
 
     listen(this.video, ["loadedmetadata"],() => {
       // After video first loads, resize this.elm and its children to
-      // accomodate the video's aspect 
-      let controlsHeight = getBox(this.controls.elm).height;
-      let mediaControlsHeight = getBox(this.mediaControls.elm).height;
-      let videoHeight = getBox(this.video).height;
+      // accomodate the video's aspect reatio
+      let controlsHeight = this.controls.elm.offsetHeight;
+      let videoControlsHeight = this.videoControls.offsetHeight ;
+      let videoHeight = this.video.offsetHeight;
       this.waveview.style.height = pxToEm(videoHeight, this.panel.elm);
-      this.viewer.style.height = this.options.style.height = pxToEm(mediaControlsHeight + videoHeight, this.panel.elm);
-      this.elm.style.height = pxToEm(controlsHeight + mediaControlsHeight + videoHeight, this.panel.elm);
-      this.buildWave(); },
-      { once: true }
+      this.viewer.style.height = this.options.style.height = pxToEm(videoControlsHeight + videoHeight, this.panel.elm);
+      this.elm.style.height = pxToEm(videoHeight + videoControlsHeight + controlsHeight, this.panel.elm);
+      this.buildWave(); 
+      }, { once: true }
     );
 
     this.panel.listeners.push(
@@ -2151,4 +2327,5 @@ class Review {
     }
   }
 }
+
 

@@ -8,6 +8,7 @@ MIME_MAP = {
    "": "text/html",
    ".html": "text/html",
    ".js": "application/javascript",
+   ".mjs": "application/javascript",
    ".otf": "application/font-otf",
    ".pdf": "application/pdf",
    ".png": "image/png",
@@ -37,8 +38,31 @@ class PodiumHandler(http.server.SimpleHTTPRequestHandler):
         # Override to use Python logging instead of stderr
         logger.info("%s - - [%s] %s" % (self.address_string(), self.log_date_time_string(), format % args))
 
+    def _normalize_path(self, path):
+        import re
+        # Check if the exact file exists in any of the docRoots first
+        for root in docRoots:
+            if os.path.exists(os.path.join(root, path[1:])):
+                return path
+
+        # Fallback mappings if not found
+        m = re.match(r'^/Guidebook\d+(?:\.\d+)*\.html$', path)
+        if m:
+            return "/Guidebook.html"
+
+        m = re.match(r'^/release\d+(?:\.\d+)*\.html$', path)
+        if m:
+            return "/releaseNotes.html"
+
+        m = re.match(r'^/assets-\d+(?:\.\d+)*(/.+)$', path)
+        if m:
+            return "/assets" + m.group(1)
+
+        return path
+
     def do_HEAD(self):
-        path = self.path[1:]
+        scheme, netloc, path, params, query, fragment = urlparse(self.path)
+        path = self._normalize_path(path)[1:]
 
         for root in docRoots:
             fullPath = os.path.abspath(os.path.join(root, path))
@@ -48,6 +72,10 @@ class PodiumHandler(http.server.SimpleHTTPRequestHandler):
             if not fullPath.startswith(rootPath):
                 logger.warning(f"Path traversal attempt blocked: {self.path}")
                 self.send_response(403)
+                # HTTP/1.1 keep-alive: a bodyless response must declare zero length
+                # and close, or the browser hangs waiting for a body that never comes.
+                self.send_header("Content-Length", "0")
+                self.send_header("Connection", "close")
                 self.end_headers()
                 return
 
@@ -63,10 +91,16 @@ class PodiumHandler(http.server.SimpleHTTPRequestHandler):
 
         logger.debug(f"File not found: {self.path}")
         self.send_response(404)
+        # HTTP/1.1 keep-alive: a bodyless response must declare zero length and
+        # close, or the browser hangs waiting for a body that never comes
+        # (manifests as "server stopped responding" / a hung page load).
+        self.send_header("Content-Length", "0")
+        self.send_header("Connection", "close")
         self.end_headers()
 
     def do_GET(self):
         scheme, netloc, path, params, query, fragment = urlparse(self.path)
+        path = self._normalize_path(path)
 
         for root in docRoots:
             fullPath = os.path.abspath(os.path.join(root, path[1:]))
@@ -76,6 +110,10 @@ class PodiumHandler(http.server.SimpleHTTPRequestHandler):
             if not fullPath.startswith(rootPath):
                 logger.warning(f"Path traversal attempt blocked: {self.path}")
                 self.send_response(403)
+                # HTTP/1.1 keep-alive: a bodyless response must declare zero length
+                # and close, or the browser hangs waiting for a body that never comes.
+                self.send_header("Content-Length", "0")
+                self.send_header("Connection", "close")
                 self.end_headers()
                 return
 
@@ -98,6 +136,11 @@ class PodiumHandler(http.server.SimpleHTTPRequestHandler):
 
         logger.debug(f"File not found: {self.path}")
         self.send_response(404)
+        # HTTP/1.1 keep-alive: a bodyless response must declare zero length and
+        # close, or the browser hangs waiting for a body that never comes
+        # (manifests as "server stopped responding" / a hung page load).
+        self.send_header("Content-Length", "0")
+        self.send_header("Connection", "close")
         self.end_headers()
 
     def do_PUT(self):
