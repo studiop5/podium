@@ -123,9 +123,9 @@ class SharedBuffer {
     });
   }
 
-  announce() {
-   // Create and send a SHAREDBUFFER event
-   _body_.dispatchEvent(new CustomEvent("SHAREDBUFFER"));
+  async announce() {
+    _menu_.enableCells("page/import", (await this.getScore()).pgs.length > 0);
+    _body_.dispatchEvent(new CustomEvent("SHAREDBUFFER"));
   }
 
   signal(msg, data={}) {

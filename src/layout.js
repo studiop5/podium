@@ -2340,6 +2340,8 @@ class TableLayout extends Layout {
         let pasteCell = _menu_.rings.page.cells.paste ;
         if (pasteCell.pg) pasteCell.pg.deflate(true);
         pasteCell.pg = await active.pg.clone(true);
+        // Restore styles before animating so they are captured cleanly for undo
+        Object.assign(active.style, { pointerEvents: "auto", opacity: "1", zIndex: 2, fontSize: ""});
         this.layout.animateToCell(active.pg, getBox(active.pg.elm), false, _menu_.rings.page.cells.paste, "table",
           () => this.layout.build(false));  // build() wrapper clears layout.pasting
         _menu_.enableCells("page/paste") ;

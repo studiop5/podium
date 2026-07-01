@@ -1333,6 +1333,9 @@ class ImportPanel extends Panel {
           _menu_.activateCell(null);
         buttons.defs.Undo.disabled = true;
         buttons.defs.Clear.disabled = true;
+        this.close();
+        if (_menu_.activeRing?.activeCell === this.cell)
+          _menu_.activateCell(null);
       }
       buttons.refresh() ;
     }));
@@ -1556,7 +1559,7 @@ class StoragePanel extends Panel {
       new ButtonGroup(
         cell,
         { Menu: { svg: "Menu" }, Recent: { svg: "Score" }, Import: { svg: "Import Page" }, Reload: { svg: "Reload" } },
-        (e, prop, tag) => {
+        async (e, prop, tag) => {
           if (tag == "Menu") {
             dialog("Reset all menu settings to defaults? Open panels will be closed.",
               { Reset: { svg: "Menu" }, Cancel: { svg: "Cancel" } },
@@ -1574,7 +1577,7 @@ class StoragePanel extends Panel {
               localStorage.setItem(src, "");
             toast("Recent list cleared");
           } else if (tag == "Import") {
-            _podPb_.clear();
+            await _podPb_.pgClear();
             toast("Import buffer cleared");
           } else if (tag == "Reload") {
             dialog("Confirm: restart Podium? Any unsaved changes will be lost",

@@ -360,7 +360,7 @@ class Pg {
       } else this.json = this.toJson();
       this.canvas.clear();
       this.canvas.dispose();
-      if(this.thumbElm) clearChildren(this.thumbElm);
+      this.elm?.remove();
       this.canvas = null;
       this.mozCanvas?.remove();
       this.mozCanvas = null;
