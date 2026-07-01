@@ -457,13 +457,13 @@ class Menu {
     this.listen("score/save/up", async (cell) => {
        this.activateCell(cell);
        await FileSrc.saveActiveScore(cell);
-       this.activateCell(null);
+       this.activateCell(null, rings.score);
     });
 
     this.listen("score/open/up", async (cell) => {
        this.activateCell(cell);
        await FileSrc.openActiveScore(cell);
-       this.activateCell(null);
+       this.activateCell(null, rings.score);
     });
 
     this.listen(["score/details/out", "score/open/out","score/save/out","score/new/out","score/print/out"], (cell) => this.openPanel(cell));
@@ -634,7 +634,7 @@ class Menu {
     this.listen("ink/up", () => this.activateRing(rings.ink));
 
     paths = Object.keys(rings.ink.cells).map((key) => `ink/${key}/`);
-    this.listen(paths.map((path) => path + "up"),(cell) => this.activateCell(rings.ink.activeCell === cell ? null :cell));
+    this.listen(paths.map((path) => path + "up"),(cell) => this.activateCell(rings.ink.activeCell === cell ? null :cell, rings.ink));
     this.listen(paths.map((path) => path + "long"),(cell) => this.toggleLock(cell));
     // All but 4 cells in the ink ring have panels...remove those from paths...
     paths = paths.filter((key) => !["ink/undo/","ink/cut/","ink/paste/"].includes(key));
@@ -674,7 +674,7 @@ class Menu {
 
     this.listen("page/up", () => this.activateRing(rings.page));
     paths = Object.keys(rings.page.cells).map((path) => `page/${path}/`);
-    this.listen(paths.map((path) => path + "up"), (cell) => this.activateCell(rings.page.activeCell === cell ? null :cell));
+    this.listen(paths.map((path) => path + "up"), (cell) => this.activateCell(rings.page.activeCell === cell ? null :cell, rings.page));
     this.listen(paths.map((path) => path + "long"), (cell) => this.toggleLock(cell));
     this.listen(["page/numbers/","page/import/","page/add/","page/magnify/","page/merge/"].map((path) => path + "out"), (cell) =>  this.openPanel(cell));
 
@@ -684,7 +684,7 @@ class Menu {
     });
 
     this.listen("page/merge/up", (cell) => {
-      if (rings.page.activeCell === cell) { this.activateCell(null); return; }
+      if (rings.page.activeCell === cell) { this.activateCell(null, rings.page); return; }
       if (cell.pdfData) { this.activateCell(cell); return; }
       this.openPanel(cell);
     });
@@ -1262,16 +1262,22 @@ class Menu {
     if(_score_) _score_.setEditable(ring.key == "ink" && ring.activeCell);
   }
 
-  activateCell(cell) {
+  activateCell(cell, fallbackRing = null) {
     // Overlay a div onto given cell of active ring visually mark it as active.
     // Call with cell = null to deactivate active cell (if any) on the active ring
+    // (or, if a cell's own ring isn't otherwise known, on fallbackRing - needed
+    // when deactivating, since a null cell carries no ring of its own; without it
+    // this falls back to whatever ring is currently visually active in the menu
+    // disk, which is wrong whenever that isn't the ring being deactivated - e.g.
+    // deactivating via a panel header double-click while a different ring is on
+    // screen).
     // Only 1 cell per ring can be active at a time, so if the ring
     // had an active cell before this call, it will be deactivated.
     // Special cases:
     //  -  if currently editing a fabric text object, exit text editing
     //  -  when the ink/edit cell activates/deactivates, must call Score's setSelectable method
     this.checkEditing();
-    let ring = cell?.ring || this.activeRing;
+    let ring = cell?.ring || fallbackRing || this.activeRing;
 
     // Will this operation toggle the edit cell?
     let editCell = this.rings.ink.cells.edit;
@@ -1554,12 +1560,8 @@ class Menu {
     // reset cells to state for new score:
     // i.e. deactivate active cell (if any) on ink and page rings
     // is deactivated
-    let activeRing = this.activeRing;
-    this.activeRing = this.rings.ink;
-    this.activateCell(null);
-    this.activeRing = this.rings.page;
-    this.activateCell(null);
-    this.activeRing = activeRing;
+    this.activateCell(null, this.rings.ink);
+    this.activateCell(null, this.rings.page);
   }
 
   // Score Pg event handlers, called from Pg's to interpret

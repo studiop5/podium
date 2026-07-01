@@ -1059,7 +1059,7 @@ class MergePanel extends OpenPanel {
 
   hidden() {
     // If the panel closes without a file being selected, deactivate (and unlock) the cell
-    if (!this.cell.pdfData) _menu_.activateCell(null);
+    if (!this.cell.pdfData) _menu_.activateCell(null, _menu_.rings.page);
   }
 }
 
