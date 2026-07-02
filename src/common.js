@@ -2310,9 +2310,10 @@ function svgWrap(svgMarkup, props = {}) {
 function iconSvg(iconName, props = {}) {
   // Returns a string that can be included in html to display an icon whose path is defined
   // in the icon.js iconPaths object.
-  // @iconName key in the iconPaths object.
+  // @iconName key in the iconPaths object. Falls back to the empty "Void" icon if
+  // unmapped, so a bad name renders nothing instead of crashing uniqueSvgIds below.
   // @props see svgWrap above.
-  return svgWrap(iconPaths[iconName], props);
+  return svgWrap(iconPaths[iconName] || iconPaths.Void, props);
 }
 
 async function inflate(b64GzipString) {

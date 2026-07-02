@@ -2082,7 +2082,7 @@ class FileListView {
     let size = properties.size || null;
     let created = properties.created ? new Date(properties.created).toLocaleString() : null;
     let modified = properties.modified ? new Date(properties.modified).toLocaleString() : null;
-    let iconName = isDir ? "Folder" : (this.iconsByExtension[name.slice(name.lastIndexOf("."))] || "File");
+    let iconName = isDir ? "Folder" : (this.iconsByExtension[name.slice(name.lastIndexOf(".")).toLowerCase()] || "File");
     let color = this.colorFromText(name);
     let elm = helm(`
        <div ${isDir ? "data-dir='true'":""} data-name="${escapeHtml(name)}" data-path="${escapeHtml(path)}" data-source="${escapeHtml(source)}" class="Flv-list__file">
