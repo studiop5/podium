@@ -1004,6 +1004,9 @@ class FilePanel extends Panel {
     this.listeners.push(
       listen(this.panel, "scroll", () => this.panel.scrollTop = 0)
     );
+    // Get a head start loading Google's Identity Services SDK now, well before the
+    // user might tap the Google Drive tab — see GDriveSrc.preloadGIS for why.
+    FileSrc.get(Score.sources.gdrive).preloadGIS();
   }
 
   show() {
@@ -1181,8 +1184,8 @@ class GridPanel extends Panel {
 
 class GuidePanel extends Panel {
   static guidebookUrl = typeof chrome !== "undefined" && chrome.runtime?.id
-    ? `https://studiop5.org/Guidebook${window._podiumVersion_}.html`
-    : `Guidebook${window._podiumVersion_}.html`;
+    ? `https://studiop5.org/Guidebook.html`
+    : `Guidebook.html`;
 
   content = helm(
     `<div style="padding:0;width:100%;height:100%;box-sizing:border-box;overflow:hidden;position:relative;">
