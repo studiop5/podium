@@ -1891,6 +1891,7 @@ class TabView {
        width: max-content;
        min-width: 100%;
        height: 3em;
+       touch-action: none;
        background: var(--panel-header-bg);
        background-image: var(--panTexture);
        -webkit-mask-image: linear-gradient(to right, transparent, black .8em, black calc(100% - .8em), transparent);

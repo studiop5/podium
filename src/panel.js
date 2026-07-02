@@ -1004,6 +1004,9 @@ class FilePanel extends Panel {
     this.listeners.push(
       listen(this.panel, "scroll", () => this.panel.scrollTop = 0)
     );
+    // Get a head start loading Google's Identity Services SDK now, well before the
+    // user might tap the Google Drive tab — see GDriveSrc.preloadGIS for why.
+    FileSrc.get(Score.sources.gdrive).preloadGIS();
   }
 
   show() {

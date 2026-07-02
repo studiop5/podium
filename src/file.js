@@ -932,6 +932,19 @@ class GDriveSrc extends CachedSrc {
     });
   }
 
+  preloadGIS() {
+    // Best-effort head start: called when the Open/Save panel opens, well before the user
+    // might tap the Google Drive tab. auth() awaits loadGIS() before calling
+    // requestAccessToken() (which opens the consent popup); if the SDK script is still
+    // being fetched at that point, the await breaks the synchronous user-gesture chain
+    // mobile browsers require to allow the popup, and Android Chrome silently blocks it.
+    // Preloading here means the script is normally already cached by the time the user
+    // actually taps Connect. Not used in the extension, which authenticates via
+    // chrome.identity.launchWebAuthFlow instead and never loads this remote script.
+    if (window.chrome && chrome.identity && chrome.runtime?.id) return;
+    this.loadGIS().catch(() => {}); // auth() will retry and surface any real error itself
+  }
+
   async auth() {
     // If we already have a valid token, reuse it
     if (this.tokens && this.tokens.expiry > Date.now() / 1000) return;
@@ -2069,7 +2082,7 @@ class FileListView {
     let size = properties.size || null;
     let created = properties.created ? new Date(properties.created).toLocaleString() : null;
     let modified = properties.modified ? new Date(properties.modified).toLocaleString() : null;
-    let iconName = isDir ? "Folder" : this.iconsByExtension[name.slice(name.lastIndexOf("."))];
+    let iconName = isDir ? "Folder" : (this.iconsByExtension[name.slice(name.lastIndexOf("."))] || "File");
     let color = this.colorFromText(name);
     let elm = helm(`
        <div ${isDir ? "data-dir='true'":""} data-name="${escapeHtml(name)}" data-path="${escapeHtml(path)}" data-source="${escapeHtml(source)}" class="Flv-list__file">
