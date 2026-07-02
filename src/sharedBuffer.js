@@ -71,6 +71,10 @@ class SharedBuffer {
         // set up storage listener now that _podId_ exists
         listen(window, 'storage', async (e) => {
           if (!e.newValue) return;
+          // Only our own signal keys carry JSON; other code (e.g. file.js remembering
+          // the last path opened per source) writes plain strings to localStorage under
+          // other keys, which also fire 'storage' events we should just ignore.
+          if (!["pod-id-taken", "pod-pgs-changed", "pod-pgs-clear", "pod-pgs-pop", "pod-id-check"].includes(e.key)) return;
           let data = JSON.parse(e.newValue);
           switch(e.key) { // interpret incoming signals
     

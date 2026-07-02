@@ -1891,6 +1891,7 @@ class TabView {
        width: max-content;
        min-width: 100%;
        height: 3em;
+       touch-action: none;
        background: var(--panel-header-bg);
        background-image: var(--panTexture);
        -webkit-mask-image: linear-gradient(to right, transparent, black .8em, black calc(100% - .8em), transparent);
@@ -1971,21 +1972,40 @@ class TabView {
       this.tabs[name] = tab;
     }
 
-    listen(this.sash, "pointerup", (e) =>
-      e.target.classList.contains("Tab__tag") ? this.selectTab(e.target) : null
-    );
+    // justDragged flags a pointerup that ends a real drag, so the tap-select listener
+    // below can ignore it. downTarget remembers which element pointerdown actually hit,
+    // because setPointerCapture (called unconditionally below, right at pointerdown)
+    // retargets every subsequent event's e.target to the sash itself - including a plain
+    // tap's pointerup - so e.target can no longer be used to identify which tab was
+    // pressed. Neither of these depend on the platform-specific quirks that broke the
+    // old e.target-retargeting-based disambiguation on real Android touch hardware.
+    let justDragged = false;
+    let downTarget = null;
+    listen(this.sash, "pointerup", (e) => {
+      let target = downTarget ?? e.target;
+      downTarget = null;
+      if (justDragged) { justDragged = false; return; }
+      if (target.classList.contains("Tab__tag")) this.selectTab(target);
+    });
 
     if (this.draggable)
       delay(5, () =>
         this.panel.listeners.push(
           listen(this.sash, "pointerdown", (e) => {
+            downTarget = e.target;
             let fling = new Drag(e);
             let offsetX = e.clientX - this.sash.offsetLeft;
             let limit = this.sash.offsetWidth - this.frame.offsetWidth;
+            // Capture immediately, before any movement, rather than deferring until
+            // fling.moved is true: calling setPointerCapture mid-gesture from inside an
+            // active pointermove handler causes Android Chrome to terminate the touch
+            // sequence (fires a synthetic pointerup) on real hardware. Capturing up front
+            // is the standard safe pattern and no longer needed for tap/drag disambiguation
+            // now that justDragged (below) handles that explicitly.
+            this.sash.setPointerCapture(e.pointerId);
             let mv = listen(this.sash, "pointermove", (emv) => {
               fling.mv(emv) ;
-              if (fling.moved)
-                this.sash.setPointerCapture(e.pointerId);
+              if (fling.moved) justDragged = true;
               this.sash.style.left =
                 clamp(emv.clientX - offsetX, -limit, 0) + "px";
               e.emv = emv;
@@ -2290,9 +2310,10 @@ function svgWrap(svgMarkup, props = {}) {
 function iconSvg(iconName, props = {}) {
   // Returns a string that can be included in html to display an icon whose path is defined
   // in the icon.js iconPaths object.
-  // @iconName key in the iconPaths object.
+  // @iconName key in the iconPaths object. Falls back to the empty "Void" icon if
+  // unmapped, so a bad name renders nothing instead of crashing uniqueSvgIds below.
   // @props see svgWrap above.
-  return svgWrap(iconPaths[iconName], props);
+  return svgWrap(iconPaths[iconName] || iconPaths.Void, props);
 }
 
 async function inflate(b64GzipString) {
