@@ -45,6 +45,56 @@ function initFabric() {
     this.contextCache = this.cacheCanvasEl.getContext("2d", { willReadFrequently: true });
   };
 
+  // Text cursor drift: fabric measures every glyph ONCE at a fixed
+  // CACHE_FONT_SIZE (400px) and scales the result by fontSize/400. Glyph
+  // advances are not linear in size — hinting rounds them at reading sizes — so
+  // each character comes out ~0.5px narrower than it is actually painted at
+  // 20px. The caret is positioned by SUMMING those measurements while the line
+  // itself is painted in one fillText using the browser's real metrics (see
+  // _renderChars' "shortCut"), so the two drift apart by a constant amount per
+  // character: half a glyph by the ninth, a whole glyph by the eighteenth.
+  //
+  // Measuring at the real font size removes the scaling entirely. The cache is
+  // keyed by the full font declaration rather than by family alone, since
+  // widths are no longer size-independent; it stays nested under the family so
+  // fabric's own clearFabricFontCache(family) still empties it when a font
+  // finishes loading.
+  fabric.Text.prototype._measureChar = function (_char, charStyle, previousChar, prevCharStyle) {
+    let decl = this._getFontDeclaration(charStyle); // NOT forMeasuring: real size
+    let ctx = this.getMeasuringContext();
+    let family = (charStyle?.fontFamily ?? this.fontFamily ?? "").toLowerCase();
+    let byFamily = (fabric.charWidthsCache[family] ??= {});
+    let cache = (byFamily[decl] ??= {});
+    let measure = (str) => {
+      if (cache[str] === undefined) {
+        ctx.font = decl;
+        cache[str] = ctx.measureText(str).width;
+      }
+      return cache[str];
+    };
+    let width = measure(_char);
+    // Kerning is the pair's width less the previous glyph's, exactly as fabric
+    // does it — but only when both glyphs are in the same font.
+    let kernedWidth = width;
+    if (previousChar && prevCharStyle && decl === this._getFontDeclaration(prevCharStyle))
+      kernedWidth = measure(previousChar + _char) - measure(previousChar);
+    return { width, kernedWidth };
+  };
+
+  // ...and measure on a canvas that is IN the document. A detached one resolves
+  // font families against no style context, so it can pick a different face
+  // than the canvas being painted on — same declaration, ~5% wider text.
+  // Created lazily: initFabric can run before <body> exists.
+  fabric.Text.prototype.getMeasuringContext = function () {
+    if (!fabric._measuringContext) {
+      let elm = helm(`<canvas width="8" height="8" aria-hidden="true"
+        style="position:absolute;left:-9999px;top:-9999px;pointer-events:none"></canvas>`);
+      (document.body ?? document.documentElement).append(elm);
+      fabric._measuringContext = elm.getContext("2d", { willReadFrequently: true });
+    }
+    return fabric._measuringContext;
+  };
+
   fabric.Object.NUM_FRACTION_DIGITS = 8;
   fabric.Object.prototype.transparentCorners = false;
   fabric.Object.prototype.cornerSize = _mobile_ ? 32:16; // Large touch target
