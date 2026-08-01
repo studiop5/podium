@@ -306,7 +306,7 @@ class Menu {
     }
 
     // set initial cell state
-    this.enableCells(["layout", "ink", "ink/paste", "page", "score/close", "score/save", "score/details", "score/print", "page/import"], false);
+    this.enableCells(["layout", "ink", "ink/paste", "page", "score/close", "score/save", "score/details", "score/layers", "score/print", "page/import"], false);
 
     this.stashDefaults = this.stashToJson();
     // load menu stash from localStorage, resetting immediately if version is
@@ -422,7 +422,7 @@ class Menu {
         open: {
           name: "Open",
           stash: {},
-          svgPath: iconPaths["Open"], 
+          svgPath: iconPaths["Open"],
         },
         save: {
           mode: "save",
@@ -441,6 +441,26 @@ class Menu {
         close: { name: "Close", svgPath: iconPaths["Close"] },
         print: { name: "Print", svgPath: iconPaths["Print"] },
         details: { name: "Details", svgPath: iconPaths["Details"], stash: { quality: 3, pgFit: "Center", bkColorIdx: 0 }, storage: "score" },
+        // Annotation ("ink") layers. Modelled on details: no "up" action, the panel
+        // opens on the "out" (drag-out) gesture, and the layer table persists with
+        // the score. The cell itself has no functionality: everything (create,
+        // delete, rename, reorder, ink level) lives in LayersPanel.
+        layers: {
+          name: "Layers",
+          svgPath: iconPaths["Layers"],
+          storage: "score",
+          stash: {
+            // The layer table: array order == draw order, LAST entry is the top
+            // (editable) layer. ink: [0,1], multiplies the transparency each mark
+            // already carries; 0 == invisible. restore: the level a muted layer
+            // returns to.
+            // Empty by default ON PURPOSE: every score's first layer is minted by
+            // Score.ensureLayers so that it gets an id of its own. A layer seeded
+            // here would hand the same id to every score ever created, and equal
+            // ids are what make an import fold one layer into another.
+            layers: [],
+          },
+        },
       },
       svgPath: iconPaths["Score"],
     };
@@ -466,7 +486,7 @@ class Menu {
        this.activateCell(null, rings.score);
     });
 
-    this.listen(["score/details/out", "score/open/out","score/save/out","score/new/out","score/print/out"], (cell) => this.openPanel(cell));
+    this.listen(["score/details/out", "score/layers/out", "score/open/out","score/save/out","score/new/out","score/print/out"], (cell) => this.openPanel(cell));
 
     this.listen("score/new/up", async (cell) => {
       if(!await checkUnsaved()) return;
@@ -487,7 +507,7 @@ class Menu {
       Layout.activeLayout = null;
       _score_ = null;
       _menu_.closePanels();
-      _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"], false);
+      _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/layers", "score/print"], false);
       document.dispatchEvent(new CustomEvent("scoreClosed"));
     });
 
@@ -1612,8 +1632,10 @@ class Menu {
       case "edit":
         if(target && !target.flatten && !target.hasControls) target.hasControls = true;
         else if (!target && !canvas.getActiveObject()) {
-          // select the most-recent *editable* object (skip frozen/flattened ones)
-          let editable = canvas.getObjects().filter(o => !o.flatten);
+          // Select the most-recent object the user could actually edit. Skips
+          // flattened marks and marks on any layer below the top one: both are
+          // locked, and a lock means selectable is false.
+          let editable = canvas.getObjects().filter(o => o.selectable && !o.flatten);
           if (editable.length) delay(1, () => canvas.setActiveObject(editable.at(-1)));
         }
         canvas.requestRenderAll();

@@ -151,7 +151,16 @@ class Pg {
     //   and the inflation will be deferred. After
     //   the inflation finishes, the div is replaced by the fabric
     //   canvas's container div.
-    if(this.inflatePromise != null) return this;
+    // An inflate already in flight is a DEFERRED one (started non-blocking by a
+    // layout): until it settles this.canvas is still the placeholder div. Await
+    // it rather than returning straight away — callers await inflate() precisely
+    // so they can use the canvas next, and toPdf would call fabric methods on the
+    // div (seen from paste: bindScore -> toPdf while the layout was still
+    // building the destination score's pages).
+    if(this.inflatePromise != null) {
+      await this.inflatePromise;
+      return this;
+    }
     if (this.inflated) return this;
     this.inflateCtrl = new AbortController();
     if(this.mozPn && nonblocking) {
@@ -223,6 +232,7 @@ class Pg {
         await new Promise((resolve, reject) =>
           canvas.loadFromJSON(this.json, () => resolve()));
         Pg.applyFlatten(canvas);
+        this.applyLayers(canvas); // dim/lock per layer; migrate untagged ink
       }
       checkAbort();
 
@@ -308,22 +318,30 @@ class Pg {
       // pushed on it.  We need this so that we'll have a state
       // to undo to.
       if(this.undoStack.length == 0) // initialize undo stack on first inflate
-        this.undoStack.push(canvas.toDatalessObject());
-  
+        this.undoStack.push(this.serialize(() => canvas.toDatalessObject(Pg.customProps)));
+
       let pushState = () => {
         let stack = this.undoStack;
-        stack.push(this.canvas.toDatalessObject());
+        stack.push(this.serialize(() => this.canvas.toDatalessObject(Pg.customProps)));
         while (stack.length > 10) stack.shift(); // prune
         _menu_.enableCells("ink/undo");
         this.thumbDirty = true;
       };
   
-      canvas.on("object:added", (opts) => { 
-        if(!this.suppressStateChange) 
-           stateChanged = true;
+      canvas.on("object:added", (opts) => {
+        if(this.suppressStateChange) return; // a reload (undo), not a new mark
+        // New ink always lands on the top layer - it is the only editable one, so
+        // this one hook covers every brush, symbol, text and paste in canvas.js.
+        // Objects restored by loadFromJSON arrive already tagged.
+        if (opts.target && opts.target.layerId == null)
+          opts.target.layerId = this.score.activeLayerId;
+        stateChanged = true;
+        this.score.inkChanged();
       });
       canvas.on("object:removed", (opts) => {
-        if(!this.suppressStateChange) stateChanged = true;
+        if(this.suppressStateChange) return;
+        stateChanged = true;
+        if (!this.deflating) this.score.inkChanged(); // a teardown isn't an edit
       });
 
       canvas.on("object:modified", (opts) => { 
@@ -358,8 +376,13 @@ class Pg {
         this.thumbElm = null;
         this.json = null;
       } else this.json = this.toJson();
+      // fabric's clear() removes every object one by one, firing object:removed
+      // for each. This page is being torn down, not edited: without this flag a
+      // page turn would look like the score's ink changing.
+      this.deflating = true;
       this.canvas.clear();
       this.canvas.dispose();
+      this.deflating = false;
       this.elm?.remove();
       this.canvas = null;
       this.mozCanvas?.remove();
@@ -473,14 +496,26 @@ class Pg {
     if (!this.inflated) return null; // only call this on inflated pg's
     let oldPrecision = fabric.Object.NUM_FRACTION_DIGITS;
     fabric.Object.NUM_FRACTION_DIGITS = 2;
-    // "flatten" and "podiumType" are custom properties (see flattenObjects /
-    // PodBrush); fabric drops unknown properties on serialize unless they're
-    // listed here. toPdf relies on "flatten"; "podiumType" must survive so a
-    // stroke keeps its pencil/pen/rastrum tag across deflate/inflate and reload
-    // (rastrum control rendering keys off it — see canvas.js).
-    let json = this.canvas.toJSON(["flatten", "podiumType"]);
+    let json = this.serialize(() => this.canvas.toJSON(Pg.customProps));
     fabric.Object.NUM_FRACTION_DIGITS = oldPrecision;
     return json;
+  }
+
+  serialize(toObject) {
+    // Run a fabric serializer with layer ink backed out of the objects. obj.opacity
+    // carries the ink level of the object's layer (see applyLayers): derived state
+    // that belongs to the layer table, not to the object. Serializing it would
+    // double-apply it on the next load, and would strand every mark dimmed if the
+    // table were ever lost, with no way back. So the stored form is always the
+    // mark's own intrinsic ink.
+    let objs = this.canvas.getObjects();
+    let saved = objs.map((obj) => obj.opacity);
+    for (let obj of objs) obj.opacity = 1;
+    try {
+      return toObject();
+    } finally {
+      objs.forEach((obj, i) => (obj.opacity = saved[i]));
+    }
   }
 
   async undo( ) {
@@ -492,6 +527,7 @@ class Pg {
       stack.pop();
       await new Promise((resolve, reject) => this.canvas.loadFromJSON(stack[stack.length - 1], () => resolve()));
       Pg.applyFlatten(this.canvas);
+      this.applyLayers(); // snapshots store intrinsic ink: re-dim/re-lock per layer
       this.canvas.requestRenderAll();
       this.suppressStateChange = false; 
     } 
@@ -516,25 +552,96 @@ class Pg {
     this.score.setDirty(true);
   }
 
+  // Custom (non-fabric) object properties. Fabric drops unknown properties when it
+  // serializes unless they are listed, so every serializer must be handed this
+  // list: "flatten" (toPdf / freeze), "podiumType" (a stroke's pencil/pen/rastrum
+  // tag — rastrum control rendering keys off it, see canvas.js), and "layerId"
+  // (which annotation layer the mark belongs to).
+  static customProps = ["flatten", "podiumType", "layerId"];
+
   static freeze(obj) {
-    // Make a fabric object genuinely non-interactive. evented:false keeps it out
-    // of hit-testing, but Podium can still force-select via setActiveObject (e.g.
-    // the edit tool's "select last object" fallback), so we also strip controls
-    // and lock every transform — a frozen object can't be moved, scaled, rotated
-    // or text-edited even if something makes it the active object.
+    // Make a fabric object genuinely non-interactive, permanently: "flatten" is
+    // never taken back off (unlike a layer lock, see setLocked).
     obj.flatten = true;
-    obj.selectable = false;
-    obj.evented = false;
-    obj.hasControls = false;
-    obj.hasBorders = false;
-    obj.lockMovementX = true;
-    obj.lockMovementY = true;
-    obj.lockScalingX = true;
-    obj.lockScalingY = true;
-    obj.lockRotation = true;
-    obj.lockSkewingX = true;
-    obj.lockSkewingY = true;
-    obj.editable = false; // textbox: block enterEditing
+    Pg.setLocked(obj, true);
+  }
+
+  static setLocked(obj, locked) {
+    // The reversible half of freeze(): lock or unlock a fabric object without
+    // touching its "flatten" flag. Layers use this to keep everything but the top
+    // layer read-only. evented:false keeps an object out of hit-testing, but
+    // Podium can still force-select via setActiveObject (e.g. the edit tool's
+    // "select last object" fallback), so we also strip controls and lock every
+    // transform — a locked object can't be moved, scaled, rotated or text-edited
+    // even if something makes it the active object.
+    obj.selectable = !locked;
+    obj.evented = !locked;
+    obj.hasControls = !locked;
+    obj.hasBorders = !locked;
+    obj.lockMovementX = locked;
+    obj.lockMovementY = locked;
+    obj.lockScalingX = locked;
+    obj.lockScalingY = locked;
+    obj.lockRotation = locked;
+    obj.lockSkewingX = locked;
+    obj.lockSkewingY = locked;
+    obj.editable = !locked; // textbox: block enterEditing
+  }
+
+  static bakeInk(obj, factor) {
+    // Fold a factor into a mark's OWN colour alpha, permanently. A mark's
+    // strength lives in its colour string (obj.opacity carries the layer's level
+    // and is derived state — see serialize), so this is the only place a mark's
+    // own ink can be changed. Used by mergeLayer to carry a layer's ink down with
+    // its marks. Gradients and patterns aren't colour strings: nothing to scale.
+    for (let key of ["fill", "stroke"]) {
+      if (typeof obj[key] != "string" || !obj[key]) continue;
+      let color = new fabric.Color(obj[key]);
+      obj[key] = color.setAlpha(clamp(color.getAlpha() * factor, 0, 1)).toRgba();
+    }
+  }
+
+  applyLayers(canvas = this.canvas) {
+    // Apply the score's layer table to this page: dim every object to its layer's
+    // ink level, and lock every layer but the top one — the only editable one, so
+    // that new ink can never land under existing ink. Untagged objects are
+    // migrated onto the base layer here (this does not dirty the score: the tag
+    // becomes persistent on the next save like any other edit).
+    // Cheap enough to re-run over the whole page whenever anything changes.
+    if (!canvas?.getObjects) return; // not inflated, or still a deferred placeholder
+    let topId = this.score.activeLayerId;
+    // Ink from a score that predates layers carries no tag: it belongs to the
+    // bottom layer of whatever score it is now part of. (No table at all — a
+    // score that isn't the active one, e.g. the paste buffer's — leaves it
+    // untagged, and layerInk/sortLayers treat it as full ink on top.)
+    let bottomId = this.score.layers[0]?.id;
+    for (let obj of canvas.getObjects()) {
+      obj.layerId ??= bottomId;
+      obj.opacity = this.score.layerInk(obj.layerId);
+      // "flatten" wins: a flattened mark stays frozen whatever layer it sits on.
+      if (!obj.flatten) Pg.setLocked(obj, topId != null && obj.layerId != topId);
+    }
+    this.sortLayers(canvas);
+  }
+
+  sortLayers(canvas = this.canvas) {
+    // Sort the canvas into contiguous per-layer blocks, in table order, so that
+    // draw order on screen matches the pile in the panel. Fabric keeps one flat
+    // array per canvas, so a layer is only a layer as long as its objects stay
+    // together and in the right block.
+    // The sort is stable (ties broken by current index), which is what keeps
+    // marks within one layer in the order they were drawn. Objects on a layer the
+    // table doesn't know about sort to the top, matching layerInk's treatment of
+    // them as fully visible - better a stranger on top than silently buried.
+    if (!canvas?.getObjects) return;
+    let order = new Map(this.score.layers.map((l, i) => [l.id, i]));
+    let rank = (obj) => order.get(obj.layerId) ?? order.size;
+    let objs = canvas._objects;
+    let sorted = objs
+      .map((obj, i) => ({ obj, i }))
+      .sort((a, b) => rank(a.obj) - rank(b.obj) || a.i - b.i)
+      .map((e) => e.obj);
+    if (sorted.some((obj, i) => obj !== objs[i])) canvas._objects = sorted;
   }
 
   static applyFlatten(canvas) {
@@ -616,6 +723,12 @@ class Pg {
       }
     }
 
+    // The ink level of the layer the object being processed belongs to, in [0,1].
+    // Set per top-level object below; group children inherit it, since a group
+    // belongs to one layer (only the top layer is selectable, so a group can't be
+    // built across layers). Multiplied into every alpha written to the pdf.
+    let layerAlpha = 1;
+
     // Nested function that converts a fabric object to a PDFLib object, with help of this.objToPdf(...)
     let processObj = async(obj, absoluteTransform = null) => {
 
@@ -666,7 +779,7 @@ class Pg {
               rotate: PDFLib.degrees(360 - obj.angle),
               size: obj.fontSize * obj.scaleY,
               color: toPDFColor(obj.fill),
-              opacity: toPDFOpacity(obj.fill),
+              opacity: toPDFOpacity(obj.fill) * layerAlpha,
               // fabric renders line spacing as lineHeight * fontSize * _fontSizeMult
               lineHeight: obj.lineHeight * obj.fontSize * (fabric.Text.prototype._fontSizeMult || 1.13) * obj.scaleY,
             },
@@ -705,7 +818,7 @@ class Pg {
             pathStr,
             { y: pageHeight,
               color: toPDFColor(obj.fill),
-              opacity: toPDFOpacity(obj.fill),
+              opacity: toPDFOpacity(obj.fill) * layerAlpha,
             },
            ], xform);
           }
@@ -715,7 +828,7 @@ class Pg {
               // pdf line width is isotropic: approximate non-uniform scale with the mean
               borderWidth: obj.strokeWidth * (Math.abs(obj.scaleX) + Math.abs(obj.scaleY)) / 2,
               borderColor: toPDFColor(obj.stroke),
-              borderOpacity: toPDFOpacity(obj.stroke),
+              borderOpacity: toPDFOpacity(obj.stroke) * layerAlpha,
               borderLineCap: PDFLib.LineCapStyle.Round,
             },
           ], xform);
@@ -746,6 +859,7 @@ class Pg {
               rotate: PDFLib.degrees(360 - obj.angle),
               height: obj.height * obj.scaleY,
               width: obj.width * obj.scaleX,
+              opacity: layerAlpha, // an image carries no alpha of its own to multiply
             },
           ], xform);
           break;
@@ -793,8 +907,15 @@ class Pg {
     this.canvas.discardActiveObject();
     this.canvas.requestRenderAll();
 
+    // WYSIWYG: a mark on a layer showing no ink is not written to the pdf at all.
+    // Flattened marks are the exception - they are page content rather than
+    // annotations, so hidden+flattened is still flattened and still bakes.
+    let skipped = (obj) => this.score.layerInk(obj.layerId) == 0 && !obj.flatten;
+
      // Process all top-level objects
     for (let obj of this.canvas.getObjects()) {
+      if (skipped(obj)) continue;
+      layerAlpha = this.score.layerInk(obj.layerId);
       await processObj(obj);
     }
 
@@ -802,7 +923,10 @@ class Pg {
     // Objects baked into the page content must not also be saved as fabric json,
     // or they'd reappear as editable duplicates on reopen. With ink == "pdf"
     // every object was painted in; otherwise only the flattened ones were.
-    json.objects = ink == "pdf" ? [] : json.objects.filter((obj) => !obj.flatten);
+    // A mark that was SKIPPED above was painted nowhere, so it has to stay in the
+    // json whatever the mode - otherwise saving with ink == "pdf" would silently
+    // destroy every hidden layer.
+    json.objects = json.objects.filter((obj) => skipped(obj) || !(ink == "pdf" || obj.flatten));
     json.bookmark = this.bookmark;
     return json;
   }
@@ -1168,13 +1292,22 @@ class Score {
         this.created = scoreJson.created || this.created;
         this.modified = scoreJson.modified || this.modified;
         this.quality = scoreJson.quality ?? this.quality;
-        if(activate) // don't use stashed values if not activating!
+        if(activate) { // don't use stashed values if not activating!
+          // Clear the layer table before merging this score's in. The stash is
+          // global, and stashFromJsonObj only overwrites cells the attachment
+          // actually carries — so a score saved before layers existed would
+          // silently inherit the previously open score's layers, and its untagged
+          // ink would be migrated onto a layer belonging to a different score.
+          // activate() then mints this score a fresh first layer (ensureLayers).
+          _menu_.rings.score.cells.layers.stash.layers = [];
           _menu_.stashFromJsonObj(scoreJson.menu, "score");
+        }
       } else if(activate) {
         let defaults = JSON.parse(_menu_.stashDefaults);
         let { page, score } = _menu_.rings;
         Object.assign(page.cells.numbers.stash, defaults.page?.cells?.numbers);
         Object.assign(score.cells.details.stash, defaults.score?.cells?.details);
+        Object.assign(score.cells.layers.stash, defaults.score?.cells?.layers);
         this.quality = score.cells.details.stash.quality ?? this.quality;
       }
       // create a Pg instance for every pdf page, and calculate the
@@ -1197,6 +1330,7 @@ class Score {
       let defaults = JSON.parse(_menu_.stashDefaults);
       Object.assign(_menu_.rings.page.cells.numbers.stash, defaults.page?.cells?.numbers);
       Object.assign(_menu_.rings.score.cells.details.stash, defaults.score?.cells?.details);
+      Object.assign(_menu_.rings.score.cells.layers.stash, defaults.score?.cells?.layers);
       this.quality = _menu_.rings.score.cells.details.stash.quality ?? this.quality;
     }
 
@@ -1211,9 +1345,11 @@ class Score {
     _score_ = this;
     this.numbers = _menu_.rings.page.cells.numbers.stash;
     this.details = _menu_.rings.score.cells.details.stash;
+    Score.ensureLayers(); // a score may predate layers, or have lost its stash
     this.setTitle();
     // update the _menu_ state for this Score instance:
-    _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"]);
+    _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/layers", "score/print"]);
+    this.syncInkRing(); // ...but not the ink ring, if this score's top layer is muted
     _menu_.enableCells("ink/undo", false); // nothing to undo yet
     _menu_.closePanels();
     document.dispatchEvent(new CustomEvent("scoreOpened"));
@@ -1238,11 +1374,15 @@ class Score {
     return this;
   }
 
-  async bindScore(pdfData, pn = null) {
+  async bindScore(pdfData, pn = null, srcLayers = null) {
     // bind all pages from a given score to this score: i.e. given some score's
     // @pdfData, append all of its pages to this score.
     // @pn one-based index of where to insert the pages from pdfData.
     //     ..when null or < 1, converted to 1 (i.e. first page).
+    // @srcLayers optional layer table for the incoming pages, naming the layers
+    //     their marks are tagged with. Normally read from pdfData's own podium
+    //     attachment; passed in by the shared paste buffer, whose pdf cannot
+    //     carry it (see SharedBuffer.getLayers).
     pn = clamp(pn, 1, this.pgs.length + 1) -1; // convert pn to 0-based in [0, this.pgs.length-1]
     let { PDFArray, PDFDict, PDFDocument, PDFName, PDFStream } = PDFLib;
     let pgCount = this.pgs.length;
@@ -1284,10 +1424,16 @@ class Score {
     for (let i = pn; i < pn + copyKnt; i++) mergedScore.pgs[i].json = null;
     if(json) {
       // insert new json from docB
-      let pageJson = JSON.parse(json).pages;
+      let attachment = JSON.parse(json);
+      let pageJson = attachment.pages;
+      let incoming = [];
       for (let i = pn, j = 1; j <= copyKnt; i++, j++) { // i is 0-based, j is 1-based
         mergedScore.pgs[i].json = pageJson[j];
+        if (pageJson[j]?.objects) incoming.push(...pageJson[j].objects);
       }
+      // The marks arrive tagged with their own layer ids; the table that names
+      // those layers travels in docB's attachment, so reconcile the two.
+      this.mergeLayers(incoming, srcLayers ?? attachment.menu?.score?.cells?.layers?.layers);
     }
     mergedScore.pgRefresh();
     mergedScore.setDirty();
@@ -1415,6 +1561,245 @@ class Score {
 
   setDirty(dirty=true) {
     this.dirty = dirty;
+  }
+
+  get layers() {
+    // The score's layer table: array order == draw order, LAST entry is the top
+    // (editable) layer. It lives in the score-ring "layers" cell stash, which is
+    // per-active-score storage (storage:"score"), so it is only meaningful for the
+    // active score: any other Score instance — the shared paste buffer's, a score
+    // being read for a merge — reads as no layers and is treated as full ink.
+    // Read through every time: loading a score REPLACES this array (Object.assign
+    // in stashFromJsonObj), so a cached reference would go stale.
+    if (this !== Score.activeScore) return [];
+    return _menu_.rings.score.cells.layers.stash.layers ?? [];
+  }
+
+  get activeLayerId() {
+    // The top layer: the only editable one, so all new ink lands on it.
+    return this.layers.at(-1)?.id ?? null;
+  }
+
+  layerInk(layerId) {
+    // The ink level of a layer: a factor in [0,1] multiplying the transparency a
+    // mark already carries. An unknown layer reads as full ink, so a mark can
+    // never be lost to a missing table entry.
+    let layer = this.layers.find((l) => l.id == layerId);
+    return layer ? clamp(layer.ink ?? 1, 0, 1) : 1;
+  }
+
+  static newLayerId() {
+    // Layer ids are random and are never shared between scores — not even for a
+    // score's first layer. Two scores made separately must not collide, or
+    // importing pages from one into the other would pour their marks into a layer
+    // that merely looks like the same one. Copies of the SAME score do share ids,
+    // which is exactly what lets a teacher's marked-up copy come back into the
+    // original on the right layers. Long enough that a chance collision — an
+    // unwanted merge on import — is not a thing anyone will meet.
+    return Math.random().toString(36).slice(2, 10);
+  }
+
+  static ensureLayers() {
+    // Guarantee a usable layer table. Scores saved before layers existed arrive
+    // without one, as do scores whose stash was rejected on a version mismatch.
+    // The first layer is minted HERE rather than in the cell's default stash,
+    // because that default is shared by every score and layer ids must not be.
+    let stash = _menu_.rings.score.cells.layers.stash;
+    if (!Array.isArray(stash.layers)) stash.layers = [];
+    if (stash.layers.length == 0)
+      stash.layers = [{ id: Score.newLayerId(), name: "Layer 1", ink: 1, restore: 1 }];
+    // An entry that lost its id would match nothing — and match everything else
+    // that lost one, on the next import. Give it a fresh one.
+    for (let layer of stash.layers) layer.id ??= Score.newLayerId();
+  }
+
+  applyLayers() {
+    // Re-apply the layer table to every inflated page and repaint. Deflated pages
+    // pick it up when they inflate.
+    for (let pg of this.pgs) {
+      if (!pg.inflated) continue;
+      pg.applyLayers();
+      pg.canvas.requestRenderAll();
+    }
+  }
+
+  syncInkRing() {
+    // There is nowhere for new ink to go when the top layer is showing none, so
+    // the ink ring is disabled outright rather than explained. This belongs to the
+    // score, not to LayersPanel: it has to hold with the panel closed, and it has
+    // to be re-established when a score is opened with its top layer muted.
+    if (this !== Score.activeScore) return;
+    _menu_.enableCells("ink", (this.layers.at(-1)?.ink ?? 1) > 0);
+  }
+
+  mergeLayers(objs, srcLayers) {
+    // Reconcile the layers of incoming pages (import / merge / paste) with this
+    // score's table.
+    // Layers are matched BY ID and ids are never remapped. Ids are random and
+    // unique to the score that minted them (see newLayerId), so an id in common
+    // means the pages genuinely came from THIS score - a copy of it, marked up
+    // elsewhere and brought back - and its layers are reused rather than
+    // duplicated. Two separately-made scores share nothing, so importing one into
+    // the other always brings its layers in alongside, never folded into ours:
+    // combining layers is something the user asks for, in the Layers panel.
+    // An id this score already knows keeps the destination's own name and ink.
+    // Names are NOT matched or deduplicated - two layers may share a name, which
+    // is untidy but harmless; only ids mean anything.
+    let layers = this.layers;
+    if (!layers.length) return; // no table: not the active score (e.g. the paste buffer)
+    let known = new Set(layers.map((l) => l.id));
+    // Marks from a score that predates layers carry no tag at all. They are not
+    // this score's ink either, so they get a layer of their own.
+    let untagged = objs.filter((obj) => obj.layerId == null);
+    if (untagged.length) {
+      let id = Score.newLayerId();
+      for (let obj of untagged) obj.layerId = id; // these are the pages' own json objects
+      srcLayers = [{ id, name: "Imported", ink: 1, restore: 1 }, ...(srcLayers ?? [])];
+    }
+    let wanted = [...new Set(objs.map((obj) => obj.layerId))];
+    // Take the incoming layers in their own bottom-to-top order, so a stack that
+    // meant something in the source still means it here.
+    let srcOrder = new Map((srcLayers ?? []).map((l, i) => [l.id, i]));
+    wanted.sort((a, b) => (srcOrder.get(a) ?? Infinity) - (srcOrder.get(b) ?? Infinity));
+    // New layers land UNDER this score's top layer: the layer being drawn on
+    // stays on top and stays editable, so an import can never quietly redirect
+    // where the user's next mark goes.
+    let at = Math.max(layers.length - 1, 0);
+    for (let id of wanted) {
+      if (known.has(id)) continue;
+      let src = srcLayers?.find((l) => l.id == id);
+      let ink = clamp(src?.ink ?? 1, 0, 1);
+      layers.splice(at++, 0, {
+        id,
+        // A score merged from a PDF that predates layers has no table to name
+        // them from; the marks are still kept, on a layer the user can rename.
+        name: src?.name ?? "Imported",
+        ink,
+        restore: clamp(src?.restore ?? src?.ink ?? 1, 0, 1) || 1,
+      });
+      known.add(id);
+    }
+  }
+
+  inkChanged() {
+    // Announce that the score's ink has changed, so anything showing a tally of
+    // it knows its figure has gone stale (see LayersPanel). Coalesced to one
+    // event per turn of the loop: a paste, a merge or an undo can add or remove
+    // a great many marks in one go, and the listeners only need telling once.
+    if (this.inkPending) return;
+    this.inkPending = true;
+    delay(1, () => {
+      this.inkPending = false;
+      document.dispatchEvent(new CustomEvent("inkChanged"));
+    });
+  }
+
+  layerCount(layerId) {
+    // How many marks sit on a layer, over the whole score. Deflated pages are
+    // counted from their stored json rather than inflated: inflating a big score
+    // just to label a slider would be ruinous.
+    let n = 0;
+    let bottomId = this.layers[0]?.id; // untagged ink counts as the bottom layer's
+    for (let pg of this.pgs) {
+      let objs = pg.inflated ? pg.canvas.getObjects() : pg.json?.objects;
+      if (!objs) continue;
+      for (let obj of objs) if ((obj.layerId ?? bottomId) == layerId) n++;
+    }
+    return n;
+  }
+
+  async walkPages(edit, onProgress) {
+    // Apply an edit to every page of the score. Pages that are currently deflated
+    // are inflated just long enough to be edited, then deflated again — which
+    // re-serializes them (the toPdf pattern).
+    // @edit (canvas) => boolean, true iff it changed anything on that page
+    // @onProgress (pagesDone, total) => boolean, false to stop the walk
+    // @return true iff every page was visited; false == stopped part way
+    //
+    // Layer edits are not undoable (the same rule as flatten), so the undo stack
+    // of every page actually changed is reset: left alone it would hold
+    // resurrectable copies of marks whose layer has since moved or gone.
+    for (let [n, pg] of this.pgs.entries()) {
+      if (onProgress && onProgress(n, this.pgs.length) === false) return false;
+      // Yield even when nothing below awaits (a page already inflated), so a
+      // long walk can't wedge the ui and the shade's DISMISS stays live.
+      await new Promise((resolve) => delay(1, resolve));
+      let wasInflated = pg.inflated;
+      if (!wasInflated) {
+        if (!pg.json) continue; // no ink on this page at all
+        await pg.inflate(false, false);
+      }
+      try {
+        pg.suppressStateChange = true;
+        if (edit(pg.canvas)) {
+          pg.canvas.discardActiveObject();
+          pg.undoStack = [pg.serialize(() => pg.canvas.toDatalessObject(Pg.customProps))];
+          pg.thumbDirty = true;
+          pg.canvas.requestRenderAll();
+        }
+      } finally {
+        pg.suppressStateChange = false;
+        if (!wasInflated) pg.deflate();
+      }
+    }
+    return true;
+  }
+
+  async deleteLayer(layerId, onProgress) {
+    // Delete a layer and every mark on it.
+    // The table is edited ONLY once every page has been walked. That ordering is
+    // the whole safety story for stopping part way: the layer still exists, just
+    // with fewer marks, and nothing is left pointing at a layer that is gone.
+    // (Doing it the other way round would strand marks on a dead layer — and
+    // since layerInk reads an unknown layer as full ink and sortLayers puts it on
+    // top, they would reappear at full strength above everything.)
+    let done = await this.walkPages((canvas) => {
+      let doomed = canvas.getObjects().filter((obj) => obj.layerId == layerId);
+      if (!doomed.length) return false;
+      canvas.remove(...doomed);
+      return true;
+    }, onProgress);
+    if (!done) return false; // stopped: table untouched, so the layer survives
+    let i = this.layers.findIndex((l) => l.id == layerId);
+    if (i >= 0) this.layers.splice(i, 1);
+    Score.ensureLayers(); // never leave a score with no layers at all
+    this.applyLayers(); // the top layer may have changed: re-lock
+    this.setDirty(true);
+    return true;
+  }
+
+  async mergeLayer(layerId, onProgress) {
+    // Merge a layer into the one directly below it in the pile: every mark moves
+    // down and the upper layer disappears. With reordering, this is enough to
+    // combine any set of layers. Not undoable; same table-last rule as
+    // deleteLayer, so stopping part way just leaves some marks still above.
+    let layers = this.layers;
+    let i = layers.findIndex((l) => l.id == layerId);
+    if (i < 1) return false; // unknown, or already at the bottom: nothing below
+    let below = layers[i - 1];
+    // The layer's ink is baked into each mark on the way down. ink is a per-LAYER
+    // multiplier, so a mark leaving a layer set to 45% would otherwise jump to
+    // full strength; folded into the mark's own colour it keeps the strength it
+    // had — exactly so when the layer below is at full ink — and from here on the
+    // layer below's level applies to it.
+    let bake = clamp(layers[i].ink ?? 1, 0, 1);
+    let done = await this.walkPages((canvas) => {
+      let hit = false;
+      for (let obj of canvas.getObjects()) {
+        if (obj.layerId != layerId) continue;
+        if (bake != 1) Pg.bakeInk(obj, bake);
+        obj.layerId = below.id;
+        hit = true;
+      }
+      return hit;
+    }, onProgress);
+    if (!done) return false; // stopped: table untouched, both layers still there
+    layers.splice(i, 1);
+    // Marks keep their relative order: they sat above the layer below, and
+    // sortLayers is stable, so they stay on top of it inside the merged block.
+    this.applyLayers();
+    this.setDirty(true);
+    return true;
   }
 
   setEditable(bool) {

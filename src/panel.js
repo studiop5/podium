@@ -908,7 +908,7 @@ class DetailsPanel extends Panel {
             score.size
           ).toLocaleString()} B</div>`
         : "";
-      const PERM_FLAGS = [
+      let PERM_FLAGS = [
         [4,    "Print"],
         [16,   "Copy"],
         [8,    "Modify"],
@@ -1352,6 +1352,482 @@ class ImportPanel extends Panel {
 
 }
 
+
+/**
+class LayersPanel  -  the annotation ("ink") layers panel.
+  Presents the score/layers stash: array order == draw order, LAST entry is the
+  top layer, rows listed top-first. The top layer is the only editable one (new
+  ink lands on it; move a layer to the top - drag its arrow or tap to step - to
+  work on it) and is drawn as the raised sheet. layer.ink in [0,1] multiplies the
+  transparency each mark already carries (0 == hidden); the row's Ink icon
+  strikes out at zero, tapping it mutes. Top layer at zero disables the ink ring.
+  Merge folds the selected layer into the one directly below it, baking that
+  layer's ink into its marks on the way down so nothing changes strength; with
+  reordering, that is enough to combine any set of layers. Merge and Delete walk
+  every page, so they run under the shade and can be stopped part way (see longOp
+  and Score.walkPages).
+  The panel owns the layer TABLE; the marks themselves are the score's business,
+  so every change here ends in _score_.applyLayers() (or delete/mergeLayer) to
+  push the table onto the fabric objects. See Pg.applyLayers.
+**/
+class LayersPanel extends Panel {
+  static css = css(
+    "LayersPanel",
+    `
+    .LayersPanel__body {
+      margin: var(--spacing-sm);
+      width: 15em;
+      color: var(--color-text);
+    }
+    .LayersPanel__list {
+      margin: 0 0.45em; /* inset by the top row's overhang, below */
+      overflow: visible; /* the top row overhangs the list's edges */
+      touch-action: none; /* rows are drag-reordered with the pointer */
+    }
+    .LayersPanel__row {
+      display: grid;
+      grid-template-columns: 1.9em 2.4em 1fr auto;
+      align-items: center;
+      height: 2.8em; /* every row same height: drag-reorder divides list height by row count */
+      background: var(--color-surface);
+      /* Dark theme: --color-surface == --panel-bg, so rows need their own border. */
+      border: 0.05em solid var(--color-border);
+      border-radius: var(--borderRadius);
+    }
+    .LayersPanel__row-top {
+      /* The raised sheet: wider than the rest (overhangs 0.45em each side while
+         its contents stay aligned) and casting a shadow onto them. */
+      margin: 0 -0.45em;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 0.14em 0.18em rgba(0, 0, 0, 0.45),
+                  0 0.34em 0.6em -0.05em rgba(0, 0, 0, 0.45);
+    }
+    .LayersPanel__row:last-child {
+      border-bottom: none;
+    }
+    .LayersPanel__row-selected {
+      background: var(--color-surface-selected);
+    }
+    .LayersPanel__row-selected .LayersPanel__name {
+      font-weight: bold;
+    }
+    .LayersPanel__row-mute .LayersPanel__name,
+    .LayersPanel__row-mute .LayersPanel__level {
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+    .LayersPanel__row-dragging {
+      opacity: 0.7;
+      box-shadow: 0 0.1em 0.4em var(--color-shadow-strong);
+    }
+    .LayersPanel__handle {
+      width: 1.5em;
+      height: 1.5em;
+      margin-left: var(--spacing-sm);
+      color: var(--color-text-muted);
+    }
+    .LayersPanel__ink {
+      width: 1.9em;
+      height: 1.9em;
+    }
+    .LayersPanel__name {
+      font-size: var(--font-size-sm);
+      color: #333;
+      background: white;
+      border: none;
+      outline: none;
+      border-radius: var(--borderRadius);
+      width: 7.25em;
+      padding: 0.2em 0.4em;
+      margin-right: 0.4em;
+    }
+    .LayersPanel__level {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      margin-right: var(--spacing-sm);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+   `
+  );
+
+  content = helm(`
+    <div class="LayersPanel__body">
+      <div data-tag="list" class="LayersPanel__list"></div>
+    </div>`);
+
+  selectedId = null;
+  drag = null; // { pointerId, id } while a row is being dragged
+  sliderProps = { ink: 100 }; // the selected layer's level, as the slider sees it
+
+  constructor(cell) {
+    super(cell);
+    Object.assign(this, dataIndex("tag", this.content));
+    this.body.replaceWith(this.content);
+
+    this.inkGroup = new SliderGroup(
+      this.sliderProps,
+      {
+        ink: {
+          min: 0,
+          max: 100,
+          step: 1,
+          value: 100,
+          msg: () => {
+            let layer = this.selected;
+            if (!layer) return "";
+            return `${layer.name}: ${Math.round(layer.ink * 100)}% ink (${this.count(layer.id)} marks)`;
+          },
+        },
+      },
+      (e, tag, value) => {
+        let layer = this.selected;
+        if (!layer) return;
+        layer.ink = clamp(Number(value) / 100, 0, 1);
+        if (layer.ink > 0) layer.restore = layer.ink;
+        this.paintRow(layer);
+        this.syncInkRing();
+        this.commit();
+      }
+    );
+    this.content.append(this.inkGroup.elm);
+
+    this.buttons = new ButtonGroup(
+      this.cell.stash,
+      {
+        New: { svg: "Layers" },
+        Merge: { svg: "Merge Layer" },
+        Delete: { svg: "Trash" },
+      },
+      (e, property, tag) => this.command(tag)
+    );
+    this.content.append(this.buttons.elm);
+
+    this.listeners.push(listen(this.list, "pointerdown", (e) => this.rowDown(e)));
+
+    // Keep the mark tally live: ink drawn or erased while this panel is open
+    // must show up in the slider's readout, or the figure quietly lies.
+    this.listeners.push(listen(document, "inkChanged", () => {
+      if (this.elm.style.visibility == "visible") this.recount();
+      else this.counts = null; // closed: drop it, recount when next shown
+    }));
+
+    this.selectedId = this.layers.at(-1)?.id ?? null;
+    this.refresh();
+  }
+
+  get selected() {
+    return this.layers.find((l) => l.id == this.selectedId) ?? null;
+  }
+
+  get layers() {
+    // The layer table: array order == draw order, last entry is the top layer.
+    return (this.cell.stash.layers ??= []);
+  }
+
+  count(id) {
+    // How many marks are on this layer, over the whole score - cached, because
+    // the slider rebuilds its label on every frame of a drag and counting walks
+    // every page. Dropped whenever the score's ink actually changes, so the
+    // figure is live without being recomputed speculatively.
+    this.counts ??= new Map();
+    if (!this.counts.has(id)) this.counts.set(id, _score_?.layerCount(id) ?? 0);
+    return this.counts.get(id);
+  }
+
+  recount() {
+    // The tally is stale: drop it and let the slider's label pick up a fresh one.
+    this.counts = null;
+    this.inkGroup.refresh();
+  }
+
+  commit() {
+    // Push the layer table onto the score's marks. Every edit here - ink level,
+    // mute, reorder, rename, new layer - ends in this: the table on its own is
+    // just bookkeeping until the objects are re-dimmed and re-locked to match.
+    if (!_score_) return;
+    _score_.applyLayers();
+    _score_.setDirty(true);
+  }
+
+  rowOf(e) {
+    // The layer id of the row under the given event, or null.
+    for (let elm of e.composedPath())
+      if (elm.dataset && elm.dataset.layerId) return elm.dataset.layerId;
+    return null;
+  }
+
+  rowDown(e) {
+    // A press selects the row (aims the slider); on the ink icon it mutes, on
+    // the handle it starts a drag-reorder. Never rebuilds rows - that would drop
+    // the caret out of a name field just tapped into.
+    let id = this.rowOf(e);
+    if (!id) return;
+    e.taken = true; // don't let the panel/pz machinery claim this gesture
+    this.selectedId = id;
+    this.markSelected();
+    let handleElm = e.composedPath().find((elm) => elm.classList?.contains("LayersPanel__handle"));
+    let onInk = e.composedPath().some((elm) => elm.classList?.contains("LayersPanel__ink"));
+    if (onInk) {
+      // mute/unmute: to zero, or back to where the layer last was
+      let layer = this.layers.find((l) => l.id == id);
+      layer.ink = layer.ink > 0 ? 0 : layer.restore || 1;
+      this.paintRow(layer);
+      this.syncInkRing();
+      this.syncSlider();
+      this.commit();
+    }
+    if (!handleElm) return;
+
+    // Drag-reorder. Capture on the list (never moved), so re-ordering its
+    // children can't drop the capture out from under us.
+    this.drag = {
+      pointerId: e.pointerId,
+      id,
+      moved: false,
+      downY: e.clientY,
+      handleBox: handleElm.getBoundingClientRect(),
+    };
+    this.list.setPointerCapture(e.pointerId);
+    this.rowElm(id)?.classList.add("LayersPanel__row-dragging");
+
+    let mv = listen(this.list, "pointermove", (emv) => {
+      if (emv.pointerId != this.drag?.pointerId) return;
+      let rows = [...this.list.children];
+      if (rows.length < 2) return;
+      let box = this.list.getBoundingClientRect();
+      let rowH = box.height / rows.length;
+      let to = clamp(Math.floor((emv.clientY - box.top) / rowH), 0, rows.length - 1);
+      // rows are displayed top layer first: display index N == layers index (len-1-N)
+      let from = this.layers.length - 1 - this.layers.findIndex((l) => l.id == this.drag.id);
+      if (to == from) return;
+      let [layer] = this.layers.splice(this.layers.length - 1 - from, 1);
+      this.layers.splice(this.layers.length - to, 0, layer);
+      this.drag.moved = true;
+      this.reorder();
+    });
+
+    let up = listen(this.list, ["pointerup", "pointercancel"], (eup) => {
+      if (eup.pointerId != this.drag?.pointerId) return;
+      this.rowElm(this.drag.id)?.classList.remove("LayersPanel__row-dragging");
+      // No drag == a tap on the arrow: step the row one place (step() reads which
+      // half of a two-headed arrow was pressed for direction).
+      if (!this.drag.moved && eup.type == "pointerup") this.step(this.drag);
+      let reordered = this.drag.moved || eup.type == "pointerup";
+      this.drag = null;
+      unlisten(mv, up);
+      this.refresh(); // repaint arrows: the row's position may have changed
+      // Commit once, here rather than per pointermove: a reorder can change which
+      // layer is on top, and re-locking every mark on every page mid-drag would
+      // be far too much work to do per frame.
+      if (reordered) this.commit();
+    });
+  }
+
+  rowElm(id) {
+    return [...this.list.children].find((elm) => elm.dataset.layerId == id);
+  }
+
+  step(drag) {
+    // Move a layer one row. "up" the displayed list == later in the array (drawn
+    // bottom-first).
+    let i = this.layers.findIndex((l) => l.id == drag.id);
+    if (i < 0 || this.layers.length < 2) return;
+    let up;
+    if (i == this.layers.length - 1) up = false; // top row: only down
+    else if (i == 0) up = true; // bottom row: only up
+    else {
+      let box = drag.handleBox; // two-headed arrow: pressed half picks direction
+      up = drag.downY < box.top + box.height / 2;
+    }
+    let [layer] = this.layers.splice(i, 1);
+    this.layers.splice(i + (up ? 1 : -1), 0, layer);
+  }
+
+  markRows() {
+    // Per-position state: top row is the raised sheet; the arrow shows the moves
+    // still open (ends get one head, middle gets both, a lone row gets none).
+    let rows = [...this.list.children];
+    for (let [i, elm] of rows.entries()) {
+      elm.classList.toggle("LayersPanel__row-top", rows.length > 1 && i == 0);
+      let want =
+        rows.length < 2 ? "" : i == 0 ? "Arrow Down" : i == rows.length - 1 ? "Arrow Up" : "Arrow Up Down";
+      let handle = elm.querySelector(".LayersPanel__handle");
+      if (handle.dataset.arrow == want) continue;
+      let fresh = helm(
+        want ? iconSvg(want, { class: "LayersPanel__handle" }) : `<div class="LayersPanel__handle"></div>`
+      );
+      fresh.dataset.arrow = want;
+      handle.replaceWith(fresh);
+    }
+  }
+
+  markSelected() {
+    for (let elm of this.list.children)
+      elm.classList.toggle("LayersPanel__row-selected", elm.dataset.layerId == this.selectedId);
+    this.syncSlider();
+    // Merge folds the selected layer into the one below it, so it means nothing
+    // for the bottom layer - there is nothing under it.
+    this.buttons.defs.Merge.disabled = this.layers.findIndex((l) => l.id == this.selectedId) < 1;
+    // A score always keeps at least one layer. Say so by greying the button out,
+    // rather than by accepting the tap and then refusing it in words.
+    this.buttons.defs.Delete.disabled = this.layers.length < 2;
+    this.buttons.refresh();
+  }
+
+  syncSlider() {
+    // Point the one slider at the selected layer.
+    this.sliderProps.ink = Math.round((this.selected?.ink ?? 1) * 100);
+    this.inkGroup.refresh();
+  }
+
+  reorder() {
+    // Reposition existing row elements (not a rebuild - the in-flight drag needs
+    // the pressed row to survive) to match the layer table.
+    for (let layer of this.layers) {
+      let elm = this.rowElm(layer.id);
+      if (elm) this.list.prepend(elm); // layers is bottom-first, rows are top-first
+    }
+    this.markRows();
+  }
+
+  paintRow(layer) {
+    // Update one row's ink readout without rebuilding it (would drop the caret).
+    let elm = this.rowElm(layer.id);
+    if (!elm) return;
+    let inkElm = elm.querySelector(".LayersPanel__ink");
+    let want = layer.ink > 0 ? "Ink" : "Ink Hidden";
+    if (inkElm.dataset.ink != want) {
+      let fresh = helm(iconSvg(want, { class: "LayersPanel__ink" }));
+      fresh.dataset.ink = want;
+      inkElm.replaceWith(fresh);
+    }
+    dataIndex("tag", elm).level.innerText = Math.round(layer.ink * 100) + "%";
+    elm.classList.toggle("LayersPanel__row-mute", layer.ink == 0);
+  }
+
+  syncInkRing() {
+    // Top layer at zero ink == nowhere to draw. The rule lives on the score: it
+    // has to outlive this panel, and hold for a score opened with a muted top
+    // layer. (No score: the ink ring is already disabled.)
+    _score_?.syncInkRing();
+  }
+
+  command(tag) {
+    if (tag == "New") {
+      let n = this.layers.length + 1;
+      while (this.layers.some((l) => l.name == "Layer " + n)) n++;
+      let id = Score.newLayerId();
+      this.layers.push({ id, name: "Layer " + n, ink: 1, restore: 1 }); // new layer goes on top
+      this.selectedId = id;
+      this.refresh();
+      this.commit(); // the layer that was on top is no longer editable
+      return;
+    }
+    if (tag == "Merge") {
+      let layer = this.selected;
+      let i = layer ? this.layers.indexOf(layer) : -1;
+      if (i < 1) return; // bottom layer: nothing underneath to merge into
+      let below = this.layers[i - 1];
+      // Not undoable (as with flatten), so confirm. What is lost is not the
+      // marks but the line between the two sets of them, so say that.
+      dialog(
+        `Merge "${escapeHtml(layer.name)}" into "${escapeHtml(below.name)}"?<br>This cannot be undone.`,
+        { Cancel: { svg: "Cancel" }, Merge: { svg: "Merge Layer" } },
+        async (e, property, buttonTag, args) => {
+          args.close();
+          if (buttonTag != "Merge") return;
+          await this.longOp("Merging", (progress) => _score_.mergeLayer(layer.id, progress));
+          this.selectedId = below.id;
+          this.refresh();
+        }
+      );
+      return;
+    }
+    if (tag == "Delete") {
+      let layer = this.layers.find((l) => l.id == this.selectedId);
+      if (!layer) return;
+      if (this.layers.length < 2) return; // can't happen: the button is disabled
+      let marks = this.count(layer.id);
+      // Not undoable (as with flatten), so confirm.
+      let dlg = dialog(
+        `Delete layer "${escapeHtml(layer.name)}"${marks ? ` and all ${marks} of its marks` : ""}?<br>This cannot be undone.`,
+        { Cancel: { svg: "Cancel" }, Delete: { svg: "Trash" } },
+        async (e, property, buttonTag, args) => {
+          args.close();
+          if (buttonTag != "Delete") return;
+          await this.longOp("Deleting", (progress) => _score_.deleteLayer(layer.id, progress));
+          this.selectedId = this.layers.at(-1).id;
+          this.refresh();
+        }
+      );
+      return;
+    }
+  }
+
+  async longOp(label, run) {
+    // Merging and deleting touch every page, inflating any that are deflated, so
+    // on a long score they take a moment: put the shade up, counting pages.
+    // The shade always carries a DISMISS button, so it has to mean something
+    // here - it stops the walk at the next page boundary. That is safe because
+    // the layer table is only edited once every page is done: stopping early
+    // leaves the layer in place holding whatever has not been moved or removed
+    // yet, which is a perfectly ordinary state, and running the command again
+    // finishes the job. Nothing reaches the file until the score is saved.
+    // The message deliberately carries no layer name: Shade.update writes it as
+    // innerHTML.
+    let stop = false;
+    _shade_.show(label + "...", 0);
+    _shade_.onCancel = () => (stop = true);
+    try {
+      let done = await run((n, total) => {
+        _shade_.update(`${label}... ${n + 1} / ${total}`);
+        return !stop;
+      });
+      if (!done) toast("Stopped part way. The layer was kept.");
+    } finally {
+      _shade_.onCancel = null;
+      _shade_.hide();
+    }
+  }
+
+  refresh() {
+    this.counts = null; // layers may have come or gone: recount on demand
+    clearChildren(this.list);
+    // Rows are listed top layer first, so walk the table backwards.
+    for (let layer of [...this.layers].reverse()) {
+      layer.ink ??= 1;
+      let row = helm(`
+        <div class="LayersPanel__row" data-layer-id="${layer.id}">
+          <div class="LayersPanel__handle"></div>
+          ${iconSvg(layer.ink > 0 ? "Ink" : "Ink Hidden", { class: "LayersPanel__ink" })}
+          <input data-tag="name" class="LayersPanel__name" type="text" value="${escapeHtml(layer.name)}">
+          <div data-tag="level" class="LayersPanel__level"></div>
+        </div>`);
+      row.querySelector(".LayersPanel__ink").dataset.ink = layer.ink > 0 ? "Ink" : "Ink Hidden";
+      if (layer.id == this.selectedId) row.classList.add("LayersPanel__row-selected");
+      let nameElm = dataIndex("tag", row).name;
+      listen(nameElm, "change", () => {
+        layer.name = nameElm.value.trim().slice(0, 40) || layer.name;
+        nameElm.value = layer.name;
+        this.inkGroup.refresh();
+        _score_?.setDirty(true); // a name is table-only: no need to touch the marks
+      });
+      this.list.append(row);
+      this.paintRow(layer);
+    }
+    this.markRows();
+    this.syncInkRing();
+    this.markSelected(); // also syncs the slider and the Merge button's state
+  }
+
+  show() {
+    super.show();
+    this.refresh();
+    return this;
+  }
+}
 
 class LayoutPanel extends Panel {
   // Superclass for all Layout panels.
@@ -2378,11 +2854,16 @@ class Pzr extends Surface {
     let step = 1;
     switch(pos) {
       case 16: step = -1;
-      case 18: 
-        let objs = obj.canvas.getObjects();
+      case 18:
+        // Step only through marks the user can actually edit: flattened marks,
+        // and marks on any layer below the top one, are locked (selectable false)
+        // and must not become the target.
+        let objs = obj.canvas.getObjects().filter((o) => o.selectable && !o.flatten);
+        if (!objs.length) break;
         let knt = objs.length;
-        let i = (objs.indexOf(obj) + knt + step) % knt;
-        obj.canvas.setActiveObject(objs[i]) ; 
+        let at = objs.indexOf(obj);
+        let i = at < 0 ? 0 : (at + knt + step) % knt;
+        obj.canvas.setActiveObject(objs[i]) ;
         break;
 
     default: { // rotate:
@@ -3119,7 +3600,7 @@ class PrintPanel extends Panel {
       props,
       {
         Ink: { svg: "Ink" },
-        "No Ink": { svg: "No Ink" },
+        "No Ink": { svg: "Ink Off" },
       },
       async (e, prop, tag) => {
         let printWin = null;
@@ -3491,6 +3972,7 @@ let panels = window._panels_ = {
   OpenPanel,
   ImportPanel,
   KeyboardPanel,
+  LayersPanel,
   PencilPanel,
   PenPanel,
   PianoPanel,

@@ -538,7 +538,7 @@ if args.guide:
     # Curated keywords: body-text terms not found in headings.
     # Maps keyword -> list of anchor IDs.
     CURATED_KEYWORDS = {
-        "Annotations": ["chapter-6", "chapter-1"],
+        "Annotations": ["chapter-4-print", "chapter-6", "chapter-1"],
         "Aspect ratio": ["chapter-6-edit"],
         "Bookmarks": ["chapter-5-bookmarks"],
         "Bravura font": ["chapter-6-symbols"],
@@ -572,6 +572,8 @@ if args.guide:
         "Images, importing": ["chapter-6-cut-copy-paste"],
         "IMSLP": ["chapter-2"],
         "Import": ["chapter-7-export-import"],
+        "Ink": ["chapter-4-print", "chapter-6", "chapter-1"],
+        "Ink level": ["chapter-4-layers"],
         "Inner ring": ["chapter-3"],
         "Installation": ["chapter-2"],
         "Keyboard shortcuts": ["chapter-7-numbers"],
@@ -582,7 +584,8 @@ if args.guide:
         "Long press": ["chapter-3"],
         "Magnify": ["chapter-7-magnify"],
         "Manuscript paper": ["chapter-7-flatten", "chapter-6-rastrum"],
-        "Merge": ["chapter-7-merge"],
+        "Marks": ["chapter-4-print", "chapter-6"],
+        "Merge": ["chapter-7-merge", "chapter-4-layers"],
         "Metadata": ["chapter-4-details"],
         "Microphone": ["chapter-9-review", "chapter-9-piano"],
         "Mouse controls": ["chapter-3"],
@@ -636,6 +639,7 @@ if args.guide:
         "Tuner": ["chapter-9-piano"],
         "Undo history": ["chapter-6-undo", "chapter-7-undo"],
         "Waveform": ["chapter-9-review"],
+        "Working layer": ["chapter-4-layers"],
         "YIN pitch detection": ["chapter-9-piano"],
         "Zoom": ["chapter-7-magnify", "chapter-3"],
     }
