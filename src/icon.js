@@ -51,6 +51,13 @@ let circlePath = (r, cx, cy) =>
 
 let scissorsD = "M244 518Q244 499 236.5 479.5Q229 460 229 457Q229 439 267 439Q288 439 335.5 424.5Q383 410 421 393L733 511Q793 533 834 533Q861 533 880.0 524.5Q899 516 926 492L549 348L927 206Q888 166 832 166Q787 166 730 187L421 301Q321 262 251 251Q240 249 236.5 248.0Q233 247 231.5 244.5Q230 242 230.0 236.0Q230 230 238.0 212.5Q246 195 246 175Q246 135 216.0 108.0Q186 81 141.0 81.0Q96 81 67.0 107.5Q38 134 38 175Q38 222 73.5 251.5Q109 281 165 281L233 280Q277 280 310.0 298.5Q343 317 354 348Q325 413 230 413L160 411Q105 411 70.0 439.5Q35 468 35.0 512.0Q35 556 64.0 583.5Q93 611 139 611Q183 611 213.5 584.0Q244 557 244 518ZM146 443Q174 443 192.5 462.0Q211 481 211.0 510.0Q211 539 190.0 559.0Q169 579 138.0 579.0Q107 579 87.5 561.0Q68 543 68.0 514.0Q68 485 91.0 464.0Q114 443 146 443ZM148 249Q117 249 94.0 226.5Q71 204 71 175Q71 148 90.0 130.5Q109 113 138 113Q172 113 192.5 132.5Q213 152 213 185Q213 213 194.5 231.0Q176 249 148 249Z";
 
+// The quill and inkwell shared by the Ink, Ink Hidden and Ink Off icons, which
+// differ only in fill (plus, for Ink Hidden, an X struck over the top). A single
+// path draws quill and inkwell together, so a fill change hits both of them.
+let inkPath = (fill) =>
+  `<path style="fill:${fill};stroke:currentColor;stroke-width:0.6;stroke-linecap:butt;stroke-linejoin:miter;" d="m13.5,16.7c1.3,0.4 3.3,0.5 4.4,0m-6.3,1.6c2.1,0.9 6.3,0.9 8.1,0M16.8,17.9C14.8,13.9 14.2,10.2 4.5,2.98 8.43,6.49 12.7,11 16.8,17.9ZM14,13.6C11.8,13.2 10.4,12.2 9.55,11L9.87,10.3 8.48,10.1C5.05,7.72 4.04,3.78 3.08,1.77 5.26,2.68 7.43,3.63 9.43,4.9L9.57,5.78 10.1,5.41c1.7,1.12 3.5,2.34 4.2,4.12l0.1,1.77 0.5,-0.4c0.5,1.2 0.5,2.1-0.2,2.6m-2.3,8c-1.6,-0.2-1.1,-2.3-0.8,-3.2 0.3,-0.9 1.1,-1.5 1.9,-1.6 0,-1 0.2,-1.4 0.4,-1.6 1,-0.1 2.2,-0.2 3.5,0 0.5,0.5 0.4,1 0.5,1.6 0.9,0 1.5,0.7 1.8,1.6 0.3,0.9 0.6,3.1-0.8,3.2-1.4,0.1-4.9,0.2-6.5,0z"/>`;
+
+
 const iconPaths = {
 
 "Curtain Black":
@@ -65,6 +72,16 @@ Alpha:
 
 About:
   `<text font-size="24px" y="20" x="7" font-family="Bravura" fill="currentColor">\ued19</text>`,
+
+"Arrow Down":
+  `<text font-size="24px" y="19" x="5" fill="currentColor">\u2193</text>`,
+
+"Arrow Up":
+  `<text font-size="24px" y="19" x="5" fill="currentColor">\u2191</text>`,
+
+"Arrow Up Down":
+  `<text font-size="24px" y="19" x="5" fill="currentColor">\u2195</text>`,
+
 
 "Blank Page":
   `<path style="fill:none;stroke:#000;stroke-width:.6" d="M3 3h17v20h-17Z"/>`,
@@ -248,7 +265,17 @@ Inch:
   `<path stroke="currentColor" stroke-width="1.0" d="M1 1h22M1 1v24M6 1v6M12 1v12M18 1v6M23 1v23">`,
 
 Ink:
-  `<path style="fill:#aaa;stroke:currentColor;stroke-width:0.6;stroke-linecap:butt;stroke-linejoin:miter;" d="m13.5,16.7c1.3,0.4 3.3,0.5 4.4,0m-6.3,1.6c2.1,0.9 6.3,0.9 8.1,0M16.8,17.9C14.8,13.9 14.2,10.2 4.5,2.98 8.43,6.49 12.7,11 16.8,17.9ZM14,13.6C11.8,13.2 10.4,12.2 9.55,11L9.87,10.3 8.48,10.1C5.05,7.72 4.04,3.78 3.08,1.77 5.26,2.68 7.43,3.63 9.43,4.9L9.57,5.78 10.1,5.41c1.7,1.12 3.5,2.34 4.2,4.12l0.1,1.77 0.5,-0.4c0.5,1.2 0.5,2.1-0.2,2.6m-2.3,8c-1.6,-0.2-1.1,-2.3-0.8,-3.2 0.3,-0.9 1.1,-1.5 1.9,-1.6 0,-1 0.2,-1.4 0.4,-1.6 1,-0.1 2.2,-0.2 3.5,0 0.5,0.5 0.4,1 0.5,1.6 0.9,0 1.5,0.7 1.8,1.6 0.3,0.9 0.6,3.1-0.8,3.2-1.4,0.1-4.9,0.2-6.5,0z"/>`,
+  `${inkPath("#aaa")}`,
+
+// For a layer the Layers panel is showing no ink for. Ink Off (the unfilled
+// quill) is too weak a signal at cell size, so this one is struck out as well.
+"Ink Hidden":
+  `${inkPath("none")}
+   <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M6 6 18 18M18 6 6 18"/>`,
+
+// Formerly "No Ink", renamed so the three ink icons sort together.
+"Ink Off":
+  `${inkPath("none")}`,
 
 Jpg:
   `<rect width="24" height="24" rx="2" fill="#aaa" />
@@ -259,7 +286,6 @@ Keyboard:
  `<g style="fill:none;stroke:currentColor;stroke-width:0.6">
   <!-- paper -->
   <path d="M5 1h14v6H5z"/>
-  
   <!-- Platen and Symmetric Knobs -->
   <path d="M2.5 7h19"/>
   <rect x=".25" y="6" width="2" height="4" fill="black"/>
@@ -268,10 +294,8 @@ Keyboard:
   <path d="M11 11.5l.5-3 M13 11.5l-.5 -3"/>
   <!-- carriage return -->
   <path d="M0 5 Q 2 2 3 4 L3.5 6.5"/>
-
   <!-- Symmetric Body with Centered U-Cutout -->
-  <!-- path d="M1 11v8a3 3 0 0 0 3 3h16a3 3 0 0 0 3-3v-8c0-2-1-3-3-3h-5v1a3 3 0 0 1-6 0V8H4c-2 0-3 1-3 3z" /-->
-     <path fill="#aaa" d="M1 11v8 a3 3 0 0 0 3 3h16 a3 3 0 0 0 3-3v-8 c0-2-1-3-3-3 h-2.5  v1 a3 1.5 0 0 1-11 0 V8 H4   c-2 0-3 1-3 3z" />
+  <path fill="#aaa" d="M1 11v8 a3 3 0 0 0 3 3h16 a3 3 0 0 0 3-3v-8 c0-2-1-3-3-3 h-2.5  v1 a3 1.5 0 0 1-11 0 V8 H4 c-2 0-3 1-3 3z"/>
   <!-- Balanced Circular Keys -->
   <g fill="black">
   <circle cx="3" cy="13.5" r="0.8"/>
@@ -280,20 +304,22 @@ Keyboard:
   <circle cx="13.8" cy="13.5" r="0.8" />
   <circle cx="17.4" cy="13.5" r="0.8" />
   <circle cx="21" cy="13.5" r="0.8" />
-  
   <circle cx="4.8" cy="16.5" r="0.8" />
   <circle cx="8.4" cy="16.5" r="0.8" />
   <circle cx="12" cy="16.5" r="0.8" />
   <circle cx="15.6" cy="16.5" r="0.8" />
   <circle cx="19.2" cy="16.5" r="0.8" />
   </g>
-
-  
   <!-- Spacebar -->
   <rect x="8" y="19.5" width="8" height="1.2" rx="0.5" />
   <rect x="8" y="19" width="8" height="1.2" rx="0.5" />
   </g>`,
 
+Layers:
+  `<rect x="4" y="5" width="18.5" height="18.5" rx="1" fill="#bbb" stroke="currentColor" stroke-width="0.7"/>
+   <rect x="2" y="3" width="18.5" height="18.5" rx="1" fill="#bbb" stroke="currentColor" stroke-width="0.7"/>
+   <rect x=".5" y="1" width="18.5" height="18.5" rx="1" fill="#aaa" stroke="currentColor" stroke-width="0.7"/>
+   <g transform="scale(.7 .7) translate(2 4)"> ${inkPath("#aaa")} </g>`,
 
 Layout:
   `<path fill="none" stroke="currentColor" stroke-width="0.8" d="m12.1,1.82v2.13m0,8.35v3.9M16.8,11A3.88,4.91 86.2 0 1 11.9,14.3 3.88,4.91 86.2 0 1 7.09,11.1M11.4,8.08C10.3,7.89 9.88,6.88 9.99,5.76 10.1,4.65 11.1,3.81 12.2,3.84c1.1,0 2,0.92 2.1,2.04 0,1.11-0.4,2-1.5,2.13M4.97,21 12.2,7.03 19.8,21"/>`,
@@ -330,8 +356,6 @@ Menu:
   </g>`,
 
 
-//   <path style="fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
-
 Merge:
   `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 5h17v17.5h-17Z"/>
    <path style="fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 8h12M5.5 14h12 M5.5 20h12"/>
@@ -339,6 +363,14 @@ Merge:
      <text x="5.5" y="19" style="fill:currentColor;font-family:Bravura;font-size:12">\uE635</text>,
      <text x="12" y="19" style="fill:currentColor;font-family:Bravura;font-size:12">\uE635</text> 
    </g>`,
+
+
+"Merge Layer":
+  `<rect x="8" y="8" width="12.5" height="12.5" fill="#bbb" stroke="currentColor" stroke-width="0.7"/>
+   <rect x="1" y="1" width="12.5" height="12.5" fill="#aaa" stroke="currentColor" stroke-width="0.7"/>
+   <text x="5.5" y="18" style="fill:currentColor;font-size:22px">\u2198</text>
+`,
+
 
 Metric:
   `<path stroke="currentColor" stroke-width="1.0" d="M1 1h22M1 1v24M5 1v6M9 1v6M13 1v6M17 1v6M21 1v12">`,
@@ -388,8 +420,6 @@ More:
   <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>,
  <text y="15" x="7" style="font-size:33px;transform:translate(-12px,2px);">\u2194</text>`,
 
-"No Ink":
-  `<path style="fill:none;stroke:currentColor;stroke-width:0.6;stroke-linecap:butt;stroke-linejoin:miter;" d="m13.5,16.7c1.3,0.4 3.3,0.5 4.4,0m-6.3,1.6c2.1,0.9 6.3,0.9 8.1,0M16.8,17.9C14.8,13.9 14.2,10.2 4.5,2.98 8.43,6.49 12.7,11 16.8,17.9ZM14,13.6C11.8,13.2 10.4,12.2 9.55,11L9.87,10.3 8.48,10.1C5.05,7.72 4.04,3.78 3.08,1.77 5.26,2.68 7.43,3.63 9.43,4.9L9.57,5.78 10.1,5.41c1.7,1.12 3.5,2.34 4.2,4.12l0.1,1.77 0.5,-0.4c0.5,1.2 0.5,2.1-0.2,2.6m-2.3,8c-1.6,-0.2-1.1,-2.3-0.8,-3.2 0.3,-0.9 1.1,-1.5 1.9,-1.6 0,-1 0.2,-1.4 0.4,-1.6 1,-0.1 2.2,-0.2 3.5,0 0.5,0.5 0.4,1 0.5,1.6 0.9,0 1.5,0.7 1.8,1.6 0.3,0.9 0.6,3.1-0.8,3.2-1.4,0.1-4.9,0.2-6.5,0z"/>`,
 
 "Normal Screen":
   `<path fill="#aaa" stroke="currentColor" stroke-width="0.9" d="M8.04,15.7 4.94,19m3.1,0v-3.3h-3.1m10.36,0 3.1,3.3m-3.1,0v-3.3h3.1M8.03,8.24 4.93,5M8.1,5.12V8.36H5M15.3,8.24 18.4,5m-3.1,0v3.24h3.1M8.99,9.01a0.4,0.4 0 0 0-0.4,0.4v5.39a0.4,0.4 0 0 0 0.4,0.4h5.41a0.4,0.4 0 0 0 0.4,-0.4V9.41a0.4,0.4 0 0 0-0.4,-0.4z" />`,
@@ -493,6 +523,13 @@ Range:
 Rastrum:
   `<path fill="#aaa" stroke="currentColor" stroke-width=".6" d="M15.6,2.74 17,1.48 22.4,6.75 21.1,8.04ZM0.472,17.8 6.59,10C9.69,8.18 12.9,6.65 15.5,4.16l4.2,4.17C17.4,10.7 15.5,14 13.5,17.3l-7.55,6.2 6.15,-7.6-7.56,6C4.31,22.1 11.1,14 10.6,14.4l-7.49,6.1 6.21,-7.6-7.65,6.2c-0.59,0.5 6.51,-8.2 6.06,-7.8z"/>`,
 
+// The waste bin with a recycling mark in it: used wherever something is being
+// sent away rather than destroyed (files, folders). Delete, which does destroy,
+// uses the plain bin - see Trash.
+Recycle:
+  `<path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.6) translate(6,8)" fill="#aaa" stroke-linecap="round" stroke="currentColor" stroke-width="0.8" d="M-4-2h32l-4 32h-24l-4-32l1-2h30l1 2M8-4v-3h8v3"/>
+  <path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.6) translate(6,9.5)" fill="#ccc" stroke-linecap="round" stroke="currentColor" stroke-width="0.8" d="m13.7,7.93-1.5,0.6h4.4l1.8,-3.2-1.2,0.5-1.2,-1.1c-0.3,-0.3-0.6,-0.6-0.8,-0.6l-4.4,-0.3 0.9,0.9zM6.97,7.33 8.65,4.77C9.82,3.57 11.2,4.62 11.4,5L12,6.14 10,9.33ZM8.67,12.4 10,12.9 7.87,9.33h-3.9l1.5,0.97-0.9,1.8c-0.3,0.3-0.3,0.8-0.3,1.1l2.1,3.9 0.3,-1.2zm3.03,6.1-3.33,0.3c-1.7,-0.6-1.7,-2.3-1.4,-2.6l0.8,-1.5h3.93zm3.2,-3.8v-1.5l-2.1,3.6 2.1,3.4v-1.4h2c0.6,0 0.6,-0.3 0.9,-0.6l2.1,-3.8-0.9,0.3zm3.8,-5.87 1.8,2.97c0.5,1.7-0.9,2.6-1.5,2.6h-1.5l-2.3,-3.8z"/>`,
+
 Refresh:
   `<path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" fill="currentColor"/>`,
 
@@ -574,10 +611,12 @@ Text:
   `<text x="0" y="16" font-size="12px" fill="currentColor">Abc</text>` ,
 
 Trash:
-  `<path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.6) translate(6,8)" fill="#aaa" stroke-linecap="round" stroke="currentColor" stroke-width="0.8" d="M-4-2h32l-4 32h-24l-4-32l1-2h30l1 2M8-4v-3h8v3"/>,
-  <path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.6) translate(6,9.5)" fill="#ccc" stroke-linecap="round" stroke="currentColor" stroke-width="0.8" d="m13.7,7.93-1.5,0.6h4.4l1.8,-3.2-1.2,0.5-1.2,-1.1c-0.3,-0.3-0.6,-0.6-0.8,-0.6l-4.4,-0.3 0.9,0.9zM6.97,7.33 8.65,4.77C9.82,3.57 11.2,4.62 11.4,5L12,6.14 10,9.33ZM8.67,12.4 10,12.9 7.87,9.33h-3.9l1.5,0.97-0.9,1.8c-0.3,0.3-0.3,0.8-0.3,1.1l2.1,3.9 0.3,-1.2zm3.03,6.1-3.33,0.3c-1.7,-0.6-1.7,-2.3-1.4,-2.6l0.8,-1.5h3.93zm3.2,-3.8v-1.5l-2.1,3.6 2.1,3.4v-1.4h2c0.6,0 0.6,-0.3 0.9,-0.6l2.1,-3.8-0.9,0.3zm3.8,-5.87 1.8,2.97c0.5,1.7-0.9,2.6-1.5,2.6h-1.5l-2.3,-3.8z"/>`,
+  `<path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.6) translate(6,8)" fill="#aaa" stroke-linecap="round" stroke="currentColor" stroke-width="0.8" d="M-4-2h32l-4 32h-24l-4-32l1-2h30l1 2M8-4v-3h8v3"/>
+  <text fill="currentColor" y="18" x="6" font-size="20px">\u00d7</text>
+  `,
 
 TuningFork:
+
   `<path style="fill:currentColor;transform:scale(.7) translate(5px,6px)" d="M1.102562,22.391872 6.8926979,15.709595 6.4539927,13.040411C10.3489,8.9372266 14.277758,6.993404 18.138714,0.73085919L19.512348,1.8269521 9.6277644,12.418518c-1.0080639,1.850254 1.3131146,2.290741 1.8170396,1.541383L21.384356,3.4582128 22.59468,4.5620395C18.53232,6.6557468 14.903386,13.08682 11.057739,17.349209L8.3613917,16.885233 2.0669863,23.230394C1.6842162,23.407502 1.017983,22.79385 1.1025502,22.391852Z"/>`,
 
 "T-B":

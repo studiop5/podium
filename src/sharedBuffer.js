@@ -39,8 +39,10 @@ class SharedBuffer {
     this.dbName = 'Podium';
     this.storeName = 'podium';
     this.dbKey = "pod-pb-pdf";
+    this.layersKey = "pod-pb-layers";
     this.version = 1;
     this.score = null;
+    this.layers = null; // cached layer name book, see getLayers
   }
 
   async init() {
@@ -96,6 +98,7 @@ class SharedBuffer {
 
             case "pod-pgs-changed": // Another tab has modified the shared buffer
               this.score = null;
+              this.layers = null; // another tab may have copied: re-read the name book
               this.announce();
               // Enable/disable the import cell here (the always-on storage listener,
               // registered once per tab) rather than relying on the buffer panel's
@@ -138,7 +141,7 @@ class SharedBuffer {
     localStorage.setItem(msg, JSON.stringify(payload));
   }
 
-  async getScore() { 
+  async getScore() {
     // @return Score constructed from shared buffer pdf (if available, else new, empty Score)
     if(this.score) return this.score; // cached
     let pdfData = (await this.get(this.dbKey))?.data;
@@ -147,9 +150,35 @@ class SharedBuffer {
     return this.score;
   }
 
+  async getLayers() {
+    // The buffer's "name book": the annotation-layer table entries for every layer
+    // id it has seen copied into it.
+    //
+    // It has to live BESIDE the buffer's pdf rather than inside it. A score's
+    // layer table travels in its pdf attachment, but that attachment is rebuilt
+    // from the ACTIVE score's stash every time the buffer is re-serialized - and
+    // at paste time the active score is the DESTINATION, not the source the pages
+    // came from. Written into the pdf, the names would be overwritten with the
+    // destination's own table just before the paste that needs them.
+    //
+    // It is a dictionary, not a mirror: entries are never removed when pages are
+    // popped, because a stale entry costs nothing. Score.mergeLayers only creates
+    // a layer for an id that the pasted marks actually carry.
+    if (this.layers) return this.layers;
+    this.layers = (await this.get(this.layersKey))?.data ?? [];
+    return this.layers;
+  }
+
+  async putLayers(layers) {
+    this.layers = layers;
+    await this.put(this.layersKey, layers);
+  }
+
   async pgClear() {
-    await this.clear(this.dbKey);    
+    await this.clear(this.dbKey);
+    await this.clear(this.layersKey);
     this.score = null;
+    this.layers = null;
     this.signal("pod-pgs-changed");
     this.announce();
   }
@@ -160,6 +189,14 @@ class SharedBuffer {
       let pbScore = await this.getScore();
       this.score = await pbScore.bindScore(pgPdf, pbScore.pgs.length + 1);
       await this.put(this.dbKey, await this.score.toPdf());
+      // Remember the source score's layer names and levels. The marks themselves
+      // travel tagged with their layer ids, but the table naming those ids is not
+      // carried by the buffer's pdf (see getLayers). First writer wins: a score
+      // that shares an id shares the name already recorded for it.
+      let book = await this.getLayers();
+      let seen = new Set(book.map((l) => l.id));
+      for (let layer of _score_.layers) if (!seen.has(layer.id)) book.push({ ...layer });
+      await this.putLayers(book);
       this.signal("pod-pgs-changed");
       this.announce();
       _menu_.enableCells("page/import", true);
@@ -183,7 +220,10 @@ class SharedBuffer {
   async pgPaste(pn) {
     let pbScore = await this.getScore();
     let pbPdf = await pbScore.toPdf();
-    let mergedScore = await _score_.bindScore(pbPdf, pn);
+    // Hand the name book over explicitly: pbPdf's own attachment was just rebuilt
+    // from the active score's stash, i.e. the DESTINATION's layer table, so it
+    // cannot name the layers the pasted marks belong to (see getLayers).
+    let mergedScore = await _score_.bindScore(pbPdf, pn, await this.getLayers());
     await mergedScore.activate();
   }
 

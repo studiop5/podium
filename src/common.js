@@ -1578,9 +1578,10 @@ class SliderGroup {
       );
       defs[tag] = tagDef;
       let elm = helm(
-        `<div class="SliderGroup__SliderBlock" data-tag="${tag}">${this.formatMsg(
-          tag
-        )}
+        // The label is a placeholder here, filled in as text by the refresh()
+        // below: a msg can carry user-supplied text (e.g. a layer's name), which
+        // must never be parsed as markup.
+        `<div class="SliderGroup__SliderBlock" data-tag="${tag}">&nbsp;
              <pod-slider class="SliderGroup__SliderBlock__Slider" data-tag="${tag}_slider"
                min="${tagDef.min}" max="${tagDef.max}" step="${tagDef.step}" value="${tagDef.value}" curve="${tagDef.curve}">
           </pod-slider></div>`
@@ -2568,7 +2569,7 @@ function ptrMsg(e, msgFunc, styles) {
   let expander = e.pointertype == "mouse" ? 1 : 2;
   let put = (ev) => {
     let result = msgFunc(ev, div);
-    if (result) div.innerHTML = result.replace("...","") ; // remove "...continuation
+    if (result) div.textContent = result.replace("...","") ; // remove "...continuation
 
     // Measure true content width (only clear minWidth if it's already set)
     if (maxWidth > 0) div.style.minWidth = "";

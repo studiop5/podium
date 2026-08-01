@@ -2100,7 +2100,7 @@ class FileListView {
            </div>
            <div>
              ${source == "Local" ? "" : this.mode == "copy" ? "" : iconSvg("Pencil", {tag: "rename", size: "2.75em", style: "padding:.5em;"})}
-             ${source == "Local" ? "" : this.mode == "copy" ? "" : iconSvg("Trash", {tag: "trash", size: "3em", style: "padding:.5em;"})} </div>
+             ${source == "Local" ? "" : this.mode == "copy" ? "" : iconSvg("Recycle", {tag: "trash", size: "3em", style: "padding:.5em;"})} </div>
            </div>
        </div>`);
     elm.style.background = color;
@@ -2347,7 +2347,7 @@ class FileListView {
     _shade_.show("Trashing file");
 
     return new Promise((accept, reject) => {
-      dialog(`Confirm. Trash File:<br><br><i>${escapeHtml(name)}</i><hr>`, { Trash: { svg: "Trash" }, Cancel: { svg: "Close" } }, async (e, prop, tag, args) => {
+      dialog(`Confirm. Trash File:<br><br><i>${escapeHtml(name)}</i><hr>`, { Trash: { svg: "Recycle" }, Cancel: { svg: "Close" } }, async (e, prop, tag, args) => {
         try {
           args.close();
           if (tag == "Cancel") return;
@@ -2583,7 +2583,7 @@ class FileSystemView extends FileListView {
   async trashDir(path, name) {
     _shade_.show("Trashing folder");
     return new Promise((accept, reject) => {
-      dialog(`Confirm. Trash Folder:<br><br><i>${escapeHtml(name)}</i><hr>`, { Trash: { svg: "Trash" }, Cancel: { svg: "Close" } }, async (e, prop, tag, args) => {
+      dialog(`Confirm. Trash Folder:<br><br><i>${escapeHtml(name)}</i><hr>`, { Trash: { svg: "Recycle" }, Cancel: { svg: "Close" } }, async (e, prop, tag, args) => {
         try {
           args.close();
           if (tag == "Cancel") return;
