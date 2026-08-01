@@ -536,8 +536,12 @@ class Pg {
       if(pg.undoStack?.length > 1)
         return;
     }
-    _menu_.enableCells("ink/undo", false);
-    _menu_.activateCell(null);
+    delay(2, () => {
+      // disable ink/undo after a delay...without the delay, we'll end up
+      // executing an onDown on the page
+      _menu_.enableCells("ink/undo", false);
+      _menu_.activateCell(null);
+    });
   }
 
   flattenObjects() {
