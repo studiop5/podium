@@ -1,7 +1,7 @@
 // Podium Service Worker
 // Enables offline functionality and PWA installation
 
-const CACHE_NAME = 'podium-v2.1.0-c'; // TEMP: replace with real podium-vX.X.X before deploying
+const CACHE_NAME = 'podium-v2.2.0'; // TEMP: replace with real podium-vX.X.X before deploying
 const urlsToCache = [
   './podium.html',
 ];
