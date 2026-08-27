@@ -178,6 +178,7 @@
 <nav>
     <h2>Versions</h2>
     <ul>
+        <li><a href="#v2.2.0">Version 2.2.0</a> <span class="version-date">— August 2026</span></li>
         <li><a href="#v2.1.0">Version 2.1.0</a> <span class="version-date">— July 2026</span></li>
         <li><a href="#v2.0.1">Version 2.0.1</a> <span class="version-date">— April 2026</span></li>
         <li><a href="#v2.0.0">Version 2.0.0</a> <span class="version-date">— March 2026</span></li>
@@ -188,6 +189,37 @@
         For detailed usage instructions, see the <a href="Guidebook.html">Guidebook</a>.
     </p>
 </nav>
+
+
+<!-- ═══════════════════════════════════════════════════════════ V2.2 -->
+<section id="v2.2.0">
+    <h2>Version 2.2.0 <span class="version-tag">— August 2026</span></h2>
+
+    <div class="entry">
+        <h3>Text Cursor Placement</h3>
+        <p class="location">Ink ring → Text</p>
+        <p>While editing a text annotation, the blinking cursor would drift to the left of its
+        true position as more text was typed — about half a character off after ten characters, a
+        full character after twenty. The cursor now lands exactly where the next character will
+        appear, regardless of the length of the text.</p>
+    </div>
+
+    <div class="entry">
+        <h3>Undo of Last Annotation</h3>
+        <p class="location">Ink ring → Undo</p>
+        <p>Undoing the last remaining annotation on a page could also trigger a stray page
+        interaction — as though the page itself had been tapped. Undo now removes the annotation
+        and nothing more.</p>
+    </div>
+
+    <div class="entry">
+        <h3>Update Notification</h3>
+        <p>When Podium starts up after an update, it now shows a one-time notice with a link to
+        these release notes, so you can see what changed at a glance. The notice appears only
+        once per release, and only for returning users — a first launch on a new device shows
+        nothing.</p>
+    </div>
+</section>
 
 
 <!-- ═══════════════════════════════════════════════════════════ V2.1 -->
