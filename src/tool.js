@@ -1832,6 +1832,7 @@ class Review {
 
   mediaDevicesSpec = {};
   mediaStream = null;
+  closed = false;
   recorder = new Recorder();
 
   // At any time, the Reviewer will be either in state "Live"
@@ -1907,6 +1908,7 @@ class Review {
   }
 
   destructor() {
+    this.closed = true;
     if(this.mediaStream) this.mediaStream.getTracks().forEach(track => track.stop());
     if(this.liveSrc) this.liveSrc.disconnect();
     if(this.analyzer) this.analyser.disconnect();
@@ -1919,13 +1921,22 @@ class Review {
   }
 
   async build() {
-    if(!await this.buildOptions()) return this.panel.close(); // no media device(s)
+    if(this.closed) return;
+    let ready = await this.buildOptions();
+    if(this.closed) return;
+    if(!ready) return this.panel.close(); // no media device(s)
 
     // build unchanging parts of the media graph (some of it is built dynamically)
-    this.mediaStream = await navigator.mediaDevices.getUserMedia({
+    let mediaStream = await navigator.mediaDevices.getUserMedia({
        video: { deviceId: {exact: this.mediaDevicesSpec[this.stash.videoSrc].deviceId}},
        audio: { deviceId: {exact: this.mediaDevicesSpec[this.stash.audioSrc].deviceId}},
     });
+
+    if(this.closed) {
+      mediaStream.getTracks().forEach(track => track.stop());
+      return;
+    }
+    this.mediaStream = mediaStream;
 
     [this.actx, this.bus] = Actx.get();
     this.analyser = this.actx.createAnalyser();
@@ -1990,9 +2001,13 @@ class Review {
   }
 
   async buildOptions() {
+    let permissionStream;
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      if(this.closed) return false;
+      this.devices = await navigator.mediaDevices.enumerateDevices();
     } catch (error) {
+      if(this.closed) return false;
       // Report the actual failure rather than always blaming permissions — the
       // most common real cause is NotReadableError (device busy, or the OS audio/
       // video stack was reset out from under a long-lived tab), which a reload fixes.
@@ -2008,8 +2023,11 @@ class Review {
         Also worth checking: the device is plugged in and not held by another app, and this site's browser permissions.<br>
         <a href="http://www.google.com/search?q=How+to+set+browser+permissions">How to set browser permissions</a>`);
       return false;
+    } finally {
+      // This stream only unlocks device enumeration; recording uses the selected devices.
+      permissionStream?.getTracks().forEach(track => track.stop());
     }
-    this.devices = await navigator.mediaDevices.enumerateDevices();
+    if(this.closed) return false;
 
     // Build widgets for Options Panel
     let mediaDevicesSpec = this.mediaDevicesSpec;
@@ -2225,12 +2243,18 @@ class Review {
   async restart() {
     // Called when options have changed: restarts the Review with new parameters,
     // but video/recording will be paused
+    if(this.closed) return;
     this.mediaStream.getTracks().forEach(track => track.stop());
 
-    this.mediaStream = await navigator.mediaDevices.getUserMedia({
+    let mediaStream = await navigator.mediaDevices.getUserMedia({
       video: { deviceId: {exact: this.mediaDevicesSpec[this.stash.videoSrc].deviceId}},
       audio: { deviceId: {exact: this.mediaDevicesSpec[this.stash.audioSrc].deviceId}},
     });
+    if(this.closed) {
+      mediaStream.getTracks().forEach(track => track.stop());
+      return;
+    }
+    this.mediaStream = mediaStream;
     // now (re) start the recorder
     this.recorder.destructor();
     this.recorder = new Recorder();
