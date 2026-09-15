@@ -2173,6 +2173,12 @@ class ReviewPanel extends Panel {
     delay(2, () => this.review.build());
   }
 
+  close() {
+    // Mark closed immediately, before the panel's delayed destruction.
+    this.review.closed = true;
+    super.close();
+  }
+
   destructor() {
     super.destructor();
     this.review.destructor();
