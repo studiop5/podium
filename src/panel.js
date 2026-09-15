@@ -898,10 +898,10 @@ class DetailsPanel extends Panel {
       });
       this.content.append(nameInput);
       let source = score.source
-        ? `<div style="text-align:right;">Source:&nbsp;</div><div>${score.source}</div>`
+        ? `<div style="text-align:right;">Source:&nbsp;</div><div>${escapeHtml(score.source)}</div>`
         : "";
       let path = score.path
-        ? `<div style="text-align:right;">Path:&nbsp;</div><div>${score.path} </div>`
+        ? `<div style="text-align:right;">Path:&nbsp;</div><div>${escapeHtml(score.path)} </div>`
         : "";
       let size = score.size
         ? `<div style="text-align:right;">Size:&nbsp;</div><div>${Number(

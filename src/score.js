@@ -1191,7 +1191,11 @@ class Score {
         let { width, height } = mozPage.getViewport({ scale: 1 });
         let pgJson = scoreJson?.pages ? scoreJson.pages[i]:null;
         this.pgs.push(new Pg(this, width, height, pgJson, i));
-        if(pgJson?.bookmark) this.pgs[this.pgs.length -1].bookmark = pgJson.bookmark;
+        // PDF attachments are untrusted; use red for invalid bookmark colors.
+        if(pgJson?.bookmark)
+          this.pgs[this.pgs.length -1].bookmark =
+            typeof pgJson.bookmark == "string" && CSS.supports("color", pgJson.bookmark)
+              ? pgJson.bookmark : "#ff0000";
         this.maxWidth = Math.max(width, this.maxWidth);
         this.maxHeight = Math.max(height, this.maxHeight);
       }
