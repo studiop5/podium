@@ -2623,13 +2623,15 @@ class Pager {
 
     _score_.pgs.forEach((pg, i) => {
       if(!pg.bookmark) return;
-      this.elm.append(
-        helm(
-          `<div data-tag="bookmark" class="Pager__bookmark"
-         style='${TOP}:${i * pgSpan}%;
-           ${HEIGHT}:${pgSpan}%;${WIDTH}:40%;${LEFT}:${leftPercent}%;background:${pg.bookmark};'</div>`
-        )
+      let elm = helm(
+        `<div data-tag="bookmark" class="Pager__bookmark"
+         style="${TOP}:${i * pgSpan}%;
+           ${HEIGHT}:${pgSpan}%;${WIDTH}:40%;${LEFT}:${leftPercent}%"></div>`
       );
+      elm.style.backgroundColor =
+        typeof pg.bookmark == "string" && CSS.supports("color", pg.bookmark)
+          ? pg.bookmark : "#ff0000";
+      this.elm.append(elm);
     });
   }
 
