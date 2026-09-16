@@ -95,12 +95,10 @@ class SharedBuffer {
               break;
 
             case "pod-pgs-changed": // Another tab has modified the shared buffer
+              await this.score?.dispose();
               this.score = null;
-              this.announce();
-              // Enable/disable the import cell here (the always-on storage listener,
-              // registered once per tab) rather than relying on the buffer panel's
-              // SHAREDBUFFER listener, which is torn down when that panel is closed.
-              _menu_.enableCells("page/import", (await this.getScore()).pgs.length > 0);
+              // announce() refreshes the import cell even when the buffer panel is closed.
+              await this.announce();
               break;
     
             case "pod-pgs-clear": 
@@ -148,10 +146,11 @@ class SharedBuffer {
   }
 
   async pgClear() {
-    await this.clear(this.dbKey);    
+    await this.clear(this.dbKey);
+    await this.score?.dispose();
     this.score = null;
     this.signal("pod-pgs-changed");
-    this.announce();
+    await this.announce();
   }
  
   async pgCopy(pn) {
@@ -159,6 +158,7 @@ class SharedBuffer {
       let pgPdf = await _score_.toPdf("stamp", false, [pn]);
       let pbScore = await this.getScore();
       this.score = await pbScore.bindScore(pgPdf, pbScore.pgs.length + 1);
+      await pbScore.dispose();
       await this.put(this.dbKey, await this.score.toPdf());
       this.signal("pod-pgs-changed");
       this.announce();
