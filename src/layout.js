@@ -142,6 +142,7 @@ class Layout {
   // Set in onDown()'s "copy" case (cut falls through to it) and in TableLayout's
   // drag-out cut; always cleared by the build() wrapper below.
   pasting = false;
+  destroyed = false;
 
   static recto =
     // Define the texture/color used as the background 
@@ -246,7 +247,8 @@ class Layout {
 
   destructor() {
     // Called when layout is about to be replaced by another. Subclasses should call super().
-    this.capturePz(); // remember user's pan-zoom across a same-score layout switch
+    this.destroyed = true;
+    if(!this.score.disposed) this.capturePz(); // remember pan-zoom only for a same-score layout switch
     // (A different score's stale pz is cleared at score-load time, before that
     //  score's own saved pz is restored — see Score.open. Doing it here would
     //  wipe the pz that load already restored, since this destructor runs after.)
@@ -297,6 +299,7 @@ class Layout {
   }
 
   async build(...args) {
+    if(this.destroyed) return;
     // Wrapper around each layout's _build(). Subclasses implement _build(); this
     // wrapper guarantees the `pasting` guard is cleared once a (re)build completes,
     // even if _build() returns early (e.g. BookLayout._build returns when
@@ -616,10 +619,12 @@ class Layout {
           break;
       }
     }
-    this.pnPost(await this.pgGoTo(pn));
+    let targetPn = await this.pgGoTo(pn);
+    if(!this.destroyed) this.pnPost(targetPn);
   }
 
   pgPad(pg) {
+    if(this.destroyed) return;
     // Individual pages can be smaller than their scores largest page, but
     // layouts require all pages to be the same size. When a page as shorter and/or narrower
     // than the score's max height/width, add a border to pad it out.
@@ -813,6 +818,7 @@ class BookLayout extends Layout {
   pn0 = -2;
   inOp = false;
   animId = 0; // prevent multiple pgFlip.animator() threads
+  flipFrame = null;
 
   constructor(score, cell) {
     super(score, cell);
@@ -858,6 +864,13 @@ class BookLayout extends Layout {
   }
 
   destructor() {
+    this.animId++; // invalidate an animation even if its callback is already queued
+    cancelAnimationFrame(this.flipFrame);
+    this.flipFrame = null;
+    this.closeFunc = null;
+    this.inOp = false;
+    unlisten(this.navMv, this.navUp);
+    this.navMv = this.navUp = null;
     super.destructor();
     this.pagerLeft?.destructor();
     this.pagerRight?.destructor();
@@ -984,12 +997,14 @@ class BookLayout extends Layout {
   }
 
   async onDown(e) {
+    if(this.destroyed) return;
     if (this.inOp && this.closeFunc) {
       // This block runs when a pointer event is received while a sequence of
       // pgFlip's animator calls is still running running from previous page flip,
       // i.e. user is turning pages faster than they are flipping closed.
       this.animId++;
       await this.closeFunc();
+      if(this.destroyed) return;
       this.closeFunc = null;
       this.inOp = false; 
       return this.onDown({
@@ -1003,6 +1018,7 @@ class BookLayout extends Layout {
     }
 
     if (await super.onDown(e)) return;
+    if(this.destroyed) return;
 
     // if empty slot or pager, ignore
     if (e.target.dataset.slot) return; // empty slot
@@ -1038,10 +1054,12 @@ class BookLayout extends Layout {
       drag.mv(emv) ;
     });
 
-    listen(
+    this.navUp = listen(
       this.elm,
       "pointerup",
       async (eup) =>  {
+        this.navUp = null;
+        if(this.destroyed) return;
         unlisten(this.navMv);
         this.navMv = null;
         let x = eup.clientX - spineBox.x;
@@ -1063,6 +1081,7 @@ class BookLayout extends Layout {
   }
 
   cancelNav() {
+    if(this.destroyed) return;
     if (!this.navMv) return;
     unlisten(this.navMv);
     this.navMv = null;
@@ -1073,6 +1092,8 @@ class BookLayout extends Layout {
   }
 
   pgFlip(x, y, toX, toY, advancing, func=null, pace=null) {
+    if(this.destroyed) return;
+    cancelAnimationFrame(this.flipFrame);
     // pace in msec/flip. if null, value from stash (which is in msec/flip) is used,
     // otherwise abs(pace) is used.
     let pgWidth = this.cell.geo.pgWidth;                                                          
@@ -1087,19 +1108,21 @@ class BookLayout extends Layout {
     let easedTarget = targetFlip * targetFlip  * (3 - 2 * targetFlip); // 0 for flop, 1 for flip
     let animId = ++this.animId;                                                                   
     let animate = (now) => {
-      if (animId != this.animId) return;  // cancelled
+      if (this.destroyed || animId != this.animId) return;  // cancelled
+      this.flipFrame = null;
       let t = Math.min((now - start) / duration, 1);                                              
       let flip = startFlip + (targetFlip - startFlip) * t;
       let easedFlip = flip * flip * (3 - 2 * flip);                                               
       let progress = t >= 1 ? 1 : (easedFlip - easedStart) / (easedTarget - easedStart);          
       this.pgMove(x + (toX - x) * progress, y + (toY - y) * progress, advancing);
       if (t >= 1) { if (func) func(); this.inOp = false; }                                        
-      else requestAnimationFrame(animate);                                                      
+      else this.flipFrame = requestAnimationFrame(animate);
     }                                                                                             
     animate(start);                                                                             
   }      
 
   async pgMount(pn, slot, nonblocking=true) {
+    if(this.destroyed) return;
     // First, remove all children of this.slots[slot]. When
     // that child is a Page elm, return it to the score.
     for (let child of [...this.slots[slot].children]) {
@@ -1109,6 +1132,7 @@ class BookLayout extends Layout {
     // mount the given pg (1-based page number) on the given
     // slot (an index into this.slots)
     let pg = await this.score.pgUse(pn, nonblocking);
+    if(this.destroyed) return;
     if (pg) {
       pg.setZoom(this.cell.geo.zoom);
       this.pgPad(pg);
@@ -1132,6 +1156,7 @@ class BookLayout extends Layout {
   }
 
   pgMove(x, y, advancing) {
+    if(this.destroyed) return;
     //  pgMove implements part of the page-changing animation:
     //  @x x offset of cursor from left side of page it touches...can be negative
     //  @y y offset of cursor from page top
@@ -1298,6 +1323,7 @@ class BookLayout extends Layout {
   }
 
   async pgOpen(how, bookMarks) {
+    if(this.destroyed) return;
     if (bookMarks) return super.pgOpen(how);
     // Ignore rapid page turn requests while animation is in progress
     if (this.inOp) return;
@@ -1328,10 +1354,12 @@ class BookLayout extends Layout {
 
     // Clamp to valid range
     pn = clamp(pn, 1, pgCount);
-    this.pnPost(await this.pgGoTo(pn));
+    let targetPn = await this.pgGoTo(pn);
+    if(!this.destroyed) this.pnPost(targetPn);
   }
 
   async pgShift(advancing, post = true) {
+    if(this.destroyed) return;
     // After a full pg flip, the pg's roles will no longer
     // be correct, i.e. the 2 visible pages will no longer
     // be pgC and pgD.  Re-assign the pg instance variables
@@ -1345,7 +1373,9 @@ class BookLayout extends Layout {
       this.slots = this.slotArrays[this.slotArraysIndex];
       // mount pgs in slots 4 and 5
       await this.pgMount(this.pn0 + 4, 4);
+      if(this.destroyed) return;
       await this.pgMount(this.pn0 + 5, 5);
+      if(this.destroyed) return;
     } else {
       this.pn0 -= 2;
       // right circular shift slots
@@ -1353,13 +1383,16 @@ class BookLayout extends Layout {
       this.slots = this.slotArrays[this.slotArraysIndex];
       // mount pgs in slots 0 and 1
       await this.pgMount(this.pn0, 0);
+      if(this.destroyed) return;
       await this.pgMount(this.pn0 + 1, 1);
+      if(this.destroyed) return;
     }
     this.layoutSlots();
     if (post) this.pnPost(Math.min(this.pn0 + 3, this.score.pgs.length));
   }
 
   async pgGoTo(pn) {
+    if(this.destroyed) return;
     pn = clamp(pn, 1, this.score.pgs.length);
     let pn0 = pn - (pn & 0x01 ? 3 : 2);
     this.pgResetSlots();
@@ -1367,16 +1400,24 @@ class BookLayout extends Layout {
     if(pn == 1) advancing = false; // can't advance into 1st page
     if(advancing) { 
       await this.pgMount(pn0+2, 4, false);
+      if(this.destroyed) return;
       await this.pgMount(pn0+3, 5, false);
+      if(this.destroyed) return;
       await this.pgMount(pn0  , 2, true);
+      if(this.destroyed) return;
       await this.pgMount(pn0+1, 3, true);
+      if(this.destroyed) return;
       this.pn0 = pn0 - 2;
     }
     else {
       await this.pgMount(pn0+2, 0, false);
+      if(this.destroyed) return;
       await this.pgMount(pn0+3, 1, false);
+      if(this.destroyed) return;
       await this.pgMount(pn0+4, 2, true);
+      if(this.destroyed) return;
       await this.pgMount(pn0+5, 3, true);
+      if(this.destroyed) return;
       this.pn0 = pn0 + 2;
     }
     let {pgWidth, pgHeight} = this.cell.geo;
@@ -1389,6 +1430,7 @@ class BookLayout extends Layout {
   }
 
   layoutSlots() {
+    if(this.destroyed) return;
     // (Re) arrange slot layout with respect to the spine. Called by init,
     // called after a page is flipped, and called when current page changed by api.
     // Note the visit order is 0,1,2,5,4,3, so that slots 2,3 are on top of div stack:
@@ -2067,6 +2109,8 @@ class TableLayout extends Layout {
   }
 
   destructor() {
+    this.buildDialog?.remove();
+    this.buildDialog = null;
     super.destructor();
     unlisten(this.pointerListener);
   }
@@ -2120,12 +2164,13 @@ class TableLayout extends Layout {
       // ...then one or more thumbnails are not built: animate the (possibly lengthy) building process
       let cancelled = false;
 
-      let dialogElm = dialog("",{ Cancel: { svg: "Cancel" } }, (e,_x,_y,args) => {
+      let dialogElm = this.buildDialog = dialog("",{ Cancel: { svg: "Cancel" } }, (e,_x,_y,args) => {
         cancelled = true;
         args.close();
       });
 
       let gen = async(i) => {
+        if(this.destroyed) return;
         dialogElm.firstChild.innerHTML = `Building: ${Math.round((i/pgCount)* 100)}%<hr>`;
         let {pn, top} = this.gridCoords[i];
         // Potentially expand the gridHeight to accomodate the next row:
@@ -2133,12 +2178,15 @@ class TableLayout extends Layout {
         grid.style.height = toEm(gridHeight);
         let nextTop = innerHeight - gridHeight - Layout.margin;
         if (nextTop < Layout.margin) this.toXY(Layout.margin, nextTop);
-        grid.append(await this.buildPg(pn));
+        let elm = await this.buildPg(pn);
+        if(this.destroyed || !elm) return;
+        grid.append(elm);
         if(++i < this.gridCoords.length && !cancelled)  {
             this.animated ? delay(1, async () => await gen(i)): await(gen(i));
         }
         else {
           dialogElm.buttonsElm.self.fire("Cancel");
+          this.buildDialog = null;
           this.buildAux();
         }
       }
@@ -2151,13 +2199,16 @@ class TableLayout extends Layout {
         grid.style.height = toEm(gridHeight);
         let nextTop = innerHeight - gridHeight - Layout.margin;
         if (nextTop < Layout.margin) this.toXY(Layout.margin, nextTop);
-        grid.append(await this.buildPg(pn));
+        let elm = await this.buildPg(pn);
+        if(this.destroyed || !elm) return;
+        grid.append(elm);
       }
       this.buildAux() ;
     }
   }
 
   buildAux() {
+    if(this.destroyed) return;
     // set layout's final position/size, based on this.fit (or the saved pan-zoom from userPz(), if any). Called after
     // build one of 2 locations: 1. all thumbnails 2. user cancelled in-flight thumbnail build
     let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
@@ -2184,9 +2235,11 @@ class TableLayout extends Layout {
 
   async buildPg(pn)
   {  // build elm to hold thumbnail
+    if(this.destroyed) return;
     let {left, top} = this.gridCoords[pn-1];
     let pg = this.score.pgs[pn - 1];
-    let elm = await pg.getThumbElm();
+    let elm = await pg.getThumbElm(false, () => this.destroyed);
+    if(this.destroyed || !elm) return;
     elm.classList.remove("TableLayout__pg-active");
     elm.pn = pn;
     elm.pg = pg;
@@ -2219,10 +2272,12 @@ class TableLayout extends Layout {
   }
 
   async buildPgActive(pn, elm) {
+    if(this.destroyed) return;
     if (this.active) {
       // Turn current active elm into a normal, "inactive" elm. 
       // ...rebuild thumbnail, as elm could have been ink'ed.
-      let inactive = await this.active.pg.getThumbElm(true); 
+      let inactive = await this.active.pg.getThumbElm(true, () => this.destroyed);
+      if(this.destroyed || !inactive) return;
       // copy pg, pn, and, if existing, move pagenumber to inactive
       inactive.pg = this.active.pg;
       inactive.pn = this.active.pn;
@@ -2246,7 +2301,7 @@ class TableLayout extends Layout {
     // superseded this one (rapid layout switching). Bail the stale build; the
     // newer one will mount the active page. (Non-abort inflate errors re-throw,
     // so elm===null here can only be the supersede signal, not a silent failure.)
-    if (!pg || !pg.elm) return;
+    if (this.destroyed || !pg || !pg.elm) return;
     elm.pn = pn;
     pg.elm.style.display = "block";
     // increase zoom to help distinguish active pg

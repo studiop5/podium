@@ -491,10 +491,7 @@ class Menu {
 
     this.listen("score/close/up", async () => {
       if(!await(checkUnsaved("Warning: current score has unsaved changes. Close anyway?", true))) return;
-      Layout.activeLayout.destructor();
-      Layout.activeLayout.elm.remove();
-      Layout.activeLayout = null;
-      _score_ = null;
+      await _score_?.dispose();
       _menu_.closePanels();
       _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"], false);
       document.dispatchEvent(new CustomEvent("scoreClosed"));
