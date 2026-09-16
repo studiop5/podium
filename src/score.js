@@ -106,9 +106,11 @@ class Pg {
     // the fabricjs as a fabric "background image", but that route
     // was found to have poorer resolution than using a dedicated
     // dom canvas, sigh.
+    if(this.score.disposed) throw new DOMException("Score disposed", "AbortError");
     if(!this.score.mozDoc) return;
     let mozPg = await this.score.mozDoc.getPage(this.mozPn);
-    if(this.inflateCtrl?.signal?.aborted) return;
+    if(this.score.disposed || this.inflateCtrl?.signal?.aborted)
+      throw new DOMException("Inflation aborted", "AbortError");
     let viewport = mozPg.getViewport({ scale: this.score.quality});
     let w = viewport.width / this.score.quality;
     let h = viewport.height / this.score.quality;
@@ -118,11 +120,16 @@ class Pg {
     else canvas.wrapperEl.append(mozCanvas);
     this.mozCanvas = mozCanvas;
     let ctx = mozCanvas.getContext("2d", { willReadFrequently: true });
-    await mozPg.render({
+    let renderTask = this.renderTask = mozPg.render({
       annotationMode: pdfjsLib.AnnotationMode.DISABLE,
       canvasContext: ctx,
       viewport: viewport,
-    }).promise;
+    });
+    try {
+      await renderTask.promise;
+    } finally {
+      if(this.renderTask === renderTask) this.renderTask = null;
+    }
 
     // Detect silently-broken PDFs (e.g. non-standard compression or missing fonts).
     // These trigger the onUnsupportedFeature callback during loading or rendering.
@@ -151,7 +158,12 @@ class Pg {
     //   and the inflation will be deferred. After
     //   the inflation finishes, the div is replaced by the fabric
     //   canvas's container div.
-    if(this.inflatePromise != null) return this;
+    if(this.score.disposed) return this;
+    if(this.inflatePromise) {
+      if(nonblocking) return this;
+      await this.inflatePromise;
+      if(this.score.disposed) return this;
+    }
     if (this.inflated) return this;
     this.inflateCtrl = new AbortController();
     if(this.mozPn && nonblocking) {
@@ -168,19 +180,33 @@ class Pg {
         // later in the background. Without this, a concurrent ScrollLayout.pgMount
         // iterating the sash finds a .pg-less child \u2192 pgUnuse(undefined) crash.
       this.style = this.elm.style; // convenient shorthand
-      this.inflatePromise = this.inflateAux(render).catch(err => {
-        if(err.name == 'AbortError') return; // no error: expected
-        console.warn(`Failed to background load/render page ${this.mozPn}:`, err)});
-    } else await this.inflateAux(render).catch(err => {
-      if(err.name == 'AbortError') return; // no error: expected (nav/layout change cancelled the inflate)
-      throw err;
+    }
+    let pending = this.inflateAux(render).catch(err => {
+      if(err.name == 'AbortError') return; // expected when navigation cancels inflation
+      if(nonblocking) console.warn(`Failed to background load/render page ${this.mozPn}:`, err);
+      else throw err;
+    }).finally(() => {
+      if(this.inflatePromise === pending) this.inflatePromise = null;
     });
+    this.inflatePromise = pending;
+    if(!nonblocking) await pending;
   }
 
   async inflateAux(render) {
+    let pending = this.inflateTracked(render);
+    this.score.pendingInflates.add(pending);
     try {
-      let signal = this.inflateCtrl?.signal;
-      let checkAbort = () => { if(signal?.aborted)
+      return await pending;
+    } finally {
+      this.score.pendingInflates.delete(pending);
+    }
+  }
+
+  async inflateTracked(render) {
+    let canvas;
+    let signal = this.inflateCtrl?.signal;
+    try {
+      let checkAbort = () => { if(signal?.aborted || this.score.disposed)
         throw new DOMException("Inflation aborted","AbortError");}
       checkAbort();
       if(!this.inUse) { // yield to inUse pages
@@ -197,7 +223,7 @@ class Pg {
       // allowTouchScrolling needs to be false, else certain browers (chrome mobile, at
       // least) will create an "Intervention event", trying to scroll, when we've
       // explicitly "preventDefault() touchmove on body in main.js.
-      let canvas = new fabric.Canvas(domCanvas, {
+      canvas = new fabric.Canvas(domCanvas, {
           enablePointerEvents: true,
           allowTouchScrolling: false, // Required!
           imageSmoothingEnabled: false,
@@ -229,7 +255,6 @@ class Pg {
       if (render && this.mozPn) {
          await this.renderPdf(canvas);
          if(signal?.aborted) {
-           canvas.dispose();
            this.mozCanvas?.remove();
            throw new DOMException("Inflation aborted","AbortError");   
          }
@@ -335,8 +360,14 @@ class Pg {
       this.setZoom(this.zoom);
     }
 
+    catch(error) {
+      if(signal?.aborted || this.score.disposed)
+        throw new DOMException("Inflation aborted", "AbortError");
+      throw error;
+    }
     finally {
-      this.inflatePromise = null ;
+      // Cancelled inflations never transfer their canvas to the Pg.
+      if(canvas && this.canvas !== canvas) canvas.dispose();
     }
 
   }
@@ -349,6 +380,7 @@ class Pg {
       this.inflateCtrl = null;
     }
     this.inflatePromise = null ;
+    this.renderTask?.cancel();
 
     if (this.inflated) {
       if (full) {
@@ -371,7 +403,8 @@ class Pg {
     return this;
   }
 
-  async getThumbElm(force = false) {
+  async getThumbElm(force = false, isCancelled = () => false) {
+    if(isCancelled()) return null;
     // @return thumbnail elm for this pg. It is created on first call,
     // then stored: subsequent calls returned the stored value, unless
     // @force is true: in this case, the thumbnail is always (re) calculated.
@@ -386,10 +419,12 @@ class Pg {
     // -  the 2 object URLs are set as the background image of this.thumbElm
     // -  the two object URLs are revoked after a delay of 10 animation frames
     if (!this.thumbElm || force || this.thumbDirty) {
-      this.thumbDirty = false;
+      // A cancelled build must be retried when a later layout requests this thumbnail.
+      this.thumbDirty = true;
       let deflated = !this.inflated;
       let score = this.score;
       if (deflated) await this.inflate(true, false);
+      if(isCancelled() || !this.inflated) return null;
 
       // create div that will display the thumbnail
       let scale = Pg.thumbSize / Math.max(score.maxWidth, score.maxHeight);
@@ -403,21 +438,26 @@ class Pg {
 
       // create object URL for fabric canvas
       let fabCanvas = this.canvas.toCanvasElement(scale * this.stretch);
+      let fabBlob = await new Promise(res => fabCanvas.toBlob(res));
+      if(isCancelled()) return null;
       if (this.fabUrl) URL.revokeObjectURL(this.fabUrl);
-      this.fabUrl = URL.createObjectURL(await new Promise((res) => fabCanvas.toBlob((b) => res(b))));
+      this.fabUrl = URL.createObjectURL(fabBlob);
 
       if(this.mozCanvas) {
         // create obj URL for mozCanvas (from mozilla pdf src);
         let pdfCanvas = helm(`<canvas width="${maxW}" height="${maxH}"></canvas>`);
         pdfCanvas.getContext("2d").drawImage(this.mozCanvas, 0, 0, maxW, maxH);
+        let pdfBlob = await new Promise(res => pdfCanvas.toBlob(res));
+        if(isCancelled()) return null;
         if (this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
-        this.pdfUrl = URL.createObjectURL(await new Promise((res) => pdfCanvas.toBlob((b) => res(b))));
+        this.pdfUrl = URL.createObjectURL(pdfBlob);
         // set both fabricCanvas (annotations) and pdfCanvas (pdf image) as background to thumbElm
         this.thumbElm.style.backgroundImage = "url('" + this.fabUrl + "'), url('" + this.pdfUrl + "')";
       }
       else // no pdf src:  set fabricCanvas (annotations) as background to thumbElm
         this.thumbElm.style.backgroundImage = "url('" + this.fabUrl + "')";
       if (deflated) this.deflate();
+      this.thumbDirty = false;
     }
     return this.thumbElm;
   }
@@ -908,6 +948,7 @@ class Score
 
 class Score {
   static activeScore = null;
+  static pdfWorker = null; // app-owned: disposing a document must not destroy the shared worker
   // maximum number of unused inflated pgs: see Score.pgUnuse()
   static MAX_INFLATED = (navigator.deviceMemory >= 8) ? 8 : 6;
 
@@ -1044,6 +1085,11 @@ class Score {
   pgs = []; // array of Pg instances for all pages in a score
   undoStack = []; // will contain pgs, tagged with undoPn whenever pgAdd(),or -undoPn whenever pgCut()
   mozDoc = null; // reference to mozilla pdflib document, if available
+  loadingTask = null;
+  disposed = false;
+  disposePromise = null;
+  pendingExports = new Set();
+  pendingInflates = new Set();
   quality = 2; // pdf rendering quality: see Pg.renderPdf()
   dirty = false; // true iff score has been modified (i.e. requires saving) 
   numbers = null ; // reference to numbers menu cell stash
@@ -1060,6 +1106,15 @@ class Score {
   }
 
   async init(source, path, name, pdfData=null, activate=true) {
+    try {
+      return await this.initAux(source, path, name, pdfData, activate);
+    } catch(error) {
+      await this.dispose();
+      throw error;
+    }
+  }
+
+  async initAux(source, path, name, pdfData, activate) {
     // Initialize a new Score, always called as part of the constructor, ex. await new Score().init(...)
     // @source one of Score.sources, identifies the data source that provides the score's data.
     //  For new scores (no external data sources), this is just null.
@@ -1110,7 +1165,13 @@ class Score {
         mozWorkerSrc = null; // allow gc
       }
 
-      let loadingTask = window.pdfjsLib.getDocument(pdfData);
+      // Explicit ownership keeps document.destroy() from destroying the shared worker.
+      Score.pdfWorker ||= window.pdfjsLib.PDFWorker.fromPort({
+        port: window.pdfjsLib.GlobalWorkerOptions.workerPort,
+      });
+      let loadingTask = this.loadingTask = window.pdfjsLib.getDocument({
+        data: pdfData, worker: Score.pdfWorker,
+      });
 
       // detect non-standard or missing features (fonts, non-standard compression, etc)
       loadingTask.onUnsupportedFeature = (featureId) => {
@@ -1212,9 +1273,50 @@ class Score {
     return this;
   }
 
+  dispose() {
+    // Idempotent: exports already in progress retain their document until finished.
+    if(this.disposePromise) return this.disposePromise;
+    this.disposePromise = this.disposeAux();
+    return this.disposePromise;
+  }
+
+  async disposeAux() {
+    await Promise.allSettled([...this.pendingExports]);
+    this.disposed = true;
+    if(Layout.activeLayout?.score === this) {
+      Layout.activeLayout.destructor();
+      Layout.activeLayout = null;
+    }
+    if(Score.activeScore === this) Score.activeScore = null;
+    if(_score_ === this) _score_ = null;
+    let paste = _menu_.rings.page.cells.paste;
+    if(paste.pg?.score === this) paste.pg = null;
+    let pages = new Set([...this.pgs, ...this.undoStack]);
+    for(let pg of pages) pg.deflate(true);
+    await Promise.allSettled([...this.pendingInflates]);
+    for(let pg of pages) {
+      if(pg.fabUrl) URL.revokeObjectURL(pg.fabUrl);
+      if(pg.pdfUrl) URL.revokeObjectURL(pg.pdfUrl);
+      pg.fabUrl = pg.pdfUrl = null;
+      pg.thumbElm?.remove();
+      pg.thumbElm = null;
+    }
+    try {
+      if(this.mozDoc) await this.mozDoc.destroy();
+      else if(this.loadingTask) await this.loadingTask.destroy();
+    } finally {
+      this.mozDoc = this.loadingTask = null;
+      this.pgs = [];
+      this.undoStack = [];
+    }
+  }
+
   async activate() {
     // There can be only 1 "active" score at a time...call activate to make this
     // instance the active score
+    if(this.disposePromise) throw new Error("Cannot activate a disposed score");
+    if(Score.activeScore && Score.activeScore !== this)
+      await Score.activeScore.dispose();
     Score.activeScore = this;
     _score_ = this;
     this.numbers = _menu_.rings.page.cells.numbers.stash;
@@ -1454,6 +1556,17 @@ class Score {
   }
 
   async toPdf(ink = "stamp", doc = false, pns = null) {
+    if(this.disposePromise) throw new Error("Cannot export a disposed score");
+    let pending = this.toPdfAux(ink, doc, pns);
+    this.pendingExports.add(pending);
+    try {
+      return await pending;
+    } finally {
+      this.pendingExports.delete(pending);
+    }
+  }
+
+  async toPdfAux(ink, doc, pns) {
     // Use PDFLib to create PDF representation of this score.
     // @ink === none, skip fabric objects entirely (even as attachment??)
     //      === "stamp" add fabric object as stamp annotation
