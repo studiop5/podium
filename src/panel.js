@@ -2176,6 +2176,7 @@ class ReviewPanel extends Panel {
   close() {
     // Mark closed immediately, before the panel's delayed destruction.
     this.review.closed = true;
+    this.review.stopAnimations();
     super.close();
   }
 
@@ -3058,6 +3059,12 @@ class PianoPanel extends Panel {
     this.panel.style.width = "95vw";
   }
 
+  close() {
+    this.piano.closed = true;
+    this.piano.yin?.release();
+    super.close();
+  }
+
   destructor() {
     super.destructor();
     this.piano.destructor();
@@ -3130,6 +3137,19 @@ class PrintPanel extends Panel {
       async (e, prop, tag) => {
         let printWin = null;
         let dataUrl = null;
+        let closeWatcher = null;
+        let releaseUrl = () => {
+          if(dataUrl) URL.revokeObjectURL(dataUrl);
+          dataUrl = null;
+          clearInterval(closeWatcher);
+          closeWatcher = null;
+        };
+        // The PDF tab outlives this panel. Keep its URL until that tab closes.
+        let watchPrintWindow = () => {
+          closeWatcher = setInterval(() => {
+            if(printWin.closed) releaseUrl();
+          }, 1000);
+        };
         try {
           _shade_.show("Preparing to print");
           let pns = [];
@@ -3153,17 +3173,38 @@ class PrintPanel extends Panel {
             // Popup blocked (especially possible on iOS Safari after await).
             // Show a dialog to provide a fresh user gesture.
             _shade_.hide();
-            dialog("Your PDF is ready to print.", { "Open PDF": { svg: "Ink" } }, (e, prop, tag, args) => {
-              window.open(dataUrl, "_blank");
+            printWin = null;
+            let readyDialog = dialog("Your PDF is ready to print.", {
+              "Open PDF": { svg: "Ink" }, Cancel: { svg: "Cancel" },
+            }, (e, prop, tag, args) => {
+              if(tag == "Cancel") {
+                releaseUrl();
+                args.close();
+                return;
+              }
+              try { printWin = window.open(dataUrl, "_blank"); }
+              catch(error) { console.warn("window.open blocked/failed:", error); }
+              if(!printWin || printWin.closed || typeof printWin.closed == "undefined") {
+                printWin = null;
+                toast("Please allow popups to open the PDF.");
+                return;
+              }
+              watchPrintWindow();
               args.close();
             });
+            readyDialog.addEventListener("close", () => {
+              if(!printWin) releaseUrl();
+              readyDialog.remove();
+            }, { once: true });
           } else {
             // Success! PDF opened in new tab, attempt to trigger print.
             // Note: iOS Safari ignores window.print(); users must print via the share button.
+            watchPrintWindow();
             delayMs(1000, () => { if (!printWin.closed) printWin.print(); });
           }
         }
         catch (error) {
+          releaseUrl();
           printWin?.close();
           if (window.cancelPdf) toast("Print cancelled");
           else {

@@ -3,7 +3,20 @@
 // YIN pitch detector with silence detection and confidence
 // Returns frequency, writes confidence to *confidence_out
 float yinf0(float *x, int N, int sr, float min_threshold, float *confidence_out) {
-  int i, j, k, lag = -1, n;
+  *confidence_out = 1.0;
+  if(N < 4 || sr <= 0) return 0.0;
+
+  // Keep every comparison x[j + lag] inside the supplied input buffer.
+  // Reserve at least half the buffer for the comparison window.
+  int min = sr / 1500, max = sr / 40;
+  if(min < 1) min = 1;
+  if(max > N / 2) max = N / 2;
+  if(max < min) return 0.0;
+  int W = sr / 20;
+  if(W > N - max) W = N - max;
+  if(W < 1) return 0.0;
+
+  int i, j, k, lag = -1;
   float sum_squares = 0.0;
   float rms;
 
@@ -14,7 +27,7 @@ float yinf0(float *x, int N, int sr, float min_threshold, float *confidence_out)
   rms = sqrtf(sum_squares / N);
 
   // Check if signal is too weak
-  if(rms < min_threshold) {
+  if(!isfinite(rms) || rms <= 0.0 || rms < min_threshold) {
     *confidence_out = 1.0; // No confidence
     return 0.0; // Silence indicator
   }
@@ -31,9 +44,9 @@ float yinf0(float *x, int N, int sr, float min_threshold, float *confidence_out)
 
   // YIN algorithm variables
   float t = .10, s0, s1, s2, dx, sum;
-  int W = (int) (0.05 * sr), min = sr / 1500, max = sr / 40;
-  float d[max], dp[max];
-  float f_yin, I, Q, omega, delta_f, freqs[3], mags[3], M_minus, M_0, M_plus, denom, f_refined;
+  // Lag max is included in the loops below.
+  float d[max + 1], dp[max + 1];
+  float f_yin;
 
   // YIN difference function
   for(i = 0; i <= max; i++) {
@@ -49,7 +62,7 @@ float yinf0(float *x, int N, int sr, float min_threshold, float *confidence_out)
   dp[0] = 1.0;
   for(sum = 0, i = 1; i <= max; i++) {
     sum += d[i];
-    dp[i] = d[i] / (sum / i);
+    dp[i] = sum > 0.0 ? d[i] / (sum / i) : 1.0;
   }
 
   // Find first dip below threshold, then walk to local minimum
@@ -81,7 +94,10 @@ float yinf0(float *x, int N, int sr, float min_threshold, float *confidence_out)
     s1 = dp[lag];
     s2 = dp[lag + 1];
     // Parabolic interpolation to find fractional tau
-    float delta = (s2 - s0) / (2.0 * (2.0 * s1 - s2 - s0));
+    float denominator = 2.0 * (2.0 * s1 - s2 - s0);
+    float delta = denominator != 0.0 ? (s2 - s0) / denominator : 0.0;
+    // A boundary candidate need not be a local minimum; do not extrapolate.
+    if(!isfinite(delta) || fabsf(delta) > 0.5f) delta = 0.0;
     tau_refined = lag + delta;
   } else {
     tau_refined = (float)lag;

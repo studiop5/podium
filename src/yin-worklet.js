@@ -6,6 +6,7 @@ class PitchDetectorWorklet extends AudioWorkletProcessor {
   constructor() {
     super();
     this.wasmModule = null;
+    this.stopped = false;
     this.bufferSize = 4096;
     this.buffer = new Float32Array(this.bufferSize);
     this.bufferIndex = 0;
@@ -53,10 +54,16 @@ class PitchDetectorWorklet extends AudioWorkletProcessor {
     };
     let wasmBytes = Uint8Array.from(atob_polyfill(WASM_BASE64), c => c.charCodeAt(0));
     WebAssembly.instantiate(wasmBytes, {}).then(wasm => {
-      this.wasmModule = wasm.instance;
+      if(!this.stopped) this.wasmModule = wasm.instance;
     });
 
     this.port.onmessage = (e) => {
+      if(e.data.stop) {
+        this.stopped = true;
+        this.wasmModule = this.buffer = null;
+        this.port.onmessage = null;
+        return;
+      }
       if (e.data.sampleRate) {
         this.sampleRate = e.data.sampleRate;
       }
@@ -64,6 +71,10 @@ class PitchDetectorWorklet extends AudioWorkletProcessor {
   }
 
   process(inputs) {
+    if(this.stopped) {
+      this.port.postMessage({ stopped: true });
+      return false;
+    }
     if (!this.wasmModule) return true;
 
     let input = inputs[0][0];
