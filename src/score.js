@@ -91,6 +91,7 @@ class Pg {
     this.mozPn = mozPn;
     this.stretch = 1; // iff score.pgFit == "Expand", will stretch pg to fit math.min(score.max,score.min)
     this.thumbUrl = null;
+    this.thumbVersion = 0;
     this.suppressStateChange = false;
     this.width = width;
     this.undoStack = [];
@@ -382,14 +383,10 @@ class Pg {
     this.inflatePromise = null ;
     this.renderTask?.cancel();
 
+    if(full) this.clearThumb();
     if (this.inflated) {
-      if (full) {
-        if(this.fabUrl) URL.revokeObjectURL(this.fabUrl);
-        if(this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
-        this.thumbElm?.remove();
-        this.thumbElm = null;
-        this.json = null;
-      } else this.json = this.toJson();
+      if(full) this.json = null;
+      else this.json = this.toJson();
       this.canvas.clear();
       this.canvas.dispose();
       this.elm?.remove();
@@ -403,59 +400,54 @@ class Pg {
     return this;
   }
 
+  clearThumb() {
+    ++this.thumbVersion; // invalidate any thumbnail still awaiting toBlob()
+    if(this.fabUrl) URL.revokeObjectURL(this.fabUrl);
+    if(this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
+    this.fabUrl = this.pdfUrl = null;
+    this.thumbElm?.remove();
+    this.thumbElm = null;
+  }
+
   async getThumbElm(force = false, isCancelled = () => false) {
-    if(isCancelled()) return null;
-    // @return thumbnail elm for this pg. It is created on first call,
-    // then stored: subsequent calls returned the stored value, unless
-    // @force is true: in this case, the thumbnail is always (re) calculated.
-    //
-    // There are many many ways to generate the thumbnail. This implementation,
-    // though a little complex, seems to be the fastest and consumes the
-    // the least memory: 
-    // - this.mozCanvas is first compacted by drawing it into a new tmp canvas
-    // - tmp canvas blob-ized, then wrapped as an object URL
-    // - the fabric canvas is compacted into a tmp canvas through fabric's toCanvasElement(scale)
-    // -  this result is blob-ized, then wrapped into an object URL.
-    // -  the 2 object URLs are set as the background image of this.thumbElm
-    // -  the two object URLs are revoked after a delay of 10 animation frames
+    if(this.score.disposed || isCancelled()) return null;
     if (!this.thumbElm || force || this.thumbDirty) {
-      // A cancelled build must be retried when a later layout requests this thumbnail.
       this.thumbDirty = true;
+      let version = ++this.thumbVersion;
+      let cancelled = () => this.score.disposed || version !== this.thumbVersion || isCancelled();
       let deflated = !this.inflated;
       let score = this.score;
       if (deflated) await this.inflate(true, false);
-      if(isCancelled() || !this.inflated) return null;
+      if(cancelled() || !this.inflated) return null;
 
-      // create div that will display the thumbnail
       let scale = Pg.thumbSize / Math.max(score.maxWidth, score.maxHeight);
       let maxW = score.maxWidth * scale, maxH = score.maxHeight * scale;
-
-      this.thumbElm = helm(
+      let thumbElm = helm(
         `<div class="TableLayout__pg" style="width:${maxW / _pxPerEm_}em;height:${maxH / _pxPerEm_}em;"></div>`);
-      this.thumbElm.style.backgroundColor = Pg.paddingColor;
+      thumbElm.style.backgroundColor = Pg.paddingColor;
       if(score.details?.pgFit == "Center")
-        this.thumbElm.style.backgroundSize = this.width * 100 / score.maxWidth + "%";
+        thumbElm.style.backgroundSize = this.width * 100 / score.maxWidth + "%";
 
-      // create object URL for fabric canvas
       let fabCanvas = this.canvas.toCanvasElement(scale * this.stretch);
       let fabBlob = await new Promise(res => fabCanvas.toBlob(res));
-      if(isCancelled()) return null;
-      if (this.fabUrl) URL.revokeObjectURL(this.fabUrl);
-      this.fabUrl = URL.createObjectURL(fabBlob);
-
+      if(cancelled() || !fabBlob) return null;
+      let pdfBlob = null;
       if(this.mozCanvas) {
-        // create obj URL for mozCanvas (from mozilla pdf src);
         let pdfCanvas = helm(`<canvas width="${maxW}" height="${maxH}"></canvas>`);
         pdfCanvas.getContext("2d").drawImage(this.mozCanvas, 0, 0, maxW, maxH);
-        let pdfBlob = await new Promise(res => pdfCanvas.toBlob(res));
-        if(isCancelled()) return null;
-        if (this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
-        this.pdfUrl = URL.createObjectURL(pdfBlob);
-        // set both fabricCanvas (annotations) and pdfCanvas (pdf image) as background to thumbElm
-        this.thumbElm.style.backgroundImage = "url('" + this.fabUrl + "'), url('" + this.pdfUrl + "')";
+        pdfBlob = await new Promise(res => pdfCanvas.toBlob(res));
+        if(cancelled() || !pdfBlob) return null;
       }
-      else // no pdf src:  set fabricCanvas (annotations) as background to thumbElm
-        this.thumbElm.style.backgroundImage = "url('" + this.fabUrl + "')";
+
+      // Publish both URLs together, after all asynchronous work has completed.
+      // The page owns them until replacement or full deflation/disposal.
+      if(this.fabUrl) URL.revokeObjectURL(this.fabUrl);
+      if(this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
+      this.fabUrl = URL.createObjectURL(fabBlob);
+      this.pdfUrl = pdfBlob ? URL.createObjectURL(pdfBlob) : null;
+      thumbElm.style.backgroundImage = `url('${this.fabUrl}')` +
+        (this.pdfUrl ? `, url('${this.pdfUrl}')` : "");
+      this.thumbElm = thumbElm;
       if (deflated) this.deflate();
       this.thumbDirty = false;
     }
@@ -1294,13 +1286,7 @@ class Score {
     let pages = new Set([...this.pgs, ...this.undoStack]);
     for(let pg of pages) pg.deflate(true);
     await Promise.allSettled([...this.pendingInflates]);
-    for(let pg of pages) {
-      if(pg.fabUrl) URL.revokeObjectURL(pg.fabUrl);
-      if(pg.pdfUrl) URL.revokeObjectURL(pg.pdfUrl);
-      pg.fabUrl = pg.pdfUrl = null;
-      pg.thumbElm?.remove();
-      pg.thumbElm = null;
-    }
+    for(let pg of pages) pg.clearThumb();
     try {
       if(this.mozDoc) await this.mozDoc.destroy();
       else if(this.loadingTask) await this.loadingTask.destroy();

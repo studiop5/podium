@@ -99,6 +99,7 @@ let centsToHz = (cents) => Math.pow(2, cents / 1200) * 440;
 let hzToCents = (hz) => 1200 * Math.log2(hz / 440);
 
 class Piano {
+  closed = false;
   static css = css(
     "Piano",
     `
@@ -462,6 +463,7 @@ class Piano {
           // A mike can be present but unusable (permission denied, claimed by
           // another app): revert the button and tell the user.
           this.yin.start(this.cell.stash.a4).catch((err) => {
+            if(this.closed) return;
             this.pitchButton.firstElementChild.classList.remove("Piano__button-active");
             toast(err.name == "NotAllowedError"
               ? "Microphone access denied"
@@ -480,6 +482,7 @@ class Piano {
         let devices = await navigator.mediaDevices.enumerateDevices();
         hasMic = devices.some((d) => d.kind == "audioinput");
       } catch (e) {} // no mediaDevices API: stay disabled
+      if(this.closed) return;
       this.pitchButton.style.opacity = hasMic ? "" : "0.35";
       this.pitchButton.style.pointerEvents = hasMic ? "" : "none";
       if (!hasMic && this.pitchButton.firstElementChild.classList.contains("Piano__button-active")) {
@@ -499,6 +502,7 @@ class Piano {
     </div>`);
 
     delay(1, async() => {
+      if(this.closed) return;
       let self = this;
       let [actx] = Actx.get();
       this.yin = new Yin((arg) => {
@@ -520,13 +524,23 @@ class Piano {
           this.marker.style.opacity = "0.3";
         }
       });
-      await this.yin.init(actx);
+      try {
+        await this.yin.init(actx);
+      } catch(error) {
+        this.yin.release();
+        if(!this.closed) {
+          this.pitchButton.style.pointerEvents = "none";
+          this.pitchButton.style.opacity = "0.35";
+          console.error("Pitch detector initialization failed:", error);
+        }
+      }
     });
     this.buildAudio();
     this.buildOptions();
   }
 
   destructor() {
+    this.closed = true;
     if(this.activeNotes) {
       this.activeNotes.forEach((note, tag) => {
         if(note.source) {
@@ -1638,13 +1652,14 @@ class Clip and class Recorder
 
     destructor() {
       unlisten(this.listener);
-      if(this.recorder && this.recorder.state == "recording") this.recorder.stop();
+      if(this.recorder && this.recorder.state != "inactive") this.recorder.stop();
+      this.resolve?.(null);
       this.resolve = null;
     }
  
     record(mediaStream) {
       unlisten(this.listener);
-      if(this.recorder) this.recorder.stop();
+      if(this.recorder && this.recorder.state != "inactive") this.recorder.stop();
       this.recorder = new MediaRecorder(mediaStream); // let browser choose mimeType (i.e. webm vs mp4)
       this.recorder.start();
       this.listener = listen(this.recorder, "dataavailable", (e) => {
@@ -1654,8 +1669,12 @@ class Clip and class Recorder
     }
 
     async stop() {
-      delay(1, () => this.recorder.stop());
-      return new Promise((resolve) => this.resolve = resolve);
+      if(!this.recorder || this.recorder.state == "inactive") return null;
+      // Stopping capture must not depend on animation frames (hidden tabs suspend them).
+      return new Promise(resolve => {
+        this.resolve = resolve;
+        this.recorder.stop();
+      });
     }
   }
 
@@ -1668,12 +1687,19 @@ class Recorder
 class Recorder {
 
   cycle = 0;
+  recording = false;
+  userPaused = false;
+  paused = false;
+  visibilityListener = null;
   clip1 = new Clip();
   clip2 = new Clip();
 
   constructor() {}
 
   record(mediaStream, period, scrubber) {
+    this.destructor();
+    this.recording = true;
+    this.userPaused = this.paused = false;
     this.cycle = 0;
     this.period = period;
     this.start = performance.now();
@@ -1692,32 +1718,57 @@ class Recorder {
     this.clip1.record(mediaStream);
     this.cycler.run();
     this.progress.run();
+    this.visibilityListener = listen(document, "visibilitychange", () => this.syncPause());
+    this.syncPause(); // setup may have completed after the tab became hidden
+  }
+
+  stopSchedules() {
+    for(let task of [this.cycler, this.progress]) {
+      task?.cancel();
+      if(task) cancelAnimationFrame(task.af);
+    }
   }
 
   destructor() {
-    if(this.cycler) this.cycler.cancel();
-    if(this.progress) this.progress.cancel();
+    this.recording = false;
+    unlisten(this.visibilityListener);
+    this.visibilityListener = null;
+    this.stopSchedules();
     if(this.clip1) this.clip1.destructor();
     if(this.clip2) this.clip2.destructor();
   };
 
-  pause() { 
-    this.clip1.recorder.pause();
-    if(this.clip2.recorder && this.clip2.recorder.state != "inactive") this.clip2.recorder.pause();
-    this.cycler.pause();
-    this.progress.pause();
+  pause() {
+    this.userPaused = true;
+    this.syncPause();
   }
 
   resume() {
-    this.clip1.recorder.resume();
-    if(this.clip2.recorder) this.clip2.recorder.resume();
-    this.cycler.resume();
-    this.progress.resume();
+    this.userPaused = false;
+    this.syncPause();
+  }
+
+  syncPause() {
+    if(!this.recording) return;
+    let paused = this.userPaused || document.hidden;
+    if(paused == this.paused) return;
+    this.paused = paused;
+    for(let clip of [this.clip1, this.clip2]) {
+      let recorder = clip.recorder;
+      if(paused && recorder?.state == "recording") recorder.pause();
+      else if(!paused && recorder?.state == "paused") recorder.resume();
+    }
+    for(let task of [this.cycler, this.progress]) {
+      if(paused) task.pause();
+      else task.resume();
+    }
   }
 
   async stop() {
-    this.cycler.cancel();   
-    this.progress.cancel();   
+    this.recording = false;
+    unlisten(this.visibilityListener);
+    this.visibilityListener = null;
+    this.stopSchedules();
     if(this.cycle == 0)
       return await this.clip1.stop();
     else if(this.cycle & 1) {
@@ -1833,6 +1884,8 @@ class Review {
   mediaDevicesSpec = {};
   mediaStream = null;
   closed = false;
+  waveFrame = null;
+  blinkSchedule = new Schedule();
   recorder = new Recorder();
 
   // At any time, the Reviewer will be either in state "Live"
@@ -1907,16 +1960,29 @@ class Review {
     panel.body.style.width = "unset";
   }
 
+  stopAnimations() {
+    cancelAnimationFrame(this.waveFrame);
+    this.waveFrame = null;
+    this.blinkSchedule.cancel();
+    cancelAnimationFrame(this.blinkSchedule.af);
+    this.blinkSchedule.callable = null;
+    this.blinking = false;
+  }
+
   destructor() {
     this.closed = true;
+    this.stopAnimations();
     if(this.mediaStream) this.mediaStream.getTracks().forEach(track => track.stop());
     if(this.liveSrc) this.liveSrc.disconnect();
     if(this.analyzer) this.analyser.disconnect();
     if(this.video) {
       this.video.pause();
-      this.video.src = "";
+      this.video.srcObject = null;
+      this.video.removeAttribute("src");
       this.video.load();
     }
+    if(this.videoUrl) URL.revokeObjectURL(this.videoUrl);
+    this.videoUrl = null;
     this.recorder.destructor();
   }
 
@@ -2228,10 +2294,12 @@ class Review {
   }
 
   async replay(progress = 0) {
+    if(this.closed) return;
     this.video.muted = false;
     this.setPlayButton("Replay");
     this.state = "Replay";
     let recordedData = await this.recorder.stop();
+    if(this.closed) return;
     this.video.srcObject = null;
     this.video.src = this.createVideoUrl(recordedData);
     this.liveSrc.disconnect();
@@ -2264,6 +2332,7 @@ class Review {
   }
 
   wave() {
+    if(this.closed || this.waveFrame !== null || this.stash.mode != "Wave") return;
     // update spectrogram display and (re)generate wave display
     if(this.stash.mode == "Wave" && !this.video.paused) {
       let buf = this.audioBuf;
@@ -2293,12 +2362,19 @@ class Review {
       ctx.closePath();
       ctx.fill();
     }
-    delay(2, () => this.wave());
+    // Preserve the two-frame cadence, with only one pending loop per Review.
+    this.waveFrame = requestAnimationFrame(() => {
+      this.waveFrame = requestAnimationFrame(() => {
+        this.waveFrame = null;
+        this.wave();
+      });
+    });
   }
 
   // Utility methods:
 
   createVideoUrl(media) {
+    if(this.closed) return null;
     if (this.videoUrl) URL.revokeObjectURL(this.videoUrl); // clean up previous
     this.videoUrl = URL.createObjectURL(media);
     return this.videoUrl;
@@ -2338,12 +2414,13 @@ class Review {
   }
 
   blink(elm, color= null) {
+    if(this.closed) return;
     // Blink the given element by periodically changing its color red<->black 
     if(!color && this.blinking) return;
     if (this.state == "Live") {
       elm.style.color = color;
-      delayMs(_gs_, () => this.blink(elm, color == "red" ? "black" : "red"));
-     this.blinking = true;
+      this.blinkSchedule.run(_gs_, () => this.blink(elm, color == "red" ? "black" : "red"));
+      this.blinking = true;
     }
     else {
       elm.style.color = "black";

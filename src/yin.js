@@ -13,13 +13,30 @@ class Yin {
   recentFrequencies = [];
   smoothingWindow = 7;
   workletNode = null;
+  released = false;
+  startId = 0;
 
   constructor(callback) {
     this.callback = callback;
   }
 
-  async init(audioContext) {
-    this.audioContext = audioContext;
+  init(audioContext) {
+    return this.initPromise ||= this.initAux(audioContext);
+  }
+
+  async initAux(audioContext) {
+    if(this.released) return;
+    // Own the detector context so release can terminate even while suspended.
+    const sharedContext = audioContext;
+    audioContext = this.audioContext = new AudioContext({ sampleRate: sharedContext.sampleRate });
+    this.sharedContext = sharedContext;
+    this.contextStateListener = () => {
+      if(this.released) return;
+      const change = sharedContext.state === 'running' ? audioContext.resume() : audioContext.suspend();
+      change.catch(error => console.warn("YIN audio state change failed", error));
+    };
+    sharedContext.addEventListener('statechange', this.contextStateListener);
+    this.contextStateListener();
 
     this.highPassFilter = this.audioContext.createBiquadFilter();
     this.highPassFilter.type = 'highpass';
@@ -27,30 +44,39 @@ class Yin {
     this.highPassFilter.Q.value = 0.7;
 
     if (!this.audioContext.audioWorklet._yinModulePromise) {
-      // Load worklet with embedded WASM via blob URL
-      let workletCode;
+      // Cache the whole load, including fetch, so simultaneous instances share it.
+      this.audioContext.audioWorklet._yinModulePromise = (async () => {
+        // Load worklet with embedded WASM via blob URL
+        let workletCode;
 // #include build/yin-worklet.js as workletCode
 // +skip
-      let workletUrl;
-      if (typeof chrome !== 'undefined' && chrome.runtime?.id)
-        workletUrl = chrome.runtime.getURL('yin-worklet.js');
-      else {
-        workletCode = await (await fetch('yin-worklet.js')).text();
-        workletUrl = URL.createObjectURL(new Blob([workletCode], { 'type': 'application/javascript' }));
-      }
+        let workletUrl;
+        if (typeof chrome !== 'undefined' && chrome.runtime?.id)
+          workletUrl = chrome.runtime.getURL('yin-worklet.js');
+        else {
+          workletCode = await (await fetch('yin-worklet.js')).text();
+          workletUrl = URL.createObjectURL(new Blob([workletCode], { 'type': 'application/javascript' }));
+        }
 // -skip
 // #write       let workletUrl = URL.createObjectURL(new Blob([workletCode], { 'type': 'application/javascript' }));
-      this.audioContext.audioWorklet._yinModulePromise = this.audioContext.audioWorklet.addModule(workletUrl).catch((err) => {
-        this.audioContext.audioWorklet._yinModulePromise = null;
+        try {
+          await audioContext.audioWorklet.addModule(workletUrl);
+        } finally {
+          if(workletUrl.startsWith("blob:")) URL.revokeObjectURL(workletUrl);
+        }
+      })().catch((err) => {
+        audioContext.audioWorklet._yinModulePromise = null;
         throw err;
       });
     }
-    await this.audioContext.audioWorklet._yinModulePromise;
+    await audioContext.audioWorklet._yinModulePromise;
+    if(this.released) return;
 
     this.workletNode = new AudioWorkletNode(this.audioContext, 'yin');
     this.workletNode.port.postMessage({ sampleRate: this.audioContext.sampleRate });
 
     this.workletNode.port.onmessage = (e) => {
+      if(this.released) return;
       if (e.data.silence) {
         // Clear smoothing buffers when silence detected
         this.recentFrequencies.length = 0;
@@ -85,19 +111,30 @@ class Yin {
   }
 
   async start() {
+    if(this.released) return;
+    this.stop();
+    let startId = this.startId;
+    await this.initPromise;
+    if(this.released || startId !== this.startId) return;
     if (this.audioContext.state === 'suspended') await this.audioContext.resume();
-    if (this.currentStream) this.stop();
+    if(this.released || startId !== this.startId) return;
     if (this._keepaliveStream) {
       this._keepaliveStream.getTracks().forEach(t => t.stop());
       this._keepaliveStream = null;
     }
-    this.currentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    if(this.released || startId !== this.startId) {
+      stream.getTracks().forEach(track => track.stop());
+      return;
+    }
+    this.currentStream = stream;
     this.currentSource = this.audioContext.createMediaStreamSource(this.currentStream);
     this.currentSource.connect(this.highPassFilter);
     this.highPassFilter.connect(this.workletNode);
   }
 
   stop() {
+    ++this.startId; // invalidate a microphone request that has not completed yet
     if (this.currentSource) {
       this.currentSource.disconnect();
       this.currentSource = null;
@@ -115,11 +152,45 @@ class Yin {
   }
 
   release() {
+    if(this.released) return;
+    this.released = true;
     this.stop();
     if (this._keepaliveStream) {
       this._keepaliveStream.getTracks().forEach(t => t.stop());
       this._keepaliveStream = null;
     }
+    this.sharedContext?.removeEventListener('statechange', this.contextStateListener);
+    this.sharedContext = this.contextStateListener = null;
+    const context = this.audioContext, node = this.workletNode, gain = this.silentGain;
+    this.releasePromise = new Promise(resolve => {
+      let finished = false, timeout;
+      const finish = () => {
+        if(finished) return;
+        finished = true;
+        clearTimeout(timeout);
+        if(node) {
+          node.port.onmessage = null;
+          node.port.close();
+          node.disconnect();
+        }
+        gain?.disconnect();
+        const closing = context && context.state !== 'closed' ? context.close() : Promise.resolve();
+        closing.catch(error => console.warn("YIN audio cleanup failed", error)).finally(resolve);
+      };
+      if(!node || context.state === 'closed') return finish();
+      // Let process() return false before closing. Only our private, silent context
+      // is resumed; shared playback stays untouched. Bound cleanup if resume fails.
+      timeout = setTimeout(finish, 1000);
+      node.port.onmessage = e => { if(e.data.stopped) finish(); };
+      node.port.postMessage({ stop: true });
+      context.resume().catch(finish);
+    });
+    this.highPassFilter?.disconnect();
+    this.workletNode = this.highPassFilter = this.silentGain = null;
+    this.callback = null;
+    this.audioContext = null;
+    this.recentFrequencies.length = this.recentConfidences.length = 0;
+    this.lastValidFreq = null;
   }
 
   setA4Frequency(freq) {

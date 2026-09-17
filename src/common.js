@@ -2108,7 +2108,6 @@ function dialog(
   // example:
   //  let dialog = dialog("close me", { Close: { svg:"Split"}}, (e,prop,tag,args) => {
   //    dialog.close();
-  //    dialog.remove(); // if won't be opened again...allows garbage collection
   //  }
   // dialog.showModal();
   //
@@ -2127,6 +2126,16 @@ function dialog(
     buttonsDef,
     handler
   ).elm;
+  // Native Escape and programmatic close must release the dialog too.
+  elm.addEventListener("close", () => elm.remove(), { once: true });
+  elm.addEventListener("cancel", (e) => {
+    if (Object.keys(buttonsDef).length == 0) {
+      e.preventDefault(); // Dialogs without buttons require the user to leave the tab.
+    } else if (Object.hasOwn(buttonsDef, "Cancel")) {
+      e.preventDefault();
+      buttonsElm.self.fire("Cancel", e);
+    }
+  });
   buttonsElm.style.marginTop = "1em";
   elm.append(buttonsElm);
   _body_.append(elm);
