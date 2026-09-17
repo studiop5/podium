@@ -1886,6 +1886,7 @@ class Review {
   closed = false;
   waveFrame = null;
   blinkSchedule = new Schedule();
+  restartId = 0;
   recorder = new Recorder();
 
   // At any time, the Reviewer will be either in state "Live"
@@ -1923,7 +1924,7 @@ class Review {
   elm = helm(`
      <div class="Review">
        <div data-tag="viewer" class="Review__viewer">
-         <video crossorigin="anonymous" data-tag="video" class="Review__video Review__video__reflect" autoplay ></video>
+         <video crossorigin="anonymous" data-tag="video" class="Review__video Review__video__reflect" autoplay playsinline webkit-playsinline></video>
          <div data-tag="waveview" class="Review__waveview hidden">
            <div data-tag="spectrogram" class="Review__spectrogram"></div>
            <canvas height="256" width="${this.bufSize}" data-tag="waveform" class="Review__waveform"></canvas>
@@ -1974,7 +1975,9 @@ class Review {
     this.stopAnimations();
     if(this.mediaStream) this.mediaStream.getTracks().forEach(track => track.stop());
     if(this.liveSrc) this.liveSrc.disconnect();
-    if(this.analyzer) this.analyser.disconnect();
+    this.recordedSrc?.disconnect();
+    this.analyser?.disconnect();
+    this.mediaStream = this.liveSrc = this.recordedSrc = this.analyser = null;
     if(this.video) {
       this.video.pause();
       this.video.srcObject = null;
@@ -2312,16 +2315,18 @@ class Review {
     // Called when options have changed: restarts the Review with new parameters,
     // but video/recording will be paused
     if(this.closed) return;
+    const restartId = ++this.restartId;
     this.mediaStream.getTracks().forEach(track => track.stop());
 
     let mediaStream = await navigator.mediaDevices.getUserMedia({
       video: { deviceId: {exact: this.mediaDevicesSpec[this.stash.videoSrc].deviceId}},
       audio: { deviceId: {exact: this.mediaDevicesSpec[this.stash.audioSrc].deviceId}},
     });
-    if(this.closed) {
+    if(this.closed || restartId !== this.restartId) {
       mediaStream.getTracks().forEach(track => track.stop());
       return;
     }
+    this.liveSrc?.disconnect();
     this.mediaStream = mediaStream;
     // now (re) start the recorder
     this.recorder.destructor();

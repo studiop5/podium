@@ -3209,7 +3209,7 @@ class PrintPanel extends Panel {
           if (window.cancelPdf) toast("Print cancelled");
           else {
             console.error("Print failed:", error);
-            dialog(`<em>Print Failed</em><br><br><strong>${error.message}</strong>`);
+            dialog(`<em>Print Failed</em><br><br><strong>${escapeHtml(error.message)}</strong>`);
           }
         }
         finally {
