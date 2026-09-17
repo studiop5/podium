@@ -1412,6 +1412,14 @@ class Menu {
     // source: "local" (from localStorage) or "score" (from saved score) or
     // undefined (no filtering). Cells whose storage property doesn't match
     // source are skipped as a safeguard.
+    // Attachments are untrusted, including nested objects later merged elsewhere.
+    const isObject = value => value && typeof value === "object" && !Array.isArray(value);
+    const sanitize = value => Array.isArray(value) ? value.map(sanitize) : isObject(value) ?
+      Object.fromEntries(Object.entries(value)
+        .filter(([key]) => !["__proto__", "constructor", "prototype"].includes(key))
+        .map(([key, item]) => [key, sanitize(item)])) : value;
+    if(!isObject(stashJsonObj)) return;
+    stashJsonObj = sanitize(stashJsonObj);
     let version = stashJsonObj.version;
     if (!version) return;
     if (version != _podiumVersion_) {
@@ -1419,13 +1427,16 @@ class Menu {
       return;
     }
     for (let [ringKey, ringValue] of Object.entries(stashJsonObj)) {
+      if(!Object.hasOwn(this.rings, ringKey) || !isObject(ringValue)) continue;
       let ring = this.rings[ringKey];
       if (!ring) continue;
       try {
         let { stash, cells } = ringValue;
         ring.stash = ring.stash ?? {};
-        Object.assign(ring.stash, stash);
+        if(isObject(stash)) Object.assign(ring.stash, stash);
+        if(!isObject(cells)) continue;
         for (let [cellKey, cellStash] of Object.entries(cells)) {
+          if(!Object.hasOwn(ring.cells, cellKey) || !isObject(cellStash)) continue;
           let cell = ring.cells[cellKey];
           if (!cell) continue;
           if (source && cell.storage && cell.storage != source) continue;
