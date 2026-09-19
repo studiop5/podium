@@ -87,15 +87,18 @@ DIGIT = {str(d): 0xE080 + d for d in range(10)}
 # Key signature geometry (font units). The dy lists are the standard staff
 # positions for successive sharps / flats; accidentals step right by *_DX_STEP.
 # There is no standard position past the 7th accidental, so 7 is the maximum.
-SHARP_DY      = [599, 224, 724, 349, -26, 474, 99]
-FLAT_DY       = [100, 475, -25, 350, -150, 225, -275]
+STAFF_SPACE = 200  # Bravura Text: 1000 units/em, five staff spaces/em.
+# Treble-clef staff positions, measured from the bottom line. Pristine
+# accidentals sit at y=400; retain the sharp's 1-unit optical correction.
+SHARP_DY = [STAFF_SPACE * y - 401 for y in (4, 2.5, 4.5, 3, 1.5, 3.5, 2)]
+FLAT_DY  = [STAFF_SPACE * y - 400 for y in (2, 3.5, 1.5, 3, 1, 2.5, .5)]
 SHARP_DX_STEP = 220
 FLAT_DX_STEP  = 200
 KEYSIG_RPAD   = 40     # right sidebearing past the last accidental's ink
 
 # Time signature geometry (font units).
-TS_NUM_DY    = 750     # numerator vertical position
-TS_DEN_DY    = 250     # denominator vertical position
+TS_NUM_DY    = 3 * STAFF_SPACE  # numerator centered between the top two spaces
+TS_DEN_DY    = STAFF_SPACE      # denominator centered between the bottom two spaces
 TS_DIGIT_GAP = 5       # ink gap between digits within a multi-digit row
 TS_RPAD      = 29      # right sidebearing past the widest row's ink
 

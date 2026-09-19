@@ -1716,7 +1716,7 @@ class Menu {
         let config = {
           podiumType: "symbols",
           fill: rgba,
-          fontSize: size * 4, // * 4 because size is in "pixels per staff space" and there's normally 4 spaces / staff
+          fontSize: size * 5, // Bravura Text: 200 font units per staff space, 1000 per em
           editable: false,
           selectable: true,
           left: opts.absolutePointer.x,

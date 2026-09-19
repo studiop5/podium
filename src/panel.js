@@ -3036,7 +3036,8 @@ class SymbolsPanel extends Panel {
     if (active && active.podiumType == "symbols") {
       let color = fabric.Color.fromHex(rgb);
       color.setAlpha(parseFloat(alpha));
-      active.set({ fill: color.toRgba(), fontSize: size * 4 });
+      // Bravura Text has five staff spaces per em, matching symbol insertion.
+      active.set({ fill: color.toRgba(), fontSize: size * 5 });
       active.setCoords();
       active.canvas.requestRenderAll();
     }
