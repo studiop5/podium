@@ -49,8 +49,8 @@ let errDialog = (error, msg) => {
   if (error.name == "AbortError") return; // thrown when browser's open/save panels are cancelled
   else if (error.cause == "cancelled") return toast("Cancelled");
   else if (error.cause == "timeout") dialog("Timed out waiting for authentication");
-  else if (error.cause == "security") dialog(`<em>Security Error</em><br><br><strong>${error.message}</strong>`);
-  else if (error.cause == "fileSrc") dialog(`<em>${msg}</em><br><br><strong>${error.message}</strong>`);
+  else if (error.cause == "security") dialog(`<em>Security Error</em><br><br><strong>${escapeHtml(error.message)}</strong>`);
+  else if (error.cause == "fileSrc") dialog(`<em>${msg}</em><br><br><strong>${escapeHtml(error.message)}</strong>`);
   else {
     console.error(`*** Unexpected Podium Error:`, error);
     dialog(`<em>Unexpected Error</em><br><br><strong>${msg}</strong><br><br>Details in console.`);
@@ -331,7 +331,7 @@ class FileSrc {
         toast("File saved.");
       } catch (error) {
         if (error.originalData) {
-          dialog(`${error.message}<br><br>Save original PDF instead (without Podium modifications)?`,
+          dialog(`${escapeHtml(error.message)}<br><br>Save original PDF instead (without Podium modifications)?`,
             { Save: { svg: "Save" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
               args.close();
               if (tag == "Save") {
@@ -573,7 +573,7 @@ class CachedSrc extends FileSrc {
     // This is called after oauth authentication has run
     authPopupClose(popup) {
         _shade_.pop();
-        popup.close();
+        popup?.close();
     }
 
     async auth() {
@@ -635,6 +635,11 @@ class CachedSrc extends FileSrc {
                 }
             }
         }
+
+        // A blocked popup is harmless if token refresh worked; otherwise fail
+        // before starting the authorization poll or showing its shade.
+        if(!isExtension && !popup)
+            throw new Error("Authentication popup was blocked. Allow popups for this site and try again.", { cause: "fileSrc" });
 
         // function to create a code challenge
         let base64UrlEncode = (str) =>
@@ -710,10 +715,11 @@ class CachedSrc extends FileSrc {
                 try {
                     if (popup.closed) throw new Error("Authentication aborted", { cause: "cancelled" });
                     let href = popup.location.href;
-                    let error = this.getQuery(href, "error=");
+                    let params = new URL(href).searchParams;
+                    let error = params.get("error");
                     if (error) {
-                        let errorMsg = this.getQuery(href, "error_description=") || error;
-                        throw new Error(`Authentication failed: ${decodeURIComponent(errorMsg).replace(/\+/g, " ")}`);
+                        let errorMsg = params.get("error_description") || error;
+                        throw new Error(`Authentication failed: ${errorMsg}`, { cause: "fileSrc" });
                     }
                     let code = this.getQuery(href, "code=");
                     if (code) {
@@ -1778,7 +1784,7 @@ class LocalFileView {
               Score.visit(score, visitUpdate);
               toast("File opened");
             } catch (error) {
-              if (!error.handled) dialog(`Error opening file <i>${escapeHtml(file.name)}</i><br>${error.message || error}`);
+              if (!error.handled) dialog(`Error opening file <i>${escapeHtml(file.name)}</i><br>${escapeHtml(error.message || error)}`);
             }
           }
         }
@@ -1820,7 +1826,7 @@ class LocalFileView {
       toast("File saved");
     } catch (error) {
       if (error.originalData) {
-        dialog(`${error.message}<br><br>Save original PDF instead (without Podium modifications)?`,
+        dialog(`${escapeHtml(error.message)}<br><br>Save original PDF instead (without Podium modifications)?`,
           { Save: { svg: "Save" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
             args.close();
             if (tag == "Save") {
@@ -2629,7 +2635,7 @@ class FileSystemView extends FileListView {
       toast("File uploaded");
     } catch (error) {
       if (error.originalData) {
-        dialog(`${error.message}<br><br>Upload original PDF instead (without Podium modifications)?`,
+        dialog(`${escapeHtml(error.message)}<br><br>Upload original PDF instead (without Podium modifications)?`,
           { Upload: { svg: "Upload" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
             args.close();
             if (tag == "Upload") {
