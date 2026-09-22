@@ -1064,7 +1064,7 @@ class Clock extends Surface {
         // hands axis
         <circle cx="600" cy="600" r="10" fill="white"/>      
         // date (dynamically assigned)
-        <text x="380" y="730" data-tag="date" style="font-size:65px;font-family:Liminari;font-style:italic;">1/1/2024</text>
+        <text x="600" y="730" text-anchor="middle" data-tag="date" style="font-size:65px;font-family:Liminari;font-style:italic;">1/1/2024</text>
         // dome overlay: curved glass effect
         <circle cx="600" cy="600" r="450" fill="url(#clockDome)" pointer-events="none"/>
       </svg>`);
@@ -1081,7 +1081,8 @@ class Clock extends Surface {
     let hours = (date.getHours() % 12) + minutes / 60;
     this.hourHand.setAttribute("transform", `rotate(${hours * 30} 600 600)`);
     this.minuteHand.setAttribute("transform", `rotate(${minutes * 6} 600 600)`);
-    this.date.textContent = date.toDateString();
+    this.date.textContent = date.toLocaleDateString(undefined,
+      { weekday: "short", month: "short", day: "numeric", year: "numeric" });
     this.clockSchedule.run((60 - date.getSeconds()) * 1000);
   }
 
