@@ -509,9 +509,12 @@ async function main() {
   delayMs(period, watchdogLoop);
 }
 
-// don't allow the contextmenu to appear, ever!
+
+ // Preserve native menus for mouse input; reserve touch/pen holds for Podium.
 listen(document, "contextmenu", (e) => {
-  if (!e.target.closest("input, textarea, [contenteditable]")) e.preventDefault();
-}) ;
+  if (e.target.closest("input, textarea, [contenteditable]")) return;
+  if (e.pointerType === "touch" || e.pointerType === "pen")
+    e.preventDefault();
+});
 
 main();

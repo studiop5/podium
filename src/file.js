@@ -21,7 +21,7 @@
 **/
 
 export { checkUnsaved, escapeHtml, FileSrc, FileListView, FileSystemView, LocalFileView };
-import { css, ButtonGroup, clamp, clearChildren, dataIndex, delay, Drag, getBox, helm, iconSvg, listen, dialog, Schedule, strToHash, toast, unlisten } from "./common.js";
+import { css, ButtonGroup, clamp, clearChildren, dataIndex, delay, Drag, getBox, helm, iconSvg, listen, dialog, noTranslate, Schedule, strToHash, toast, unlisten } from "./common.js";
 import { Score } from "./score.js";
 import { panels } from "./panel.js";
 // -skip
@@ -127,7 +127,7 @@ let checkFileSize = async (name, size) => {
     return new Promise((resolve, reject) => {
         dialog(
           `Large File Warning<br><br>
-           File: <i>${escapeHtml(name)}</i><br>
+           File: <i translate="no">${escapeHtml(name)}</i><br>
            Size: <strong>${(size / 1024 / 1024).toFixed(1)}MB</strong><br><br>
            This file exceeds the recommended size limit of ${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB.<br>
            Loading will work, but saving may be slow or fail on large files.<br><br>
@@ -1786,7 +1786,7 @@ class LocalFileView {
               Score.visit(score, visitUpdate);
               toast("File opened");
             } catch (error) {
-              if (!error.handled) dialog(`Error opening file <i>${escapeHtml(file.name)}</i><br>${escapeHtml(error.message || error)}`);
+              if (!error.handled) dialog(`Error opening file <i translate="no">${escapeHtml(file.name)}</i><br>${escapeHtml(error.message || error)}`);
             }
           }
         }
@@ -2053,7 +2053,7 @@ class FileListView {
     checkPath(name);
     if (name.toLowerCase().endsWith(ext)) return name;
     return new Promise((accept, reject) => {
-      dialog(`Add extension <i>.pdf</i> to <i>${escapeHtml(name)}<i> ?`, { Yes: { svg: "Pdf" }, No: { svg: "Not Pdf" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
+      dialog(`Add extension <i>.pdf</i> to <i translate="no">${escapeHtml(name)}</i> ?`, { Yes: { svg: "Pdf" }, No: { svg: "Not Pdf" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
         args.close();
         if (tag == "Yes") accept(name + ext);
         else if (tag == "No") accept(name);
@@ -2094,17 +2094,17 @@ class FileListView {
     let color = this.colorFromText(name);
     let elm = helm(`
        <div ${isDir ? "data-dir='true'":""} data-name="${escapeHtml(name)}" data-path="${escapeHtml(path)}" data-source="${escapeHtml(source)}" class="Flv-list__file">
-         <div class="Flv-list__file-header">
+         <div class="Flv-list__file-header" translate="no">
            ${iconSvg(iconName, {style: "width:3.5em;height:2.5em" })}
            ${escapeHtml(name)}
          </div>
          <div class="Flv-list__file-details">
            <div class="Flv-list__file-properties">
-             Source: ${escapeHtml(source)}<br>
-             ${source == "Local" ? "" : "Path: " + (escapeHtml(path) || "/") + "<br>"}
-             ${size ? "Size: "+ Number(size).toLocaleString() + "<br>" : ""}
-             ${created ? "Created: "+ created + "<br>" : ""}
-             ${modified ? "Modified: "+ modified + "<br>" : ""}
+             Source: ${noTranslate(escapeHtml(source))}<br>
+             ${source == "Local" ? "" : "Path: " + noTranslate(escapeHtml(path) || "/") + "<br>"}
+             ${size ? "Size: "+ noTranslate(Number(size).toLocaleString()) + "<br>" : ""}
+             ${created ? "Created: "+ noTranslate(created) + "<br>" : ""}
+             ${modified ? "Modified: "+ noTranslate(modified) + "<br>" : ""}
            </div>
            <div>
              ${source == "Local" ? "" : this.mode == "copy" ? "" : iconSvg("Pencil", {tag: "rename", size: "2.75em", style: "padding:.5em;"})}
@@ -2305,7 +2305,7 @@ class FileListView {
     return new Promise((accept, reject) => {
       let dialogElm = dialog(
         `Confirm. Rename File:<br><br>
-            <i>${escapeHtml(name)}</i><br>
+            <i translate="no">${escapeHtml(name)}</i><br>
               <br>To:<br>
         <input is="pod-input" type=text class="dialog__textInput" data-tag="input" value="${escapeHtml(name)}"></input>
        <hr>`,
@@ -2355,7 +2355,7 @@ class FileListView {
     _shade_.show("Trashing file");
 
     return new Promise((accept, reject) => {
-      dialog(`Confirm. Trash File:<br><br><i>${escapeHtml(name)}</i><hr>`, { Trash: { svg: "Trash" }, Cancel: { svg: "Close" } }, async (e, prop, tag, args) => {
+      dialog(`Confirm. Trash File:<br><br><i translate="no">${escapeHtml(name)}</i><hr>`, { Trash: { svg: "Trash" }, Cancel: { svg: "Close" } }, async (e, prop, tag, args) => {
         try {
           args.close();
           if (tag == "Cancel") return;
@@ -2460,7 +2460,7 @@ class FileSystemView extends FileListView {
       } else path = path + "/" + dir;
 
       dirElm = helm(
-        `<div dir-source="${escapeHtml(this.source)}" data-path="${escapeHtml(path)}" style="background:${background}"{ class="Flv-path__dir">
+        `<div dir-source="${escapeHtml(this.source)}" data-path="${escapeHtml(path)}" style="background:${background}" class="Flv-path__dir" translate="no">
          ${iconSvg(icon, { size: "1.5em" })}&nbsp${escapeHtml(dir)}&nbsp/</div>`
       );
       elm.append(dirElm);
@@ -2553,7 +2553,7 @@ class FileSystemView extends FileListView {
     return new Promise((accept, reject) => {
       let dialogElm = dialog(
         `Confirm. Rename Folder:<br><br>
-            <i>${escapeHtml(name)}</i><br>
+            <i translate="no">${escapeHtml(name)}</i><br>
               <br>To:<br>
         <input is="pod-input" type=text class="dialog__textInput" data-tag="input" value="${escapeHtml(name)}"></input>
        <hr>`,
@@ -2591,7 +2591,7 @@ class FileSystemView extends FileListView {
   async trashDir(path, name) {
     _shade_.show("Trashing folder");
     return new Promise((accept, reject) => {
-      dialog(`Confirm. Trash Folder:<br><br><i>${escapeHtml(name)}</i><hr>`, { Trash: { svg: "Trash" }, Cancel: { svg: "Close" } }, async (e, prop, tag, args) => {
+      dialog(`Confirm. Trash Folder:<br><br><i translate="no">${escapeHtml(name)}</i><hr>`, { Trash: { svg: "Trash" }, Cancel: { svg: "Close" } }, async (e, prop, tag, args) => {
         try {
           args.close();
           if (tag == "Cancel") return;
@@ -2618,7 +2618,7 @@ class FileSystemView extends FileListView {
       let listing = await this.src.getDir(this.path, true);
       if (listing.files[name])
         await new Promise((accept, reject) =>
-          dialog(`Confirm. Replace <i>${escapeHtml(name)}</i> ?`,
+          dialog(`Confirm. Replace <i translate="no">${escapeHtml(name)}</i> ?`,
             { Replace: { svg: "Replace" }, Cancel: { svg: "Cancel" } }, async (e, prop, tag, args) => {
               args.close();
               if (tag == "Cancel") reject(new Error("", { cause: "cancelled" }));

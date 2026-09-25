@@ -195,7 +195,7 @@ class Layout {
     toast(which == "start"
       ? `${staff(23.5, 33, 30)}
          <div style="position:absolute;font:2em/.2 Bravura;top:42px;left:33px;">\ue033</div>`
-      : `<div style="position:absolute;top:5px;left:28px;font:italic bold 0.9em/1 'Times New Roman',serif";>Fine</div>
+      : `<div translate="no" style="position:absolute;top:5px;left:28px;font:italic bold 0.9em/1 'Times New Roman',serif";>Fine</div>
          ${staff(36.5, 34.5, 24)}
          <div style="position:absolute;font:2em/.4 Bravura;left:55px;top:50px;">\ue032</div>`,
       "Layout__alert", 300) ;
@@ -2678,7 +2678,7 @@ class Pager {
   static width = 45 / _dvPxRt_; // px
 
   elm = helm(
-    `<div data-tag="pager" class="Pager">
+    `<div data-tag="pager" class="Pager notranslate" translate="no">
         <div data-tag="cursor" class="Pager__cursor"></div>
      </div>`
   );

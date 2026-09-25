@@ -39,7 +39,8 @@ import {
   iconSvg,
   listen,
   mergeRecent,
-  pnToString,
+  noTranslate,
+  pnToHtml,
   pxToEm,
   reflow,
   SliderGroup,
@@ -126,14 +127,16 @@ class Select {
      </div>
     </div>`) ;
 
-  constructor(options, option=null, panel) {
+  constructor(options, option=null, panel, translatable=() => true) {
+    // @translatable(option) says whether the browser's translator may translate an option's
+    // label; options are always identified by their original (untranslated) string.
     Object.assign(this, dataIndex("tag", this.elm));
-    Object.assign(this, {options, option, panel}) ;
+    Object.assign(this, {options, option, panel, translatable}) ;
     delayMs(_gs_ + 1, () => this.build()) ; // call build after we're confident panel has animated (duration _gs_) to its full size
   }
 
   build() {
-    let {frame, options, option, panel, sash, toggle} = this ;
+    let {frame, options, option, panel, sash, toggle, translatable} = this ;
     toggle.tabIndex = 0 ; // required for toggle to be focused 
     let keyBuf = "" ;
     let toggleStyle = getComputedStyle(toggle);
@@ -141,7 +144,12 @@ class Select {
     toggle.style.width = frame.style.width = sash.style.width = parseFloat(toggleStyle.width) / emPerPx + "em";
     let frameHeight = frame.style.height = ((getBox(panel.panel).bottom - getBox(frame).top) / emPerPx) -.5 + "em" ;
     // Add in all the options:
-    for(let option of options) sash.append(helm(`<div class="Select__option">${option}</div>`)) ;
+    for(let option of options) {
+      let elm = helm(`<div class="Select__option">${escapeHtml(option)}</div>`) ;
+      elm.dataset.option = option ;
+      elm.translate = translatable(option) ;
+      sash.append(elm) ;
+    }
 
     let selectOption = (option, matched=null) => {
       // called when an option is selected by user, either by clicking the option or by 
@@ -156,6 +164,7 @@ class Select {
         toggle.innerHTML = "<div>" + inner + "</div>";
       }
       else toggle.textContent = option;
+      toggle.translate = translatable(option) ;
       toggle.dispatchEvent(new CustomEvent('SELECTED', { detail:option}));
     }
 
@@ -190,11 +199,15 @@ class Select {
         unlisten(mv);
         drag.up(eup) ;
         if(!drag.moved) {
+          // closest(): a browser translator may wrap an option's text in <font> elements, and
+          // textContent would then be the translated label rather than the option itself
+          let target = e.target.closest(".Select__option") ;
+          if(!target) return closeFrame() ;
           if(this.target) this.target.style.background = "none" ;
-          this.target = e.target ;
+          this.target = target ;
           this.target.style.background = "#aaa" ;
           closeFrame();
-          return selectOption(e.target.textContent) ;
+          return selectOption(target.dataset.option) ;
         }
         else if (drag.vY) {
           let { to, dt } = Drag.fling(sash.offsetTop, frame.offsetHeight - sash.offsetHeight, 0, drag.vY);
@@ -596,17 +609,17 @@ class AboutPanel extends Panel {
   );
 
   licenseFace = helm(`<p style="padding:2em;overflow:auto;text-align:center;">
-  <br><b>PODIUM: Sheet Music Studio</b><br><br>
-  Copyright 2026 Glendon Diener<br><br>
+  <br><b translate="no">PODIUM: Sheet Music Studio</b><br><br>
+  <span translate="no">Copyright 2026 Glendon Diener</span><br><br>
 
   Podium is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br><br>
 
   Podium is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-      <a rel="noopener noreferrer" href="https://www.gnu.org/licenses/agpl-3.0-standalone.html">GNU Affero Public License</a>
+      <a rel="noopener noreferrer" translate="no" href="https://www.gnu.org/licenses/agpl-3.0-standalone.html">GNU Affero Public License</a>
 for more details.</p>
       `);
 
-  creditsFace = helm(`<div>
+  creditsFace = helm(`<div translate="no">
         <div class="Credit">
           <a href="https://github.com/steinbergmedia/bravura">Bravura</a> Version 1.1<br>
           © 2019, Steinberg Media Technologies GmbH<br>
@@ -733,7 +746,9 @@ class AddPanel extends Panel {
       }
     );
     this.colorPickerProxy.replaceWith(this.colorPicker.elm);
-    this.select = new Select(Object.keys(this.options), stash.size, this) ;
+    // Preset paper names (A4, Octavo, Hand Copy (Trad), ...) are proper names and never
+    // translated; only the app's own wording is.
+    this.select = new Select(Object.keys(this.options), stash.size, this, (size) => size == "Custom" || size == "Match Score") ;
     this.selectProxy.replaceWith(this.select.elm) ;
     this.setupSizeSelection(stash);
   }
@@ -744,7 +759,7 @@ class AddPanel extends Panel {
       let pt = val.toFixed(0);
       let mm = (val * (1 / 2.8346456693)).toFixed(0);
       let inch = (val * (1 / 72)).toFixed(2);
-      return `${tag}: ${pt}pt,... ${mm}mm, ${inch}in`;
+      return `${tag}: ${noTranslate(`${pt}pt,... ${mm}mm, ${inch}in`)}`;
     };
     let disable = stash.size != "Custom";
 
@@ -898,15 +913,15 @@ class DetailsPanel extends Panel {
       });
       this.content.append(nameInput);
       let source = score.source
-        ? `<div style="text-align:right;">Source:&nbsp;</div><div>${escapeHtml(score.source)}</div>`
+        ? `<div style="text-align:right;">Source:&nbsp;</div><div>${noTranslate(escapeHtml(score.source))}</div>`
         : "";
       let path = score.path
-        ? `<div style="text-align:right;">Path:&nbsp;</div><div>${escapeHtml(score.path)} </div>`
+        ? `<div style="text-align:right;">Path:&nbsp;</div><div>${noTranslate(escapeHtml(score.path))} </div>`
         : "";
       let size = score.size
-        ? `<div style="text-align:right;">Size:&nbsp;</div><div>${Number(
+        ? `<div style="text-align:right;">Size:&nbsp;</div><div>${noTranslate(`${Number(
             score.size
-          ).toLocaleString()} B</div>`
+          ).toLocaleString()} B`)}</div>`
         : "";
       const PERM_FLAGS = [
         [4,    "Print"],
@@ -935,13 +950,13 @@ class DetailsPanel extends Panel {
           }</div>
           ${permHtml}
           <div style="text-align:right;">Created:&nbsp;</div><div>${
-            score.created ? new Date(score.created).toLocaleString() : "?"
+            score.created ? noTranslate(new Date(score.created).toLocaleString()) : "?"
           }</div>
           <div style="text-align:right;">Modified:&nbsp;</div><div>${
-            score.modified ? new Date(score.modified).toLocaleString() : "?"
+            score.modified ? noTranslate(new Date(score.modified).toLocaleString()) : "?"
           }</div>
-          <div style="text-align:right;">Width:&nbsp;</div><div>${score.maxWidth.toFixed(0)} pt, ${(score.maxWidth / 2.8346456693).toFixed(0)} mm, ${(score.maxWidth / 72).toFixed(2)} in</div>
-          <div style="text-align:right;">Height:&nbsp;</div><div>${score.maxHeight.toFixed(0)} pt, ${(score.maxHeight / 2.8346456693).toFixed(0)} mm, ${(score.maxHeight / 72).toFixed(2)} in</div>
+          <div style="text-align:right;">Width:&nbsp;</div><div>${noTranslate(`${score.maxWidth.toFixed(0)} pt, ${(score.maxWidth / 2.8346456693).toFixed(0)} mm, ${(score.maxWidth / 72).toFixed(2)} in`)}</div>
+          <div style="text-align:right;">Height:&nbsp;</div><div>${noTranslate(`${score.maxHeight.toFixed(0)} pt, ${(score.maxHeight / 2.8346456693).toFixed(0)} mm, ${(score.maxHeight / 72).toFixed(2)} in`)}</div>
           </div>`)
       );
 
@@ -966,7 +981,7 @@ class DetailsPanel extends Panel {
           if (typeof v == "string" && v.startsWith("D:")) {
             v = new Date(this.parseTs(v)).toLocaleString();
           }
-          detailsHtml += `<div style="text-align:right">${escapeHtml(k)}:&nbsp;&nbsp;</div><div>${escapeHtml(String(v))}</div>`;
+          detailsHtml += `<div style="text-align:right">${escapeHtml(k)}:&nbsp;&nbsp;</div><div>${noTranslate(escapeHtml(String(v)))}</div>`;
         }
         this.content.append(
           helm(
@@ -1720,7 +1735,7 @@ class MetronomePanel extends Panel {
     metronome.beatPattern = metronome.beatPatterns.find(p => p.name == stash.pattern);
 
     let stashed = Object.keys(this.options).find(key => this.options[key] == stash.pattern);
-    let patterns = new Select(Object.keys(this.options), stashed, this) ;
+    let patterns = new Select(Object.keys(this.options), stashed, this, () => false) ; // pattern names are never translated
     this.content.append(patterns.elm) ;
     patterns.elm.classList.add("Metronome__patterns") ;
     listen(patterns.toggle, "SELECTED",
@@ -1759,7 +1774,7 @@ class MetronomePanel extends Panel {
     this.tempoGroup = new SliderGroup(
       stash,
       {
-        tempo: { min: 1, max: 220, step: 1, msg: "Tempo: {value} bpm", value: 60, },
+        tempo: { min: 1, max: 220, step: 1, msg: `Tempo: {value} ${noTranslate("bpm")}`, value: 60, },
         latency: { min: -300, max: 300, step: 10, msg: "Latency: {value}ms", value: 0},
       },
       (e, prop, value) => {
@@ -1824,17 +1839,17 @@ class NumbersPanel extends Panel {
     let score = _score_;
 
     let formatPn = () => {
-      return `Page: ${pnToString(_score_.numbers.pn)} 
-      (${~~_score_.numbers.pn} / ${score.pgs.length})`;
+      return `Page: ${pnToHtml(_score_.numbers.pn)} 
+      ${noTranslate(`(${~~_score_.numbers.pn} / ${score.pgs.length})`)}`;
     };
 
     let defs = {
       pn: { min: 1, max: score.pgs.length, value: score.numbers.pn, step: 1,
         msg: formatPn, throttle: 500, fullWidth:true},
       prelim: {min: 0, max: 100,value: _score_.numbers.prelim,step: 1,
-        msg: () => `Roman: ${_score_.numbers.prelim}`,throttle: 500, row:2, col:1 },
+        msg: () => `Roman: ${noTranslate(_score_.numbers.prelim)}`,throttle: 500, row:2, col:1 },
       first: { min: 1, max: 1000, value: _score_.numbers.first, step: 1,
-        msg: () => `First: ${_score_.numbers.first}`,throttle: 500, row:2, col:2},
+        msg: () => `First: ${noTranslate(_score_.numbers.first)}`,throttle: 500, row:2, col:2},
     };
     this.pnSliderGroup = new SliderGroup(
        _score_.numbers,
@@ -2137,7 +2152,7 @@ class TextPanel extends PencilPanel {
     super(cell);
     let fontLabel = helm(`<div class="Panel__item">Font</div>`);
     this.picker.after(fontLabel);
-    let select = new Select(this.fonts, cell.stash.font, this) ;
+    let select = new Select(this.fonts, cell.stash.font, this, () => false) ; // font names are never translated
     fontLabel.after(select.elm) ;
     this.preview.append(this.text);
     this.listeners.push(listen(select.toggle, "SELECTED", (e) => this.update(e.detail)));
@@ -2839,6 +2854,7 @@ class KeyboardPanel extends SurfacePanel {
     // defeat this.body's stylings: we want the this.surface to add padding/margin so
     // that it has something to grab for detaching/moving
     this.body.style.padding = "unset" ;
+    this.panel.translate = false ; // the keyboard panel is never translated
     this.surface = new Keyboard(this);
     this.kbFocusListener = null;
   }
@@ -2954,7 +2970,9 @@ class SymbolsPanel extends Panel {
     let stash = cell.stash;
 
     // Create a Select (similar to an html <select>)
-    let select = new Select(Object.keys(smuflTable), stash.group, this) ;
+    // Only Podium's own groups are translatable: the rest are SMuFL spec section titles,
+    // which are English-only and stay that way so they can be looked up in the spec.
+    let select = new Select(Object.keys(smuflTable), stash.group, this, (group) => group == "Recent" || group == "Basic") ;
     this.select.replaceWith(select.elm) ;
     this.select = select ;
 
@@ -3240,11 +3258,11 @@ class PrintPanel extends Panel {
       if(tag == "first") {
         if(value > props.last) value = props.last;
         props.first = value;
-        return "First page: " + pnToString(value);
+        return "First page: " + pnToHtml(value);
       } else if(tag == "last") {
         if(value < props.first) value = props.first;
         props.last = value;
-        return "Last page: " +  pnToString(value);
+        return "Last page: " +  pnToHtml(value);
       }
     }
 
