@@ -2302,8 +2302,14 @@ class Review {
     this.video.muted = false;
     this.setPlayButton("Replay");
     this.state = "Replay";
+    const restartId = this.restartId;
     let recordedData = await this.recorder.stop();
-    if(this.closed) return;
+    if(this.closed || restartId !== this.restartId) return; // restart() owns the Review now
+    if(!recordedData) {
+      // The recorder was already inactive, e.g. its capture track ended (device unplugged).
+      toast("Nothing recorded to replay");
+      return;
+    }
     this.video.srcObject = null;
     this.video.src = this.createVideoUrl(recordedData);
     this.liveSrc.disconnect();
