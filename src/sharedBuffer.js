@@ -68,7 +68,7 @@ class SharedBuffer {
         let ids = [...this.podIds];
         window._podId_ = ids.pop();
         // Extension tabs use [brackets], web/PWA tabs use (parens), to distinguish them in the tab bar.
-        let podTitle = (window.chrome && chrome.runtime?.id) ? id => `Podium [${id}]` : id => `Podium (${id})`;
+        let podTitle = (window.chrome && chrome.runtime?.id) ? id => `PODIUM [${id}]` : id => `PODIUM (${id})`;
         // set up storage listener now that _podId_ exists
         listen(window, 'storage', async (e) => {
           if (!e.newValue) return;
