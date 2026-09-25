@@ -1596,7 +1596,7 @@ class Score {
 
       // Verify the catalog was parsed correctly
       if (srcPLibDoc && (!srcPLibDoc.catalog || typeof srcPLibDoc.catalog.Pages !== 'function'))
-          throw new Error("PDF catalog corrupted.<br>File too large?<br>Try splitting into sections.", { cause: "fileSrc"})
+          throw new Error("PDF catalog corrupted.\nFile too large?\nTry splitting into sections.", { cause: "fileSrc"})
 
       let dstPLibDoc = await PDFLib.PDFDocument.create();
       dstPLibDoc.registerFontkit(window.fontkit);
