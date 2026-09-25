@@ -22,6 +22,7 @@
 
 
 import { dialog, listen } from "./common.js";
+import { escapeHtml } from "./file.js";
 import { Score } from "./score.js";
 export { SharedBuffer }
 
@@ -165,7 +166,7 @@ class SharedBuffer {
       _menu_.enableCells("page/import", true);
     } catch (err) {
       if (err.cause === 'fileSrc' || err.message?.includes('catalog') || err.message?.includes('Invalid object')) {
-        dialog("Unable to copy page:<br>" + err.message);
+        dialog("Unable to copy page:<br>" + escapeHtml(err.message).replace(/\n/g, "<br>"));
       } else throw err; 
     }
   }

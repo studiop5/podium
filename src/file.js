@@ -46,11 +46,13 @@ let err = (call, msg) => {
 
 let errDialog = (error, msg) => {
   // Craft an error dialog, given an exception variable and a msg.
+  // error.message is plain text (it may quote external sources), so it's escaped: newlines become line breaks.
+  let message = () => escapeHtml(error.message).replace(/\n/g, "<br>");
   if (error.name == "AbortError") return; // thrown when browser's open/save panels are cancelled
   else if (error.cause == "cancelled") return toast("Cancelled");
   else if (error.cause == "timeout") dialog("Timed out waiting for authentication");
-  else if (error.cause == "security") dialog(`<em>Security Error</em><br><br><strong>${escapeHtml(error.message)}</strong>`);
-  else if (error.cause == "fileSrc") dialog(`<em>${msg}</em><br><br><strong>${escapeHtml(error.message)}</strong>`);
+  else if (error.cause == "security") dialog(`<em>Security Error</em><br><br><strong>${message()}</strong>`);
+  else if (error.cause == "fileSrc") dialog(`<em>${msg}</em><br><br><strong>${message()}</strong>`);
   else {
     console.error(`*** Unexpected Podium Error:`, error);
     dialog(`<em>Unexpected Error</em><br><br><strong>${msg}</strong><br><br>Details in console.`);
@@ -726,7 +728,7 @@ class CachedSrc extends FileSrc {
                         if (exchanging) return; // another poll already handling this code
                         exchanging = true;
                         if(this.getQuery(href, "state=") != state)
-                            throw new Error("Possible <i>Cross Site Request Forgery</i> attempt blocked.", {cause:"security"});
+                            throw new Error("Possible Cross Site Request Forgery attempt blocked.", {cause:"security"});
                         this.tokens = await exchange(code, this.redirectUri);
                         let now = performance.now() / 1000;
                         this.tokens.expiry = now + this.tokens.expires_in;
