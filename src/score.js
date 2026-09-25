@@ -83,6 +83,7 @@ class Pg {
     this.inflated = false; // true iff a fabricjs canvas is currently available
     this.inflatePromise = null;
     this.inflateCtrl = null;
+    this.renderPromise = null; // see renderIfNeeded()
     this.inUse = false; // marker for class Score's caching algorithm
     this.score = score;
     this.height = height;
@@ -92,6 +93,7 @@ class Pg {
     this.stretch = 1; // iff score.pgFit == "Expand", will stretch pg to fit math.min(score.max,score.min)
     this.thumbUrl = null;
     this.thumbVersion = 0;
+    this.tempHolds = 0; // number of in-progress toPdf/getThumbElm calls using this pg
     this.suppressStateChange = false;
     this.width = width;
     this.undoStack = [];
@@ -99,7 +101,7 @@ class Pg {
     return this;
   }
 
-  async renderPdf(canvas) {
+  async renderPdf(canvas, signal = this.inflateCtrl?.signal) {
     // If this page is used to display pdf content (the usual case),
     // then this function renders that pdf to a dom canvas instance
     // referenced as this.mozCanvas (short for mozilla pdf library
@@ -110,7 +112,7 @@ class Pg {
     if(this.score.disposed) throw new DOMException("Score disposed", "AbortError");
     if(!this.score.mozDoc) return;
     let mozPg = await this.score.mozDoc.getPage(this.mozPn);
-    if(this.score.disposed || this.inflateCtrl?.signal?.aborted)
+    if(this.score.disposed || signal?.aborted)
       throw new DOMException("Inflation aborted", "AbortError");
     let viewport = mozPg.getViewport({ scale: this.score.quality});
     let w = viewport.width / this.score.quality;
@@ -161,26 +163,31 @@ class Pg {
     //   canvas's container div.
     if(this.score.disposed) return this;
     if(this.inflatePromise) {
-      if(nonblocking) return this;
+      if(nonblocking) {
+        // An inflation is already in flight. If it's a blocking one (e.g. toPdf's), it
+        // created no placeholder, and may not render the pdf: the caller (a layout) needs
+        // an elm to mount now, and the pdf drawn once the inflation completes.
+        if(!this.elm) this.setPlaceholder();
+        if(render) this.inflatePromise.then(() => this.renderIfNeeded());
+        return this;
+      }
       await this.inflatePromise;
       if(this.score.disposed) return this;
     }
-    if (this.inflated) return this;
+    if (this.inflated) {
+      if(render) {
+        let rendered = this.renderIfNeeded();
+        if(!nonblocking) await rendered;
+      }
+      return this;
+    }
     this.inflateCtrl = new AbortController();
     if(this.mozPn && nonblocking) {
       // Pages backed by mozilla pdf pages can take a long time to render, blocking the ui.
       // To improve the ui experience, if nonblocking is true (the default), pdf rendering
-      // if done s.t. it doesn't block the ui. In this case, we immediately create a "fake" canvas (really,
-      // a simple div-within-a-div  (so we can set the font-size without effecting the size of the outer div)) to show,
-      // leaving the rendering of pdf to a true canvas until after inflatePromise resolves.
-      this.deferred = true;
-      this.canvas = helm(`<div style="text-align:center;color:#eee;background:white;font-family:Bravura"><div style="font-size:5em;">\uE4C4<div></div>`);
-      this.elm = this.canvas;
-      this.elm.pg = this; // backref on the placeholder too: it's mounted into layouts
-        // immediately, while the real canvas (which also sets .pg) only replaces it
-        // later in the background. Without this, a concurrent ScrollLayout.pgMount
-        // iterating the sash finds a .pg-less child \u2192 pgUnuse(undefined) crash.
-      this.style = this.elm.style; // convenient shorthand
+      // if done s.t. it doesn't block the ui. In this case, we immediately create a "fake" canvas
+      // to show, leaving the rendering of pdf to a true canvas until after inflatePromise resolves.
+      this.setPlaceholder();
     }
     let pending = this.inflateAux(render).catch(err => {
       if(err.name == 'AbortError') return; // expected when navigation cancels inflation
@@ -191,6 +198,30 @@ class Pg {
     });
     this.inflatePromise = pending;
     if(!nonblocking) await pending;
+  }
+
+  setPlaceholder() {
+    // Show a "fake" canvas (really, a simple div-within-a-div (so we can set the font-size
+    // without effecting the size of the outer div)) until the pg's inflation completes,
+    // at which point inflateTracked replaces it with the fabric canvas's container div.
+    this.deferred = true;
+    this.canvas = helm(`<div style="text-align:center;color:#eee;background:white;font-family:Bravura"><div style="font-size:5em;"><div></div>`);
+    this.elm = this.canvas;
+    this.elm.pg = this; // backref on the placeholder too: it's mounted into layouts
+      // immediately, while the real canvas (which also sets .pg) only replaces it
+      // later in the background. Without this, a concurrent ScrollLayout.pgMount
+      // iterating the sash finds a .pg-less child → pgUnuse(undefined) crash.
+    this.style = this.elm.style; // convenient shorthand
+  }
+
+  renderIfNeeded() {
+    // A pg inflated with render == false (by toPdf) has no pdf drawn. If a layout
+    // has since started displaying it, draw its pdf now.
+    if(!this.inflated || !this.mozPn || this.mozCanvas) return Promise.resolve();
+    this.renderPromise ??= this.renderPdf(this.canvas).catch(err => {
+      if(err.name != 'AbortError') console.warn(`Failed to render page ${this.mozPn}:`, err);
+    }).finally(() => this.renderPromise = null);
+    return this.renderPromise;
   }
 
   async inflateAux(render) {
@@ -416,42 +447,61 @@ class Pg {
       let version = ++this.thumbVersion;
       let cancelled = () => this.score.disposed || version !== this.thumbVersion || isCancelled();
       let deflated = !this.inflated;
-      let score = this.score;
-      if (deflated) await this.inflate(true, false);
-      if(cancelled() || !this.inflated) return null;
-
-      let scale = Pg.thumbSize / Math.max(score.maxWidth, score.maxHeight);
-      let maxW = score.maxWidth * scale, maxH = score.maxHeight * scale;
-      let thumbElm = helm(
-        `<div class="TableLayout__pg" style="width:${maxW / _pxPerEm_}em;height:${maxH / _pxPerEm_}em;"></div>`);
-      thumbElm.style.backgroundColor = Pg.paddingColor;
-      if(score.details?.pgFit == "Center")
-        thumbElm.style.backgroundSize = this.width * 100 / score.maxWidth + "%";
-
-      let fabCanvas = this.canvas.toCanvasElement(scale * this.stretch);
-      let fabBlob = await new Promise(res => fabCanvas.toBlob(res));
-      if(cancelled() || !fabBlob) return null;
-      let pdfBlob = null;
-      if(this.mozCanvas) {
-        let pdfCanvas = helm(`<canvas width="${maxW}" height="${maxH}"></canvas>`);
-        pdfCanvas.getContext("2d").drawImage(this.mozCanvas, 0, 0, maxW, maxH);
-        pdfBlob = await new Promise(res => pdfCanvas.toBlob(res));
-        if(cancelled() || !pdfBlob) return null;
+      ++this.tempHolds;
+      try {
+        if (deflated) await this.inflate(true, false);
+        return await this.makeThumbElm(cancelled);
+      } finally {
+        --this.tempHolds;
+        if (deflated) this.tempDeflate();
       }
-
-      // Publish both URLs together, after all asynchronous work has completed.
-      // The page owns them until replacement or full deflation/disposal.
-      if(this.fabUrl) URL.revokeObjectURL(this.fabUrl);
-      if(this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
-      this.fabUrl = URL.createObjectURL(fabBlob);
-      this.pdfUrl = pdfBlob ? URL.createObjectURL(pdfBlob) : null;
-      thumbElm.style.backgroundImage = `url('${this.fabUrl}')` +
-        (this.pdfUrl ? `, url('${this.pdfUrl}')` : "");
-      this.thumbElm = thumbElm;
-      if (deflated) this.deflate();
-      this.thumbDirty = false;
     }
     return this.thumbElm;
+  }
+
+  tempDeflate() {
+    // Deflate a pg that was only inflated temporarily (for a thumbnail or pdf),
+    // unless it's since been put on-screen: a layout may have called pgUse()
+    // while the inflation was in flight, and now owns the pg. Nor while another
+    // temporary user (a concurrent toPdf/getThumbElm) still needs it.
+    if (!this.inUse && !this.magnifierHold && this.tempHolds == 0) this.deflate();
+  }
+
+  async makeThumbElm(cancelled) {
+    // getThumbElm's body: requires this pg to be inflated.
+    let score = this.score;
+    if(cancelled() || !this.inflated) return null;
+
+    let scale = Pg.thumbSize / Math.max(score.maxWidth, score.maxHeight);
+    let maxW = score.maxWidth * scale, maxH = score.maxHeight * scale;
+    let thumbElm = helm(
+      `<div class="TableLayout__pg" style="width:${maxW / _pxPerEm_}em;height:${maxH / _pxPerEm_}em;"></div>`);
+    thumbElm.style.backgroundColor = Pg.paddingColor;
+    if(score.details?.pgFit == "Center")
+      thumbElm.style.backgroundSize = this.width * 100 / score.maxWidth + "%";
+
+    let fabCanvas = this.canvas.toCanvasElement(scale * this.stretch);
+    let fabBlob = await new Promise(res => fabCanvas.toBlob(res));
+    if(cancelled() || !fabBlob) return null;
+    let pdfBlob = null;
+    if(this.mozCanvas) {
+      let pdfCanvas = helm(`<canvas width="${maxW}" height="${maxH}"></canvas>`);
+      pdfCanvas.getContext("2d").drawImage(this.mozCanvas, 0, 0, maxW, maxH);
+      pdfBlob = await new Promise(res => pdfCanvas.toBlob(res));
+      if(cancelled() || !pdfBlob) return null;
+    }
+
+    // Publish both URLs together, after all asynchronous work has completed.
+    // The page owns them until replacement or full deflation/disposal.
+    if(this.fabUrl) URL.revokeObjectURL(this.fabUrl);
+    if(this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
+    this.fabUrl = URL.createObjectURL(fabBlob);
+    this.pdfUrl = pdfBlob ? URL.createObjectURL(pdfBlob) : null;
+    thumbElm.style.backgroundImage = `url('${this.fabUrl}')` +
+      (this.pdfUrl ? `, url('${this.pdfUrl}')` : "");
+    this.thumbElm = thumbElm;
+    this.thumbDirty = false;
+    return thumbElm;
   }
 
   async clone(inflate = false) {
@@ -585,12 +635,14 @@ class Pg {
     // @pLibPg the PDFLib page that will be modified.
     // @return the json-serializion of the fabricjs canvas.
     let wasInflated = this.inflated;
-    if (!wasInflated) await this.inflate(false, false); // temporarily re-inflate, but skip unnecessary rendering
+    ++this.tempHolds;
     try {
+      if (!wasInflated) await this.inflate(false, false); // temporarily re-inflate, but skip unnecessary rendering
       return await this.toPdfAux(ink, pLibPg);
     } finally {
       // deflate in a finally so a failed save can't leak an inflated pg
-      if (!wasInflated) this.deflate();
+      --this.tempHolds;
+      if (!wasInflated) this.tempDeflate();
     }
   }
 
@@ -1502,7 +1554,7 @@ class Score {
     // We don't immediately deflate an unused pg: instead, deflate least recently
     // used unused pg's, allowing at most Score.MAX_INFLATED inflated but unused pg's.
     // Pages with magnifierHold are excluded (being viewed in magnifier panel).
-    let deflatable = this.pgs.filter((pg) => pg.inflated && !pg.inUse && !pg.magnifierHold);
+    let deflatable = this.pgs.filter((pg) => pg.inflated && !pg.inUse && !pg.magnifierHold && pg.tempHolds == 0);
     deflatable.sort((a, b) => b.lastUsed - a.lastUsed);
     while (deflatable.length > Score.MAX_INFLATED) {
       deflatable.pop().deflate();

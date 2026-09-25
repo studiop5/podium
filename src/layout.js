@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, Drag, getBox, helm, listen, pnToDiv, ptrMsg, rotatePoint, Schedule, toast, unlisten,} from "./common.js";
+import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, Drag, getBox, helm, listen, pnToDiv, ptrMsg, reflow, rotatePoint, Schedule, toast, unlisten,} from "./common.js";
 import {ScreenPanel } from "./panel.js";
 import { Pg } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
@@ -313,23 +313,75 @@ class Layout {
     }
   }
 
+  pgCutBuild(cutPn) {
+    // Rebuild after pg @cutPn was cut from the score. Subclasses can animate the change.
+    return this.build(false);
+  }
+
   _build() {
     // Subclasses override: (re) build the ui: called on initial
     // display, and any time the layout needs to be updated, due to screen size
     // change, re-orientation, or request to jump to specific page.
   }
 
-  async animateToCell(pg, srcBox, clone, cell, layoutKey, after=null) {
+  static pgSnapshot(pg, box) {
+    // @return a canvas showing pg (its pdf, overlaid by its fabric objects),
+    //   sized for display at @box's size.
+    let dpr = window.devicePixelRatio || 1;
+    let w = Math.max(1, Math.round(box.width * dpr)), h = Math.max(1, Math.round(box.height * dpr));
+    let snap = helm(`<canvas width="${w}" height="${h}"></canvas>`);
+    let ctx = snap.getContext("2d");
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, w, h);
+    if(pg.mozCanvas) ctx.drawImage(pg.mozCanvas, 0, 0, w, h);
+    if(pg.inflated) // (else pg is still rendering in the background: a blank page will do)
+      ctx.drawImage(pg.canvas.toCanvasElement(w / pg.canvas.getWidth()), 0, 0, w, h);
+    return snap;
+  }
+
+  async animateToCell(pg, srcBox, clone, cell, layoutKey, after=null, onStart=null) {
     // Simulate the given pg "Moving" to a menu cell will shrinking to viusally represent
     // copying or deleting. The pg (or the cloned pg) is removed from the dom when the
     // animation completes.
     // @pg the pg to animate
-    // @clone when true, animate a clone of pg...the pg itself is untouched.
+    // @clone when true, animate a copy of pg (a snapshot, or in table layout, a copy
+    //   of its thumbnail)...the pg itself is untouched.
     // @cell the menu cell to animate the pg to
     // @layoutKey when == "table", then were actually animating a thumbnail: its
     //    has slightly different logic.
     // @after option function to run after animation completes and pg (or cloned pg)
     //    has been removed from the dom
+    // @onStart optional function to run as the pg (or its copy) starts moving, e.g. to
+    //    rebuild the layout beneath a snapshot of a cut pg.
+    if(!srcBox) { // nothing on-screen to animate
+      if(onStart) onStart();
+      if(after) after();
+      return;
+    }
+    let dstBox = getBox(dataIndex("tag", cell.elm).cellIcon);
+    if(clone && layoutKey != "table") {
+      // Fly a flat snapshot of the pg: it can start instantly, exactly over the pg,
+      // without touching the pg (or the layout) itself.
+      let snap = Layout.pgSnapshot(pg, srcBox);
+      Object.assign(snap.style, { position: "fixed", pointerEvents: "none", zIndex: _zTop_ + 1,
+        left: srcBox.x + "px", top: srcBox.y + "px", width: srcBox.width + "px", height: srcBox.height + "px",
+        transformOrigin: "0 0" });
+      _body_.append(snap);
+      // Let the full-size snapshot paint before the transition starts: painting a fresh,
+      // pg-sized canvas can take a few frames, which would otherwise eat the start of
+      // the transition, so the user never sees it at full size, i.e. as a copy of the pg.
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      let dx = dstBox.x + dstBox.width/2 - srcBox.x, dy = dstBox.y + dstBox.height/2 - srcBox.y;
+      // transform (vs. left/top/width/height) animates on the compositor, without re-layout.
+      // Ease-in: linger near full size, then accelerate into the cell.
+      animate(snap, null, { transform: `translate(${dx}px, ${dy}px) scale(0)` },
+        `transform ${_gsgs_}ms cubic-bezier(0.55, 0, 0.75, 0.2)`, () => {
+          snap.remove();
+          if(after) after();
+        });
+      if(onStart) onStart();
+      return;
+    }
     let elm = pg.elm;
     if(layoutKey == "table") {
        elm = pg.thumbElm;
@@ -339,23 +391,6 @@ class Layout {
          elm = tmp;
       }
     }
-    else if(clone) {
-       let clone = await pg.clone(true);
-       if(pg.canvas) {
-         // need to resize fabric's components to match 
-         clone.canvas.lowerCanvasEl.style.width = pg.canvas.lowerCanvasEl.style.width;
-         clone.canvas.upperCanvasEl.style.width = pg.canvas.upperCanvasEl.style.width;
-         clone.canvas.lowerCanvasEl.style.height = pg.canvas.lowerCanvasEl.style.height;
-         clone.canvas.upperCanvasEl.style.height = pg.canvas.upperCanvasEl.style.height;
-         if(clone.mozCanvas && pg.mozCanvas) {
-           clone.mozCanvas.style.height = pg.mozCanvas.style.height;
-           clone.mozCanvas.style.width = pg.mozCanvas.style.width;
-         }
-         pg.elm.append(clone.elm);
-         elm = clone.elm;
-       }
-    }    
-    let dstBox = getBox(dataIndex("tag", cell.elm).cellIcon);
     _body_.append(elm);
     let css = elm.style.cssText; 
     animate(elm, 
@@ -366,6 +401,7 @@ class Layout {
          elm.style.cssText = css; //restore styles so if/when a deletion is undone
          if(after) after();
       });       
+    if(onStart) onStart();
   };
 
   async onDown(e) {
@@ -468,18 +504,28 @@ class Layout {
             _score_.numbers.pn = Math.max(1, _score_.numbers.pn - 1) // choose different one
           else if(pn < _score_.numbers.pn) // active pg must decrement
             --_score_.numbers.pn;
-          // note: falls through to case "copy"
+          // The model has been mutated, but the DOM not yet rebuilt: block new
+          // gestures until build() (run by the animation) rebuilds.
+          this.pasting = true;
+          let cloning = pg.clone(true); // (clone captures pg's state synchronously, before any rebuild)
+          if(layoutKey == "table")
+            await this.animateToCell(pg, srcBox, false, pasteCell, layoutKey, () => this.build(false));
+          else // as with copy, fly a snapshot, but rebuild the layout (sans pg) beneath it as it flies
+            await this.animateToCell(pg, srcBox, true, pasteCell, layoutKey, null, () => this.pgCutBuild(pn));
+          if (pasteCell.pg) pasteCell.pg.deflate(true);
+          pasteCell.pg = await cloning;
+          _menu_.enableCells("page/paste") ;
+          break;
         }
 
         case "copy": {
-          // cut falls through to here, so this guards both: model has been mutated
-          // (cut) and/or the page elm is about to detach for the move animation;
-          // block new gestures until build() (run in the animation's after) rebuilds.
-          this.pasting = true;
+          // Copying leaves the score, and so the layout, untouched: only a clone of
+          // the pg flies to the paste cell.
+          // Start the animation first: cloning (which renders the pdf) would delay it.
+          let cloning = pg.clone(true);
+          await this.animateToCell(pg, srcBox, true, _menu_.rings.page.cells.paste, layoutKey);
           if (pasteCell.pg) pasteCell.pg.deflate(true);
-          pasteCell.pg = await pg.clone(true);
-          await this.animateToCell(pg, srcBox, false, _menu_.rings.page.cells.paste, layoutKey, 
-            () => this.build(false));
+          pasteCell.pg = await cloning;
           _menu_.enableCells("page/paste") ;
           break;
         }
@@ -932,8 +978,9 @@ class BookLayout extends Layout {
     g.zoom = g.pgWidth / score.maxWidth;
 
     // this.elm must have its fontsize *style* set in em's, initially 1, but 
-    // can be changed by user pan/zoom
-    this.elm.style.fontSize = "1em";
+    // can be changed by user pan/zoom. A non-animated rebuild (e.g. after a
+    // cut/paste/undo) keeps the user's zoom, as it keeps their pan (left/top).
+    if (animated || !this.elm.style.fontSize.endsWith("em")) this.elm.style.fontSize = "1em";
        
     //
     // Use g(eo(metry)) to set size of all elements in em's
@@ -1687,8 +1734,9 @@ class ScrollLayout extends Layout {
     g.sashLimit = Math.round(-g.sash[WIDTH] + g.pgShow * (g.pg[WIDTH] + g.gap) + g.gap);
     g.zoom = g.pg[WIDTH] / score[MAXWIDTH];
 
-    // this.elm must have its fontsize *style* set in em's: initially 1, but changeable by user pan/zoom
-    this.elm.style.fontSize = "1em";
+    // this.elm must have its fontsize *style* set in em's: initially 1, but changeable by user pan/zoom.
+    // A non-animated rebuild (e.g. after a cut/paste/undo) keeps the user's zoom, as it keeps their pan (left/top).
+    if (animated || !this.elm.style.fontSize.endsWith("em")) this.elm.style.fontSize = "1em";
        
     //
     // Use g(eo(metry)) to set size of all elements in em's
@@ -1762,8 +1810,37 @@ class ScrollLayout extends Layout {
       );
       this.pgGoTo(pn, true);
     } else {
-      this.pgGoTo(pn, false);
+      await this.pgGoTo(pn, false); // (awaited so the pgs are mounted when build() resolves)
     }
+  }
+
+  async pgCutBuild(cutPn) {
+    // Rebuild after pg @cutPn was cut from the score, sliding the remaining pgs to close
+    // the gap: record where each mounted pg is on-screen, rebuild instantly, then
+    // animate each pg from its old to its new location.
+    let before = new Map();
+    for (let elm of this.sash.children) if (elm.pg) before.set(elm.pg, getBox(elm));
+    await this.build(false);
+    if(this.destroyed) return;
+    // pgs the rebuild newly mounted slide in with their neighbors on the same side of the cut
+    let shift = {}, moves = [];
+    for (let elm of this.sash.children) {
+      if (!elm.pg) continue;
+      let side = this.score.pnOf(elm.pg) >= cutPn ? "after" : "before";
+      let old = before.get(elm.pg), now = getBox(elm);
+      let d = old ? { x: old.x - now.x, y: old.y - now.y } : null;
+      if (d) shift[side] ??= d;
+      moves.push({ elm, side, d });
+    }
+    moves = moves.map(m => ({ ...m, d: m.d ?? shift[m.side] }))
+      .filter(({ d }) => d && (Math.abs(d.x) >= 0.5 || Math.abs(d.y) >= 0.5));
+    for (let { elm, d } of moves)
+      Object.assign(elm.style, { transition: "none", transform: `translate(${d.x}px, ${d.y}px)` });
+    reflow();
+    for (let { elm } of moves)
+      Object.assign(elm.style, { transition: `transform ${_gsgs_}ms ease-in-out`, transform: "" });
+    // Clean up by timer, not transitionend: a pg unmounted mid-slide never gets one.
+    setTimeout(() => { for (let { elm } of moves) elm.style.transition = ""; }, _gsgs_ + 50);
   }
 
   async onDown(e) {

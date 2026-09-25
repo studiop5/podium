@@ -1310,12 +1310,24 @@ class ImportPanel extends Panel {
     buttons.elm.style.borderTop = ".02em solid var(--color-border)";   
     this.buttons.replaceWith(buttons.elm);
 
+    let build = 0; // generation of the latest SHAREDBUFFER build
     this.listeners.push(listen(_body_, "SHAREDBUFFER", async (e) => {
+      let myBuild = ++build;
+      let superseded = () => myBuild != build;
       _shade_.show("Building...");
-      let score = await _podPb_.getScore();
       let thumbs = [];
-      for(let pg of score.pgs) thumbs.push(await pg.getThumbElm(true));
-      _shade_.hide();
+      try {
+        let score = await _podPb_.getScore();
+        for(let pg of score.pgs) {
+          if(superseded()) break;
+          // null when the buffer's score was disposed (another tab changed it) meanwhile
+          let thumb = await pg.getThumbElm(true, superseded);
+          if(thumb) thumbs.push(thumb);
+        }
+      } finally {
+        _shade_.hide();
+      }
+      if(superseded()) return; // a newer build owns the sash
       clearChildren(this.sash);
       if(thumbs.length > 0) {
         this.sash.style.fontSize = "1em"; // reset to known "baseline"
