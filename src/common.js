@@ -44,6 +44,8 @@ export {
   inflate,
   listen,
   pnToDiv,
+  pnToHtml,
+  noTranslate,
   pnToString,
   reflow,
   rotatePoint,
@@ -1578,9 +1580,9 @@ class SliderGroup {
       );
       defs[tag] = tagDef;
       let elm = helm(
-        `<div class="SliderGroup__SliderBlock" data-tag="${tag}">${this.formatMsg(
+        `<div class="SliderGroup__SliderBlock" data-tag="${tag}"><span data-tag="${tag}_msg">${this.formatMsg(
           tag
-        )}
+        )}</span>
              <pod-slider class="SliderGroup__SliderBlock__Slider" data-tag="${tag}_slider"
                min="${tagDef.min}" max="${tagDef.max}" step="${tagDef.step}" value="${tagDef.value}" curve="${tagDef.curve}">
           </pod-slider></div>`
@@ -1624,8 +1626,7 @@ class SliderGroup {
     // slider's tag, and the slider's value. The slider's value
     // is written into this.props as the value of the slider's tag.
     let tag = e.target.parentElement.dataset.tag;
-    let elm = this.dataIndex[tag];
-    let sliderElm = elm.firstElementChild;
+    let sliderElm = this.dataIndex[tag + "_slider"];
     this.props[tag] = Number(sliderElm.value);
     this.refresh();
     if (this.defs[tag].throttle > 0) {
@@ -1662,7 +1663,7 @@ class SliderGroup {
       if (tagDef.disabled)
         elm.classList.add("SliderGroup__SliderBlock__Slider-disabled");
       else elm.classList.remove("SliderGroup__SliderBlock__Slider-disabled");
-      elm.firstChild.data = this.formatMsg(tag).replace(/(.*?\.\.\.).*/, "$1");
+      this.setMsg(tag, this.formatMsg(tag).replace(/(.*?\.\.\.).*/, "$1"));
     }
   }
 
@@ -1675,7 +1676,15 @@ class SliderGroup {
     if (max) this.defs[tag].max = sliderElm.max = max;
     sliderElm.setAttribute("value", value);
     this.props[tag] = value;
-    this.dataIndex[tag].firstChild.data = this.formatMsg(tag);
+    this.setMsg(tag, this.formatMsg(tag));
+  }
+
+  setMsg(tag, html) {
+    // Messages are html (e.g. with page numbers exempted from auto-translation), and are
+    // (re)written as a whole into their own element: the browser's auto-translation
+    // replaces text nodes with its own elements, so a text node can't be updated in place.
+    let msgElm = this.dataIndex[tag + "_msg"];
+    if (msgElm.innerHTML != html) msgElm.innerHTML = html;
   }
 }
 
@@ -1922,9 +1931,11 @@ class TabView {
 
     constructor(title) {
       // Title is a string to diplay on the tag. If iconPaths[title] exists,
-      // the tag will display that icon to the left of title.
+      // the tag will display that icon to the left of title, and the title
+      // will not be translated.
       this.tag.textContent = title;
-      if (iconPaths[title] && title != "Doc")
+      if (iconPaths[title]) this.tag.translate = false;
+      if (iconPaths[title] && title != "Doc") 
         this.tag.prepend(
           helm(
             `${iconSvg(title, {
@@ -1985,7 +1996,8 @@ class TabView {
       let target = downTarget ?? e.target;
       downTarget = null;
       if (justDragged) { justDragged = false; return; }
-      if (target.classList.contains("Tab__tag")) this.selectTab(target);
+      let tagElm = target.closest?.(".Tab__tag");
+      if (tagElm) this.selectTab(tagElm);
     });
 
     if (this.draggable)
@@ -2454,6 +2466,11 @@ function pnToDiv(pn, div, autoSize = true) {
   div.style.letterSpacing = "normal";
   if(!roman) div.style.paddingTop = 0 ; // this keeps or bravura chars more centererd
   let str = pnToString(pn, true);
+  // Page numbers are exempt from the browser's auto-translation (which Podium relies on
+  // for i18n): it turns both roman numerals (e.g. "vi", "mix") and Bravura's digit glyphs
+  // (private-use code points, meaningless to a translator) into garbage, e.g. "NaN".
+  div.translate = false;
+  div.classList.add("notranslate"); // (older Chrome/Google Translate convention)
 
   if (autoSize && div.offsetWidth > 0) {
     // Determine font size needed so str will fit within 90% of the div's width
@@ -2477,6 +2494,17 @@ function pnToDiv(pn, div, autoSize = true) {
   }
   div.textContent = str;
   return div;
+}
+
+function pnToHtml(pn) {
+  // pnToString(pn) as html for embedding in translatable text (e.g. "Page: iv"), with
+  // the page number itself exempt from auto-translation: see pnToDiv().
+  return noTranslate(pnToString(pn));
+}
+
+function noTranslate(html) {
+  // @return @html wrapped s.t. the browser's auto-translation leaves it alone.
+  return `<span translate="no" class="notranslate">${html}</span>`;
 }
 
 function pnToString(pn, useSMuFL = false) {

@@ -732,6 +732,7 @@ function closeVideo(event, container) {
                 <li><a href="#chapter-2-pwa">2.2 Progressive Web App (PWA)</a> — <span style="color:#777">Install as a standalone app on any device</span></li>
                 <li><a href="#chapter-2-compat">2.3 Browser Compatibility</a> — <span style="color:#777">Supported browsers and platforms</span></li>
                 <li><a href="#chapter-2-foot-pedal">2.4 Foot Pedal</a> — <span style="color:#777">Page turning with a Bluetooth foot pedal</span></li>
+                <li><a href="#chapter-2-language">2.5 Using Podium in Your Language</a> — <span style="color:#777">Translate the interface with your browser</span></li>
             </ul>
         </li>
         <li><a href="#chapter-3">Chapter 3: Interface Basics</a> — <span style="color:#777">Menu, panels, gestures, background</span></li>
@@ -1053,7 +1054,7 @@ function closeVideo(event, container) {
 
     <p><strong>iPad screen real estate and gestures.</strong> Installing Podium as a PWA is particularly important on iPads. By default, Safari adds significant "decoration" (address bars, tab strips, and toolbars) that consumes precious screen space. When launched from the iPad home screen as a PWA, Podium runs in full-screen standalone mode, reclaiming every pixel of screen real estate for your sheet music. Furthermore, standalone mode suppresses Safari's default edge-swipe gestures (like swiping from the left edge to go back in history), ensuring that page turns and panel dragging never trigger accidental browser navigation during a performance.</p>
 
-    <p>Keep in mind that only scores you have stored locally will be available offline; scores in cloud storage require an internet connection to open.</p>
+    <p>Keep in mind that only scores you have stored locally will be available offline; scores in cloud storage require an internet connection to open. If you use Podium in a language other than English, browser translation may also need a connection; see <a href="#chapter-2-language">2.5 Using Podium in Your Language</a>.</p>
 
     <h3 id="chapter-2-extension">2.1 Browser Extension</h3>
 
@@ -1175,6 +1176,29 @@ function closeVideo(event, container) {
     <p>The behavior of the arrow keys (and therefore the pedal) is configured in the <a href="#chapter-7-numbers" class="chapter-link">Numbers panel</a> (Page Ring → Numbers). You can assign the right/up arrow to advance a page or jump to the next bookmark, and the left/down arrow to go back a page or jump to the previous bookmark. The bookmark mode is especially useful for scores with repeats: navigate to the first page of the repeated section and long-press its page number to place a bookmark there, then use the back pedal to snap directly to it when the repeat begins.</p>
 
     <div class="note">The foot pedal triggers the same tap-speed page turn setting as tapping the score layout directly. Use the <strong>Pace</strong> slider in the layout panel for the chosen layout to control how fast the page turns — see <a href="#chapter-5-page-turning" class="chapter-link">§5 Page Turning</a>.</div>
+
+    <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
+
+    <h3 id="chapter-2-language">2.5 Using Podium in Your Language</h3>
+
+    <p>Podium's interface is written in English, but you can use your browser's built-in translation to read its menus, panels, and instructions in another language. You can translate this guidebook the same way. Available languages depend on your browser.</p>
+
+    <p>Your browser may offer to translate Podium automatically if English is not one of your preferred languages. Accept the offer and choose your language. In Chrome and Edge, you can also choose <strong>Always translate English</strong> if you want English pages translated automatically.</p>
+
+    <p>To request a translation yourself:</p>
+    <ul>
+        <li><strong>Chrome or Edge on desktop:</strong> Right-click an empty part of Podium's background and choose <strong>Translate to…</strong>. Use the browser's translation controls to select a different language if needed.</li>
+        <li><strong>Chrome on Android, iPhone, or iPad:</strong> Open the browser's <strong>More</strong> menu (the three dots) and choose <strong>Translate</strong>.</li>
+        <li><strong>Safari on iPhone or iPad:</strong> Tap the small page-menu icon (a rectangle) at the left of the address bar, then choose <strong>Translate Website</strong> or <strong>Translate to [language]</strong>. If your language is not offered, check your preferred languages in <strong>Settings → General → Language &amp; Region</strong>. The wording and icon can vary with your system version.</li>
+    </ul>
+
+    <p>On touchscreens, long-press still summons Podium's own menu; use the browser controls above for translation. To return to English, open the browser's translation controls and choose to show the original page.</p>
+
+    <div class="note"><strong>Installed apps:</strong> A PWA may hide the browser toolbar and translation controls. If translation is unavailable there, open <a href="https://studiop5.org/podium">studiop5.org/podium</a> in a normal browser tab and translate it there.</div>
+
+    <div class="note"><strong>Automatic translation:</strong> Musical terms and short labels may be translated imperfectly, and longer translations may overflow some controls. Icons can help you recognize the controls; you can also switch back to English whenever needed. Browser translation changes the interface, not the contents of your PDF score.</div>
+
+    <div class="note"><strong>Offline:</strong> Podium itself works without an internet connection, but your browser's translation may not. Chrome and Edge translate over the internet, on every device, so offline, Podium appears in English. If your connection drops after you've translated Podium, what's already on screen stays translated, but panels and messages you open afterwards may appear in English. Safari on iPhone, iPad, and Mac, and Firefox, can translate without a connection once your language has been downloaded to your device. If you plan to use Podium translated and offline, for example in performance, download your language in advance and check that translation works with your device in airplane mode.</div>
 
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 
@@ -2791,6 +2815,7 @@ function closeVideo(event, container) {
         <dt>Theme<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-light"/></svg><svg class="gb-icon"><use href="#gb-glass"/></svg><svg class="gb-icon"><use href="#gb-dark"/></svg></dt><dd> &mdash; <a href="#chapter-8-theme">8.2</a></dd>
         <dt>Timbre</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
         <dt>Transform handles</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
+        <dt>Translation</dt><dd> &mdash; <a href="#chapter-2-language">2.5</a></dd>
         <dt>Tuner</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
     </dl>
     <div class="idx-letter">U</div>

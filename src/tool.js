@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, Drag, helm, hide, iconSvg, listen, schedule, Schedule, SliderGroup, Surface, TabView, toast, unlisten, pxToEm,} from "./common.js";
+import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, Drag, helm, hide, iconSvg, listen, schedule, Schedule, SliderGroup, Surface, TabView, toast, unlisten, pxToEm, noTranslate,} from "./common.js";
 import { pianoSamples } from "./sample.js";
 import { panels, ScreenPanel } from "./panel.js";
 import { Yin } from "./yin.js";
@@ -225,7 +225,7 @@ class Piano {
   tunings = {
     // Definitions from github.com/djensenius/tune.ts/tree/main/src/tune
     Meanquar: { description: "1/4-comma meantone scale. Pietro Aaron's temp. (1523). 6/5 beats twice 3/2", frequencies: [261.6255653006, 273.37431312998, 292.50627485027, 312.977175335, 327.03195662575, 349.91912034749, 365.63284274659, 391.22147055517, 408.78994578219, 437.39890198442, 468.01003810189, 489.02683710225, 523.2511306012], name: "Meanquar" },
-    Werck3: { description: "Andreas Werckmeister's temperament III (the most famous one, 1681 [sic])", frequencies: [261.6255653006, 275.62199471997, 292.34127285051, 310.07474405997, 327.77163799145, 348.83408706747, 367.49599295996, 391.11111150212, 413.43299207996, 437.02884834934, 465.11211608996, 491.65745674141, 523.2511306012], name: "Werck3" },
+    Werck3: { description: "Andreas Werckmeister's temperament III (the most famous one, 1691)", frequencies: [261.6255653006, 275.62199471997, 292.34127285051, 310.07474405997, 327.77163799145, 348.83408706747, 367.49599295996, 391.11111150212, 413.43299207996, 437.02884834934, 465.11211608996, 491.65745674141, 523.2511306012], name: "Werck3" },
     Kirnberger: { description: "Kirnberger's well-temperament, also called Kirnberger III, letter to Forkel 1779", frequencies: [261.6255653006, 275.62199471997, 292.50627485027, 310.07474405997, 327.03195662575, 348.83408706747, 367.91095120397, 391.22147055517, 413.43299207996, 437.39890198442, 465.11211608996, 490.54793493862, 523.2511306012], name: "Kirnberger" },
     Young: { description: "Thomas Young well temperament (1807), also Luigi Malerbi nr.2 (1794)", frequencies: [261.6255653006, 275.62199471997, 293.00227310437, 310.07474405997, 328.14198392915, 348.83408706747, 367.49599295996, 391.5530240856, 413.43299207996, 438.51190905657, 465.11211608996, 491.10256480205, 523.2511306012], name: "Young" },
   };
@@ -777,8 +777,9 @@ class Piano {
     let option = (tag, optText, prefix=" ", url=null, urlText="") => {
       // Used to format a tab's options: a function avoids tedious repetition
       let txt1 =`<div ${tag} class="Piano__options__option">&nbsp;${optText}<span style="position:absolute;left:18em;">${prefix}`;
-      let txt2 = url ? `<a href="https:/\/${url}">${urlText}</a></span></div>`
-      : "</div>";
+      // link texts name external pages, so they're never translated
+      let txt2 = url ? noTranslate(`<a href="https:/\/${url}">${urlText}</a>`) + "</span></div>"
+      : "</span></div>";
       return txt1 + txt2
     };
 
@@ -788,17 +789,17 @@ class Piano {
         <div data-tag="pitch" class="Piano__options-face">
           <div data-tag="a4" style="width:50em;margin-top:.4em;"></div>
           <div data-tag="options" class="Piano__options__options">
-            ${option("data-hz=\"415\"", "A = 412 Hz",  "",
+            ${option("data-hz=\"415\"", noTranslate("A = 415 Hz"),  "",
              "en.wiktionary.org/wiki/baroque_pitch", "Baroque Pitch")}
-            ${option("data-hz=\"430.54\"", "A = 430.54 Hz", "",
+            ${option("data-hz=\"430.54\"", noTranslate("A = 430.54 Hz"), "",
               "en.wikipedia.org/wiki/Scientific_pitch","Scientific Pitch")}
-            ${option("data-hz=\"432\"", "A = 432 Hz", "",
+            ${option("data-hz=\"432\"", noTranslate("A = 432 Hz"), "",
               "www.youtube.com/watch?v=LjR0WpWwLrE","Verdi's A")}
-            ${option("data-hz=\"440\"", "A = 440 Hz", "International Standard ",
+            ${option("data-hz=\"440\"", noTranslate("A = 440 Hz"), "International Standard ",
                "www.iso.org/standard/3601.html", "ISO 16:1975")}
-            ${option("data-hz=\"442\"", "A = 442 Hz", "New York Philharmonic")}
-            ${option("data-hz=\"443\"", "A = 443 Hz", "Berliner Philharmoniker")}
-            ${option("data-hz=\"466\"", "A = 466 Hz", "",
+            ${option("data-hz=\"442\"", noTranslate("A = 442 Hz"), noTranslate("New York Philharmonic"))}
+            ${option("data-hz=\"443\"", noTranslate("A = 443 Hz"), noTranslate("Berliner Philharmoniker"))}
+            ${option("data-hz=\"466\"", noTranslate("A = 466 Hz"), "",
               "boulderbachbeat.wordpress.com/tag/chorton/","Chorton")}
           </div>
         </div>`)
@@ -814,7 +815,7 @@ class Piano {
         let inCents = cents == 0 ? "" :
            cents > 0 ? `(440 Hz + ${cents} cents)`:
                        `(440 Hz - ${-cents} cents)`;
-        return inHz + inCents;
+        return noTranslate(inHz + inCents); // Hz and cents are units, never translated
       };
 
       let optionElms = Object.values(dataIndex("hz", tags.options));
@@ -859,16 +860,16 @@ class Piano {
       let tags = dataIndex("tag", helm(
         `<div data-tag="temperament" style="padding-top:2.5em" class="Piano__options-face">
            <div data-tag="options" class="Piano__options__options">
-              ${option("data-temper=\"Equal\"", "Equal",  "<sup>12</sup>\u221A2, ",
+              ${option("data-temper=\"Equal\"", noTranslate("Equal"),  noTranslate("<sup>12</sup>\u221A2, "), // a formula: translator <font> wrappers inherit the <sup>'s vertical-align and shift the line
                 "en.wikipedia.org/wiki/12_equal_temperament", "12-ET")}
-              ${option("data-temper=\"Meanquar\"", "\u00bc Comma Meantone", "1523, ",
+              ${option("data-temper=\"Meanquar\"", noTranslate("\u00bc Comma Meantone"), "1523, ",
                  "en.wikipedia.org/wiki/Pietro_Aron", "Pietro Aron")}
-              ${option("data-temper=\"Werck3\"", "Werkmeister III", "1691, ",
+              ${option("data-temper=\"Werck3\"", noTranslate("Werckmeister III"), "1691, ",
                "www.hpschd.nu/index.html?nav/nav-4.html&t/welcome.html&https:/\/www.hpschd.nu/tech/tmp/werckmeister.html",
-               "Werkmeister III")}
-              ${option("data-temper=\"Kirnberger\"", "Kirnberger III", "1779, ",
+               "Werckmeister III")}
+              ${option("data-temper=\"Kirnberger\"", noTranslate("Kirnberger III"), "1779, ",
                 "en.wikipedia.org/wiki/Kirnberger_temperament", "Kirnberger Temperament")}
-              ${option("data-temper=\"Young\"", "Valotti Young","1799, ","en.wikipedia.org/wiki/Young_temperament", "Young Temperament")}
+              ${option("data-temper=\"Young\"", noTranslate("Vallotti Young"),"1799, ","en.wikipedia.org/wiki/Young_temperament", "Young Temperament")}
         </div>
       </div>`)
       );
@@ -899,7 +900,7 @@ class Piano {
         `<div data-tag="timbre" class="Piano__options-face">
            <div data-tag="voices" style="width:50em;padding-bottom:1.5em;"></div>
            <div data-tag="options" class="Piano__options__options">
-             ${option("data-timbre=piano","Piano","Yamaha C5, ", "archive.org/details/SalamanderGrandPianoV3","Salamander V3")}
+             ${option("data-timbre=piano","Piano",noTranslate("Yamaha C5") + ", ", "archive.org/details/SalamanderGrandPianoV3","Salamander V3")}
              ${option("data-timbre=sine","Tuning Fork", "Pure Sine Wave, ",
               "www.whipplemuseum.cam.ac.uk/explore-whipple-collections/acoustics/historical-notes-brief-chronicle-tuning-fork",
               "Brief Chronicle")}
@@ -1945,7 +1946,7 @@ class Review {
          <div data-tag="videoReplayGroupElm"></div>
          <br>Input Devices:
          <div data-tag="mediaDevicesGroupElm"></div>
-         <div class="Review__options__details">
+         <div class="Review__options__details" translate="no"> <!-- device names come from the hardware -->
            <div data-tag="audioSrc"></div>
            <div data-tag="videoSrc"></div>
          </div> 
