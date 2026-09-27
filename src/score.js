@@ -130,6 +130,11 @@ class Pg {
     });
     try {
       await renderTask.promise;
+    } catch(err) {
+      // deflate() cancels an in-flight render: report that as the AbortError that
+      // callers already expect, not pdf.js's own RenderingCancelledException.
+      if(err?.name == "RenderingCancelledException") throw new DOMException("Render cancelled", "AbortError");
+      throw err;
     } finally {
       if(this.renderTask === renderTask) this.renderTask = null;
     }
@@ -572,7 +577,26 @@ class Pg {
     if (stack.length > 1) {
       this.suppressStateChange = true;
       stack.pop();
-      await new Promise((resolve, reject) => this.canvas.loadFromJSON(stack[stack.length - 1], () => resolve()));
+      let canvas = this.canvas;
+      // A tap on the page runs undo inside fabric's own mouse-down handling (see the
+      // "mouse:down:before" listener in inflateTracked), after fabric has cached the tapped
+      // object as canvas._target, which it then goes on to select. loadFromJSON removes that
+      // object, and selecting it leaves an orphan active object that crashes rendering. So
+      // forget fabric's references to removed objects: in the loadFromJSON callback (which,
+      // for plain paths, runs synchronously, i.e. before fabric reads _target), and again
+      // after it, in case the load completed only after the mouse-down.
+      let forgetRemoved = () => {
+        let gone = (obj) => obj && !canvas.contains(obj);
+        if (gone(canvas._target)) canvas._target = null;
+        if (gone(canvas._hoveredTarget)) canvas._hoveredTarget = null;
+        if (gone(canvas._currentTransform?.target)) canvas._currentTransform = null;
+        if (gone(canvas._activeObject)) canvas.discardActiveObject();
+      };
+      await new Promise((resolve, reject) => canvas.loadFromJSON(stack[stack.length - 1], () => {
+        forgetRemoved();
+        resolve();
+      }));
+      forgetRemoved();
       Pg.applyFlatten(this.canvas);
       this.canvas.requestRenderAll();
       this.suppressStateChange = false; 

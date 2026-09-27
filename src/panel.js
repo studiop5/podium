@@ -867,7 +867,10 @@ class DetailsPanel extends Panel {
           score.quality = value;
           for (let pg of score.pgs)
             // rerender un-rendered pg's iff they are backed by pdf:
-            if (pg.inflated && pg.mozPn) await pg.renderPdf();
+            if (pg.inflated && pg.mozPn) await pg.renderPdf().catch(err => {
+              // AbortError: pg was deflated meanwhile (e.g. the layout was rebuilt)
+              if (err.name != "AbortError") console.warn(`Failed to render page ${pg.mozPn}:`, err);
+            });
         }
       }
     );
