@@ -1752,7 +1752,7 @@ class LocalFileView {
       switch (e.type) {
         case "click":
           localStorage.setItem('podium-local-tab-mode', '1-click');
-          this.dialog.showPicker();
+          this.showPicker();
           break;
         case "cancel":
           localStorage.setItem('podium-local-tab-mode', '2-click');
@@ -1802,8 +1802,17 @@ class LocalFileView {
 
     if (tabMode == '1-click' && this.mode != 'save') {
       // Auto-trigger picker for open mode
-      delay(5, () => this.dialog.showPicker());
+      delay(5, () => this.showPicker());
     }
+  }
+
+  showPicker() {
+    // Open the native file picker. It requires the transient activation of a user
+    // gesture, which a browser (notably Safari) may consider expired by the time a
+    // deferred call runs (see select()). Then nothing opens; the user can still tap
+    // to pick, so that's not an error. (Monkey seed 1612, WebKit.)
+    try { this.dialog.showPicker(); }
+    catch (err) { if (err.name != "NotAllowedError" && err.name != "InvalidStateError") throw err; }
   }
 
   async putFile() {
