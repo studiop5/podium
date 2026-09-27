@@ -908,7 +908,7 @@ class DetailsPanel extends Panel {
         `<input type="text" style="font-size:1.5em;text-align:center;margin-bottom:.5em;width:100%;box-sizing:border-box;border:none;border-radius:var(--borderRadius);background:white;">`
       );
       nameInput.value = score.name.replace(/\.pdf$/i, "");
-      nameInput.addEventListener("change", () => {
+      listen(nameInput, "change", () => {
         let newName = nameInput.value.trim();
         if (!newName.toLowerCase().endsWith(".pdf")) newName += ".pdf";
         score.name = newName;
@@ -1241,7 +1241,7 @@ class GuidePanel extends Panel {
     this.fetched = true;
     this.msg.textContent = "Fetching Guidebook...";
     this.iframe.src = GuidePanel.guidebookUrl;
-    this.iframe.addEventListener("load", () => {
+    listen(this.iframe, "load", () => {
       this.iframe.style.display = "block";
       this.msg.style.display = "none";
     }, { once: true });
@@ -3226,7 +3226,7 @@ class PrintPanel extends Panel {
               watchPrintWindow();
               args.close();
             });
-            readyDialog.addEventListener("close", () => {
+            listen(readyDialog, "close", () => {
               if(!printWin) releaseUrl();
               readyDialog.remove();
             }, { once: true });
@@ -3500,7 +3500,7 @@ class CurtainSurface extends Surface {
         _curtain_.update();
       }
     );
-    this.colorGroup.elm.addEventListener('pointerdown', e => e.stopPropagation());
+    listen(this.colorGroup.elm, 'pointerdown', e => e.stopPropagation());
     this.buttonProxy.replaceWith(this.colorGroup.elm) ;
 
     this.slider = new SliderGroup(stash,

@@ -571,7 +571,8 @@ css( // common css declarations.
 );
 
 // Make all hyperlinks open in new tab (except download links)
-document.addEventListener("click", (e) => {
+// (listen() is a hoisted function declaration, so it's usable here at module load.)
+listen(document, "click", (e) => {
   let anchor = e.target.closest("a");
   if (anchor && anchor.href && !anchor.download) {
     e.preventDefault();
@@ -1934,8 +1935,8 @@ class TabView {
       // the tag will display that icon to the left of title, and the title
       // will not be translated.
       this.tag.textContent = title;
-      if (iconPaths[title]) this.tag.translate = false;
-      if (iconPaths[title] && title != "Doc") 
+      if (iconPaths[title]) {
+        this.tag.translate = false;
         this.tag.prepend(
           helm(
             `${iconSvg(title, {
@@ -1944,6 +1945,7 @@ class TabView {
             })}`
           )
         );
+      }
       this.face.dataset.tag = title + "_face";
     }
 
@@ -2139,8 +2141,8 @@ function dialog(
     handler
   ).elm;
   // Native Escape and programmatic close must release the dialog too.
-  elm.addEventListener("close", () => elm.remove(), { once: true });
-  elm.addEventListener("cancel", (e) => {
+  listen(elm, "close", () => elm.remove(), { once: true });
+  listen(elm, "cancel", (e) => {
     if (Object.keys(buttonsDef).length == 0) {
       e.preventDefault(); // Dialogs without buttons require the user to leave the tab.
     } else if (Object.hasOwn(buttonsDef, "Cancel")) {

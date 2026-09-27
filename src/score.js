@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { clamp, clearChildren, delay, dialog, fontUnmap, helm, inflate, rotatePoint, toast } from "./common.js";
+import { clamp, clearChildren, delay, dialog, fontUnmap, helm, inflate, listen, rotatePoint, toast, unlisten } from "./common.js";
 import { Grid } from "./canvas.js";
 import { Layout } from "./layout.js";
 import { panels, EditPanel } from "./panel.js";
@@ -418,6 +418,13 @@ class Pg {
     }
     this.inflatePromise = null ;
     this.renderTask?.cancel();
+    if (this.deferred) {
+      // Deflated mid-inflation: the aborted inflation will never replace its placeholder
+      // (see inflateTracked, which checks for abort before doing so), so drop it here.
+      this.elm?.remove();
+      this.canvas = this.elm = null;
+      this.deferred = false;
+    }
 
     if(full) this.clearThumb();
     if (this.inflated) {
@@ -1222,13 +1229,10 @@ class Score {
         // constructor returns races the fetch. The worker's first message (or
         // an error) proves the script has loaded and executed, so it's safe to
         // release the URL then and let the source blob be GC'd.
-        let revokeMozWorkerUrl = () => {
+        let revokeListeners = listen(mozWorker, ["message", "error"], () => {
           URL.revokeObjectURL(mozWorkerUrl);
-          mozWorker.removeEventListener("message", revokeMozWorkerUrl);
-          mozWorker.removeEventListener("error", revokeMozWorkerUrl);
-        };
-        mozWorker.addEventListener("message", revokeMozWorkerUrl);
-        mozWorker.addEventListener("error", revokeMozWorkerUrl);
+          unlisten(revokeListeners);
+        });
         window.pdfjsLib.GlobalWorkerOptions.workerPort = mozWorker;
         mozWorkerSrc = null; // allow gc
       }
@@ -1258,7 +1262,7 @@ class Score {
             args.close();
             resolve(tag == "Open" && pw ? pw : "");
           });
-          dlg.addEventListener('cancel', () => resolve(""));
+          listen(dlg, 'cancel', () => resolve(""));
           setTimeout(() => dlg.querySelector('input')?.focus(), 50);
         });
         if (password) { callback(password); return; }
