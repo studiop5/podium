@@ -82,7 +82,7 @@ let checkMergePdf = async (data) => {
         { Merge: { svg: "Merge" }, Cancel: { svg: "Cancel" } },
         (e, prop, tag, args) => { args.close(); resolve(tag == "Merge" ? data : null); }
       );
-      dlg.addEventListener('cancel', () => resolve(null));
+      listen(dlg, 'cancel', () => resolve(null));
     });
   }
 };
