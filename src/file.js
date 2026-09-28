@@ -154,6 +154,13 @@ let checkPath = (...args) => {
 }
 
 
+// Paths are PODIUM's own "/"-separated strings of folder names (cache keys, and what the
+// breadcrumb shows), but Google Drive allows "/" inside a name. Within a path, such a "/"
+// is stored as U+2215 (∕, which looks the same), so a path still splits into its folders;
+// names themselves, and every provider API call (Drive uses ids), are unchanged. Dropbox
+// and OneDrive forbid "/" in names, so their API paths are unaffected.
+let pathJoin = (path, name) => path + "/" + name.replaceAll("/", "\u2215");
+
 let escapeHtml = (str) => {
   if (!str) return '';
   return str.toString()
@@ -270,7 +277,12 @@ class FileSrc {
         try {
           args.close();
           if (tag == "Cancel") return;
-          _shade_.show("Downloading file");
+          // A local score with no file handle is re-picked through the browser's file
+          // picker: don't cover the picker with the shade (it would sit under the picker
+          // saying "Downloading", and stay up forever on a platform that never reports a
+          // dismissed picker). Shade only the loading, once a file has been picked.
+          let picking = !score.fileHandle && src.source == Score.sources.local;
+          if (!picking) _shade_.show("Downloading file");
           let data, size, created, modified;
           if (score.fileHandle) {
             let file = await score.fileHandle.getFile();
@@ -280,6 +292,7 @@ class FileSrc {
           } else {
             ({ data, size, created, modified } = await src.getFile(score.path, score.name));
           }
+          if (picking) _shade_.show("Opening file");
           let fileHandle = score.fileHandle;
           score = await new Score().init(score.source, score.path, score.name, data);
           if (fileHandle) score.fileHandle = fileHandle;
@@ -763,7 +776,7 @@ class CachedSrc extends FileSrc {
             // Initially, recursively purge all children of path:
             let purgeCache = (path) => {
                 let entry = cache[path] || {};
-                for (let key of Object.keys(entry.dirs)) purgeCache(path + "/" + key);
+                for (let key of Object.keys(entry.dirs)) purgeCache(pathJoin(path, key));
                 delete cache[path];
             };
 
@@ -828,7 +841,7 @@ class CachedSrc extends FileSrc {
         }
         let srcSubDir = srcDir?.dirs[name];
         if (!srcSubDir) {
-            Score.visit(null, null, path + "/" + name);
+            Score.visit(null, null, pathJoin(path, name));
             err(`renameDir(${path},${name},${newName})`, "Path not found.");
         }
 
@@ -847,7 +860,7 @@ class CachedSrc extends FileSrc {
         let parentDir = await this.getDir(path);
         let dir = parentDir.dirs[name];
         if (!dir) {
-            Score.visit(null, null, path + "/" + name);
+            Score.visit(null, null, pathJoin(path, name));
             err(`trashDir(${path},${name})`, "Path/Name not found.");
         }
         await this.trashDirSrc(path, name, parentDir, dir);
@@ -1037,7 +1050,7 @@ class GDriveSrc extends CachedSrc {
     let cache = this.cache;
     for(let obj of data) {
       if (obj.mimeType == this.folderMimeType) {
-        let subPath = path + "/" + obj.name;
+        let subPath = pathJoin(path, obj.name);
         cache[subPath] = {
           isDir: true,
           name: obj.name,
@@ -1274,7 +1287,7 @@ class DbxSrc extends CachedSrc {
     let cache = this.cache;
     for (let obj of data) {
       if (obj[".tag"] == "folder") {
-        let subPath = path + "/" + obj.name;
+        let subPath = pathJoin(path, obj.name);
         cache[subPath] = {
           isDir: true,
           name: obj.name,
@@ -1494,7 +1507,7 @@ class ODriveSrc extends CachedSrc {
     let cache = this.cache;
     for(let obj of data) {
       if (obj.folder) {
-        let subPath = path + "/" + obj.name;
+        let subPath = pathJoin(path, obj.name);
         cache[subPath] = {
           isDir: true,
           name: obj.name,
@@ -2519,7 +2532,7 @@ class FileSystemView extends FileListView {
 
   async getDir(path, name) {
     this.posForPath[this.path] = this.flvList.style.top;
-    this.path += "/" + name;
+    this.path = pathJoin(this.path, name);
     await this.setPath(this.path, false, true);
   }
 
@@ -2541,7 +2554,7 @@ class FileSystemView extends FileListView {
                 let name = dataIndex("tag", args.elm).input.value;
                 if (name.length == 0) return dialog("Error: 0-length folder name."); // ?? other syntax checks?
                 await this.src.putDir(path, name);
-                await this.setPath(path + "/" + name, true);
+                await this.setPath(pathJoin(path, name), true);
                 toast("Folder created");
               } catch (error) {
                 errDialog(error, "Error: failed to create folder on cloud server.");
