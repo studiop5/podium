@@ -1078,9 +1078,13 @@ class BookLayout extends Layout {
       await this.whileAlive(this.closeFunc());
       this.closeFunc = null;
       this.inOp = false; 
+      // Re-dispatch to whatever is under the pointer now: nothing, if the point is
+      // outside the viewport (elementFromPoint returns null there).
+      let target = document.elementFromPoint(e.clientX, e.clientY);
+      if (!target) return;
       return this.onDown({
         isPrimary: true,
-        target: document.elementFromPoint(e.clientX, e.clientY),
+        target,
         clientX: e.clientX,
         clientY: e.clientY,
         pointerId: e.pointerId,
@@ -2474,7 +2478,9 @@ class TableLayout extends Layout {
       if(this.toPn == 1) this.layout.grid.prepend(this.active);
       else {
          let sibling = this.layout.grid.children.item(this.toPn-2);
-         sibling.after(this.active);
+         // (after a cancelled build, the grid may end before toPn: then append)
+         if (sibling) sibling.after(this.active);
+         else this.layout.grid.append(this.active);
       }
       Object.assign(this.active.style, { pointerEvents: "auto", opacity: "1", zIndex: 2, fontSize: ""});
       // put each thumbElm into its correct grid location

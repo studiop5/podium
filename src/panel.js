@@ -826,6 +826,7 @@ class DetailsPanel extends Panel {
       },
       async (e,tag,value) => {
          let score = _score_;
+         if (!score) return; // (the panel can stay open after its score was closed)
          score.details.pgFit = value;
          // Re-open the current layout to apply the new fit. Use the canonical
          // stash.active key (always valid, kept current by Layout.open) — the
@@ -1788,7 +1789,8 @@ class MetronomePanel extends Panel {
         // (SliderGroup has already written Number(value) into stash[prop].)
         metronome.tempo = stash.tempo;
         metronome.latency = stash.latency;
-        if (prop == "tempo") metronome.bpm.textContent = Math.round(stash.tempo);
+        if (prop == "tempo" && metronome.bpm) // (not built yet in the moment after the panel opens)
+          metronome.bpm.textContent = Math.round(stash.tempo);
         if (stash.state == "Pause") {
           metronome.play(false);
           this.adjuster.run(Math.max(500, metronome.tempo * 1.5)) ; // pause while slider is adjusting, then play
