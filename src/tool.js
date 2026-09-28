@@ -1231,6 +1231,7 @@ class Stopwatch extends Surface {
   }
 
   split() {
+    if (!this.watch) return; // not built yet: see start()
     this.animatePusher(this.splitPusher);
     let split = this.started ? (performance.now() - this.timeBasis) / 1000 : 0;
     let formatNumber = (num) =>
@@ -1246,6 +1247,10 @@ class Stopwatch extends Surface {
   }
 
   start() {
+    // The watch svg builds a couple of frames after the Stopwatch is constructed
+    // (Surface's constructor defers build()), and the panel's buttons can be tapped
+    // before that: ignore them until then. (WebKit monkey seeds 1727, 1773.)
+    if (!this.watch) return;
     this.animatePusher(this.crownPusher);
     let now = performance.now();
     if (this.started == false) {
@@ -1265,6 +1270,7 @@ class Stopwatch extends Surface {
   }
 
   stop() {
+    if (!this.watch) return; // not built yet: see start()
     this.animatePusher(this.crownPusher);
     this.stopTimeBasis = performance.now();
     this.running = false;
@@ -1476,7 +1482,9 @@ conductor = `<defs>
 
   play(bool) {
     this.ticker.cancel();
-    this.pause.textContent = bool ? "" : "\ue4c0";
+    // (this.pause is part of the svg that build() creates once the pattern is known, a
+    // moment after the panel opens: its Play button can be tapped before that.)
+    if (this.pause) this.pause.textContent = bool ? "" : "\ue4c0";
     this.playGen = (this.playGen | 0) + 1;
     if (bool) {
       this.pathTransforms?.["pendulum"]?.endElement();
