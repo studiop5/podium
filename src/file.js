@@ -1195,10 +1195,14 @@ class GDriveSrc extends CachedSrc {
           parents: [`${dir.id}`],
         }),
       });
+      if (!response.ok) err(`GDrive putFileSrc(${path},${name},...)`, await response.text());
       file = await response.json();
     }
 
+    let response;
     if (data.byteLength > CHUNK_SIZE) {
+      // Resumable upload. Every response must be checked: an unnoticed failed chunk
+      // would leave a stale or truncated file on Drive while the save "succeeds".
       let sessionResponse = await fetch(this.uploadUrl + file.id + "?uploadType=resumable", {
         method: "PATCH",
         headers: {
@@ -1206,14 +1210,14 @@ class GDriveSrc extends CachedSrc {
           "Content-Length": "0",
         },
       });
-
-      let uploadUrl = sessionResponse.headers.get("Location");
+      let uploadUrl = sessionResponse.ok && sessionResponse.headers.get("Location");
+      if (!uploadUrl) err(`GDrive putFileSrc(${path},${name},...)`, `upload session: ${await sessionResponse.text()}`);
 
       for (let offset = 0; offset < data.byteLength; offset += CHUNK_SIZE) {
         let chunk = data.slice(offset, Math.min(offset + CHUNK_SIZE, data.byteLength));
         let endByte = offset + chunk.byteLength - 1;
 
-        await fetch(uploadUrl, {
+        response = await fetch(uploadUrl, {
           method: "PUT",
           headers: {
             "Content-Length": chunk.byteLength,
@@ -1221,9 +1225,13 @@ class GDriveSrc extends CachedSrc {
           },
           body: chunk,
         });
+        // 308 (Resume Incomplete): more chunks expected; 200/201: complete
+        let last = endByte + 1 >= data.byteLength;
+        if (last ? !response.ok : response.status != 308)
+          err(`GDrive putFileSrc(${path},${name},...)`, `chunk at ${offset}: ${response.status} ${await response.text()}`);
       }
     } else {
-      let response = await fetch(this.uploadUrl + file.id + "?uploadType=media", {
+      response = await fetch(this.uploadUrl + file.id + "?uploadType=media", {
         method: "PATCH",
         headers: {
           Authorization: "Bearer " + this.tokens.access_token,
@@ -1231,21 +1239,18 @@ class GDriveSrc extends CachedSrc {
         },
         body: data,
       });
-      if (!response.ok) {
-        err(`GDrive putFileSrc(${path},${name},...)`, await response.text());
-      } else {
-        // Get updated file metadata from response and update cache
-        let updatedFile = await response.json();
-        if (dir && dir.files && dir.files[file.name]) {
-          dir.files[file.name] = {
-            id: updatedFile.id,
-            name: updatedFile.name,
-            size: updatedFile.size || data.byteLength,
-            created: updatedFile.createdTime,
-            modified: updatedFile.modifiedTime
-          };
-        }
-      }
+      if (!response.ok) err(`GDrive putFileSrc(${path},${name},...)`, await response.text());
+    }
+    // Get updated file metadata from response and update cache
+    let updatedFile = await response.json();
+    if (dir && dir.files && dir.files[file.name]) {
+      dir.files[file.name] = {
+        id: updatedFile.id,
+        name: updatedFile.name,
+        size: updatedFile.size || data.byteLength,
+        created: updatedFile.createdTime,
+        modified: updatedFile.modifiedTime
+      };
     }
   }
 
@@ -1330,10 +1335,8 @@ class DbxSrc extends CachedSrc {
       let responseJson = await response.json();
       entries.push(...responseJson.entries);
       if (!responseJson.has_more) return entries;
-      if (!cursor) {
-        cursor = responseJson.cursor;
-        uri += "/continue";
-      }
+      if (!cursor) uri += "/continue";
+      cursor = responseJson.cursor; // (each page returns the cursor for the next: reusing the first repeats it forever)
     }
   }
 
@@ -1410,7 +1413,9 @@ class DbxSrc extends CachedSrc {
     let response = await fetchPromise;
     if (!response.ok) err(`putFileSrc(${path},${name},...)`, await response.text());
     let session_id = (await response.json()).session_id;
-    // upload file in slices
+    // upload file in slices, from a view of exactly data's bytes (data may be an ArrayBuffer,
+    // or a view that doesn't start at its buffer's beginning)
+    let bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
     let maxSliceLen = 5 * 1024 * 1024;
     let remaining = data.byteLength;
     let sliceLen = Math.min(remaining, maxSliceLen);
@@ -1424,7 +1429,7 @@ class DbxSrc extends CachedSrc {
           "Content-Type": "application/octet-stream",
           "Dropbox-API-Arg": JSON.stringify({cursor: {offset:cursor, session_id:session_id}}),
         },
-        body: new DataView(data.buffer, cursor, sliceLen),
+        body: bytes.subarray(cursor, cursor + sliceLen),
       });
       response = await fetchPromise;
       if (!response.ok) err(`putFileSrc(${path},${name},...)`, await response.text());
@@ -1450,7 +1455,7 @@ class DbxSrc extends CachedSrc {
           },
         }),
       },
-      body: new DataView(data.buffer, cursor, sliceLen),
+      body: bytes.subarray(cursor, cursor + sliceLen),
     });
     response = await fetchPromise;
     if (!response.ok) err(`putFileSrc(${path},${name},...)`, await response.text());
@@ -1533,20 +1538,26 @@ class ODriveSrc extends CachedSrc {
   }
 
   async getDirSrc(path, dir) {
+    // Listings are paged (200 items by default): follow @odata.nextLink to the end.
     let url = this.filesUrl + `${path == "" ? "root" : "items/" + dir.id}/children`;
-    let fetchPromise = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: "Bearer " + this.tokens.access_token,
-      },
-    });
-    let response = await fetchPromise;
-    if (response.ok) return (await response.json()).value;
-    err(`getDirSrc(${path},${dir}) failed: ${await response.text()}`);
+    let entries = [];
+    while (url) {
+      let response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: "Bearer " + this.tokens.access_token,
+        },
+      });
+      if (!response.ok) err(`getDirSrc(${path},${dir}) failed: ${await response.text()}`);
+      let json = await response.json();
+      entries.push(...json.value);
+      url = json["@odata.nextLink"];
+    }
+    return entries;
   }
 
   async putDirSrc(path, name, srcDir) {
-    let url = this.filesUrl + srcDir.id + "/children";
+    let url = this.filesUrl + (srcDir.id == "root" ? "root" : "items/" + srcDir.id) + "/children";
     let fetchPromise = await fetch(url, {
       method: "POST",
       headers: {
@@ -1619,13 +1630,16 @@ class ODriveSrc extends CachedSrc {
     let response = await fetchPromise;
     if (!response.ok) err(`putFileSrc(${path},${name},...)`, await response.text());
     let uploadUrl = (await response.json()).uploadUrl;
+    // (a view of exactly data's bytes: data may be an ArrayBuffer, or a view that
+    // doesn't start at its buffer's beginning)
+    let bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
     let maxSliceLen = 5 * 1024 * 1024;
     let dataLen = data.byteLength;
     let remaining = dataLen;
     let sliceLen = Math.min(remaining, maxSliceLen);
 
     for (let cursor = 0; remaining > 0; ) {
-      let slice = new DataView(data.buffer, cursor, sliceLen);
+      let slice = bytes.subarray(cursor, cursor + sliceLen);
 
       let fetchPromise = await fetch(uploadUrl, {
         method: "PUT",
