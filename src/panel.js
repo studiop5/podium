@@ -2010,7 +2010,7 @@ class PencilPanel extends Panel {
       )
     );
 
-    let active = _score_.getActiveObject();
+    let active = _score_?.getActiveObject(); // (the panel can outlive its score)
 
     if (!active || active.type != "path") return;
     let color = fabric.Color.fromHex(rgb);
@@ -2103,7 +2103,7 @@ class RastrumPanel extends PencilPanel {
       )
     );
 
-    let active = _score_.getActiveObject();
+    let active = _score_?.getActiveObject(); // (the panel can outlive its score)
 
     if (!active || active.type != "path") return;
     let brush = active.canvas.freeDrawingBrush;
@@ -2173,7 +2173,7 @@ class TextPanel extends PencilPanel {
     this.text.style.lineHeight = height / _pxPerEm_ + "em";
     this.text.style.color = rgb + Math.round(alpha * 255).toString(16);
     Object.assign(this.preview.style, fontMap[font]);
-    let active = _score_.getActiveObject();
+    let active = _score_?.getActiveObject(); // (the panel can outlive its score)
     if (active && active.type == "textbox") {
       let color = fabric.Color.fromHex(rgb);
       color.setAlpha(alpha);
@@ -3067,7 +3067,7 @@ class SymbolsPanel extends Panel {
       activeCell.style.color = rgb;
       activeCell.style.opacity = parseFloat(alpha);
     }
-    let active = _score_.getActiveObject();
+    let active = _score_?.getActiveObject(); // (the panel can outlive its score)
     if (active && active.podiumType == "symbols") {
       let color = fabric.Color.fromHex(rgb);
       color.setAlpha(parseFloat(alpha));
