@@ -491,8 +491,10 @@ class Menu {
 
     this.listen("score/close/up", async () => {
       if(!await(checkUnsaved("Warning: current score has unsaved changes. Close anyway?", true))) return;
-      await _score_?.dispose();
+      // Close panels before disposing: a closing panel stays clickable during its
+      // fly-away animation, and shouldn't find _score_ already gone.
       _menu_.closePanels();
+      await _score_?.dispose();
       _menu_.enableCells(["ink", "page", "layout", "score/save", "score/close", "score/details", "score/print"], false);
       document.dispatchEvent(new CustomEvent("scoreClosed"));
     });
