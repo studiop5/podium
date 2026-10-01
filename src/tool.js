@@ -1598,7 +1598,8 @@ conductor = `<defs>
       let tempo = 1 / (dur / 60000);
       tempo = clamp(tempo, 20, 220) ;
       this.panel.cell.stash.tempo = Math.round(tempo);
-      this.bpm.textContent = Math.round(tempo);
+      // (this.bpm is part of the svg that build() creates a moment after the panel opens.)
+      if (this.bpm) this.bpm.textContent = Math.round(tempo);
       this.panel.tempoGroup.refresh();
       this.tempo = tempo;
       this.tock(1200,this.actx.currentTime) ;
