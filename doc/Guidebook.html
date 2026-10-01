@@ -4,7 +4,8 @@
   Adding icons:
   1. Find the icon in src/icon.js (in the iconPaths object)
   2. Copy its SVG content (everything between the backticks)
-  3. Add a new symbol to the <svg style="display:none"> block near the top of <body>:
+  3. Add a new symbol to the <svg style="display:none"> block near the top of <body>
+<a class="skip-link" href="#guide-content">Skip to guidebook content</a>:
        <symbol id="gb-icon-name" viewBox="0 0 24 24">
          [pasted SVG content]
        </symbol>
@@ -13,7 +14,7 @@
      Replace var(--menu-drawer-front) with #ddd, var(--bodyShadow) with none.
      Replace ${scissorsD} and ${circlePath(...)} using the values in icon.js.
   4. Use the icon anywhere with:
-       <svg class="gb-icon"><use href="#gb-icon-name"/></svg>
+       <svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-icon-name"/></svg>
      Add style="margin-left:0.3em" or style="margin-right:0.3em" as needed.
 -->
 <!DOCTYPE html>
@@ -62,7 +63,7 @@
 
         p {
             margin: 0.8em 0;
-            text-align: justify;
+            text-align: left;
         }
 
         ul, ol {
@@ -74,8 +75,8 @@
         }
 
         a {
-            color: #3498db;
-            text-decoration: none;
+            color: #176594;
+            text-decoration: underline;
         }
 
         a:hover {
@@ -130,7 +131,7 @@
 
         .overture li::before {
             content: "• ";
-            color: #3498db;
+            color: #176594;
             font-weight: bold;
         }
 
@@ -195,16 +196,6 @@
             border-radius: 4px;
         }
 
-        .video-container video::-webkit-media-controls-volume-slider,
-        .video-container video::-webkit-media-controls-mute-button,
-        .video-container video::-webkit-media-controls-fullscreen-button,
-        .video-container video::-webkit-media-controls-toggle-closed-captions-button {
-            display: none;
-        }
-
-        .video-container video::-moz-media-controls-fullscreen-button {
-            display: none;
-        }
 
         .video-container.playing img {
             visibility: hidden;
@@ -226,7 +217,7 @@
             align-items: center;
             gap: 6px;
             transition: all 0.3s ease;
-            pointer-events: none;
+            pointer-events: auto;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
             font-size: 14px;
             color: white;
@@ -242,10 +233,7 @@
             font-size: 16px;
         }
 
-        .play-overlay::after {
-            content: 'Watch';
-            font-weight: 500;
-        }
+
 
         .video-container.playing .play-overlay {
             display: none;
@@ -303,12 +291,12 @@
         .note::before {
             content: "Note: ";
             font-weight: bold;
-            color: #f39c12;
+            color: #875000;
         }
 
         .chapter-link {
             font-weight: 500;
-            white-space: nowrap;
+            white-space: normal;
         }
 
         .header-icon {
@@ -336,7 +324,39 @@
             text-align: center;
             margin: 2em 0 1em;
             font-size: 0.9em;
-            color: #3498db;
+            color: #176594;
+        }
+
+
+        a:focus-visible, button:focus-visible, video:focus-visible,
+        .table-scroll:focus-visible {
+            outline: 3px solid #176594;
+            outline-offset: 4px;
+        }
+        .skip-link {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: translateY(-110%);
+            padding: 0.75em 1em;
+            background: white;
+            z-index: 100;
+        }
+        .skip-link:focus { transform: none; }
+        .table-scroll { overflow-x: auto; }
+        .video-status { text-align: left; }
+        .play-overlay { border: 2px solid white; min-height: 44px; font-family: inherit; }
+        .video-container img { cursor: default; }
+        p, li, dd, a { overflow-wrap: anywhere; }
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            nav, .overture { padding: 1em; }
+            nav ul ul { margin-left: 1em; }
+            .video-container img, .video-container video, figure video { max-width: 100%; }
+            figure img.small { max-width: 90%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .play-overlay, .close-video { transition: none; }
         }
 
         /* Print styles */
@@ -407,9 +427,9 @@
             font-weight: 500;
         }
 
-        table.compat .yes { color: #27ae60; }
-        table.compat .no { color: #999; }
-        table.compat .partial { color: #e67e22; }
+        table.compat .yes { color: #176c39; }
+        table.compat .no { color: #666; }
+        table.compat .partial { color: #99500d; }
     </style>
 <style>
     @font-face {
@@ -425,6 +445,7 @@
 </style>
 </head>
 <body>
+<a class="skip-link" href="#guide-content">Skip to guidebook content</a>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
   <symbol id="gb-score" viewBox="0 0 24 24">
     <path fill="#aaa" stroke="currentColor" stroke-width="0.8" d="m14.309339,12.611855v0m-2.543782,-3.2802594 3.122609,-0.01247M1.6649238,22.289353 21.865783,22.478636M18.366179,22.221781 18.066257,3.5141062 20.086952,3.4646895 20.102136,22.20106Zm-1.51175,0.05511-0.560058,-17.6242436 1.367543,0.014358 0.16507,17.6551636zm-6.050171,-0.19639 0.300854,-16.1871633 4.813427,-0.031453 0.02069,16.3211033zM6.1506929,22.108151 11.756662,2.5432418 8.2865928,1.7325439 2.6529156,20.947044Z"/>
@@ -693,12 +714,18 @@
 </svg>
 
 <script>
-function playVideo(container) {
+async function playVideo(container) {
     if (container.classList.contains('playing')) return;
 
     container.classList.add('playing');
     const video = container.querySelector('video');
-    video.play();
+    video.focus();
+    const status = container.parentElement.querySelector('.video-status');
+    status.textContent = '';
+    try { await video.play(); }
+    catch {
+        status.textContent = 'The video could not start. Use the video controls to try again, or refer to the surrounding guidebook text.';
+    }
 }
 
 function closeVideo(event, container) {
@@ -707,6 +734,7 @@ function closeVideo(event, container) {
     const video = container.querySelector('video');
     video.pause();
     video.currentTime = 0;
+    container.querySelector('.play-overlay').focus();
 }
 </script>
 
@@ -721,85 +749,85 @@ function closeVideo(event, container) {
 
 <p style="text-align: center;"><a href="Guidebook.html" target="_blank">Open in new window</a> for convenient side-by-side reading with Podium. | <a href="javascript:window.print()">Print me</a></p>
 
-<nav id="toc">
-    <h2>Table of Contents</h2>
+<nav id="toc" aria-labelledby="toc-heading">
+    <h2 id="toc-heading">Table of Contents</h2>
     <ul>
         <li><a href="#overture">Overture</a></li>
-        <li><a href="#chapter-1">Chapter 1: Quick Start</a> — <span style="color:#777">Just the basics</span></li>
-        <li><a href="#chapter-2">Chapter 2: Running Podium</a> — <span style="color:#777">Launch from URL or install</span>
+        <li><a href="#chapter-1">Chapter 1: Quick Start</a> — <span style="color:#666">Just the basics</span></li>
+        <li><a href="#chapter-2">Chapter 2: Running Podium</a> — <span style="color:#666">Launch from URL or install</span>
             <ul>
-                <li><a href="#chapter-2-extension">2.1 Browser Extension</a> — <span style="color:#777">Install as a browser extension on desktop</span></li>
-                <li><a href="#chapter-2-pwa">2.2 Progressive Web App (PWA)</a> — <span style="color:#777">Install as a standalone app on any device</span></li>
-                <li><a href="#chapter-2-compat">2.3 Browser Compatibility</a> — <span style="color:#777">Supported browsers and platforms</span></li>
-                <li><a href="#chapter-2-foot-pedal">2.4 Foot Pedal</a> — <span style="color:#777">Page turning with a Bluetooth foot pedal</span></li>
-                <li><a href="#chapter-2-language">2.5 Using Podium in Your Language</a> — <span style="color:#777">Translate the interface with your browser</span></li>
+                <li><a href="#chapter-2-extension">2.1 Browser Extension</a> — <span style="color:#666">Install as a browser extension on desktop</span></li>
+                <li><a href="#chapter-2-pwa">2.2 Progressive Web App (PWA)</a> — <span style="color:#666">Install as a standalone app on any device</span></li>
+                <li><a href="#chapter-2-compat">2.3 Browser Compatibility</a> — <span style="color:#666">Supported browsers and platforms</span></li>
+                <li><a href="#chapter-2-foot-pedal">2.4 Foot Pedal</a> — <span style="color:#666">Page turning with a Bluetooth foot pedal</span></li>
+                <li><a href="#chapter-2-language">2.5 Using Podium in Your Language</a> — <span style="color:#666">Translate the interface with your browser</span></li>
             </ul>
         </li>
-        <li><a href="#chapter-3">Chapter 3: Interface Basics</a> — <span style="color:#777">Menu, panels, gestures, background</span></li>
-        <li><a href="#chapter-4">Chapter 4: Score Ring</a> — <span style="color:#777">Manage scores stored as PDF files</span>
+        <li><a href="#chapter-3">Chapter 3: Interface Basics</a> — <span style="color:#666">Menu, panels, gestures, background</span></li>
+        <li><a href="#chapter-4">Chapter 4: Score Ring</a> — <span style="color:#666">Manage scores stored as PDF files</span>
             <ul>
-                <li><a href="#chapter-4-open-save">4.1 Open, Save</a> — <span style="color:#777">Open and save PDF score files</span></li>
-                <li><a href="#chapter-4-new">4.2 New</a> — <span style="color:#777">Create new, empty scores</span></li>
-                <li><a href="#chapter-4-close">4.3 Close</a> — <span style="color:#777">Close the current score</span></li>
-                <li><a href="#chapter-4-print">4.4 Print</a> — <span style="color:#777">Print with or without annotations</span></li>
-                <li><a href="#chapter-4-details">4.5 Details</a> — <span style="color:#777">Score information and metadata</span></li>
+                <li><a href="#chapter-4-open-save">4.1 Open, Save</a> — <span style="color:#666">Open and save PDF score files</span></li>
+                <li><a href="#chapter-4-new">4.2 New</a> — <span style="color:#666">Create new, empty scores</span></li>
+                <li><a href="#chapter-4-close">4.3 Close</a> — <span style="color:#666">Close the current score</span></li>
+                <li><a href="#chapter-4-print">4.4 Print</a> — <span style="color:#666">Print with or without annotations</span></li>
+                <li><a href="#chapter-4-details">4.5 Details</a> — <span style="color:#666">Score information and metadata</span></li>
             </ul>
         </li>
-        <li><a href="#chapter-5">Chapter 5: Layout Ring</a> — <span style="color:#777">Determine how scores are displayed</span>
+        <li><a href="#chapter-5">Chapter 5: Layout Ring</a> — <span style="color:#666">Determine how scores are displayed</span>
             <ul>
-                <li><a href="#chapter-5-page-turning">Page Turning</a> — <span style="color:#777">Tap, drag, and fling gestures</span></li>
-                <li><a href="#chapter-5-bookmarks">Bookmarks</a> — <span style="color:#777">Mark and navigate to pages</span></li>
-                <li><a href="#chapter-5-book">5.1 Book Layout</a> — <span style="color:#777">Simulate a physical book</span></li>
-                <li><a href="#chapter-5-horizontal">5.2 Horizontal Layout</a> — <span style="color:#777">Horizontally-scrollable page flow</span></li>
-                <li><a href="#chapter-5-vertical">5.3 Vertical Layout</a> — <span style="color:#777">Vertically-scrollable page flow</span></li>
-                <li><a href="#chapter-5-table">5.4 Table Layout</a> — <span style="color:#777">All pages in a single table</span></li>
+                <li><a href="#chapter-5-page-turning">Page Turning</a> — <span style="color:#666">Tap, drag, and fling gestures</span></li>
+                <li><a href="#chapter-5-bookmarks">Bookmarks</a> — <span style="color:#666">Mark and navigate to pages</span></li>
+                <li><a href="#chapter-5-book">5.1 Book Layout</a> — <span style="color:#666">Simulate a physical book</span></li>
+                <li><a href="#chapter-5-horizontal">5.2 Horizontal Layout</a> — <span style="color:#666">Horizontally-scrollable page flow</span></li>
+                <li><a href="#chapter-5-vertical">5.3 Vertical Layout</a> — <span style="color:#666">Vertically-scrollable page flow</span></li>
+                <li><a href="#chapter-5-table">5.4 Table Layout</a> — <span style="color:#666">All pages in a single table</span></li>
             </ul>
         </li>
-        <li><a href="#chapter-6">Chapter 6: Ink Ring</a> — <span style="color:#777">Add annotations to a score</span>
+        <li><a href="#chapter-6">Chapter 6: Ink Ring</a> — <span style="color:#666">Add annotations to a score</span>
             <ul>
-                <li><a href="#chapter-6-pen-pencil">6.1 Pen, Pencil</a> — <span style="color:#777">Draw on score pages</span></li>
-                <li><a href="#chapter-6-rastrum">6.2 Rastrum</a> — <span style="color:#777">Draw music staves</span></li>
-                <li><a href="#chapter-6-text">6.3 Text</a> — <span style="color:#777">Add text boxes to a page</span></li>
-                <li><a href="#chapter-6-symbols">6.4 Symbols</a> — <span style="color:#777">Add music symbols to a page</span></li>
-                <li><a href="#chapter-6-cut-copy-paste">6.5 Cut, Copy, Paste</a> — <span style="color:#777">Manage annotation objects</span></li>
-                <li><a href="#chapter-6-undo">6.6 Undo</a> — <span style="color:#777">Undo the last Ink Ring action</span></li>
-                <li><a href="#chapter-6-grid">6.7 Grid</a> — <span style="color:#777">Guide grid for measuring and layout</span></li>
-                <li><a href="#chapter-6-edit">6.8 Edit</a> — <span style="color:#777">Move, resize, rotate annotations</span></li>
+                <li><a href="#chapter-6-pen-pencil">6.1 Pen, Pencil</a> — <span style="color:#666">Draw on score pages</span></li>
+                <li><a href="#chapter-6-rastrum">6.2 Rastrum</a> — <span style="color:#666">Draw music staves</span></li>
+                <li><a href="#chapter-6-text">6.3 Text</a> — <span style="color:#666">Add text boxes to a page</span></li>
+                <li><a href="#chapter-6-symbols">6.4 Symbols</a> — <span style="color:#666">Add music symbols to a page</span></li>
+                <li><a href="#chapter-6-cut-copy-paste">6.5 Cut, Copy, Paste</a> — <span style="color:#666">Manage annotation objects</span></li>
+                <li><a href="#chapter-6-undo">6.6 Undo</a> — <span style="color:#666">Undo the last Ink Ring action</span></li>
+                <li><a href="#chapter-6-grid">6.7 Grid</a> — <span style="color:#666">Guide grid for measuring and layout</span></li>
+                <li><a href="#chapter-6-edit">6.8 Edit</a> — <span style="color:#666">Move, resize, rotate annotations</span></li>
             </ul>
         </li>
-        <li><a href="#chapter-7">Chapter 7: Page Ring</a> — <span style="color:#777">Manage pages and page numbers</span>
+        <li><a href="#chapter-7">Chapter 7: Page Ring</a> — <span style="color:#666">Manage pages and page numbers</span>
             <ul>
-                <li><a href="#chapter-7-numbers">7.1 Numbers</a> — <span style="color:#777">Configure page numbering</span></li>
-                <li><a href="#chapter-7-add">7.2 Add</a> — <span style="color:#777">Configure appearance of new pages</span></li>
-                <li><a href="#chapter-7-cut-copy-paste">7.3 Cut, Copy, Paste</a> — <span style="color:#777">Duplicate, rearrange, or delete pages within the score</span></li>
-                <li><a href="#chapter-7-undo">7.4 Undo</a> — <span style="color:#777">Undo the last page operation</span></li>
-                <li><a href="#chapter-7-export-import">7.5 Export, Import</a> — <span style="color:#777">Share pages via the cross-tab shared buffer</span></li>
-                <li><a href="#chapter-7-merge">7.6 Merge</a> — <span style="color:#777">Merge another PDF into the current score</span></li>
-                <li><a href="#chapter-7-flatten">7.7 Flatten</a> — <span style="color:#777">Merge Ink annotations into the PDF</span></li>
-                <li><a href="#chapter-7-magnify">7.8 Magnify</a> — <span style="color:#777">Magnify a portion of a page</span></li>
+                <li><a href="#chapter-7-numbers">7.1 Numbers</a> — <span style="color:#666">Configure page numbering</span></li>
+                <li><a href="#chapter-7-add">7.2 Add</a> — <span style="color:#666">Configure appearance of new pages</span></li>
+                <li><a href="#chapter-7-cut-copy-paste">7.3 Cut, Copy, Paste</a> — <span style="color:#666">Duplicate, rearrange, or delete pages within the score</span></li>
+                <li><a href="#chapter-7-undo">7.4 Undo</a> — <span style="color:#666">Undo the last page operation</span></li>
+                <li><a href="#chapter-7-export-import">7.5 Export, Import</a> — <span style="color:#666">Share pages via the cross-tab shared buffer</span></li>
+                <li><a href="#chapter-7-merge">7.6 Merge</a> — <span style="color:#666">Merge another PDF into the current score</span></li>
+                <li><a href="#chapter-7-flatten">7.7 Flatten</a> — <span style="color:#666">Merge Ink annotations into the PDF</span></li>
+                <li><a href="#chapter-7-magnify">7.8 Magnify</a> — <span style="color:#666">Magnify a portion of a page</span></li>
             </ul>
         </li>
-        <li><a href="#chapter-8">Chapter 8: App Ring</a> — <span style="color:#777">Application information and display settings</span>
+        <li><a href="#chapter-8">Chapter 8: App Ring</a> — <span style="color:#666">Application information and display settings</span>
             <ul>
-                <li><a href="#chapter-8-about">8.1 About</a> — <span style="color:#777">Application information</span></li>
-                <li><a href="#chapter-8-theme">8.2 Theme</a> — <span style="color:#777">Toggle among Light, Glass, and Dark display themes</span></li>
-                <li><a href="#chapter-8-guide">8.3 Guide</a> — <span style="color:#777">Opens this guidebook in the app</span></li>
-                <li><a href="#chapter-8-storage">8.4 Storage</a> — <span style="color:#777">Manage browser storage</span></li>
-                <li><a href="#chapter-8-curtain">8.5 Curtain</a> — <span style="color:#777">Darken the screen</span></li>
-                <li><a href="#chapter-8-wakelock">8.6 Wakelock</a> — <span style="color:#777">Prevent the screen from automatically dimming</span></li>
-                <li><a href="#chapter-8-screen">8.7 Screen</a> — <span style="color:#777">Toggle full screen mode</span></li>
+                <li><a href="#chapter-8-about">8.1 About</a> — <span style="color:#666">Application information</span></li>
+                <li><a href="#chapter-8-theme">8.2 Theme</a> — <span style="color:#666">Toggle among Light, Glass, and Dark display themes</span></li>
+                <li><a href="#chapter-8-guide">8.3 Guide</a> — <span style="color:#666">Opens this guidebook in the app</span></li>
+                <li><a href="#chapter-8-storage">8.4 Storage</a> — <span style="color:#666">Manage browser storage</span></li>
+                <li><a href="#chapter-8-curtain">8.5 Curtain</a> — <span style="color:#666">Darken the screen</span></li>
+                <li><a href="#chapter-8-wakelock">8.6 Wakelock</a> — <span style="color:#666">Prevent the screen from automatically dimming</span></li>
+                <li><a href="#chapter-8-screen">8.7 Screen</a> — <span style="color:#666">Toggle full screen mode</span></li>
             </ul>
         </li>
-        <li><a href="#chapter-9">Chapter 9: More Ring</a> — <span style="color:#777">Musician's toolkit</span>
+        <li><a href="#chapter-9">Chapter 9: More Ring</a> — <span style="color:#666">Musician's toolkit</span>
             <ul>
-                <li><a href="#chapter-9-detached">9.1 Detached Panels</a> — <span style="color:#777">Simplify layout by detaching panels</span></li>
-                <li><a href="#chapter-9-metronome">9.2 Metronome</a> — <span style="color:#777">Animated metronome with conductor</span></li>
-                <li><a href="#chapter-9-stopwatch">9.3 Stopwatch</a> — <span style="color:#777">Timer for practice sessions</span></li>
-                <li><a href="#chapter-9-clock">9.4 Clock</a> — <span style="color:#777">Current time and date</span></li>
-                <li><a href="#chapter-9-piano">9.5 Piano</a> — <span style="color:#777">Keyboard with tuning and pitch detection</span></li>
-                <li><a href="#chapter-9-review">9.6 Review</a> — <span style="color:#777">Record audio/video with instant replay</span></li>
-                <li><a href="#chapter-9-keyboard">9.7 Keyboard</a> — <span style="color:#777">On-screen keyboard with progressive search</span></li>
-                <li><a href="#chapter-9-volume">9.8 Volume</a> — <span style="color:#777">Master volume control</span></li>
+                <li><a href="#chapter-9-detached">9.1 Detached Panels</a> — <span style="color:#666">Simplify layout by detaching panels</span></li>
+                <li><a href="#chapter-9-metronome">9.2 Metronome</a> — <span style="color:#666">Animated metronome with conductor</span></li>
+                <li><a href="#chapter-9-stopwatch">9.3 Stopwatch</a> — <span style="color:#666">Timer for practice sessions</span></li>
+                <li><a href="#chapter-9-clock">9.4 Clock</a> — <span style="color:#666">Current time and date</span></li>
+                <li><a href="#chapter-9-piano">9.5 Piano</a> — <span style="color:#666">Keyboard with tuning and pitch detection</span></li>
+                <li><a href="#chapter-9-review">9.6 Review</a> — <span style="color:#666">Record audio/video with instant replay</span></li>
+                <li><a href="#chapter-9-keyboard">9.7 Keyboard</a> — <span style="color:#666">On-screen keyboard with progressive search</span></li>
+                <li><a href="#chapter-9-volume">9.8 Volume</a> — <span style="color:#666">Master volume control</span></li>
             </ul>
         </li>
         <li><a href="#chapter-10">Chapter 10: About the Author</a></li>
@@ -807,6 +835,7 @@ function closeVideo(event, container) {
     </ul>
 </nav>
 
+<main id="guide-content" tabindex="-1">
 <section id="overture" class="overture">
     <h2>Overture</h2>
     <p><strong>Podium is:</strong></p>
@@ -836,7 +865,7 @@ function closeVideo(event, container) {
     </ul>
     <p><strong>...url:</strong><br>
     <a href="https://studiop5.org/podium" target="_blank">https://studiop5.org/podium</a></p>
-    <p style="font-size:.85em;color:#888;">Podium is provided as-is, without warranty of any kind. See the <a href="https://www.gnu.org/licenses/agpl-3.0-standalone.html" target="_blank">license</a> for complete terms. Users are responsible for ensuring they have the right to use any score files opened in Podium.</p>
+    <p style="font-size:.85em;color:#666;">Podium is provided as-is, without warranty of any kind. See the <a href="https://www.gnu.org/licenses/agpl-3.0-standalone.html" target="_blank">license</a> for complete terms. Users are responsible for ensuring they have the right to use any score files opened in Podium.</p>
 </section>
 
 <section id="chapter-1">
@@ -850,16 +879,17 @@ function closeVideo(event, container) {
     <p>Launch Podium at <a href="https://studiop5.org/podium" target="_blank">https://studiop5.org/podium</a>. You'll see a circular menu on a gray background, and the Score cell is highlighted. Drag out from the Open cell to reveal the Open Panel. Select a storage location (Local, Google Drive, Dropbox, OneDrive, or Recent), then navigate to a PDF score and tap to open it.</p>
 
     <figure>
-        <div class="video-container" onclick="playVideo(this)">
+        <div class="video-container">
             <img src="assets/quickopen.jpg" alt="Opening a score">
-            <div class="play-overlay"></div>
-            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
-            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+            <button type="button" class="play-overlay" aria-label="Play silent video: Open a score" onclick="playVideo(this.parentElement)">Watch</button>
+            <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video aria-label="Open a score (silent demonstration)" controls preload="none" tabindex="0">
                 <source src="assets/quickopen.webm" type="video/webm">
                 Your browser does not support the video tag.
             </video>
         </div>
         <figcaption>Screenshot showing the circular menu with Score cell highlighted and Open Panel displayed with file list</figcaption>
+        <p class="video-status" role="status"></p>
     </figure>
 
     <p><a href="#chapter-4" class="chapter-link">See Chapter 4: Score Ring</a> for complete file management details</p>
@@ -875,21 +905,22 @@ function closeVideo(event, container) {
     <p>Tap any layout cell to activate the layout. Drag out from the cell to open a configuration panel. Use a two-finger pinch-and-pan gesture on the score to resize and reposition.</p>
 
     <figure>
-        <div class="video-container" onclick="playVideo(this)">
+        <div class="video-container">
             <div class="layout-grid">
                 <img src="assets/quicklayout1.jpg" alt="Book layout">
                 <img src="assets/quicklayout2.jpg" alt="Horizontal layout">
                 <img src="assets/quicklayout3.jpg" alt="Vertical layout">
                 <img src="assets/quicklayout4.jpg" alt="Table layout">
             </div>
-            <div class="play-overlay"></div>
-            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
-            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+            <button type="button" class="play-overlay" aria-label="Play silent video: Choose a layout" onclick="playVideo(this.parentElement)">Watch</button>
+            <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video aria-label="Choose a layout (silent demonstration)" controls preload="none" tabindex="0">
                 <source src="assets/quicklayout.webm" type="video/webm">
                 Your browser does not support the video tag.
             </video>
         </div>
         <figcaption>Side-by-side comparison showing all 4 layout types with the same score</figcaption>
+        <p class="video-status" role="status"></p>
     </figure>
 
     <p><a href="#chapter-5" class="chapter-link">See Chapter 5: Layout Ring</a> for detailed layout controls and settings</p>
@@ -908,16 +939,17 @@ function closeVideo(event, container) {
     <p>Activate any Ink tool by tapping, then tap or drag on a score page to use it. Configure the tool by dragging the corresponding panel from its cell.</p>
 
     <figure>
-        <div class="video-container" onclick="playVideo(this)">
+        <div class="video-container">
             <img src="assets/quickannotate.jpg" alt="Ink Ring with annotations">
-            <div class="play-overlay"></div>
-            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
-            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+            <button type="button" class="play-overlay" aria-label="Play silent video: Navigate and annotate" onclick="playVideo(this.parentElement)">Watch</button>
+            <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video aria-label="Navigate and annotate (silent demonstration)" controls preload="none" tabindex="0">
                 <source src="assets/quickannotate.webm" type="video/webm">
                 Your browser does not support the video tag.
             </video>
         </div>
         <figcaption>Screenshot (dark theme) showing Ink Ring activated with various annotation types visible on a score</figcaption>
+        <p class="video-status" role="status"></p>
     </figure>
     <div class="note">Most Ink tools <a href="#chapter-3-auto-deactivation" class="chapter-link">automatically deactivate</a> after four seconds of inactivity, so you won't accidentally add an annotation when you wanted to navigate to a different page. You can override this by <a href="#chapter-3-cell-locking" class="chapter-link">locking the cell</a>: long-press it and a small circle will appear on its outer edge. Press the cell again (or activate a different cell) to unlock.</div>
 
@@ -935,16 +967,17 @@ function closeVideo(event, container) {
     <p>Both rings can be rotated by dragging or flinging them in a circular motion.</p>
 
     <figure>
-        <div class="video-container" onclick="playVideo(this)">
+        <div class="video-container">
             <img src="assets/quickmenu.jpg" alt="Circular menu">
-            <div class="play-overlay"></div>
-            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
-            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+            <button type="button" class="play-overlay" aria-label="Play silent video: Use the circular menu" onclick="playVideo(this.parentElement)">Watch</button>
+            <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video aria-label="Use the circular menu (silent demonstration)" controls preload="none" tabindex="0">
                 <source src="assets/quickpanel.webm" type="video/webm">
                 Your browser does not support the video tag.
             </video>
         </div>
         <figcaption>The circular menu showing Grip, Inner Ring, and Outer Ring</figcaption>
+        <p class="video-status" role="status"></p>
     </figure>
 
     <p><a href="#chapter-3" class="chapter-link">See Chapter 3: Interface Basics</a> for complete interface details</p>
@@ -965,16 +998,17 @@ function closeVideo(event, container) {
     <h3>Saving Your Work</h3>
     <p>Tap the inner ring's Score cell, then tap Save (or drag out from Save to choose a new location/name). Your annotations and settings are saved within the PDF file.</p>
     <figure>
-        <div class="video-container" onclick="playVideo(this)">
+        <div class="video-container">
             <img src="assets/quicksave.jpg" alt="Save Panel">
-            <div class="play-overlay"></div>
-            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
-            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+            <button type="button" class="play-overlay" aria-label="Play silent video: Save a score" onclick="playVideo(this.parentElement)">Watch</button>
+            <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video aria-label="Save a score (silent demonstration)" controls preload="none" tabindex="0">
                 <source src="assets/quicksave.webm" type="video/webm">
                 Your browser does not support the video tag.
             </video>
         </div>
         <figcaption>Screenshot showing Save Panel with file name field and storage options</figcaption>
+        <p class="video-status" role="status"></p>
     </figure>
 
     <p><a href="#chapter-4" class="chapter-link">See Chapter 4: Score Ring</a> for saving, printing, and score details</p>
@@ -996,16 +1030,17 @@ function closeVideo(event, container) {
     <p>The shared buffer lets you transfer pages between Podium tabs: use Export to send a page to the buffer, and Import to insert it into another score. The buffer is shared across all web app tabs and windows, and persists across sessions. Tabs of the web app (studiop5.org) share one buffer, and tabs of the browser extension share another; transferring across these boundaries is not possible.</p>
 
     <figure>
-        <div class="video-container" onclick="playVideo(this)">
+        <div class="video-container">
             <img src="assets/quickpage.jpg" alt="Page Ring with horizontal layout">
-            <div class="play-overlay"></div>
-            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
-            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+            <button type="button" class="play-overlay" aria-label="Play silent video: Manage pages" onclick="playVideo(this.parentElement)">Watch</button>
+            <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video aria-label="Manage pages (silent demonstration)" controls preload="none" tabindex="0">
                 <source src="assets/quickpage.webm" type="video/webm">
                 Your browser does not support the video tag.
             </video>
         </div>
         <figcaption>Horizontal layout with Page Ring active (glass theme)</figcaption>
+        <p class="video-status" role="status"></p>
     </figure>
 
     <div class="note"><strong>Quick tip:</strong> In <a href="#chapter-5-table-reorder" class="chapter-link">Table layout</a>, you can reorder pages by simply dragging them to a new location; other pages split apart to show where the page will be inserted. You can also cut pages by dragging them completely out of the layout. This direct manipulation is often faster than using Page Ring tools!</div>
@@ -1071,16 +1106,17 @@ function closeVideo(event, container) {
     <p>The extension works well with online score libraries such as <a href="https://www.cpdl.org" target="_blank" rel="noopener noreferrer">CPDL (Choral Public Domain Library)</a> and <a href="https://imslp.org" target="_blank" rel="noopener noreferrer">IMSLP</a>. For IMSLP, logging in to your account provides the best experience&mdash;scores open instantly in Podium with no intermediate pages. Please support this invaluable resource for musicians by becoming an IMSLP member. CPDL provides direct PDF links to clean, modern vocal and choral engravings, which open seamlessly in Podium. For classical guitar repertoire, Jean-François Delcamp's <a href="https://classical-guitar-sheet-music.com" target="_blank" rel="noopener noreferrer">Classical Guitar Sheet Music and Tabs</a> is another excellent resource.</p>
 
     <figure>
-        <div class="video-container" onclick="playVideo(this)">
+        <div class="video-container">
             <img src="assets/imslp.jpg" alt="Podium context menu on IMSLP">
-            <div class="play-overlay"></div>
-            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
-            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+            <button type="button" class="play-overlay" aria-label="Play silent video: Open an IMSLP score" onclick="playVideo(this.parentElement)">Watch</button>
+            <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video aria-label="Open an IMSLP score (silent demonstration)" controls preload="none" tabindex="0">
                 <source src="assets/imslp.webm" type="video/webm">
                 Your browser does not support the video tag.
             </video>
         </div>
         <figcaption>Right-click context menu showing "Open with Podium" option on IMSLP</figcaption>
+        <p class="video-status" role="status"></p>
     </figure>
 
     <div class="note">Podium's extension is not available on iPhone or iPad, but can be installed as a progressive web app, see below. On Android, Chrome does not support extensions. Other third-party Chromium-based browsers like Kiwi Browser and Lemur Browser support Chrome extensions on Android, and Edge for Android has limited Beta support, though note that Podium is not yet tested on these browsers.</div>
@@ -1106,56 +1142,59 @@ function closeVideo(event, container) {
 
     <h3 id="chapter-2-compat">2.3 Browser Compatibility</h3>
     <p>Podium works in all modern browsers. The table below summarizes feature availability:</p>
+    <div class="table-scroll" role="region" aria-label="Browser compatibility table" tabindex="0">
     <table class="compat">
+        <caption>Feature availability by browser</caption>
         <tr>
-            <th>Feature</th>
-            <th>Chrome / Edge</th>
-            <th>Firefox</th>
-            <th>Safari</th>
+            <th scope="col">Feature</th>
+            <th scope="col">Chrome / Edge</th>
+            <th scope="col">Firefox</th>
+            <th scope="col">Safari</th>
         </tr>
         <tr>
-            <td>Core functionality</td>
+            <th scope="row">Core functionality</th>
             <td class="yes">Full</td>
             <td class="yes">Full</td>
             <td class="yes">Full</td>
         </tr>
         <tr>
-            <td>Local file open/save</td>
+            <th scope="row">Local file open/save</th>
             <td class="yes">Remembers location</td>
             <td class="partial">Choose location each save</td>
             <td class="partial">Choose location each save</td>
         </tr>
         <tr>
-            <td>Full-screen swipe gesture</td>
+            <th scope="row">Full-screen swipe gesture</th>
             <td class="yes">Full</td>
             <td class="yes">Full</td>
             <td class="partial">Enter: use Screen button (iPhone/iPad)</td>
         </tr>
         <tr>
-            <td>Browser extension</td>
+            <th scope="row">Browser extension</th>
             <td class="yes">Full</td>
             <td class="no">N/A</td>
             <td class="no">N/A</td>
         </tr>
         <tr>
-            <td>PWA install</td>
+            <th scope="row">PWA install</th>
             <td class="yes">Full</td>
             <td class="no">N/A</td>
             <td class="partial">iPhone/iPad: Full. macOS Sonoma or later only.</td>
         </tr>
         <tr>
-            <td>Cloud storage</td>
+            <th scope="row">Cloud storage</th>
             <td class="yes">Full</td>
             <td class="yes">Full</td>
             <td class="yes">Full</td>
         </tr>
         <tr>
-            <td>Offline use</td>
+            <th scope="row">Offline use</th>
             <td class="yes">Works in browser tab; PWA install recommended for reliability</td>
             <td class="yes">Works in browser tab; PWA install recommended for reliability</td>
             <td class="partial">Works in browser tab; PWA install recommended. iPhone/iPad: cache may expire after long inactivity.</td>
         </tr>
     </table>
+    </div>
     <p>For the best experience, <strong>Chrome, Edge, or similar browsers</strong> are recommended.</p>
 
     <h4>Recommended browser by platform:</h4>
@@ -1304,16 +1343,17 @@ function closeVideo(event, container) {
     <p>A floating window displays the current value, positioned so your hand won't block it.</p>
 
     <figure>
-        <div class="video-container" onclick="playVideo(this)">
+        <div class="video-container">
             <img src="assets/interfacesliders.jpg" alt="Slider precision mode">
-            <div class="play-overlay"></div>
-            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
-            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+            <button type="button" class="play-overlay" aria-label="Play silent video: Adjust a slider precisely" onclick="playVideo(this.parentElement)">Watch</button>
+            <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video aria-label="Adjust a slider precisely (silent demonstration)" controls preload="none" tabindex="0">
                 <source src="assets/interfaceslider.webm" type="video/webm">
                 Your browser does not support the video tag.
             </video>
         </div>
         <figcaption>Slider with precision mode (dark theme): drag away from the slider, then drag left ⇄ right to adjust with increased sensitivity</figcaption>
+        <p class="video-status" role="status"></p>
     </figure>
     <h3>Browser Tab Naming</h3>
 
@@ -1323,7 +1363,7 @@ function closeVideo(event, container) {
 </section>
 
 <section id="chapter-4">
-    <h2><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-score"/></svg>Chapter 4: Score Ring</h2>
+    <h2><svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-right:0.3em"><use href="#gb-score"/></svg>Chapter 4: Score Ring</h2>
 
     <p>Manage scores stored as PDF files.</p>
 
@@ -1348,7 +1388,7 @@ function closeVideo(event, container) {
         <li><strong>Details (drag):</strong> Drag out to reveal a Panel showing detailed information about the score</li>
     </ul>
 
-    <h3 id="chapter-4-open-save">4.1 Score Ring: Open, Save<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-open"/></svg><svg class="gb-icon"><use href="#gb-save"/></svg></h3>
+    <h3 id="chapter-4-open-save">4.1 Score Ring: Open, Save<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-open"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-save"/></svg></h3>
 
     <p>Open and save PDF score files.</p>
 
@@ -1431,7 +1471,7 @@ function closeVideo(event, container) {
 
     <p>While you can still view and annotate these restricted files within Podium, the PDF standard may prevent Podium from saving your annotations, metadata, or page changes (like insertions or deletions) back to the file. If you attempt to save a protected document, Podium will offer you the option to save a "clean," original copy of the PDF instead. This fallback save ensures you can still back up the document to your local or cloud storage, even if your Podium modifications cannot be preserved.</p>
 
-    <h3 id="chapter-4-new">4.2 Score Ring: New<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-score"/></svg></h3>
+    <h3 id="chapter-4-new">4.2 Score Ring: New<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-score"/></svg></h3>
 
     <p>Create new, empty scores.</p>
 
@@ -1450,7 +1490,7 @@ function closeVideo(event, container) {
         <li><strong>Background Opacity:</strong> Adjust the opacity of the background color</li>
     </ul>
 
-    <h3 id="chapter-4-close">4.3 Score Ring: Close<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-close"/></svg></h3>
+    <h3 id="chapter-4-close">4.3 Score Ring: Close<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-close"/></svg></h3>
 
     <p>Close the current score.</p>
 
@@ -1458,7 +1498,7 @@ function closeVideo(event, container) {
 
     <p>If the current score has unsaved changes, a confirmation dialog appears before closing.</p>
 
-    <h3 id="chapter-4-print">4.4 Score Ring: Print<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-print"/></svg></h3>
+    <h3 id="chapter-4-print">4.4 Score Ring: Print<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-print"/></svg></h3>
 
     <p>Print the current score with or without annotations.</p>
 
@@ -1478,7 +1518,7 @@ function closeVideo(event, container) {
 
     <div class="note">Large scores or scores with particularly dense or poorly encoded, unoptimized PDF content can fail while printing. If you encounter printing failures, try printing the score in several smaller sections by specifying different page ranges.</div>
 
-    <h3 id="chapter-4-details">4.5 Score Ring: Details<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></h3>
+    <h3 id="chapter-4-details">4.5 Score Ring: Details<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></h3>
 
     <p>The Details Panel displays comprehensive information about the currently open score.</p>
 
@@ -1502,7 +1542,7 @@ function closeVideo(event, container) {
 </section>
 
 <section id="chapter-5">
-    <h2><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-layout"/></svg>Chapter 5: Layout Ring</h2>
+    <h2><svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-right:0.3em"><use href="#gb-layout"/></svg>Chapter 5: Layout Ring</h2>
 
     <p>Determine how scores are displayed.</p>
 
@@ -1546,21 +1586,22 @@ function closeVideo(event, container) {
     <p>The thickness of each bookmark tab corresponds to one page's position in the pager, so tabs are thinner in longer scores — giving a visual sense of how many pages the score contains.</p>
     <p>When dragging a pager cursor over a bookmarked page, the floating readout is painted in that bookmark's color — making it easy to navigate to a specific bookmark even when several adjacent tabs are too small to press directly.</p>
 
-    <h3 id="chapter-5-book">5.1 Layout Ring: Book<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-book"/></svg></h3>
+    <h3 id="chapter-5-book">5.1 Layout Ring: Book<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-book"/></svg></h3>
 
     <p>Simulate a physical book.</p>
 
     <figure>
-        <div class="video-container" onclick="playVideo(this)">
+        <div class="video-container">
             <img src="assets/layoutbook.jpg" alt="Book layout">
-            <div class="play-overlay"></div>
-            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
-            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+            <button type="button" class="play-overlay" aria-label="Play silent video: Turn pages in Book layout" onclick="playVideo(this.parentElement)">Watch</button>
+            <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video aria-label="Turn pages in Book layout (silent demonstration)" controls preload="none" tabindex="0">
                 <source src="assets/layoutbook.webm" type="video/webm">
                 Your browser does not support the video tag.
             </video>
         </div>
         <figcaption>Book layout with pages and panel</figcaption>
+        <p class="video-status" role="status"></p>
     </figure>
 
     <div class="note">In addition to being aesthetically pleasing, the Book layout allows you to practice with page turns the way you would in performance using a physical score. This helps build muscle memory for when and how to turn pages during actual performances.</div>
@@ -1581,21 +1622,22 @@ function closeVideo(event, container) {
 
     <div class="note">Physical books must have an even number of pages, as each page has 2 sides. If the PDF score file contains an odd number of pages, the last page is displayed on the right (back inside cover position) and cannot be flipped to the left.</div>
 
-    <h3 id="chapter-5-horizontal">5.2 Layout Ring: Horizontal<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-horizontal-scroll"/></svg></h3>
+    <h3 id="chapter-5-horizontal">5.2 Layout Ring: Horizontal<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-horizontal-scroll"/></svg></h3>
 
     <p>Display the score as a continuous, horizontally-scrollable flow of pages.</p>
 
     <figure>
-        <div class="video-container" onclick="playVideo(this)">
+        <div class="video-container">
             <img src="assets/layouthorizontal.jpg" alt="Horizontal layout">
-            <div class="play-overlay"></div>
-            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
-            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+            <button type="button" class="play-overlay" aria-label="Play silent video: Use Horizontal layout" onclick="playVideo(this.parentElement)">Watch</button>
+            <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video aria-label="Use Horizontal layout (silent demonstration)" controls preload="none" tabindex="0">
                 <source src="assets/layouthorizontal.webm" type="video/webm">
                 Your browser does not support the video tag.
             </video>
         </div>
         <figcaption>Horizontal layout (glass theme) with pages and panel</figcaption>
+        <p class="video-status" role="status"></p>
     </figure>
 
     <p>The Horizontal Panel's Fit buttons determine the layout's initial size:</p>
@@ -1618,21 +1660,22 @@ function closeVideo(event, container) {
 
     <p>Page numbers can be turned on or off in the Panel. Current page numbers are shown at the left and right sides of the layout: drag the page number to quickly scroll to other pages.</p>
 
-    <h3 id="chapter-5-vertical">5.3 Layout Ring: Vertical<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-vertical-scroll"/></svg></h3>
+    <h3 id="chapter-5-vertical">5.3 Layout Ring: Vertical<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-vertical-scroll"/></svg></h3>
 
     <p>Display the score as a continuous, vertically-scrollable flow of pages.</p>
 
     <figure>
-        <div class="video-container" onclick="playVideo(this)">
+        <div class="video-container">
             <img src="assets/layoutvertical.jpg" alt="Vertical layout">
-            <div class="play-overlay"></div>
-            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
-            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+            <button type="button" class="play-overlay" aria-label="Play silent video: Use Vertical layout" onclick="playVideo(this.parentElement)">Watch</button>
+            <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video aria-label="Use Vertical layout (silent demonstration)" controls preload="none" tabindex="0">
                 <source src="assets/layoutvertical.webm" type="video/webm">
                 Your browser does not support the video tag.
             </video>
         </div>
         <figcaption>Vertical layout (dark theme) with pages and panel. Four bookmarks are visible.</figcaption>
+        <p class="video-status" role="status"></p>
     </figure>
 
     <p>Settings for this layout function identically to the Horizontal Layout, see previous section.</p>
@@ -1648,23 +1691,24 @@ function closeVideo(event, container) {
 
     <div class="note">For viewing on a smartphone or small tablet, Vertical layout often gives the best experience. Smartphones work best in landscape orientation. Activate full-screen mode, turn off Numbers, set Page Fit: Width, Show: 1 page, and Snap: disabled. Dismiss the Panel, either by tapping the close button's X, or by simply flinging the panel. Then thumb-scroll through the score. Pro tip: add a blank page at the end of the score so the bottom of the last page can be scrolled fully into view.</div>
 
-    <h3 id="chapter-5-table">5.4 Layout Ring: Table<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-table"/></svg></h3>
+    <h3 id="chapter-5-table">5.4 Layout Ring: Table<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-table"/></svg></h3>
 
     <p>Display all pages of the score in a single table.</p>
 
     <p>Convenient for adding or rearranging pages (using the Page Ring), or for quickly locating a page in a large score.</p>
 
     <figure>
-        <div class="video-container" onclick="playVideo(this)">
+        <div class="video-container">
             <img src="assets/layouttable.jpg" alt="Table layout">
-            <div class="play-overlay"></div>
-            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
-            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+            <button type="button" class="play-overlay" aria-label="Play silent video: Use Table layout" onclick="playVideo(this.parentElement)">Watch</button>
+            <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video aria-label="Use Table layout (silent demonstration)" controls preload="none" tabindex="0">
                 <source src="assets/layouttable.webm" type="video/webm">
                 Your browser does not support the video tag.
             </video>
         </div>
         <figcaption>Table layout with pages and panel</figcaption>
+        <p class="video-status" role="status"></p>
     </figure>
 
     <p>The Table Panel's Fit buttons determine the layout's initial size:</p>
@@ -1697,7 +1741,7 @@ function closeVideo(event, container) {
 </section>
 
 <section id="chapter-6">
-    <h2><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-ink"/></svg>Chapter 6: Ink Ring</h2>
+    <h2><svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-right:0.3em"><use href="#gb-ink"/></svg>Chapter 6: Ink Ring</h2>
 
     <p>Add annotations to a score.</p>
 
@@ -1730,7 +1774,7 @@ function closeVideo(event, container) {
 
     <p><strong>Edit:</strong> while active, tapping on any existing annotation allows it to be selected, moved, rotated, or resized. Drag out to reveal a panel with buttons to precisely move, resize, or rotate annotation objects.</p>
 
-    <h3 id="chapter-6-pen-pencil">6.1 Ink Ring: Pen, Pencil<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-pen"/></svg><svg class="gb-icon"><use href="#gb-pencil"/></svg></h3>
+    <h3 id="chapter-6-pen-pencil">6.1 Ink Ring: Pen, Pencil<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-pen"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-pencil"/></svg></h3>
 
     <p>Draw on score pages.</p>
 
@@ -1753,7 +1797,7 @@ function closeVideo(event, container) {
         <li><strong>Slope:</strong> draws a straight line between two points with no angle restrictions</li>
     </ul>
 
-    <h3 id="chapter-6-rastrum">6.2 Ink Ring: Rastrum<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-rastrum"/></svg></h3>
+    <h3 id="chapter-6-rastrum">6.2 Ink Ring: Rastrum<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-rastrum"/></svg></h3>
 
     <p>Draw music staves.</p>
 
@@ -1776,7 +1820,7 @@ function closeVideo(event, container) {
 
     <div class="note">The Rastrum tool, in combination with <a href="#chapter-6-cut-copy-paste" class="chapter-link">Copy/Paste</a>, the <a href="#chapter-6-grid" class="chapter-link">Grid</a>, and the <a href="#chapter-7-flatten" class="chapter-link">Flatten operation</a>, can be used to design manuscript paper of considerable complexity.</div>
 
-    <h3 id="chapter-6-text">6.3 Ink Ring: Text<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-text"/></svg></h3>
+    <h3 id="chapter-6-text">6.3 Ink Ring: Text<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-text"/></svg></h3>
 
     <p>Add text boxes to a page.</p>
 
@@ -1791,7 +1835,7 @@ function closeVideo(event, container) {
         <li>Choose from standard PDF text fonts, plus Vercetti, Bravura, and Patrick Hand fonts.</li>
     </ul>
 
-    <h3 id="chapter-6-symbols">6.4 Ink Ring: Symbols<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-symbols"/></svg></h3>
+    <h3 id="chapter-6-symbols">6.4 Ink Ring: Symbols<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-symbols"/></svg></h3>
 
     <p>Add music symbols to a page.</p>
 
@@ -1827,7 +1871,7 @@ function closeVideo(event, container) {
 
     <p>After placing a symbol, use the <a href="#chapter-6-edit" class="chapter-link">Edit tool</a> to precisely position, resize, or rotate it.</p>
 
-    <h3 id="chapter-6-cut-copy-paste">6.5 Ink Ring: Cut, Copy, Paste<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut"/></svg><svg class="gb-icon"><use href="#gb-copy"/></svg><svg class="gb-icon"><use href="#gb-paste"/></svg></h3>
+    <h3 id="chapter-6-cut-copy-paste">6.5 Ink Ring: Cut, Copy, Paste<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-copy"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-paste"/></svg></h3>
 
     <p>Manage annotation objects.</p>
 
@@ -1841,7 +1885,7 @@ function closeVideo(event, container) {
 
     <p><strong>Deleting annotations:</strong> To delete an annotation object, activate the Cut cell and tap the object. If you don't subsequently paste the object elsewhere, it is effectively deleted from the score.</p>
 
-    <h3 id="chapter-6-undo">6.6 Ink Ring: Undo<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></h3>
+    <h3 id="chapter-6-undo">6.6 Ink Ring: Undo<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></h3>
 
     <p>Undo the last Ink Ring action.</p>
 
@@ -1849,21 +1893,22 @@ function closeVideo(event, container) {
 
     <p>You can undo any Ink Ring action including paste, delete, and transform operations. The only exception is the Copy action itself, which cannot be undone (though you can undo the subsequent paste).</p>
 
-    <h3 id="chapter-6-grid">6.7 Ink Ring: Grid<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-grid"/></svg></h3>
+    <h3 id="chapter-6-grid">6.7 Ink Ring: Grid<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-grid"/></svg></h3>
 
     <p>Draw a 2D guide grid for measuring and layout.</p>
 
     <figure>
-        <div class="video-container" onclick="playVideo(this)">
+        <div class="video-container">
             <img src="assets/inkgrid.jpg" alt="Grid Panel">
-            <div class="play-overlay"></div>
-            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
-            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+            <button type="button" class="play-overlay" aria-label="Play silent video: Use the Grid tool" onclick="playVideo(this.parentElement)">Watch</button>
+            <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video aria-label="Use the Grid tool (silent demonstration)" controls preload="none" tabindex="0">
                 <source src="assets/inkgrid.webm" type="video/webm">
                 Your browser does not support the video tag.
             </video>
         </div>
         <figcaption>Grid panel and grid overlay on score</figcaption>
+        <p class="video-status" role="status"></p>
     </figure>
 
     <p>The Grid panel can be configured using Metric or Imperial (inch) units.</p>
@@ -1878,7 +1923,7 @@ function closeVideo(event, container) {
 
     <p>The Grid helps in aligning and precisely positioning ink elements. It can also be used to measure distance between elements or score features: when activating the grid, set the 0 point to the start of the measurement and then read off the length. Grid measurements represent Podium's best guess at the size of the corresponding printed representation of the score, regardless of zoom level or monitor resolution.</p>
 
-    <h3 id="chapter-6-edit">6.8 Ink Ring: Edit<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-edit"/></svg></h3>
+    <h3 id="chapter-6-edit">6.8 Ink Ring: Edit<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-edit"/></svg></h3>
 
     <p>Edit (move, resize, rotate) annotation objects.</p>
 
@@ -1944,7 +1989,7 @@ function closeVideo(event, container) {
 </section>
 
 <section id="chapter-7">
-    <h2><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-page"/></svg>Chapter 7: Page Ring</h2>
+    <h2><svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-right:0.3em"><use href="#gb-page"/></svg>Chapter 7: Page Ring</h2>
 
     <p>Manage the pages and page numbers of a score.</p>
 
@@ -1981,7 +2026,7 @@ function closeVideo(event, container) {
 
     <p><strong>Magnify:</strong> Drag out to reveal a magnifier panel that shows a zoomed-in view of the score at the touch point.</p>
 
-    <h3 id="chapter-7-numbers">7.1 Page Ring: Numbers<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-numbers"/></svg></h3>
+    <h3 id="chapter-7-numbers">7.1 Page Ring: Numbers<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-numbers"/></svg></h3>
 
     <p>Configure page numbering and view the current page number displayed in the layout margins.</p>
 
@@ -2027,7 +2072,7 @@ function closeVideo(event, container) {
         <li><strong>PageUp / PageDown:</strong> Navigate to previous/next page</li>
     </ul>
 
-    <h3 id="chapter-7-add">7.2 Page Ring: Add<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-page"/></svg></h3>
+    <h3 id="chapter-7-add">7.2 Page Ring: Add<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-page"/></svg></h3>
 
     <p>Configure the appearance of new pages added to the score.</p>
 
@@ -2053,7 +2098,7 @@ function closeVideo(event, container) {
         <li><strong>Custom Size:</strong> Specify custom dimensions for added pages.</li>
     </ul>
 
-    <h3 id="chapter-7-cut-copy-paste">7.3 Page Ring: Cut, Copy, Paste<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut-page"/></svg><svg class="gb-icon"><use href="#gb-copy-page"/></svg><svg class="gb-icon"><use href="#gb-paste-page"/></svg></h3>
+    <h3 id="chapter-7-cut-copy-paste">7.3 Page Ring: Cut, Copy, Paste<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-copy-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-paste-page"/></svg></h3>
 
     <p>Cut, copy, and paste pages within the current score.</p>
 
@@ -2069,7 +2114,7 @@ function closeVideo(event, container) {
 
     <div class="note">Cut and Paste operations can be undone using the Undo cell. Copy cannot be undone.</div>
 
-    <h3 id="chapter-7-undo">7.4 Page Ring: Undo<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></h3>
+    <h3 id="chapter-7-undo">7.4 Page Ring: Undo<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></h3>
 
     <p>Undo the last page operation.</p>
 
@@ -2079,7 +2124,7 @@ function closeVideo(event, container) {
 
     <div class="note">Unlike the Ink Ring's per-page undo stack, the Page Ring undo operates on page-level operations across the entire score.</div>
 
-    <h3 id="chapter-7-export-import">7.5 Page Ring: Export, Import<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-export-page"/></svg><svg class="gb-icon"><use href="#gb-import-page"/></svg></h3>
+    <h3 id="chapter-7-export-import">7.5 Page Ring: Export, Import<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-export-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-import-page"/></svg></h3>
 
     <p>Share pages between Podium tabs via the shared buffer.</p>
 
@@ -2111,7 +2156,7 @@ function closeVideo(event, container) {
 
     <div class="note"><strong>Performance Note:</strong> Copying pages between PDFs is very compute intensive, as the PDF format was not designed for this type of operation. It's best not to fill the shared buffer with too many pages at once, or the system will become very slow.</div>
 
-    <h3 id="chapter-7-merge">7.6 Page Ring: Merge<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-merge"/></svg></h3>
+    <h3 id="chapter-7-merge">7.6 Page Ring: Merge<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-merge"/></svg></h3>
 
     <p>Merge an entire PDF score into the current score at a chosen page position.</p>
 
@@ -2134,7 +2179,7 @@ function closeVideo(event, container) {
 
     <p><strong>Adding a title page or appendix:</strong> Load a cover page or supplementary material as the source PDF, then tap the first or last page of your score to insert it at either end.</p>
 
-    <h3 id="chapter-7-flatten">7.7 Page Ring: Flatten<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-flatten"/></svg></h3>
+    <h3 id="chapter-7-flatten">7.7 Page Ring: Flatten<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-flatten"/></svg></h3>
 
     <p>Flatten a score page's Ink annotations into the PDF.</p>
 
@@ -2156,7 +2201,7 @@ function closeVideo(event, container) {
 
     <div class="note">Because a flatten operation cannot be undone, you'll be prompted to confirm before the operation is performed.</div>
 
-    <h3 id="chapter-7-magnify">7.8 Page Ring: Magnify<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-magnify"/></svg></h3>
+    <h3 id="chapter-7-magnify">7.8 Page Ring: Magnify<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-magnify"/></svg></h3>
 
     <p>Magnify a portion of a page.</p>
 
@@ -2175,23 +2220,24 @@ function closeVideo(event, container) {
     <div class="note">The Magnify tool is especially useful when annotating. It allows you to see a zoomed view around the pointer when, for example, placing an ornament in a score or when free drawing with the pen or pencil.</div>
 
     <figure>
-        <div class="video-container" onclick="playVideo(this)">
+        <div class="video-container">
             <img src="assets/pagemagnifymordent.jpg" alt="Use Magnify with Ink ring tools for increased accuracy">
-            <div class="play-overlay"></div>
-            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
-            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+            <button type="button" class="play-overlay" aria-label="Play silent video: Annotate with the magnifier" onclick="playVideo(this.parentElement)">Watch</button>
+            <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video aria-label="Annotate with the magnifier (silent demonstration)" controls preload="none" tabindex="0">
                 <source src="assets/pagemagnifymordent.webm" type="video/webm">
                 Your browser does not support the video tag.
             </video>
         </div>
         <figcaption>Use the Magnify tool with Ink ring's annotation tools for increased accuracy</figcaption>
+        <p class="video-status" role="status"></p>
     </figure>
 
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
 <section id="chapter-8">
-    <h2><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-podium"/></svg>Chapter 8: App Ring</h2>
+    <h2><svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-right:0.3em"><use href="#gb-podium"/></svg>Chapter 8: App Ring</h2>
 
     <p>Application information and display settings.</p>
 
@@ -2216,7 +2262,7 @@ function closeVideo(event, container) {
 
     <p><strong>Screen:</strong> Toggle full screen mode.</p>
 
-    <h3 id="chapter-8-about">8.1 App Ring: About<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-about"/></svg></h3>
+    <h3 id="chapter-8-about">8.1 App Ring: About<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-about"/></svg></h3>
 
     <p>A tabbed panel providing application information.</p>
 
@@ -2241,7 +2287,7 @@ function closeVideo(event, container) {
     <h4>License Tab:</h4>
     <p>Official copyright and license statement (<a href="https://www.gnu.org/licenses/agpl-3.0-standalone.html" target="_blank">GNU Affero General Public License v3</a>).</p>
 
-    <h3 id="chapter-8-theme">8.2 App Ring: Theme<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-light"/></svg><svg class="gb-icon"><use href="#gb-glass"/></svg><svg class="gb-icon"><use href="#gb-dark"/></svg></h3>
+    <h3 id="chapter-8-theme">8.2 App Ring: Theme<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-light"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-glass"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-dark"/></svg></h3>
 
     <p>Cycles among three display themes. The current theme is stored and persists across sessions.</p>
 
@@ -2251,11 +2297,11 @@ function closeVideo(event, container) {
         <li><strong>Dark</strong> — dark background with light content, ideal for low-light environments.</li>
     </ul>
 
-    <h3 id="chapter-8-guide">8.3 App Ring: Guide<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-guide"/></svg></h3>
+    <h3 id="chapter-8-guide">8.3 App Ring: Guide<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-guide"/></svg></h3>
 
     <p>Opens this guidebook in the app. The guidebook is fetched from the web, so an internet connection is required. In the browser extension, the guidebook opens in a new tab. To save it for offline reading, open it in a new window and use your browser's Save Page feature (typically Ctrl+S or Cmd+S) to download it with all images and videos.</p>
 
-    <h3 id="chapter-8-storage">8.4 App Ring: Storage<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-storage"/></svg></h3>
+    <h3 id="chapter-8-storage">8.4 App Ring: Storage<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-storage"/></svg></h3>
 
     <p>Manage Podium's browser storage.</p>
 
@@ -2277,7 +2323,7 @@ function closeVideo(event, container) {
 
     <div class="note"><strong>Privacy:</strong> If you share a browser with other users, use the factory reset buttons to clear information you don't want to share after your session. This includes recent file lists, shared buffer contents, and menu settings. Note that the web app and the browser extension maintain separate storage; if you use both, you must use these reset buttons in both environments to clear all your data.</div>
 
-    <h3 id="chapter-8-curtain">8.5 App Ring: Curtain<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-curtain"/></svg></h3>
+    <h3 id="chapter-8-curtain">8.5 App Ring: Curtain<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-curtain"/></svg></h3>
 
     <p>Draws a translucent curtain over the score. Tap the Curtain cell to toggle the curtain on and off. Drag out to reveal the Curtain panel, which lets you choose the curtain color and adjust its opacity.</p>
 
@@ -2292,7 +2338,7 @@ function closeVideo(event, container) {
         <figcaption>Curtain panel with color and opacity controls</figcaption>
     </figure>
 
-    <h3 id="chapter-8-wakelock">8.6 App Ring: Wakelock<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-wakelock"/></svg></h3>
+    <h3 id="chapter-8-wakelock">8.6 App Ring: Wakelock<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-wakelock"/></svg></h3>
 
     <p>Prevents the screen from automatically dimming or locking during a performance. When Wakelock is active, the device's screen stays on as long as Podium is in the foreground. Tap the Wakelock cell to toggle it on and off.</p>
 
@@ -2303,7 +2349,7 @@ function closeVideo(event, container) {
 
     <div class="note">Wakelock requires browser support and may not be available on all platforms. (It is supported on iPad and iPhone starting with Safari version 16.4.)</div>
 
-    <h3 id="chapter-8-screen">8.7 App Ring: Screen<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-full-screen"/></svg><svg class="gb-icon"><use href="#gb-normal-screen"/></svg></h3>
+    <h3 id="chapter-8-screen">8.7 App Ring: Screen<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-full-screen"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-normal-screen"/></svg></h3>
 
     <p>Toggles full screen mode. Alternatively, toggle full screen by swiping down on the background. On iPhone/iPad, the swipe gesture can only exit full-screen; use this button to enter.</p>
 
@@ -2328,7 +2374,7 @@ function closeVideo(event, container) {
 </section>
 
 <section id="chapter-9">
-    <h2><svg class="gb-icon" style="margin-right:0.3em"><use href="#gb-more"/></svg>Chapter 9: More Ring</h2>
+    <h2><svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-right:0.3em"><use href="#gb-more"/></svg>Chapter 9: More Ring</h2>
 
     <p>Musician's toolkit.</p>
 
@@ -2372,7 +2418,7 @@ function closeVideo(event, container) {
 
     <p>To close and delete a detached panel, drag out the panel from the menu again, then tap the panel's X button.</p>
 
-    <h3 id="chapter-9-metronome">9.2 More Ring: Metronome<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-metronome"/></svg></h3>
+    <h3 id="chapter-9-metronome">9.2 More Ring: Metronome<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-metronome"/></svg></h3>
 
     <p>Animated metronome with simulated conductor.</p>
 
@@ -2402,7 +2448,7 @@ function closeVideo(event, container) {
 
     <div class="note">The conducting patterns are experimental: due to the complexity of the animation, expect some misalignment between the pattern and the animation, particularly on slower devices, and at faster tempos.</div>
 
-    <h3 id="chapter-9-stopwatch">9.3 More Ring: Stopwatch<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-stopwatch"/></svg></h3>
+    <h3 id="chapter-9-stopwatch">9.3 More Ring: Stopwatch<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-stopwatch"/></svg></h3>
 
     <p>Timer for your practice sessions.</p>
 
@@ -2417,27 +2463,28 @@ function closeVideo(event, container) {
 
     <div class="note">Hiding the panel by flinging (detached or not) keeps the stopwatch running in the background. To stop and close the stopwatch, tap the X button—this effectively deletes the panel. The next time you drag out the Stopwatch cell, the panel is recreated from scratch.</div>
 
-    <h3 id="chapter-9-clock">9.4 More Ring: Clock<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-clock"/></svg></h3>
+    <h3 id="chapter-9-clock">9.4 More Ring: Clock<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-clock"/></svg></h3>
 
     <p>Wall clock displaying the current time and date, using the platform's default time zone. Useful for keeping track of time during practice sessions without leaving Podium.</p>
 
     <p>The clock can be detached and positioned anywhere on screen.</p>
 
-    <h3 id="chapter-9-piano">9.5 More Ring: Piano<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-piano"/></svg></h3>
+    <h3 id="chapter-9-piano">9.5 More Ring: Piano<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-piano"/></svg></h3>
 
     <p>Playable piano keyboard with tuning and pitch detection features.</p>
 
     <figure>
-        <div class="video-container" onclick="playVideo(this)">
+        <div class="video-container">
             <img src="assets/morepiano.jpg" alt="Piano panel">
-            <div class="play-overlay"></div>
-            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
-            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+            <button type="button" class="play-overlay" aria-label="Play silent video: Use the Piano" onclick="playVideo(this.parentElement)">Watch</button>
+            <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video aria-label="Use the Piano (silent demonstration)" controls preload="none" tabindex="0">
                 <source src="assets/morepiano.webm" type="video/webm">
                 Your browser does not support the video tag.
             </video>
         </div>
         <figcaption>Piano keyboard with controls</figcaption>
+        <p class="video-status" role="status"></p>
     </figure>
 
     <p>Drag left ⇄ right from the |=| (<i>breve</i>) button to narrow/widen the keyboard.</p>
@@ -2483,7 +2530,7 @@ function closeVideo(event, container) {
 
     <div class="note">Most options include links to explanatory web articles. To select an option, tap the option name itself rather than the link.</div>
 
-    <h3 id="chapter-9-review">9.6 More Ring: Review<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-review"/></svg></h3>
+    <h3 id="chapter-9-review">9.6 More Ring: Review<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-review"/></svg></h3>
 
     <p>Record audio/video with instant replay.</p>
 
@@ -2547,7 +2594,7 @@ function closeVideo(event, container) {
         <figcaption>Review panel Options tab showing camera, recording, and device settings</figcaption>
     </figure>
 
-    <h3 id="chapter-9-keyboard">9.7 More Ring: Keyboard<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-keyboard"/></svg></h3>
+    <h3 id="chapter-9-keyboard">9.7 More Ring: Keyboard<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-keyboard"/></svg></h3>
 
     <p>On-screen keyboard for text entry and progressive search.</p>
 
@@ -2568,19 +2615,20 @@ function closeVideo(event, container) {
 
 
     <figure>
-        <div class="video-container" onclick="playVideo(this)">
+        <div class="video-container">
             <img src="assets/moreprogressive.jpg" alt="Progressive search narrowing the Symbols category list">
-            <div class="play-overlay"></div>
-            <button class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
-            <video controls controlsList="nofullscreen nodownload" disablePictureInPicture preload="none">
+            <button type="button" class="play-overlay" aria-label="Play silent video: Narrow a list with progressive search" onclick="playVideo(this.parentElement)">Watch</button>
+            <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
+            <video aria-label="Narrow a list with progressive search (silent demonstration)" controls preload="none" tabindex="0">
                 <source src="assets/moreprogressive.webm" type="video/webm">
                 Your browser does not support the video tag.
             </video>
         </div>
         <figcaption>Progressive search narrowing the Symbols category list</figcaption>
+        <p class="video-status" role="status"></p>
     </figure>
 
-    <h3 id="chapter-9-volume">9.8 More Ring: Volume<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-volume"/></svg></h3>
+    <h3 id="chapter-9-volume">9.8 More Ring: Volume<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-volume"/></svg></h3>
 
     <p>Master volume control for all Podium audio output (metronome, piano, review playback).</p>
 
@@ -2599,6 +2647,8 @@ function closeVideo(event, container) {
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
+
+</main>
 
 <!-- BEGIN KEYWORD INDEX -->
 <nav id="keyword-index">
@@ -2621,16 +2671,16 @@ function closeVideo(event, container) {
     <h2>Index</h2>
     <div class="idx-letter">A</div>
     <dl>
-        <dt>About<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-about"/></svg></dt><dd> &mdash; <a href="#chapter-8-about">8.1</a></dd>
+        <dt>About<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-about"/></svg></dt><dd> &mdash; <a href="#chapter-8-about">8.1</a></dd>
         <dt>About the Author</dt><dd> &mdash; <a href="#chapter-10">Ch.10</a></dd>
-        <dt>Add<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-page"/></svg></dt><dd> &mdash; <a href="#chapter-7-add">7.2</a></dd>
+        <dt>Add<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-page"/></svg></dt><dd> &mdash; <a href="#chapter-7-add">7.2</a></dd>
         <dt>Annotations</dt><dd> &mdash; <a href="#chapter-1">Ch.1</a>, <a href="#chapter-6">Ch.6</a></dd>
         <dt>App Ring</dt><dd> &mdash; <a href="#chapter-8">Ch.8</a></dd>
         <dt>Aspect ratio</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
     </dl>
     <div class="idx-letter">B</div>
     <dl>
-        <dt>Book<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-book"/></svg></dt><dd> &mdash; <a href="#chapter-5-book">5.1</a></dd>
+        <dt>Book<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-book"/></svg></dt><dd> &mdash; <a href="#chapter-5-book">5.1</a></dd>
         <dt>Bookmarks</dt><dd> &mdash; <a href="#chapter-5-bookmarks">Ch.5</a></dd>
         <dt>Bravura font</dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
         <dt>Browser Compatibility</dt><dd> &mdash; <a href="#chapter-2-compat">2.3</a></dd>
@@ -2641,8 +2691,8 @@ function closeVideo(event, container) {
     <dl>
         <dt>Cell Auto-Deactivation</dt><dd> &mdash; <a href="#chapter-3-auto-deactivation">Ch.3</a></dd>
         <dt>Cell Locking</dt><dd> &mdash; <a href="#chapter-3-cell-locking">Ch.3</a>, <a href="#chapter-6">Ch.6</a></dd>
-        <dt>Clock<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-clock"/></svg></dt><dd> &mdash; <a href="#chapter-9-clock">9.4</a></dd>
-        <dt>Close<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-close"/></svg></dt><dd> &mdash; <a href="#chapter-4-close">4.3</a></dd>
+        <dt>Clock<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-clock"/></svg></dt><dd> &mdash; <a href="#chapter-9-clock">9.4</a></dd>
+        <dt>Close<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-close"/></svg></dt><dd> &mdash; <a href="#chapter-4-close">4.3</a></dd>
         <dt>Cloud storage</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
         <dt>Color chooser</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a>, <a href="#chapter-7-add">7.2</a></dd>
         <dt>Conducting patterns</dt><dd> &mdash; <a href="#chapter-9-metronome">9.2</a></dd>
@@ -2650,7 +2700,7 @@ function closeVideo(event, container) {
         <dt>CPDL</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
         <dt>Cross-instance sharing</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
         <dt>CSS pixels</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-5-horizontal">5.2</a></dd>
-        <dt>Curtain<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-curtain"/></svg></dt><dd> &mdash; <a href="#chapter-8-curtain">8.5</a></dd>
+        <dt>Curtain<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-curtain"/></svg></dt><dd> &mdash; <a href="#chapter-8-curtain">8.5</a></dd>
         <dt>Cut</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a>, <a href="#chapter-7-cut-copy-paste">7.3</a></dd>
     </dl>
     <div class="idx-letter">D</div>
@@ -2658,7 +2708,7 @@ function closeVideo(event, container) {
         <dt>Dark theme</dt><dd> &mdash; <a href="#chapter-8-theme">8.2</a></dd>
         <dt>Delcamp</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
         <dt>Detached Panels</dt><dd> &mdash; <a href="#chapter-9-detached">9.1</a></dd>
-        <dt>Details<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
+        <dt>Details<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
         <dt>Display quality</dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
         <dt>Drag and drop</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
         <dt>Dropbox</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
@@ -2666,7 +2716,7 @@ function closeVideo(event, container) {
     <div class="idx-letter">E</div>
     <dl>
         <dt>E-reader</dt><dd> &mdash; <a href="#overture">Overture</a></dd>
-        <dt>Edit<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-edit"/></svg></dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
+        <dt>Edit<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-edit"/></svg></dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
         <dt>Equal temperament</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
         <dt>Expand mode</dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
         <dt>Export</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
@@ -2675,7 +2725,7 @@ function closeVideo(event, container) {
     <dl>
         <dt>File System Access API</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
         <dt>Firefox settings</dt><dd> &mdash; <a href="#firefox-settings">4.1</a></dd>
-        <dt>Flatten<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-flatten"/></svg></dt><dd> &mdash; <a href="#chapter-7-flatten">7.7</a></dd>
+        <dt>Flatten<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-flatten"/></svg></dt><dd> &mdash; <a href="#chapter-7-flatten">7.7</a></dd>
         <dt>Fling gesture</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a>, <a href="#chapter-5-page-turning">Ch.5</a></dd>
         <dt>Foot Pedal</dt><dd> &mdash; <a href="#chapter-2-foot-pedal">2.4</a>, <a href="#chapter-7-numbers">7.1</a></dd>
         <dt>Full screen</dt><dd> &mdash; <a href="#chapter-8-screen">8.7</a>, <a href="#chapter-3">Ch.3</a></dd>
@@ -2684,19 +2734,19 @@ function closeVideo(event, container) {
     <dl>
         <dt>Gestures</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
         <dt>Google Drive</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Grid<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-grid"/></svg></dt><dd> &mdash; <a href="#chapter-6-grid">6.7</a></dd>
+        <dt>Grid<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-grid"/></svg></dt><dd> &mdash; <a href="#chapter-6-grid">6.7</a></dd>
         <dt>Grip</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
         <dt>Group selection</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
-        <dt>Guide<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-guide"/></svg></dt><dd> &mdash; <a href="#chapter-8-guide">8.3</a></dd>
+        <dt>Guide<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-guide"/></svg></dt><dd> &mdash; <a href="#chapter-8-guide">8.3</a></dd>
     </dl>
     <div class="idx-letter">H</div>
     <dl>
-        <dt>Horizontal<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-horizontal-scroll"/></svg></dt><dd> &mdash; <a href="#chapter-5-horizontal">5.2</a></dd>
+        <dt>Horizontal<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-horizontal-scroll"/></svg></dt><dd> &mdash; <a href="#chapter-5-horizontal">5.2</a></dd>
     </dl>
     <div class="idx-letter">I</div>
     <dl>
         <dt>Images, importing</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a></dd>
-        <dt>Import<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-export-page"/></svg><svg class="gb-icon"><use href="#gb-import-page"/></svg></dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
+        <dt>Import<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-export-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-import-page"/></svg></dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
         <dt>IMSLP</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
         <dt>Ink Ring</dt><dd> &mdash; <a href="#chapter-6">Ch.6</a></dd>
         <dt>Inner ring</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
@@ -2705,7 +2755,7 @@ function closeVideo(event, container) {
     </dl>
     <div class="idx-letter">K</div>
     <dl>
-        <dt>Keyboard<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-keyboard"/></svg></dt><dd> &mdash; <a href="#chapter-9-keyboard">9.7</a></dd>
+        <dt>Keyboard<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-keyboard"/></svg></dt><dd> &mdash; <a href="#chapter-9-keyboard">9.7</a></dd>
         <dt>Keyboard shortcuts</dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
     </dl>
     <div class="idx-letter">L</div>
@@ -2719,11 +2769,11 @@ function closeVideo(event, container) {
     </dl>
     <div class="idx-letter">M</div>
     <dl>
-        <dt>Magnify<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-magnify"/></svg></dt><dd> &mdash; <a href="#chapter-7-magnify">7.8</a></dd>
+        <dt>Magnify<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-magnify"/></svg></dt><dd> &mdash; <a href="#chapter-7-magnify">7.8</a></dd>
         <dt>Manuscript paper</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a>, <a href="#chapter-7-flatten">7.7</a></dd>
-        <dt>Merge<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-merge"/></svg></dt><dd> &mdash; <a href="#chapter-7-merge">7.6</a></dd>
+        <dt>Merge<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-merge"/></svg></dt><dd> &mdash; <a href="#chapter-7-merge">7.6</a></dd>
         <dt>Metadata</dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
-        <dt>Metronome<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-metronome"/></svg></dt><dd> &mdash; <a href="#chapter-9-metronome">9.2</a></dd>
+        <dt>Metronome<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-metronome"/></svg></dt><dd> &mdash; <a href="#chapter-9-metronome">9.2</a></dd>
         <dt>Microphone</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a>, <a href="#chapter-9-review">9.6</a></dd>
         <dt>More Ring</dt><dd> &mdash; <a href="#chapter-9">Ch.9</a></dd>
         <dt>Mouse controls</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
@@ -2731,8 +2781,8 @@ function closeVideo(event, container) {
     <div class="idx-letter">N</div>
     <dl>
         <dt>Navigation</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-1">Ch.1</a></dd>
-        <dt>New<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-score"/></svg></dt><dd> &mdash; <a href="#chapter-4-new">4.2</a></dd>
-        <dt>Numbers<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-numbers"/></svg></dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
+        <dt>New<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-score"/></svg></dt><dd> &mdash; <a href="#chapter-4-new">4.2</a></dd>
+        <dt>Numbers<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-numbers"/></svg></dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
     </dl>
     <div class="idx-letter">O</div>
     <dl>
@@ -2753,18 +2803,18 @@ function closeVideo(event, container) {
         <dt>Page Turning</dt><dd> &mdash; <a href="#chapter-5-page-turning">Ch.5</a></dd>
         <dt>Pager</dt><dd> &mdash; <a href="#chapter-5-page-turning">Ch.5</a></dd>
         <dt>Password-protected PDF</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Paste<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut-page"/></svg><svg class="gb-icon"><use href="#gb-copy-page"/></svg><svg class="gb-icon"><use href="#gb-paste-page"/></svg></dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a>, <a href="#chapter-7-cut-copy-paste">7.3</a></dd>
+        <dt>Paste<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-copy-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-paste-page"/></svg></dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a>, <a href="#chapter-7-cut-copy-paste">7.3</a></dd>
         <dt>Paste buffer</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
         <dt>PDF files</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a>, <a href="#overture">Overture</a></dd>
         <dt>Pen</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a></dd>
-        <dt>Pencil<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-pen"/></svg><svg class="gb-icon"><use href="#gb-pencil"/></svg></dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a></dd>
-        <dt>Piano<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-piano"/></svg></dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
+        <dt>Pencil<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-pen"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-pencil"/></svg></dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a></dd>
+        <dt>Piano<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-piano"/></svg></dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
         <dt>Pinch-zoom</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-3">Ch.3</a></dd>
         <dt>Pitch detector</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
         <dt>Playback</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Practice scores</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
         <dt>Precision sliders</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
-        <dt>Print<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-print"/></svg></dt><dd> &mdash; <a href="#chapter-4-print">4.4</a></dd>
+        <dt>Print<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-print"/></svg></dt><dd> &mdash; <a href="#chapter-4-print">4.4</a></dd>
         <dt>Privacy</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a>, <a href="#chapter-8-storage">8.4</a></dd>
         <dt>Progressive Web App (PWA)</dt><dd> &mdash; <a href="#chapter-2-pwa">2.2</a>, <a href="#chapter-2">Ch.2</a></dd>
     </dl>
@@ -2774,13 +2824,13 @@ function closeVideo(event, container) {
     </dl>
     <div class="idx-letter">R</div>
     <dl>
-        <dt>Rastrum<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-rastrum"/></svg></dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a></dd>
+        <dt>Rastrum<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-rastrum"/></svg></dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a></dd>
         <dt>Recent files</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a>, <a href="#chapter-8-storage">8.4</a></dd>
         <dt>Recording</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Reorder pages</dt><dd> &mdash; <a href="#chapter-5-table">5.4</a></dd>
         <dt>Resize</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
         <dt>Revert to saved</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Review<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-review"/></svg></dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
+        <dt>Review<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-review"/></svg></dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Roman numerals</dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
         <dt>Rotating rings</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
         <dt>Running Podium</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
@@ -2788,9 +2838,9 @@ function closeVideo(event, container) {
     <div class="idx-letter">S</div>
     <dl>
         <dt>Salamander Grand Piano</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
-        <dt>Save<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-open"/></svg><svg class="gb-icon"><use href="#gb-save"/></svg></dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
+        <dt>Save<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-open"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-save"/></svg></dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
         <dt>Score Ring</dt><dd> &mdash; <a href="#chapter-4">Ch.4</a></dd>
-        <dt>Screen<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-full-screen"/></svg><svg class="gb-icon"><use href="#gb-normal-screen"/></svg></dt><dd> &mdash; <a href="#chapter-8-screen">8.7</a></dd>
+        <dt>Screen<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-full-screen"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-normal-screen"/></svg></dt><dd> &mdash; <a href="#chapter-8-screen">8.7</a></dd>
         <dt>Scrubber</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
         <dt>Shared buffer</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
         <dt>Sliders</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
@@ -2800,37 +2850,37 @@ function closeVideo(event, container) {
         <dt>Split times</dt><dd> &mdash; <a href="#chapter-9-stopwatch">9.3</a></dd>
         <dt>Staff space</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a>, <a href="#chapter-6-symbols">6.4</a></dd>
         <dt>Staves</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a></dd>
-        <dt>Stopwatch<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-stopwatch"/></svg></dt><dd> &mdash; <a href="#chapter-9-stopwatch">9.3</a></dd>
-        <dt>Storage<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-storage"/></svg></dt><dd> &mdash; <a href="#chapter-8-storage">8.4</a></dd>
+        <dt>Stopwatch<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-stopwatch"/></svg></dt><dd> &mdash; <a href="#chapter-9-stopwatch">9.3</a></dd>
+        <dt>Storage<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-storage"/></svg></dt><dd> &mdash; <a href="#chapter-8-storage">8.4</a></dd>
         <dt>Sustain mode</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
         <dt>Symbol library</dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
-        <dt>Symbols<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-symbols"/></svg></dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
+        <dt>Symbols<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-symbols"/></svg></dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
     </dl>
     <div class="idx-letter">T</div>
     <dl>
         <dt>Tablature</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a></dd>
-        <dt>Table<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-table"/></svg></dt><dd> &mdash; <a href="#chapter-5-table">5.4</a></dd>
+        <dt>Table<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-table"/></svg></dt><dd> &mdash; <a href="#chapter-5-table">5.4</a></dd>
         <dt>Temperament</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
-        <dt>Text<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-text"/></svg></dt><dd> &mdash; <a href="#chapter-6-text">6.3</a></dd>
-        <dt>Theme<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-light"/></svg><svg class="gb-icon"><use href="#gb-glass"/></svg><svg class="gb-icon"><use href="#gb-dark"/></svg></dt><dd> &mdash; <a href="#chapter-8-theme">8.2</a></dd>
+        <dt>Text<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-text"/></svg></dt><dd> &mdash; <a href="#chapter-6-text">6.3</a></dd>
+        <dt>Theme<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-light"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-glass"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-dark"/></svg></dt><dd> &mdash; <a href="#chapter-8-theme">8.2</a></dd>
         <dt>Timbre</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
         <dt>Transform handles</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
-        <dt>Translation</dt><dd> &mdash; <a href="#chapter-2-language">2.5</a></dd>
         <dt>Tuner</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
     </dl>
     <div class="idx-letter">U</div>
     <dl>
-        <dt>Undo<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></dt><dd> &mdash; <a href="#chapter-6-undo">6.6</a>, <a href="#chapter-7-undo">7.4</a></dd>
+        <dt>Undo<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></dt><dd> &mdash; <a href="#chapter-6-undo">6.6</a>, <a href="#chapter-7-undo">7.4</a></dd>
         <dt>Undo history</dt><dd> &mdash; <a href="#chapter-6-undo">6.6</a>, <a href="#chapter-7-undo">7.4</a></dd>
+        <dt>Using Podium in Your Language</dt><dd> &mdash; <a href="#chapter-2-language">2.5</a></dd>
     </dl>
     <div class="idx-letter">V</div>
     <dl>
-        <dt>Vertical<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-vertical-scroll"/></svg></dt><dd> &mdash; <a href="#chapter-5-vertical">5.3</a></dd>
-        <dt>Volume<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-volume"/></svg></dt><dd> &mdash; <a href="#chapter-9-volume">9.8</a></dd>
+        <dt>Vertical<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-vertical-scroll"/></svg></dt><dd> &mdash; <a href="#chapter-5-vertical">5.3</a></dd>
+        <dt>Volume<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-volume"/></svg></dt><dd> &mdash; <a href="#chapter-9-volume">9.8</a></dd>
     </dl>
     <div class="idx-letter">W</div>
     <dl>
-        <dt>Wakelock<svg class="gb-icon" style="margin-left:0.3em"><use href="#gb-wakelock"/></svg></dt><dd> &mdash; <a href="#chapter-8-wakelock">8.6</a></dd>
+        <dt>Wakelock<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-wakelock"/></svg></dt><dd> &mdash; <a href="#chapter-8-wakelock">8.6</a></dd>
         <dt>Waveform</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
     </dl>
     <div class="idx-letter">Y</div>
@@ -2845,7 +2895,7 @@ function closeVideo(event, container) {
 </nav>
 <!-- END KEYWORD INDEX -->
 
-<footer style="margin-top:3em;padding:2em 1em;border-top:1px solid #ccc;font-size:.75em;color:#888;text-align:center;">
+<footer style="margin-top:3em;padding:2em 1em;border-top:1px solid #ccc;font-size:.75em;color:#666;text-align:center;">
     <p>Copyright &copy; 2025 Glendon Diener. This document is part of the Podium project, licensed under the <a href="https://www.gnu.org/licenses/agpl-3.0-standalone.html" target="_blank">GNU Affero General Public License v3</a>.</p>
     <p>All product names, logos, and brands mentioned in this document are property of their respective owners and are used for identification purposes only.</p>
     <p>Users are responsible for ensuring they have the right to use any score files opened in Podium.</p>
