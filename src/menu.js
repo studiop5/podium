@@ -25,7 +25,7 @@ import { checkUnsaved, FileSrc } from "./file.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
 import { panels, EditPanel } from "./panel.js";
-import { Grid, Score } from "./score.js";
+import { Grid, Pg, Score } from "./score.js";
 
 export { Menu };
 
@@ -1594,6 +1594,7 @@ class Menu {
     let addObj = (obj) => {
       this.newlyCreated = obj;
       canvas.add(obj);
+      obj.clampToPage(); // inserted wholly on the page: same rule as dragging, see canvas.js
       obj.hasControls = false; 
       // makes obj draggable until subsequent pgUpEvent:
       canvas._target = obj; 
@@ -1651,7 +1652,7 @@ class Menu {
         if (style == "Free") {
           // PencilBrush subclasses PencilBrush, adding a podiumType=pencil||pen  key to the created path.
           // This allows us to determine whether a path was created from the Pencil tool or the Pen tool.
-          brush = new fabric.PodBrush(canvas, key); 
+          brush = new fabric.PodBrush(canvas, key, activeCell.stash);
           brush.width = width;
           brush.color = rgba;
         } else brush = new fabric.LineBrush(canvas, activeCell.stash, rgba, key);
@@ -1694,6 +1695,7 @@ class Menu {
           top: opts.absolutePointer.y,
           objectCaching: false, ///
           hasControls: false,
+          podiumStash: { alpha, font, size, height, rgb }, // see Panel.load
         };
         Object.assign(config, fontMap[font]);
         let textbox = addObj(new fabric.Textbox("Abc", config));
@@ -1717,6 +1719,7 @@ class Menu {
         let rgba = color.toRgba();
         let config = {
           podiumType: "symbols",
+          podiumStash: { alpha, rgb, size }, // see Panel.load
           fill: rgba,
           fontSize: size * 5, // Bravura Text: 200 font units per staff space, 1000 per em
           editable: false,
@@ -1750,6 +1753,7 @@ class Menu {
             });
             let actSel = new fabric.ActiveSelection(clone._objects, { canvas: canvas, hasControls: false});
             canvas.setActiveObject(actSel);
+            actSel.clampToPage();
             canvas._target = this.newlyCreated = actSel;
             }
             else {
@@ -1762,6 +1766,7 @@ class Menu {
                 canvas.selection = false;
                 let onMove = (opt) => {
                   clone.set({ left: opt.pointer.x, top: opt.pointer.y });
+                  clone.clampToPage(); // same rule as dragging, see canvas.js
                   canvas.requestRenderAll();
                 };
                 let onUp = () => {
@@ -1778,7 +1783,7 @@ class Menu {
                 canvas.on('mouse:up', onUp);
               }
             }
-        });
+        }, Pg.customProps); // (the copy keeps Podium's custom properties)
       }
       return;
      }
@@ -1789,7 +1794,8 @@ class Menu {
   cutCopyObject(obj, canvas, isCut) {
     if (this.cutting) return;
     this.cutting = true;
-    obj.clone((clone) => { this.pasteObj = this.newlyCreated = clone; });
+    // (a copy must keep Podium's custom properties, or it'd no longer be, say, a rastrum)
+    obj.clone((clone) => { this.pasteObj = this.newlyCreated = clone; }, Pg.customProps);
     this.enableCells("ink/paste", true);
     // Animate: object image flies to paste cell icon
     let zoom = canvas.pg.zoom ; // account for "additional" pg zoom
