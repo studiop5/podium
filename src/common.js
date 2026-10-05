@@ -886,7 +886,7 @@ class ColorPicker {
     Object.assign(this, dataIndex("tag", this.elm));
     ColorPicker.updateRecentColors();
     this.title.innerHTML = title;
-    let stash = { rgb, alpha };
+    let stash = this.stash = { rgb, alpha };
     this.color.value = rgb;
     this.colorDisplay.style.backgroundColor = rgb;
     this.alphaCircle.style.fill = rgb;
@@ -909,6 +909,7 @@ class ColorPicker {
       }
     );
 
+    this.alphaGroup = alphaSlider;
     alphaSlider.elm.classList.add("ColorPicker__alphaSlider", "void");
     this.alphaSlider.replaceWith(alphaSlider.elm);
 
@@ -931,6 +932,16 @@ class ColorPicker {
         );
       alphaSlider.refresh();
     });
+  }
+
+  set(rgb, alpha) {
+    // Set the picker's color and opacity from outside. The handler is not called.
+    Object.assign(this.stash, { rgb, alpha });
+    this.color.value = rgb;
+    this.colorDisplay.style.backgroundColor = rgb;
+    this.alphaCircle.style.fill = rgb;
+    this.alphaCircle.style.opacity = alpha;
+    this.alphaGroup.refresh();
   }
 }
 

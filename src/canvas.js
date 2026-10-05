@@ -95,6 +95,69 @@ function initFabric() {
     return fabric._measuringContext;
   };
 
+  // Drag dead zone: fabric counts ANY pointer movement between down and up as
+  // a move (dragHandler returns true on a 1px change), and IText's
+  // mouseUpHandler refuses to enter editing once transform.actionPerformed is
+  // set. A finger nearly always jitters a pixel or two, so on touch a tap on a
+  // selected text nudged it instead of opening it for editing. Ignore drag
+  // moves until the pointer has travelled past a threshold from where it went
+  // down. Measured in client (screen) pixels so it doesn't vary with zoom.
+  //
+  // The threshold depends on what is actually pointing, per gesture: a finger's
+  // contact patch shifts as it presses, a pen tip skids a little on glass, a
+  // mouse sits still. _mobile_ only describes the device's PRIMARY pointer, so
+  // it is wrong for a finger on a touchscreen laptop or a mouse on an iPad;
+  // it is the fallback when the event carries no pointerType.
+  let dragThresholds = { touch: 10, pen: 6, mouse: 4 };
+  let dragThreshold = (e) => {
+    let type = e.pointerType || (e.touches ? "touch" : _mobile_ ? "touch" : "mouse");
+    return dragThresholds[type] ?? dragThresholds.mouse;
+  };
+  let clientPt = (e) => e.touches?.[0] ?? e.changedTouches?.[0] ?? e;
+
+  let setupCurrentTransform = fabric.Canvas.prototype._setupCurrentTransform;
+  fabric.Canvas.prototype._setupCurrentTransform = function (e, target, alreadySelected) {
+    setupCurrentTransform.call(this, e, target, alreadySelected);
+    let transform = this._currentTransform;
+    if (transform && target) {
+      let pt = clientPt(e);
+      transform.downX = pt.clientX;
+      transform.downY = pt.clientY;
+      transform.dragThreshold = dragThreshold(e);
+    }
+  };
+
+  let performTransformAction = fabric.Canvas.prototype._performTransformAction;
+  fabric.Canvas.prototype._performTransformAction = function (e, transform, pointer) {
+    if (transform.action == "drag" && !transform.pastThreshold && transform.downX !== undefined) {
+      let pt = clientPt(e);
+      if (Math.hypot(pt.clientX - transform.downX, pt.clientY - transform.downY) < transform.dragThreshold) return;
+      transform.pastThreshold = true;
+    }
+    performTransformAction.call(this, e, transform, pointer);
+    if (transform.action == "drag") transform.target.clampToPage();
+  };
+
+  // Keep an object (or selection) within its page: move it, if need be, so
+  // that its bounding box, rotation included, lies inside the canvas. Along an
+  // axis where it's larger than the page, it's centered instead. This is THE
+  // rule for where an object may be placed: dragging (above), the EditPanel's
+  // arrows and pasted-image placement all use it, so they behave identically.
+  // Only position is constrained: scaling or rotating can still push part of
+  // an object past an edge, until it is next moved.
+  fabric.Object.prototype.clampToPage = function () {
+    if (!this.canvas) return;
+    let { tl, br } = this.canvas.calcViewportBoundaries(); // the page, in object coordinates
+    let box = this.getBoundingRect(true, true);
+    let shift = (pos, size, min, max) =>
+      (size > max - min ? (min + max - size) / 2 : clamp(pos, min, max - size)) - pos;
+    let dx = shift(box.left, box.width, tl.x, br.x);
+    let dy = shift(box.top, box.height, tl.y, br.y);
+    if (dx == 0 && dy == 0) return;
+    this.set({ left: this.left + dx, top: this.top + dy });
+    this.setCoords();
+  };
+
   fabric.Object.NUM_FRACTION_DIGITS = 8;
   fabric.Object.prototype.transparentCorners = false;
   fabric.Object.prototype.cornerSize = _mobile_ ? 32:16; // Large touch target
@@ -180,23 +243,33 @@ function initFabric() {
         return;
       }
   
-      let show = true;
-      if(["text", "textbox", "image"].includes(fabricObject.type) && ["mt","mb"].includes(key)) show = false;
-      if( "text" == fabricObject.type && ["ml","mr"].includes(key)) show = false;
-      if(show) {
-        ctx.save();
-        ctx.lineWidth = 6;
-        ctx.beginPath();
-        let r = fabricObject.cornerSize / 2;
-        ctx.arc(left, top, r, 0, 2 * Math.PI);
-        if(key == "mtr") ctx.stroke(); else ctx.fill();
-        ctx.restore();
-      }
-      else { 
-        ctrl.actionHandler = null;
-        ctrl.cursorStyleHandler = _voidFunc_;
-      }
+      ctx.save();
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      let r = fabricObject.cornerSize / 2;
+      ctx.arc(left, top, r, 0, 2 * Math.PI);
+      if(key == "mtr") ctx.stroke(); else ctx.fill();
+      ctx.restore();
     }
+
+    // Hide controls that make no sense for a type. These Control instances are
+    // SHARED by every object type (fabric's Textbox reuses Object's mt/mb too),
+    // so hiding must be decided per object here, never by mutating the control:
+    // fabric consults getVisibility for both drawing and hit-testing.
+    let getVisibility = ctrl.getVisibility;
+    ctrl.getVisibility = function(fabricObject, controlKey) {
+      // groupToggle lives on the shared controls too, so every object has it:
+      // only (un)groupable objects may show it or be hit on it. A rastrum is a
+      // group, but must never be ungrouped.
+      if(key == "groupToggle") {
+        let { type } = fabricObject;
+        if(!(type == "activeSelection" && fabricObject.size() > 1) &&
+           !(type == "group" && fabricObject.podiumType != "rastrum")) return false;
+      }
+      if(["text", "textbox", "image"].includes(fabricObject.type) && ["mt","mb"].includes(key)) return false;
+      if("text" == fabricObject.type && ["ml","mr"].includes(key)) return false;
+      return getVisibility.call(this, fabricObject, controlKey);
+    };
   }
 
   // ...textBox ml and mr controls: they control textbox width:
@@ -234,17 +307,23 @@ function initFabric() {
     type: "PodBrush",
     podiumType: 'ink',
 
-    initialize: function(canvas, podiumType) {
+    initialize: function(canvas, podiumType, stash) {
       this.callSuper('initialize', canvas);
       this.podiumType = podiumType; 
+      this.podiumStash = fabric.PodBrush.settings(stash);
     },
 
     createPath: function(pathData) {
       let path = this.callSuper('createPath', pathData);
       path.podiumType = this.podiumType; // add PodiumType to path *after* its created                     
+      path.podiumStash = this.podiumStash;
       return path;                      
     }      
   });
+
+  // A pencil or pen stroke carries a copy of its cell's stash settings it was
+  // drawn with, as podiumStash: its panel loads them when the stroke is selected.
+  fabric.PodBrush.settings = ({ alpha, rgb, style, width }) => ({ alpha, rgb, style, width });
 
   fabric.RastrumBrush = fabric.util.createClass(fabric.BaseBrush, {
     type: "RastrumBrush",
@@ -268,17 +347,20 @@ function initFabric() {
       canvas.clearContext(ctx);
       if (style == "L-R") origin.y = ptr.y;
       else origin.x = ptr.x;
+      // Preview what paths() will build: same "Auto" width, and each line
+      // extends from its position by its width (a stroke would straddle it).
+      if (width == 0) width = .13 * gap;
       for (let i = 0, n = gap * lines; i < n; i += gap) {
         ctx.beginPath();
         ctx.lineWidth = width * zoom;
         ctx.lineCap = "butt";
         ctx.strokeStyle = color;
         if (style == "L-R") {
-          let y = (origin.y + i) * zoom;
+          let y = (origin.y + i + width / 2) * zoom;
           ctx.moveTo(origin.x * zoom, y);
           ctx.lineTo(ptr.x * zoom, y);
         } else {  // style == "T-B"
-          let x = (origin.x + i) * zoom;
+          let x = (origin.x + i + width / 2) * zoom;
           ctx.moveTo(x, origin.y * zoom);
           ctx.lineTo(x, ptr.y * zoom);
         }
@@ -292,60 +374,70 @@ function initFabric() {
     },
   
     draw: function () {
-      // Normally, draw is invoked from onMouseUp, but can also be called from the RastrumPanel
-      // to re-draw the rastrum.
-      let { canvas, color, gap, lines, width, bars, barWidth, origin, ptr, style } = this;
-      if(this.path) this.canvas.remove(this.path); // might be "re" drawing...remove any prev path
-      // interpret "Auto"  (encoded as 0) to refer to Bravura engravingDefault values (in staff space, i.e. gap)
-      if (width == 0) width = .13 * gap ; // .13 and .16 are from bravura docs
-      if (barWidth == 0) barWidth = .16 * gap ; 
-      // Draw the staff lines
-      // Note: need to subtract width/2 from left and top because
-      // the fabric path interprets line width differently than
-      // html canvas
-      let d = "";
-      let dX = Math.abs(ptr.x - origin.x) ;
-      let dY = Math.abs(ptr.y - origin.y) ;
-      for (let y = 0, n = gap * lines; y < n; y += gap)
-        if (style == "L-R") d += `M0 ${y}h${dX}v${width}h${-dX}Z`;
-        else d += `M${y} 0v${dY}h${width}v${-dY} Z`;
-      let staffPath = new fabric.Path(d, {
-        height: dY,
-        width: dX,
-        left: Math.min(origin.x, ptr.x),
-        top: Math.min(origin.y, ptr.y),
-        fill: color,
-      });
-      d = "";
-      if(bars > 0) { // add bar lines
-        let staffHeight = (lines - 1) * gap + width;
-        if (style == "L-R") {
-          let barSpan = (dX - barWidth) / bars;
-          for (let i = 0, x = 0; i <= bars; i++, x += barSpan)
-            d += `M${x} 0v${staffHeight}h${barWidth}v${-staffHeight}Z`; 
-        } else {
-          let barSpan = (dY - barWidth) / bars;
-          for (let i = 0, y = 0; i <= bars; i++, y += barSpan)
-            d += `M0 ${y}v${barWidth}h${staffHeight}v${-barWidth}Z} `;
-        }
-      }
-
-      let barPath = new fabric.Path(d, {
-        height: dY,
-        width: dX,
-        left: Math.min(origin.x, ptr.x),
-        top: Math.min(origin.y, ptr.y),
-        fill: color,
-      });
-
+      let { canvas, gap, origin, ptr, style } = this;
+      let length = style == "L-R" ? Math.abs(ptr.x - origin.x) : Math.abs(ptr.y - origin.y);
       canvas.clearContext(canvas.contextTop);
-      canvas.add(new fabric.Group([staffPath,barPath], {
+      // A tap, or a drag shorter than one staff space, makes no rastrum: it
+      // would be an invisible (zero-length) or accidental object on the page.
+      if (length < gap) return;
+      let paths = fabric.RastrumBrush.paths({ ...this, length },
+        Math.min(origin.x, ptr.x), Math.min(origin.y, ptr.y));
+      canvas.add(new fabric.Group(paths, {
         hasControls: false,
-        podiumType: "rastrum"
+        podiumType: "rastrum",
+        podiumStash: fabric.RastrumBrush.settings(this),
       }));
      }
   });
-  
+
+  // A rastrum carries a copy of the rastrum cell's stash settings it was drawn
+  // with, as podiumStash: the RastrumPanel loads them when the rastrum is
+  // selected, and redraw() needs its style ("L-R" or "T-B").
+  fabric.RastrumBrush.settings = ({ alpha, rgb, style, gap, lines, width, bars, barWidth }) =>
+    ({ alpha, rgb, style, gap, lines, width, bars, barWidth });
+
+  // Build a rastrum's two paths, staff lines and bar lines, with their top-left
+  // corner at left,top. length is the extent along the staff; the other
+  // settings are those of the rastrum cell's stash, plus its color as rgba.
+  fabric.RastrumBrush.paths = function ({ style, length, gap, lines, width, bars, barWidth, color }, left = 0, top = 0) {
+    // interpret "Auto"  (encoded as 0) to refer to Bravura engravingDefault values (in staff space, i.e. gap)
+    if (width == 0) width = .13 * gap ; // .13 and .16 are from bravura docs
+    if (barWidth == 0) barWidth = .16 * gap ;
+    let d = "";
+    for (let y = 0, n = gap * lines; y < n; y += gap)
+      if (style == "L-R") d += `M0 ${y}h${length}v${width}h${-length}Z`;
+      else d += `M${y} 0v${length}h${width}v${-length} Z`;
+    let staffPath = new fabric.Path(d, { left, top, fill: color });
+    d = "";
+    if(bars > 0) { // add bar lines
+      let staffHeight = (lines - 1) * gap + width;
+      let barSpan = (length - barWidth) / bars;
+      for (let i = 0, at = 0; i <= bars; i++, at += barSpan)
+        if (style == "L-R") d += `M${at} 0v${staffHeight}h${barWidth}v${-staffHeight}Z`;
+        else d += `M0 ${at}v${barWidth}h${staffHeight}v${-barWidth}Z`;
+    }
+    let barPath = new fabric.Path(d, { left, top, fill: color });
+    return [staffPath, barPath];
+  };
+
+  // Redraw an existing rastrum (the group made by draw(), above) in place from
+  // new settings: called from the RastrumPanel. It keeps its position, scale,
+  // rotation and length; its top-left corner stays put. The group itself is
+  // kept, only its contents are swapped, so the selection is undisturbed.
+  fabric.RastrumBrush.redraw = function (group, stash) {
+    // rastrums saved before podiumStash existed: staves are longer than tall
+    let style = group.podiumStash?.style ?? (group.width >= group.height ? "L-R" : "T-B");
+    let length = style == "L-R" ? group.width : group.height;
+    let color = fabric.Color.fromHex(stash.rgb);
+    color.setAlpha(stash.alpha);
+    let fresh = new fabric.Group(fabric.RastrumBrush.paths({ ...stash, color: color.toRgba(), length }));
+    for (let obj of fresh._objects) obj.group = group;
+    group._objects = fresh._objects;
+    group.set({ width: fresh.width, height: fresh.height, podiumStash: fabric.RastrumBrush.settings(stash), dirty: true });
+    group.setCoords();
+    group.canvas?.requestRenderAll();
+  };
+
   // LineBrush's lines are restricted to stright lines
   fabric.LineBrush = fabric.util.createClass(fabric.RastrumBrush, {
     type: "LineBrush",
@@ -359,6 +451,7 @@ function initFabric() {
     onMouseMove: function (ptr) {
       let { canvas, color, origin, style, width, zoom } = this;
       let ctx = canvas.contextTop;
+      ptr = { x: ptr.x, y: ptr.y }; // a copy: ptr is fabric's own
       if (style == "L-R") ptr.y = origin.y;
       else if (style == "T-B") ptr.x = origin.x;
       // else (style == "Straight")
@@ -373,13 +466,12 @@ function initFabric() {
     },
   
     onMouseUp: function (e) {
-      this.ptr = e.pointer;
+      this.ptr = { x: e.pointer.x, y: e.pointer.y }; // a copy: draw() constrains it
       this.draw();
     },
   
     draw: function() {
       let { canvas, color, origin, ptr, style, width } = this;
-      if(this.path) this.canvas.remove(this.path); // might be "re" drawing...remove any prev path
       if (style == "L-R") ptr.y = origin.y;
       else if (style == "T-B") ptr.x = origin.x;
       // else (style == "Straight")
@@ -389,7 +481,6 @@ function initFabric() {
       // the fabric path interprets line width differently than
       // html canvas
       this.path = new fabric.Path(`M0 0 L ${dX} ${dY}`, {
-        strokeWidth: this.width,
         height: dY,
         width: dX,
         left: Math.min(origin.x, ptr.x) - width / 2,
@@ -400,6 +491,7 @@ function initFabric() {
         strokeWidth: width,
         hasControls: false,
         podiumType: this.podiumType, 
+        podiumStash: fabric.PodBrush.settings(this),
       });
       canvas.clearContext(canvas.contextTop);
       canvas.fire("before:path:created", { path: this.path });
@@ -407,8 +499,6 @@ function initFabric() {
       this.canvas.setActiveObject(this.path);
     },
   });
-
-//  addGroupControls();
 }
 
 
@@ -496,10 +586,13 @@ class Grid {
       e.stopPropagation();
       this.draw(e);
     });
-    listen(pg.canvas.upperCanvasEl, "pointerup", (e) => {
-      pg.canvas.upperCanvasEl.releasePointerCapture(e.pointerId);
-      unlisten(mv);
-    }, { once: true });
+    // ...until the gesture ends: pointerup, or pointercancel if the browser
+    // takes the gesture over (touch), after which there'd be no pointerup.
+    let end = listen(pg.canvas.upperCanvasEl, ["pointerup", "pointercancel"], (e) => {
+      let elm = pg.canvas.upperCanvasEl;
+      if (elm.hasPointerCapture(e.pointerId)) elm.releasePointerCapture(e.pointerId);
+      unlisten(mv, end);
+    });
   }
 
   destructor() {
@@ -520,6 +613,9 @@ class Grid {
     this.pg.canvas.wrapperEl.insertBefore(this.gridCanvas, this.pg.canvas.upperCanvasEl);
     this.x *= zoomChange;
     this.y *= zoomChange;
+    // ...the labels and origin marker are placed from these:
+    this.originPosX *= zoomChange;
+    this.originPosY *= zoomChange;
     this.drawGridLines();
   }
 
@@ -572,7 +668,6 @@ class Grid {
       ctx.stroke();
       if (this.numbers == "On" && idx == 0) {
         let label = Math.round(labelX++) * this.stepsPerLabel;
-        if (label == 0) this.originX = x;
         xLabels.push({ label, x });
       }
     }
@@ -591,7 +686,6 @@ class Grid {
       ctx.stroke();
       if (this.numbers == "On" && idx == 0) {
         let label = Math.round(labelY++) * this.stepsPerLabel;
-        if (label == 0) this.originY = y;
         yLabels.push({ label, y });
       }
     }

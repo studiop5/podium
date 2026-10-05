@@ -33,6 +33,7 @@ import {
   dialog,
   Drag,
   fontMap,
+  fontUnmap,
   getBox,
   helm,
   hide,
@@ -283,6 +284,18 @@ class Select {
 
     this.toggle.focus();
   }
+
+  set(option) {
+    // Show @option as the selected one, from outside. No SELECTED event is dispatched.
+    this.option = option; // (if not yet built, build() will use it)
+    let elm = [...this.sash.children].find(elm => elm.dataset.option == option);
+    if (!elm) return;
+    this.toggle.textContent = option;
+    this.toggle.translate = this.translatable(option);
+    if (this.target) this.target.style.background = "none";
+    this.target = elm;
+    elm.style.background = "#aaa";
+  }
 }
 
 /**
@@ -299,6 +312,58 @@ class Panel
 class Panel {
   static get(cell) {
     return panels[cell.key] || (panels[cell.key] = new this(cell));
+  }
+
+  // The ink tools whose objects carry the settings they were made with, as
+  // podiumStash (see Pg.customProps): their panels show the selected object's
+  // settings, and changes made in the panel apply to that object.
+  static stashKeys = ["pencil", "pen", "rastrum", "text", "symbols"];
+
+  static load(target) {
+    // Called when an object is selected. If it was made with one of the
+    // stashKeys tools, load the settings it was made with into that cell's
+    // stash, and into the cell's panel if it exists (it needn't, and needn't
+    // be onscreen).
+    if (!target || target.flatten) return;
+    let key = target.type == "textbox" ? "text" : target.podiumType;
+    if (!Panel.stashKeys.includes(key)) return;
+    let stash = target.podiumStash ?? Panel.deriveStash(key, target);
+    if (!stash) return;
+    Object.assign(_menu_.rings.ink.cells[key].stash, stash);
+    _panels_[key]?.sync();
+  }
+
+  static deriveStash(key, target) {
+    // For an object saved before podiumStash existed: the settings that can be
+    // had from the object itself (not a stroke's style, nor anything of a rastrum).
+    // @return a (partial) stash, or null
+    let paint = key == "pencil" || key == "pen" ? target.stroke : target.fill;
+    if (key == "rastrum" || !paint) return null;
+    let color = new fabric.Color(paint);
+    let stash = { rgb: "#" + color.toHex(), alpha: color.getAlpha() };
+    switch (key) {
+      case "text": {
+        let font = fontUnmap[`${target.fontFamily}/${target.fontStyle}/${target.fontWeight}`];
+        if (font) stash.font = font;
+        stash.size = target.fontSize;
+        stash.height = Math.round(target.fontSize * target.lineHeight);
+        break;
+      }
+      case "symbols": stash.size = target.fontSize / 5; break; // see SymbolsPanel.update
+      default: stash.width = target.strokeWidth;
+    }
+    return stash;
+  }
+
+  changed(keys = Object.keys(this.cell.stash)) {
+    // A panel's update() also runs when it is shown or loaded, not only when
+    // one of its controls is used.
+    // @keys the stash settings of interest (default: all)
+    // @return true iff one of them has been changed since the last call
+    let settings = JSON.stringify(keys.map(key => this.cell.stash[key]));
+    let changed = this.settings !== undefined && this.settings != settings;
+    this.settings = settings;
+    return changed;
   }
 
   static css = css(
@@ -1962,6 +2027,7 @@ class PencilPanel extends Panel {
       );
       this.picker.replaceWith(picker.elm);
       this.picker = picker.elm;
+      this.colorPicker = picker;
 
       if (this.slidersDef) {
         let sliders = new SliderGroup(
@@ -1991,8 +2057,21 @@ class PencilPanel extends Panel {
     });
   }
 
+  sync() {
+    // The stash has been changed from outside: bring the controls up to date.
+    // (Before the controls exist, see the constructor, there's nothing to do:
+    // they're built from the stash.)
+    let { rgb, alpha } = this.cell.stash;
+    this.colorPicker?.set(rgb, alpha);
+    this.sliders.refresh?.();
+    this.buttons.refresh?.();
+    this.settings = undefined; // these aren't changes made in the panel
+    this.update();
+  }
+
   update() {
     let { alpha, rgb, style, width } = this.cell.stash;
+    let changed = this.changed();
     clearChildren(this.preview);
     let path =
       // svg paths...
@@ -2012,26 +2091,21 @@ class PencilPanel extends Panel {
 
     let active = _score_?.getActiveObject(); // (the panel can outlive its score)
 
-    if (!active || active.type != "path") return;
+    // A change to color, opacity or width immediately applies to the currently
+    // selected stroke, but only one drawn with this panel's tool (and never one
+    // that has been flattened). Style is how a stroke gets drawn: it can't be
+    // changed afterwards.
+    if (!changed || active?.podiumType != this.cell.key || active.type != "path" || active.flatten) return;
     let color = fabric.Color.fromHex(rgb);
     color.setAlpha(alpha);
-
-    let brush = active.canvas.freeDrawingBrush;
-    if (brush.type == "LineBrush") {
-      brush.color = color.toRgba();
-      brush.width = width;
-      brush.draw();
-      Object.assign(active, active._calcDimensions());
-      active.dirty = true;
-      brush.canvas.requestRenderAll();
-    } else {
-      // this is the built-in fabric free drawing pencil brush
-      active.stroke = color.toRgba();
-      active.strokeWidth = width;
-      Object.assign(active, active._calcDimensions());
-      active.dirty = true;
-      active.canvas.requestRenderAll();
-    }
+    let center = active.getCenterPoint(); // a width change grows the stroke about its center
+    active.set({ stroke: color.toRgba(), strokeWidth: width, dirty: true });
+    active.podiumStash = { ...active.podiumStash, alpha, rgb, width };
+    active.setPositionByOrigin(center, "center", "center");
+    active.setCoords();
+    active.canvas.fire("object:modified", { target: active }); // so undo records it
+    active.canvas.requestRenderAll();
+    _score_.setDirty(true);
   }
 
   show() {
@@ -2069,10 +2143,10 @@ class RastrumPanel extends PencilPanel {
     super(cell);
     }
 
-
   update() {
     let { alpha, rgb, style, lines, width, gap, bars, barWidth} =
       this.cell.stash;
+    let changed = this.changed();
     clearChildren(this.preview);
     let linePath = "";
     let barPath = "";
@@ -2105,22 +2179,12 @@ class RastrumPanel extends PencilPanel {
 
     let active = _score_?.getActiveObject(); // (the panel can outlive its score)
 
-    if (!active || active.type != "path") return;
-    let brush = active.canvas.freeDrawingBrush;
-    if (brush.type != "RastrumBrush") return;
-    let color = fabric.Color.fromHex(rgb);
-    color.setAlpha(alpha);
-    Object.assign(brush, {
-      color: color.toRgba(),
-      lines: lines,
-      width: width,
-      gap: gap,
-      bars: bars,
-    });
-    brush.draw();
-    Object.assign(active, active._calcDimensions());
-    active.dirty = true;
-    brush.canvas.requestRenderAll();
+    // A change to any setting immediately redraws the rastrum, but only the
+    // currently selected one (and never one that has been flattened).
+    if (!changed || active?.podiumType != this.cell.key || active.flatten) return;
+    fabric.RastrumBrush.redraw(active, this.cell.stash);
+    active.canvas.fire("object:modified", { target: active }); // so undo records it
+    _score_.setDirty(true);
   }
 }
 
@@ -2158,6 +2222,7 @@ class TextPanel extends PencilPanel {
     let fontLabel = helm(`<div class="Panel__item">Font</div>`);
     this.picker.after(fontLabel);
     let select = new Select(this.fonts, cell.stash.font, this, () => false) ; // font names are never translated
+    this.fontSelect = select;
     fontLabel.after(select.elm) ;
     this.preview.append(this.text);
     this.listeners.push(listen(select.toggle, "SELECTED", (e) => this.update(e.detail)));
@@ -2166,33 +2231,45 @@ class TextPanel extends PencilPanel {
     this.update();
   }
 
+  sync() {
+    this.fontSelect?.set(this.cell.stash.font);
+    super.sync();
+  }
+
   update(fontName) {
-    this.cell.stash.font = fontName;
+    // @fontName is given only when a font has been selected: the sliders, the
+    // color picker, show() and sync() all call update() without it.
+    if (fontName) this.cell.stash.font = fontName;
     let { font, size, height, rgb, alpha } = this.cell.stash;
+    let changed = this.changed();
     this.text.style.fontSize = size / _pxPerEm_ + "em";
     this.text.style.lineHeight = height / _pxPerEm_ + "em";
-    this.text.style.color = rgb + Math.round(alpha * 255).toString(16);
+    this.text.style.color = rgb + Math.round(alpha * 255).toString(16).padStart(2, "0");
     Object.assign(this.preview.style, fontMap[font]);
     let active = _score_?.getActiveObject(); // (the panel can outlive its score)
-    if (active && active.type == "textbox") {
-      let color = fabric.Color.fromHex(rgb);
-      color.setAlpha(alpha);
-      active.fill = color.toRgba();
-      active.fontSize = size - 1;
-      active.lineHeight = height / size;
-      Object.assign(active, fontMap[font]);
+    // A change to any setting immediately applies to the currently selected
+    // text (and never to one that has been flattened).
+    if (!changed || active?.type != "textbox" || active.flatten) return;
+    let color = fabric.Color.fromHex(rgb);
+    color.setAlpha(alpha);
+    active.fill = color.toRgba();
+    active.fontSize = size - 1;
+    active.lineHeight = height / size;
+    Object.assign(active, fontMap[font]);
+    active.podiumStash = { alpha, font, size, height, rgb };
+    active.initDimensions();
+    active.setCoords();
+    active.canvas.requestRenderAll();
+    delay(1, () => {
+      // work around as fabricjs bug...fill doesn't change
+      // unless/until fontsize changes, (or some such breakage)
+      active.fontSize = size;
       active.initDimensions();
       active.setCoords();
-      active.canvas.requestRenderAll();
-      delay(1, () => {
-        // work around as fabricjs bug...fill doesn't change
-        // unless/until fontsize changes, (or some such breakage)
-        active.fontSize = size;
-        active.initDimensions();
-        active.setCoords();
-        active.canvas.requestRenderAll();
-      });
-    }
+      active.canvas?.fire("object:modified", { target: active }); // so undo records it
+      active.canvas?.requestRenderAll();
+    });
+    _score_.setDirty(true);
   }
 
 }
@@ -2433,6 +2510,7 @@ class Pzr extends Surface {
                            { rotate: 0.2, scale:0.01, translate: 1});
       let center = obj.getCenterPoint();
       let p = { originX: "center", originY: "center", left: center.x, top: center.y };
+      let moved = false;
       switch(pos) {
         case 6: a.rotate = -a.rotate;
         case 8: p.angle = (obj.angle + a.rotate) % 360;
@@ -2454,14 +2532,14 @@ class Pzr extends Surface {
         case 14: dx =  a.translate; break; // right
         case 22: dy =  a.translate; break; // down
       }
-      let halfW = obj.getScaledWidth() / 2;
-      let halfH = obj.getScaledHeight() / 2;
       let minTrans = 1 / (obj.canvas.getZoom() * window.devicePixelRatio); // theoretical minimum translation factor
-      p.left = clamp(center.x + dx * minTrans, halfW, obj.canvas.width - halfW);
-      p.top  = clamp(center.y + dy * minTrans, halfH, obj.canvas.height - halfH);
+      p.left = center.x + dx * minTrans;
+      p.top  = center.y + dy * minTrans;
+      moved = true;
 
     }}}} /* close nested default / switch blocks */
     obj.set(p);
+    if (moved) obj.clampToPage(); // same rule as dragging, see canvas.js
     }}
     obj.canvas?.requestRenderAll();
    _menu_.magnifier?.panel?.updateMagnifier();
@@ -3046,6 +3124,7 @@ class SymbolsPanel extends Panel {
         }
     );
     this.picker.replaceWith(picker.elm);
+    this.colorPicker = picker;
 
     let staffSpace = new SliderGroup(
       stash,  { size: { min: 1, max: 40, step: .5, value: 8, msg: "Staff Space: {value}px" }},
@@ -3059,8 +3138,20 @@ class SymbolsPanel extends Panel {
     this.update();
   }
 
+  sync() {
+    // The stash has been changed from outside: bring the controls up to date.
+    let { rgb, alpha } = this.cell.stash;
+    this.colorPicker.set(rgb, alpha);
+    this.staffSpace.refresh();
+    this.settings = undefined; // these aren't changes made in the panel
+    this.update();
+  }
+
   update() {
     let {alpha = 1, rgb = '#000000', size = 8 } = this.cell.stash;
+    // (which symbol is chosen is not one of these: it's what gets inserted
+    // next, and choosing one doesn't alter a symbol already on the page)
+    let changed = this.changed(["alpha", "rgb", "size"]);
     let activeCell = this.grid.querySelector('.SymbolsPanel__symbol-active');
     if (activeCell) {
       activeCell.style.transform = `scale(${size / 8})`;
@@ -3068,14 +3159,18 @@ class SymbolsPanel extends Panel {
       activeCell.style.opacity = parseFloat(alpha);
     }
     let active = _score_?.getActiveObject(); // (the panel can outlive its score)
-    if (active && active.podiumType == "symbols") {
-      let color = fabric.Color.fromHex(rgb);
-      color.setAlpha(parseFloat(alpha));
-      // Bravura Text has five staff spaces per em, matching symbol insertion.
-      active.set({ fill: color.toRgba(), fontSize: size * 5 });
-      active.setCoords();
-      active.canvas.requestRenderAll();
-    }
+    // A change to color, opacity or size immediately applies to the currently
+    // selected symbol (and never to one that has been flattened).
+    if (!changed || active?.podiumType != "symbols" || active.flatten) return;
+    let color = fabric.Color.fromHex(rgb);
+    color.setAlpha(parseFloat(alpha));
+    // Bravura Text has five staff spaces per em, matching symbol insertion.
+    active.set({ fill: color.toRgba(), fontSize: size * 5 });
+    active.podiumStash = { alpha, rgb, size };
+    active.setCoords();
+    active.canvas.fire("object:modified", { target: active }); // so undo records it
+    active.canvas.requestRenderAll();
+    _score_.setDirty(true);
   }
 
   show() {

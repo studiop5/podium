@@ -23,7 +23,7 @@
 import { clamp, clearChildren, delay, dialog, fontUnmap, helm, inflate, listen, rotatePoint, toast, unlisten } from "./common.js";
 import { Grid } from "./canvas.js";
 import { Layout } from "./layout.js";
-import { panels, EditPanel } from "./panel.js";
+import { Panel, panels, EditPanel } from "./panel.js";
 export { Grid, Pg, Score };
 
 // -skip
@@ -57,6 +57,15 @@ class Pg
 **/
 
 class Pg {
+  // Podium's custom properties on fabric objects. fabric drops unknown
+  // properties on serialize unless they're listed, so EVERY serialization
+  // (toJson, and the undo snapshots) must pass this list: "flatten" (see
+  // flattenObjects; toPdf relies on it), "podiumType" (the tool that made the
+  // object: pencil/pen/rastrum/...; control rendering keys off it, see
+  // canvas.js) and "podiumStash" (the tool settings it was drawn with, which
+  // its panel loads when it is selected).
+  static customProps = ["flatten", "podiumType", "podiumStash"];
+
   // Default color used to pad pages < maxWidth and/or maxHeight:
   static paddingColor = "#fff";
   // Max size (width OR height) of Pg thumbnails, in px  
@@ -344,6 +353,7 @@ class Pg {
         if (_menu_.activeRing.key == "ink" && _menu_.activeRing.activeCell && ["cut","copy","edit"].includes(_menu_.activeRing.activeCell.key))
          _menu_.pgEvent(opts, this);
         EditPanel.update(this.canvas.getActiveObject()) ;
+        Panel.load(this.canvas.getActiveObject());
       };
 
       canvas.on("selection:created", onSelection);
@@ -370,11 +380,11 @@ class Pg {
       // pushed on it.  We need this so that we'll have a state
       // to undo to.
       if(this.undoStack.length == 0) // initialize undo stack on first inflate
-        this.undoStack.push(canvas.toDatalessObject());
+        this.undoStack.push(canvas.toDatalessObject(Pg.customProps));
   
       let pushState = () => {
         let stack = this.undoStack;
-        stack.push(this.canvas.toDatalessObject());
+        stack.push(this.canvas.toDatalessObject(Pg.customProps));
         while (stack.length > 10) stack.shift(); // prune
         _menu_.enableCells("ink/undo");
         this.thumbDirty = true;
@@ -567,12 +577,7 @@ class Pg {
     if (!this.inflated) return null; // only call this on inflated pg's
     let oldPrecision = fabric.Object.NUM_FRACTION_DIGITS;
     fabric.Object.NUM_FRACTION_DIGITS = 2;
-    // "flatten" and "podiumType" are custom properties (see flattenObjects /
-    // PodBrush); fabric drops unknown properties on serialize unless they're
-    // listed here. toPdf relies on "flatten"; "podiumType" must survive so a
-    // stroke keeps its pencil/pen/rastrum tag across deflate/inflate and reload
-    // (rastrum control rendering keys off it — see canvas.js).
-    let json = this.canvas.toJSON(["flatten", "podiumType"]);
+    let json = this.canvas.toJSON(Pg.customProps);
     fabric.Object.NUM_FRACTION_DIGITS = oldPrecision;
     return json;
   }
