@@ -1799,6 +1799,8 @@ function closeVideo(event, container) {
         <li><strong>Slope:</strong> draws a straight line between two points with no angle restrictions</li>
     </ul>
 
+    <p><strong>Drawing a dot:</strong> A quick tap on the page does not leave a mark, so that an accidental touch cannot add a stray dot that might go unnoticed, especially with a thin line. To draw a single dot on purpose, touch the page and hold still for a moment (about a quarter of a second) before lifting. This applies to every drawing style.</p>
+
     <h3 id="chapter-6-rastrum">6.2 Ink Ring: Rastrum<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-rastrum"/></svg></h3>
 
     <p>Draw music staves.</p>
@@ -1944,6 +1946,8 @@ function closeVideo(event, container) {
         <li><strong>Touch-drag within the object:</strong> move it.</li>
     </ul>
 
+    <p id="chapter-6-page-bounds"><strong>Staying on the page:</strong> Annotation objects are kept within the bounds of their page. An object cannot be dragged past a page edge, and the same limit applies when it is moved with the Edit Panel's arrow buttons, and when a text box, symbol, or pasted object is first placed: one placed too close to an edge is nudged inward so that it fits. A selected group of objects is kept on the page as a whole. Only position is limited: resizing or rotating an object can still extend part of it past an edge, and an object larger than the page is centered on it in that direction.</p>
+
     <figure>
         <img src="assets/inktransform2.jpg" alt="Group transformation">
         <figcaption>Multiple objects selected for group transformation</figcaption>
@@ -1981,7 +1985,7 @@ function closeVideo(event, container) {
 
     <p><strong>Saving and persistence:</strong> All annotations are automatically saved with the score when you save the file. Annotations are preserved when switching between different layout modes.</p>
 
-    <p><strong>Page limitations:</strong> Annotation objects cannot span multiple pages, but they can be easily copied between pages using the Cut/Copy/Paste tools.</p>
+    <p><strong>Page limitations:</strong> Annotation objects cannot span multiple pages, and cannot be placed or moved <a href="#chapter-6-page-bounds" class="chapter-link">off their page</a>, but they can be easily copied between pages using the Cut/Copy/Paste tools.</p>
 
     <p><strong>Performance considerations:</strong> Annotations, especially free drawings with many pen/pencil strokes, can significantly increase the size of a saved score. For complex annotated pages, consider using the Flatten operation (in the <a href="#chapter-7" class="chapter-link">Page Ring</a>) to convert annotations into the PDF itself, which can improve performance.</p>
 
