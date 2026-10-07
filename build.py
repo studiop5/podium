@@ -420,9 +420,70 @@ def build(inFileName, outFileName):
 if args.yin:
     build_yin(args)
 
+# The page of the 1-file build is derived from the development page,
+# src/pod.html, so that the two cannot drift apart (nor can the browser
+# extension's page: ext/build.py derives it from src/pod.html the same way).
+# Only what must differ is patched in: the license in full, the PWA links, the
+# service worker, and the scripts, which are all included inline. Every patch
+# must match exactly once: a change to pod.html that breaks one stops the build.
+PODIUM_PAGE_INCLUDE = '      // #include src/main.js minified\n'
+PODIUM_PAGE_PATCHES = [
+    # the license, in full, follows the page's own license notice:
+    ('<https:/\\/www.gnu.org/licenses/>.\n-->\n',
+     '<https:/\\/www.gnu.org/licenses/>.\n-->\n\n<!--\n{LICENSE}-->\n'),
+    ('    <title id="title">Podium</title>\n',
+     '    <link rel="canonical" href="https://studiop5.org/podium">\n'
+     '    <link rel="manifest" href="manifest.webmanifest" />\n'
+     '    <link rel="apple-touch-icon" href="icon192.png">\n'
+     '    <meta name="apple-mobile-web-app-capable" content="yes">\n'
+     '    <meta name="apple-mobile-web-app-title" content="Podium">\n'
+     '    <title id="title">Podium</title>\n'),
+    # the libraries are included by main.js itself (see its #include's):
+    ('    <script src="fabric.min.js"></script> \n', ''),
+    ("    <script type=\"module\">import * as pdfjsLib from './pdf.min.mjs'; window.pdfjsLib = pdfjsLib;</script>\n", ''),
+    ('    <script src="pdf-lib.min.js"></script> \n', ''),
+    ('    <script src="fontkit.umd.min.js"></script> \n', ''),
+    ('    <script src="main.js" type="module"></script> \n',
+     '    <script>\n'
+     '      // Register service worker for PWA functionality\n'
+     "      if ('serviceWorker' in navigator) {\n"
+     "        window.addEventListener('load', () => {\n"
+     "          navigator.serviceWorker.register('sw.js')\n"
+     '            .then(registration => {\n'
+     "              console.log('Podium: Service Worker registered with scope:', registration.scope);\n"
+     '            })\n'
+     '            .catch(error => {\n'
+     "              console.log('Podium: Service Worker registration failed:', error);\n"
+     '            });\n'
+     '        });\n'
+     '      }\n'
+     '    </script>\n'
+     '    <script type="module">\n'
+     + PODIUM_PAGE_INCLUDE +
+     '    </script>\n'),
+]
+
+def build_podium_page(outFileName):
+    with open("src/pod.html") as f:
+        page = f.read()
+    with open("LICENSE") as f:
+        license = f.read()
+    for old, new in PODIUM_PAGE_PATCHES:
+        if page.count(old) != 1:
+            sys.exit(f'Error: page patch target not found exactly once in src/pod.html: {old!r}')
+        page = page.replace(old, new.replace('{LICENSE}', license))
+    # Only main.js goes through the Packager. The page itself is written as is:
+    # the Packager reads its input as javascript, and would strip, say, the
+    # rest of any line of html text containing "//".
+    head, tail = page.split(PODIUM_PAGE_INCLUDE)
+    with open(outFileName, "w") as outFileObj:
+        outFileObj.write(head)
+        Packager("src/pod.html", StringIO(PODIUM_PAGE_INCLUDE), outFileObj)
+        outFileObj.write(tail)
+
 if args.podium:
     # Build 1-file, all-included version of podium as "build/podium.html":
-    build("src/podium.html", "build/podium.html")
+    build_podium_page("build/podium.html")
     if args.verbose: print('-- podium.html (re)built.')
 
     # Generate PWA icons from SVG
