@@ -39,14 +39,8 @@
   </head>
 
   <body data-tag="Body">
-    <!-- Language hint. Safari decides whether a page can be translated from the
-         text it finds just after the page loads. PODIUM starts with next to
-         none (everything is built by script; mostly a score and icons), so
-         Safari dims its Translate languages. This paragraph is there to be
-         read, not seen: it is real, laid-out text, made invisible, and says
-         something worth finding by anyone inspecting the page. It must stay
-         in the static page, so that it exists from the first moment.
-         (Being tested: main.js can change how it is hidden, see "hint".) -->
+    <!-- Language hint: invisible text, present at load, so that Safari can
+         detect the page's language and offer to translate it. -->
     <div id="langHint" aria-hidden="true" style="position:fixed;inset:0;z-index:-1;overflow:hidden;padding:2em;color:transparent;pointer-events:none;user-select:none;-webkit-user-select:none;">
       <p>PODIUM is a free, open-source reader for sheet music that runs in your web browser.</p>
       <p>Copyright 2025 Glendon Diener.</p>
