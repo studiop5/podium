@@ -40,22 +40,6 @@ import { SharedBuffer } from "./sharedBuffer.js";
 window.pdfjsLib.GlobalWorkerOptions.workerPort = new Worker("pdf.worker.min.mjs", { type: "module" });
 // -skip
 
-// TEMP, for testing on iOS Safari: the language hint (see pod.html) is, by
-// default, transparent text on the background. Add ?hint=<mode> to the url to
-// try another way of hiding it:
-//   offscreen  ordinary black text, positioned off the screen
-//   visible    ordinary black text, on top of everything (the control case)
-//   off        no hint at all (the behavior before the hint existed)
-{
-  let hint = document.getElementById("langHint");
-  let mode = new URLSearchParams(location.search).get("hint");
-  if (hint && mode == "off") hint.remove();
-  else if (hint && mode == "offscreen")
-    Object.assign(hint.style, { inset: "auto", left: "-200vw", top: "-200vh", width: "100vw", height: "100vh", color: "black" });
-  else if (hint && mode == "visible")
-    Object.assign(hint.style, { color: "black", background: "white", zIndex: "1000" });
-}
-
 // #include build/font.js
 // #include build/sample.js
 // #write let exports = {};
