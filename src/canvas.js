@@ -297,6 +297,23 @@ function initFabric() {
     },
   });
 
+  // A quick tap with the pencil or pen makes no mark: an accidental touch would
+  // otherwise leave a dot, which at a small stroke width may go unnoticed. A
+  // dot is still to be had, deliberately: press and hold still for tapHold
+  // msecs. "Still" allows for the jitter of the pointer in use, as the drag
+  // dead zone does (see dragThreshold, above). The brushes note where and when
+  // the pointer went down, and how far it then strayed:
+  let tapHold = 250;
+  let tapDown = (e) => {
+    let pt = clientPt(e);
+    return { time: performance.now(), x: pt.clientX, y: pt.clientY, slop: dragThreshold(e), travel: 0 };
+  };
+  let tapMove = (down, e) => {
+    let pt = clientPt(e);
+    if (down) down.travel = Math.max(down.travel, Math.hypot(pt.clientX - down.x, pt.clientY - down.y));
+  };
+  let isQuickTap = (down) => down && down.travel < down.slop && performance.now() - down.time < tapHold;
+
   // Podium implements 2 Ink cells: Pencil and Pen. They are both
   // PencilBrushes (or LineBrushes, see below). Idea is that user
   // will have 2 differently-configured LineBrushes available at
@@ -311,6 +328,28 @@ function initFabric() {
       this.callSuper('initialize', canvas);
       this.podiumType = podiumType; 
       this.podiumStash = fabric.PodBrush.settings(stash);
+    },
+
+    onMouseDown: function(pointer, options) {
+      this.down = tapDown(options.e);
+      this.callSuper('onMouseDown', pointer, options);
+    },
+
+    onMouseMove: function(pointer, options) {
+      tapMove(this.down, options.e);
+      this.callSuper('onMouseMove', pointer, options);
+    },
+
+    onMouseUp: function(options) {
+      if (!this.canvas._isMainEvent(options.e)) return true;
+      tapMove(this.down, options.e);
+      if (isQuickTap(this.down)) { // no mark: discard what's been drawn
+        this.oldEnd = undefined;
+        this._points = [];
+        this.canvas.clearContext(this.canvas.contextTop);
+        return false;
+      }
+      return this.callSuper('onMouseUp', options);
     },
 
     createPath: function(pathData) {
@@ -336,8 +375,9 @@ function initFabric() {
       this.zoom = canvas.getZoom(); // rem grd...tmp exp
     },
   
-    onMouseDown: function (ptr) {
+    onMouseDown: function (ptr, options) {
       this.origin = { x: ptr.x, y: ptr.y };
+      this.down = tapDown(options.e); // (used by LineBrush)
     },
   
     onMouseMove: function (ptr) {
@@ -466,6 +506,8 @@ function initFabric() {
     },
   
     onMouseUp: function (e) {
+      tapMove(this.down, e.e);
+      if (isQuickTap(this.down)) return this.canvas.clearContext(this.canvas.contextTop); // no mark
       this.ptr = { x: e.pointer.x, y: e.pointer.y }; // a copy: draw() constrains it
       this.draw();
     },
