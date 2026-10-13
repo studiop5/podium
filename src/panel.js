@@ -1500,6 +1500,12 @@ class LayoutPanel extends Panel {
       vertical: tags.verticalFace,
       table: tags.tableFace,
     };
+    // A layout panel only ever shows its own cell's face. Drop the others now,
+    // not at show(): the panel must already have its true height the first time
+    // it is measured (openPanel positions it, and Panel.show() sets the point it
+    // grows from, by that height). With all four faces in, a newly made panel
+    // grew from a point far above its header.
+    for (let [key, face] of Object.entries(this.faces)) if (key != cell.key) face.remove();
 
     let handler = (e, tag, value, props) => {
       if (tag == "fit") this.cell.stash.pz = null; // reset pz-set marker so layout will use fit setting
