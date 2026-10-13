@@ -22,6 +22,7 @@
 
 export {
   animate,
+  animateStop,
   css,
   cssIndex,
   dialog,
@@ -1827,13 +1828,11 @@ class Surface {
 
   hide() {
     // Animate the detached surface flying back to its menu cell, then hide it.
-    // We deliberately do NOT use the global hide(): that animates via left/top +
-    // font-size, which iOS Safari refuses to interpolate on the surface (an
-    // absolutely-positioned, composited element) — it snaps to the destination.
-    // A `transform` (translate + scale) animation is honored on iOS. That's safe
-    // here because the surface is self-positioned with no position:fixed
-    // descendants; on a Panel a wrapper transform would re-anchor its fixed child
-    // (the "glue" bug), which is why the global hide() stays left/top-based.
+    // Like the global hide(), this is a `transform` (translate + scale) animation,
+    // which iOS Safari honors: it refuses to interpolate left/top + font-size on
+    // the surface (an absolutely-positioned, composited element), snapping it to
+    // the destination. The surface is self-positioned with no position:fixed
+    // descendants, so it needs none of hide()'s care over the "glue" bug.
     let surface = this.surface;
     if (surface.parentElement != _body_ || surface.hiding) return;
     surface.hiding = true;
@@ -2072,6 +2071,13 @@ function animate(elm, from, to, transition, finalize) {
   // @to ending css styles. If null, current styles are used.
   // @transition transition def...set to "unset"  after transition has completed
   // @finalize (optional)...function to run after transition has completed
+  //
+  // A move and/or resize (@to holding only left, top, fontSize) is not transitioned
+  // on those properties: each frame of that is a re-layout (and, for fontSize, a
+  // re-raster of everything inside @elm). It "flies" instead: see fly().
+  if (Object.keys(to).every((k) => FLY_PROPS.includes(k)) && (!elm.style.transform || elm._fly)
+      && fly(elm, from, to, transition, finalize)) return;
+  animateStop(elm);
   if(from) 
     for (let [k, v] of Object.entries(from)) elm.style[k] = v;
   reflow();
@@ -2083,6 +2089,24 @@ function animate(elm, from, to, transition, finalize) {
     },
     { once: true }
   );
+}
+
+const FLY_PROPS = ["left", "top", "fontSize"];
+
+function animateStop(elm, bake = false) {
+  // Stop a fly() in flight. @elm snaps to its end state or, if @bake, stays where
+  // it appears right now (e.g. so it can be grabbed mid-fling). Only a position
+  // can be baked: with @bake, a flight that is also resizing @elm is left to finish.
+  if (!elm._fly || (bake && elm._fly.resizing)) return;
+  let { listener, restore, shrinkTo } = elm._fly;
+  let now = bake ? flyState(elm) : null;
+  unlisten(listener);
+  elm._fly = null;
+  Object.assign(elm.style, restore, shrinkTo ?? {});
+  if (!bake) return;
+  let end = flyState(elm);
+  elm.style.left = elm.offsetLeft + now.x - end.x + "px";
+  elm.style.top = elm.offsetTop + now.y - end.y + "px";
 }
 
 function clamp(num, min, max) {
@@ -2243,6 +2267,76 @@ let fontUnmap = // reverse dict to look up pdf font name given string of form "f
     ])
   );
 
+function fly(elm, from, to, transition, finalize) {
+  // animate()'s move/resize, done as ONE compositor-only `transform` transition:
+  // @elm is laid out once, in its end state, and a translate + scale carries it
+  // there from where (and at the size) it started. Scaling about @elm's origin
+  // looks the same as transitioning its font-size, as its content is sized in em.
+  // Returns false, having changed nothing, if there's nothing it can fly.
+  let timing = flyTiming(transition);
+  if (!timing) return false;
+  let inFlight = elm._fly ? flyState(elm) : null; // re-targeted mid-flight: take off from where it appears
+  animateStop(elm);
+  let before = Object.fromEntries(FLY_PROPS.map((k) => [k, elm.style[k]]));
+  let restore = { transition: elm.style.transition, transform: "", transformOrigin: elm.style.transformOrigin };
+  elm.style.transition = "none";
+  if (from) Object.assign(elm.style, from);
+  let a = !from && inFlight ? inFlight : flyState(elm);
+  Object.assign(elm.style, to);
+  let b = flyState(elm);
+  // The layout held during the flight is the end state, unless that has no size
+  // (a shrink to nothing): then it's the start state, and @to is applied on landing.
+  let shrink = b.font == 0;
+  if (shrink) Object.assign(elm.style, before, from ?? {});
+  let lay = shrink ? flyState(elm) : b;
+  if (lay.font == 0) { // no size at either end: nothing to scale from
+    Object.assign(elm.style, before, { transition: restore.transition });
+    return false;
+  }
+  // a property the transition gave no duration jumps straight to its end value
+  let start = { x: timing.move ? a.x : b.x, y: timing.move ? a.y : b.y, font: timing.scale ? a.font : b.font };
+  let xform = (s) => `translate(${s.x - lay.x}px, ${s.y - lay.y}px) scale(${s.font / lay.font})`;
+  elm.style.transformOrigin = "0 0";
+  elm.style.transform = xform(start);
+  reflow();
+  elm.style.transition = `transform ${Math.max(timing.move, timing.scale)}ms ${timing.ease}`;
+  elm.style.transform = xform(b);
+  restore.transition = "unset";
+  let listener = listen(elm, "transitionend", (e) => {
+    if (e.target !== elm || e.propertyName != "transform") return; // (bubbled from a descendant)
+    animateStop(elm);
+    if (finalize) finalize();
+  });
+  elm._fly = { listener, restore, shrinkTo: shrink ? to : null, resizing: start.font != b.font };
+  return true;
+}
+
+function flyState(elm) {
+  // where @elm appears right now: its origin (viewport px) and font size (px),
+  // counting the transform of a fly() in flight
+  let box = getBox(elm), style = getComputedStyle(elm);
+  let scale = style.transform == "none" ? 1 : new DOMMatrix(style.transform).a;
+  return { x: box.x, y: box.y, font: parseFloat(style.fontSize) * scale };
+}
+
+function flyTiming(transition) {
+  // Read a css transition def (as passed to animate()) for the msec durations it
+  // gives a move (left/top) and a resize (font-size), and its easing. A def naming
+  // no property, or `all`, covers both. Returns null if neither has a duration.
+  let move = 0, scale = 0, ease = "ease";
+  for (let part of transition.split(",")) {
+    let tokens = part.trim().split(/\s+/);
+    let time = tokens.find((t) => /^[\d.]+m?s$/.test(t));
+    if (!time) continue;
+    let ms = parseFloat(time) * (time.endsWith("ms") ? 1 : 1000);
+    let prop = tokens.find((t) => ["left", "top", "font-size", "all"].includes(t)) ?? "all";
+    if (prop != "font-size") move = Math.max(move, ms);
+    if (prop != "left" && prop != "top") scale = Math.max(scale, ms);
+    ease = tokens.find((t) => /^(ease|linear)/.test(t)) ?? ease;
+  }
+  return move || scale ? { move, scale, ease } : null;
+}
+
 function getBox(elm) {
   // cover for the overly sententious built-in getBoundingClientRect()
   return elm.getBoundingClientRect();
@@ -2264,6 +2358,50 @@ function hide(elm, onElm) {
   // then elm's visibility will be set hidden, and its size restored.
   if (elm.hiding) return;
   else elm.hiding = true; // prevent hiding until schedule(500...) has run
+  // The animation is a single `transform` (translate + scale to nothing, about
+  // elm's transform origin): compositor-only, where left/top/font-size would
+  // re-layout elm every frame. elm's own left and font-size are never touched.
+  animateStop(elm);
+  let style = getComputedStyle(elm);
+  let saved = { transform: elm.style.transform, transition: elm.style.transition };
+  if (style.transform == "none") {
+    // A transform makes elm the containing block of any position:fixed descendant,
+    // which can re-anchor it (the "glue" bug). A shown Panel already carries one
+    // (see Panel.show); for anything else, check that an identity transform leaves
+    // elm's content where it was and, if not, animate the old way.
+    let probe = elm.firstElementChild ?? elm;
+    let was = getBox(probe);
+    elm.style.transform = "translate(0px, 0px) scale(1)";
+    let is = getBox(probe);
+    if (Math.abs(is.x - was.x) > 0.5 || Math.abs(is.y - was.y) > 0.5) {
+      elm.style.transform = saved.transform;
+      return hideByLayout(elm, onElm);
+    }
+  }
+  let box = getBox(elm), onElmBox = getBox(onElm);
+  let [originX, originY] = style.transformOrigin.split(" ").map(parseFloat); // (computed: always px)
+  // scale(0) collapses elm onto its transform origin: translate that point to onElm's center
+  let dx = onElmBox.x + onElmBox.width / 2 - (box.x + originX);
+  let dy = onElmBox.y + onElmBox.height / 2 - (box.y + originY);
+  // Start and end must list the SAME transform functions. Otherwise the browser
+  // interpolates them as matrices, and scale(0)'s can't be decomposed: there are
+  // then no in-between frames at all, and elm just vanishes.
+  elm.style.transition = "none";
+  elm.style.transform = `translate(0px, 0px) scale(${style.transform == "none" ? 1 : new DOMMatrix(style.transform).a})`;
+  reflow();
+  elm.style.transition = "transform 500ms";
+  elm.style.transform = `translate(${dx}px, ${dy}px) scale(0)`;
+  schedule(500, () => {
+    elm.style.visibility = "hidden";
+    elm.style.top = "-9999px";
+    elm.style.transition = "unset";
+    elm.style.transform = saved.transform;
+    elm.hiding = false;
+  });
+}
+
+function hideByLayout(elm, onElm) {
+  // hide()'s animation done with left/top/font-size: for an elm that can't take a transform.
   let fontSize = elm.style.fontSize; // this MUST come from style, NOT from getComputedStyle
   let elmBox = getBox(elm); // getBox forces layout, so this is the current (source) position
   let onElmBox = getBox(onElm);

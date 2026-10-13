@@ -563,7 +563,7 @@ class Layout {
           Object.assign(pastePg.thumbElm?.style || pastePg.elm.style, { opacity: 0 });
           pasteCell.pg = await pastePg.clone(true); // clone pg for any subsequent paste
           animate(pastePg.thumbElm || pastePg.elm, null, { opacity: 1 }, 
-            `opacity cubic-bezier( 0.99, 0.05, 0.82, 0.35 ) ${_gs_}s`);
+            `opacity cubic-bezier( 0.99, 0.05, 0.82, 0.35 ) ${_gs_}ms`);
           await this.build(false); 
           await this.pgGoTo(pn);;
           break;
@@ -753,15 +753,15 @@ class Layout {
     let iconBox = getBox(icon);
     let layoutBox = getBox(layout);
     animate(elm, 
-     { left: iconBox.x + "px",
-       top: iconBox.y + "px",
+     { left: iconBox.x + iconBox.width / 2 + "px",
+       top: iconBox.y + iconBox.height / 2 + "px",
        fontSize: 0,
      },
      { left: layoutBox.width > innerWidth + Layout.margin * 2 ? Layout.margin + "px" : innerWidth / 2 + "px",
        top: layoutBox.height > innerWidth + Layout.margin * 2 ? Layout.margin + "px" : innerHeight / 2 + "px",
        fontSize:elm.style.fontSize,
      },
-     `left, stop, font-size ${_gs_}ms`);
+     `all ${_gs_}ms`);
   }
 }
 
@@ -1052,7 +1052,8 @@ class BookLayout extends Layout {
     this.pagerRight.setHidden(pagerHidden, Layout.margin);
     this.pagerLeft.build();
     this.pagerRight.build();
-    this.pgGoTo(_score_.numbers.pn);
+    // No page flip while the layout flies out of its cell: the two together stutter.
+    this.pgGoTo(_score_.numbers.pn, !animated);
     if(!animated) return;
 
     // 
@@ -1062,11 +1063,11 @@ class BookLayout extends Layout {
 
     let pz = this.userPz();
     if(pz)  // custom user-set size/position
-      animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0}, pz, `left, top, font-size ${_gs_}ms`);
+      animate(this.elm, { left:iconBox.x + iconBox.width / 2 + "px", top:iconBox.y + iconBox.height / 2 + "px", fontSize: 0}, pz, `all ${_gs_}ms`);
     else animate(this.elm,
-       {left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
+       {left:iconBox.x + iconBox.width / 2 + "px", top:iconBox.y + iconBox.height / 2 + "px", fontSize: 0},
        this.centerLT({ fontSize: "1em"}),
-      `left, top, font-size ${_gs_}ms`);
+      `all ${_gs_}ms`);
   }
 
   async onDown(e) {
@@ -1452,10 +1453,38 @@ class BookLayout extends Layout {
     if (post) this.pnPost(Math.min(this.pn0 + 3, this.score.pgs.length));
   }
 
-  async pgGoTo(pn) {
+  async pgGoTo(pn, animated = true) {
+    // @animated false to show pn's spread without flipping a page to it
     pn = clamp(pn, 1, this.score.pgs.length);
     let pn0 = pn - (pn & 0x01 ? 3 : 2);
     this.pgResetSlots();
+    if (!animated) {
+      // Mount the pgs just where a flip (and its pgShift) would have left them:
+      // slot i holds pg pn0 + i, the visible spread (slots 2, 3) first.
+      cancelAnimationFrame(this.flipFrame);
+      this.animId++; // (drops a flip in flight, and the pgShift it would end with)
+      this.inOp = false;
+      this.pn0 = pn0;
+      // The spread is shown only once both its pgs are mounted, and then fades in:
+      // one page appearing and then the other reads as loading, which a flip used to cover.
+      let spread = [this.slots[2], this.slots[3]];
+      for (let slot of spread) Object.assign(slot.style, { transition: "none", opacity: 0 });
+      let fade = "";
+      try {
+        for (let [slot, nonblocking] of [[2, false], [3, false], [0, true], [1, true], [4, true], [5, true]])
+          await this.pgMount(pn0 + slot, slot, nonblocking);
+        // (after layoutSlots: it re-appends the slots, which would cancel a transition under way)
+        this.layoutSlots();
+        reflow();
+        fade = "opacity 250ms ease-out";
+      } finally {
+        for (let slot of spread) Object.assign(slot.style, { transition: fade, opacity: "" });
+      }
+      // Clean up by timer, not transitionend: a slot re-appended mid-fade never gets one.
+      setTimeout(() => { for (let slot of spread) slot.style.transition = ""; }, 300);
+      this.pnPost(pn, true);
+      return pn;
+    }
     let advancing = pn - 2 > this.pn0;
     if(pn == 1) advancing = false; // can't advance into 1st page
     // [pn, slot, nonblocking] of each pg to mount, in order
@@ -1800,9 +1829,9 @@ class ScrollLayout extends Layout {
 
       let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
       animate(this.elm, 
-        { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
+        { left:iconBox.x + iconBox.width / 2 + "px", top:iconBox.y + iconBox.height / 2 + "px", fontSize: 0},
         this.userPz() ?? this.centerLT({ fontSize: "1em"}),
-        `left, top, font-size ${_gs_}ms`
+        `all ${_gs_}ms`
       );
       this.pgGoTo(pn, true);
     } else {
@@ -2284,8 +2313,8 @@ class TableLayout extends Layout {
     let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
     let pz = this.userPz();
     if(pz)
-      animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
-        pz, `left, top, font-size ${_gs_}ms`);
+      animate(this.elm, { left:iconBox.x + iconBox.width / 2 + "px", top:iconBox.y + iconBox.height / 2 + "px", fontSize: 0},
+        pz, `all ${_gs_}ms`);
     else {
       if(this.fit == "Height") { // reduce fontSize so layout fits window's height
         // Guard the division: a collapsed layout (offsetHeight 0, e.g. when the
@@ -2296,8 +2325,8 @@ class TableLayout extends Layout {
         if (h > 0) this.elm.style.fontSize = (innerHeight - Layout.margin * 2) / h + "em";
       }
       if(this.animated)
-        animate(this.elm, { left:iconBox.x + "px", top:iconBox.top + "px", fontSize: 0},
-          this.centerLT({ fontSize: this.elm.style.fontSize}), `left, top, font-size ${_gs_}ms`);
+        animate(this.elm, { left:iconBox.x + iconBox.width / 2 + "px", top:iconBox.y + iconBox.height / 2 + "px", fontSize: 0},
+          this.centerLT({ fontSize: this.elm.style.fontSize}), `all ${_gs_}ms`);
       else 
         this.centerLT({ fontSize: this.elm.style.fontSize}); 
     }

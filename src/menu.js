@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, clamp, css, dataIndex, delay, delayMs, dialog, Drag, fontMap, getBox, helm, hide, listen, mergeRecent,Schedule, schedule, svgWrap, toast, unlisten } from "./common.js";
+import { animate, animateStop, clamp, css, dataIndex, delay, delayMs, dialog, Drag, fontMap, getBox, helm, hide, listen, mergeRecent, reflow,Schedule, schedule, svgWrap, toast, unlisten } from "./common.js";
 import { checkUnsaved, FileSrc } from "./file.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
@@ -408,7 +408,10 @@ class Menu {
     };
     this.disk.turn = 0;
 
-    listen(elm, "pointerdown", this.opDown.bind(this));
+    listen(elm, "pointerdown", (e) => {
+      animateStop(this.elm, true); // a menu caught mid-fling stays where it was caught
+      this.opDown(e);
+    });
 
     // ensure grip remains at least partially on-screen after any window resize
     listen(window, "resize", () => {
@@ -1238,9 +1241,7 @@ class Menu {
           let dist = Math.hypot(ex - mx, ey - my);
           op.drag.power(0.5);
           let dur = clamp(dist / (op.drag.vXY * 1000), 0.1, 3.0).toFixed(2);
-          this.elm.style.transition = `left ${dur}s, top ${dur}s`;
-          this.elm.style.left = ex + "px";
-          this.elm.style.top  = ey + "px";
+          animate(this.elm, null, { left: ex + "px", top: ey + "px" }, `left ${dur}s, top ${dur}s`);
         }
        else if(eup.timeStamp - op.e.timeStamp < 200) this.notify("up");
     }
@@ -1397,6 +1398,10 @@ class Menu {
       top: this.op.emv.clientY + panel.panel.offsetHeight / 2 - panel.header.offsetHeight / 2 + "px",
     });
     if (panel.elm.style.visibility != "visible") panel.show();
+    // A panel that's already open isn't shown again, so show() doesn't raise it:
+    // bring it in front of the menu, which the drag's pointerdown has just raised.
+    else if (panel.constructor.name != "CurtainPanel" && +panel.elm.style.zIndex < +this.elm.style.zIndex)
+      panel.elm.style.zIndex = ++_zTop_;
     cell.elm.classList.remove("Menu__panel");
     panel.constrain();
     _pzTarget_ = panel.elm ;
@@ -1557,6 +1562,15 @@ class Menu {
   collapse() {
     this.op.completed = true;
     let holder = this.menuHolder;
+    // Start from an explicit scale(), so both ends of the transition list the same
+    // transform function. Whatever else the holder was left with (startup's rotate(0),
+    // its class's translateZ(0)) can't be interpolated with scale(0): the first
+    // collapse after startup used to jump straight to nothing.
+    if (!holder.style.transform.startsWith("scale(")) {
+      holder.style.transition = "none";
+      holder.style.transform = this.collapsed ? "scale(0)" : "scale(1)";
+      reflow();
+    }
     holder.style.transition = `all ${_gs_}ms ease-in`;
     if (this.collapsed) {
       this.collapsed = false;
@@ -1570,9 +1584,7 @@ class Menu {
 
   park() {
     if(!this.collapsed) this.collapse() ;
-    this.elm.style.transition = `all ${_gs_}ms ease-in`;
-    this.elm.style.left = this.elm.style.top = 0 ;
-    schedule(_gs_, () => this.elm.style.transition = "unset");
+    animate(this.elm, null, { left: 0, top: 0 }, `all ${_gs_}ms ease-in`);
   }
 
   reset() {
