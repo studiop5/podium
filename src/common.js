@@ -646,7 +646,7 @@ class ButtonGroup {
     this.elms = {};
     this.iconElms = {};
     this.handler = handler;
-    for (const tag in defs) {
+    for (let tag in defs) {
       let def = defs[tag];
       let { svg, radio, toggle, disabled } = def;
       let property = [radio, toggle].find((key) => key);
@@ -1578,7 +1578,7 @@ class SliderGroup {
     // Any keys not assigned in def are given default values:
     this.defs = defs;
     this.handler = handler;
-    for (const tag in defs) {
+    for (let tag in defs) {
       let tagDef = Object.assign(
         {
           min: 1,
@@ -1662,7 +1662,7 @@ class SliderGroup {
     // step, min, max, values, and text.  Note that the
     // slider's value is held in this.props, not
     // in this.defs.
-    for (const tag in this.defs) {
+    for (let tag in this.defs) {
       let tagDef = this.defs[tag];
       let elm = this.dataIndex[tag];
       let sliderElm = this.dataIndex[tag + "_slider"];
@@ -2093,7 +2093,7 @@ function animate(elm, from, to, transition, finalize) {
   });
 }
 
-const FLY_PROPS = ["left", "top", "fontSize"];
+let FLY_PROPS = ["left", "top", "fontSize"];
 
 function animateStop(elm, bake = false) {
   // Stop a fly() in flight. @elm snaps to its end state or, if @bake, stays where

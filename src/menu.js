@@ -743,7 +743,7 @@ class Menu {
     });
 
     this.listen("app/theme/up", (cell) => {
-      const themes = ["Light", "Glass", "Dark"];
+      let themes = ["Light", "Glass", "Dark"];
       let theme = cell.stash.theme || "Light";
       theme = themes[(themes.indexOf(theme) + 1) % themes.length];
       document.documentElement.setAttribute("data-theme", theme);
@@ -1419,8 +1419,8 @@ class Menu {
     // undefined (no filtering). Cells whose storage property doesn't match
     // source are skipped as a safeguard.
     // Attachments are untrusted, including nested objects later merged elsewhere.
-    const isObject = value => value && typeof value === "object" && !Array.isArray(value);
-    const sanitize = value => Array.isArray(value) ? value.map(sanitize) : isObject(value) ?
+    let isObject = value => value && typeof value === "object" && !Array.isArray(value);
+    let sanitize = value => Array.isArray(value) ? value.map(sanitize) : isObject(value) ?
       Object.fromEntries(Object.entries(value)
         .filter(([key]) => !["__proto__", "constructor", "prototype"].includes(key))
         .map(([key, item]) => [key, sanitize(item)])) : value;
@@ -1450,7 +1450,7 @@ class Menu {
           if (source === 'score' &&
               cellStash.recent !== undefined && typeof cellStash.recent === 'object' &&
               cell.stash.recent !== undefined && typeof cell.stash.recent === 'object') {
-            const { recent: incoming, ...rest } = cellStash;
+            let { recent: incoming, ...rest } = cellStash;
             Object.assign(cell.stash, rest);
             cell.stash.recent = mergeRecent(cell.stash.recent, incoming);
           } else {

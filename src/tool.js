@@ -2312,7 +2312,7 @@ class Review {
     this.video.muted = false;
     this.setPlayButton("Replay");
     this.state = "Replay";
-    const restartId = this.restartId;
+    let restartId = this.restartId;
     let recordedData = await this.recorder.stop();
     if(this.closed || restartId !== this.restartId) return; // restart() owns the Review now
     if(!recordedData) {
@@ -2332,7 +2332,7 @@ class Review {
     // Called when options have changed: restarts the Review with new parameters,
     // but video/recording will be paused
     if(this.closed) return;
-    const restartId = ++this.restartId;
+    let restartId = ++this.restartId;
     this.mediaStream.getTracks().forEach(track => track.stop());
 
     let mediaStream = await navigator.mediaDevices.getUserMedia({
