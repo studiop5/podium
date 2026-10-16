@@ -2083,12 +2083,14 @@ function animate(elm, from, to, transition, finalize) {
   reflow();
   elm.style.transition = transition;
   for (let [k, v] of Object.entries(to)) elm.style[k] = v;
-  listen(elm, "transitionend", () => {
-      elm.style.transition = "unset";
-      if (finalize) finalize();
-    },
-    { once: true }
-  );
+  // transitionend bubbles: ignore descendants' transitions, which would otherwise
+  // end this one early (and run @finalize before @elm got where it was going).
+  let listener = listen(elm, "transitionend", (e) => {
+    if (e.target !== elm) return;
+    unlisten(listener);
+    elm.style.transition = "unset";
+    if (finalize) finalize();
+  });
 }
 
 const FLY_PROPS = ["left", "top", "fontSize"];

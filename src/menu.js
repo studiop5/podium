@@ -49,7 +49,6 @@ class Menu {
       position: absolute;
       transition: opacity var(--transition-slow);
       z-index: 101;
-      filter: drop-shadow(.3em .3em .3em #0001);
       transform: translateZ(0); /* fix for ipad compositing */
       will-change: transform; /* fix for ipad compositing */
       border-radius: 50%;
