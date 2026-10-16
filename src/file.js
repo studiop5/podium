@@ -30,7 +30,7 @@ let bytesToBase64DataUrl = async (bytes, type = "application/octet-stream") => {
   // This function is copied directly from
   // "https:\/\/developer.mozilla.org/en-US/docs/Web/API/Window/btoa"
   return await new Promise((resolve, reject) => {
-    const reader = Object.assign(new FileReader(), {
+    let reader = Object.assign(new FileReader(), {
       onload: () => resolve(reader.result),
       onerror: () => reject(reader.error),
     });
@@ -420,7 +420,7 @@ class LocalSrc extends FileSrc {
     if (window.showSaveFilePicker) {
       // Use "experimental" file system access api, if supported:
       if (!handle) {
-        const options = {
+        let options = {
           suggestedName: name,
           types: [
             {
@@ -433,7 +433,7 @@ class LocalSrc extends FileSrc {
         };
         handle = await showSaveFilePicker(options);
       }
-      const writeable = await handle.createWritable();
+      let writeable = await handle.createWritable();
       await writeable.write(data);
       await writeable.close();
       let file = await handle.getFile();
@@ -470,7 +470,7 @@ class LocalSrc extends FileSrc {
   async getFileHandle(name) {
     // Get a file handle immediately (during user gesture) for later writing
     if (!window.showSaveFilePicker) return null;
-    const options = {
+    let options = {
       suggestedName: name,
       types: [
         {
@@ -595,7 +595,7 @@ class CachedSrc extends FileSrc {
         // Run the oauth 2 PKCE flow to get an authentication token
 
         let refreshAccessToken = async () => {
-            const params = new URLSearchParams();
+            let params = new URLSearchParams();
             params.append('client_id', this.clientId);
             params.append('refresh_token', this.tokens.refresh_token);
             params.append('grant_type', 'refresh_token');
@@ -608,7 +608,7 @@ class CachedSrc extends FileSrc {
 
             if (response.ok) {
                 let now = performance.now() / 1000;
-                const newTokens = await response.json();
+                let newTokens = await response.json();
 
                 if (!newTokens.refresh_token) {
                     newTokens.refresh_token = this.tokens.refresh_token;
@@ -675,7 +675,7 @@ class CachedSrc extends FileSrc {
         return new Promise((resolve, reject) => {
             // exchange code for tokens
             let exchange = async (code, redirectUri) => {
-                const params = new URLSearchParams();
+                let params = new URLSearchParams();
                 params.append('client_id', this.clientId);
                 params.append('redirect_uri', redirectUri);
                 params.append('code', code);
@@ -696,8 +696,8 @@ class CachedSrc extends FileSrc {
 
             // Extension-specific authentication using launchWebAuthFlow
             if (isExtension) {
-                const extRedirectUri = chrome.identity.getRedirectURL();
-                const extFullUrl = fullUrl.replace(encodeURIComponent(this.redirectUri), encodeURIComponent(extRedirectUri));
+                let extRedirectUri = chrome.identity.getRedirectURL();
+                let extFullUrl = fullUrl.replace(encodeURIComponent(this.redirectUri), encodeURIComponent(extRedirectUri));
 
                 chrome.identity.launchWebAuthFlow({ url: extFullUrl, interactive: true }, async (responseUrl) => {
                     _shade_.pop();
@@ -705,9 +705,9 @@ class CachedSrc extends FileSrc {
                         return reject(new Error(chrome.runtime.lastError?.message || "Authentication failed or was cancelled.", { cause: "cancelled" }));
                     }
                     try {
-                        const url = new URL(responseUrl);
-                        const code = url.searchParams.get("code");
-                        const respState = url.searchParams.get("state");
+                        let url = new URL(responseUrl);
+                        let code = url.searchParams.get("code");
+                        let respState = url.searchParams.get("state");
                         if (respState != state) throw new Error("CSRF attempt blocked.");
 
                         this.tokens = await exchange(code, extRedirectUri);
@@ -973,8 +973,8 @@ class GDriveSrc extends CachedSrc {
     // Extension-specific authentication using launchWebAuthFlow
     if (window.chrome && chrome.identity && chrome.runtime?.id) {
       return new Promise((resolve, reject) => {
-        const redirectUri = chrome.identity.getRedirectURL();
-        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        let redirectUri = chrome.identity.getRedirectURL();
+        let authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
           `client_id=${this.clientId}&` +
           `response_type=token&` +
           `redirect_uri=${encodeURIComponent(redirectUri)}&` +
@@ -987,9 +987,9 @@ class GDriveSrc extends CachedSrc {
             reject(new Error(chrome.runtime.lastError?.message || "Authentication failed or was cancelled.", {cause:"cancelled"}));
           } else {
             // Parse the access token from the redirect URL hash
-            const url = new URL(responseUrl);
-            const params = new URLSearchParams(url.hash.substring(1));
-            const token = params.get("access_token");
+            let url = new URL(responseUrl);
+            let params = new URLSearchParams(url.hash.substring(1));
+            let token = params.get("access_token");
             if (token) {
               this.tokens = {
                 access_token: token,
@@ -1016,7 +1016,7 @@ class GDriveSrc extends CachedSrc {
           if (response.error) {
             this._pendingReject?.(new Error(response.error, { cause: "auth" }));
           } else {
-            const now = Date.now() / 1000;
+            let now = Date.now() / 1000;
             this.tokens = {
               access_token: response.access_token,
               expiry: now + (response.expires_in || 3600),
@@ -1180,7 +1180,7 @@ class GDriveSrc extends CachedSrc {
 
 
   async putFileSrc(path, name, data, dir, file) {
-    const CHUNK_SIZE = 5 * 1024 * 1024;
+    let CHUNK_SIZE = 5 * 1024 * 1024;
 
     if (!file) {
       // Won't exist if creating, so create new empty file with metadata and get its id from the response.
@@ -2730,7 +2730,7 @@ class FileSystemView extends FileListView {
             this.flvList.append(await this.makeFileElm(properties));
           }
         }
-        for (const properties of Object.values(listing.dirs)) {
+        for (let properties of Object.values(listing.dirs)) {
           properties.path = path;
           this.flvList.append(await this.makeFileElm(properties));
         }

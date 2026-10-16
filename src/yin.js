@@ -27,12 +27,12 @@ class Yin {
   async initAux(audioContext) {
     if(this.released) return;
     // Own the detector context so release can terminate even while suspended.
-    const sharedContext = audioContext;
+    let sharedContext = audioContext;
     audioContext = this.audioContext = new AudioContext({ sampleRate: sharedContext.sampleRate });
     this.sharedContext = sharedContext;
     this.contextStateListener = () => {
       if(this.released) return;
-      const change = sharedContext.state === 'running' ? audioContext.resume() : audioContext.suspend();
+      let change = sharedContext.state === 'running' ? audioContext.resume() : audioContext.suspend();
       change.catch(error => console.warn("YIN audio state change failed", error));
     };
     sharedContext.addEventListener('statechange', this.contextStateListener);
@@ -161,10 +161,10 @@ class Yin {
     }
     this.sharedContext?.removeEventListener('statechange', this.contextStateListener);
     this.sharedContext = this.contextStateListener = null;
-    const context = this.audioContext, node = this.workletNode, gain = this.silentGain;
+    let context = this.audioContext, node = this.workletNode, gain = this.silentGain;
     this.releasePromise = new Promise(resolve => {
       let finished = false, timeout;
-      const finish = () => {
+      let finish = () => {
         if(finished) return;
         finished = true;
         clearTimeout(timeout);
@@ -174,7 +174,7 @@ class Yin {
           node.disconnect();
         }
         gain?.disconnect();
-        const closing = context && context.state !== 'closed' ? context.close() : Promise.resolve();
+        let closing = context && context.state !== 'closed' ? context.close() : Promise.resolve();
         closing.catch(error => console.warn("YIN audio cleanup failed", error)).finally(resolve);
       };
       if(!node || context.state === 'closed') return finish();

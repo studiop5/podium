@@ -992,7 +992,7 @@ class DetailsPanel extends Panel {
             score.size
           ).toLocaleString()} B`)}</div>`
         : "";
-      const PERM_FLAGS = [
+      let PERM_FLAGS = [
         [4,    "Print"],
         [16,   "Copy"],
         [8,    "Modify"],
@@ -1105,7 +1105,7 @@ class OpenPanel extends FilePanel {
     super(cell);
     this.mode = "open";
     // Filter out WWW - it's a source type but not a file browser tab
-    const fileSources = Object.entries(Score.sources).filter(([key]) => key !== "url").map(([, value]) => value);
+    let fileSources = Object.entries(Score.sources).filter(([key]) => key !== "url").map(([, value]) => value);
     this.tabView = new TabView(this, "Recent", ...fileSources);
     this.body.append(this.tabView.elm);
     for (let title in this.tabView.tabs) {
@@ -1160,7 +1160,7 @@ class SavePanel extends FilePanel {
     super(cell);
     this.mode = "save";
     // Filter out WWW (url source)
-    const fileSources = Object.entries(Score.sources)
+    let fileSources = Object.entries(Score.sources)
       .filter(([key]) => key !== "url")
       .map(([, value]) => value);
     this.tabView = new TabView(this, ...fileSources);
