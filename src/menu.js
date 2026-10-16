@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, animateStop, clamp, css, dataIndex, delay, delayMs, dialog, Drag, fontMap, getBox, helm, hide, listen, mergeRecent, reflow,Schedule, schedule, svgWrap, toast, unlisten } from "./common.js";
+import { animate, animateStop, clamp, css, dataIndex, delay, delayMs, dialog, Drag, fontMap, getBox, helm, hide, listen, mergeRecent, Schedule, schedule, svgWrap, toast, unlisten } from "./common.js";
 import { checkUnsaved, FileSrc } from "./file.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
@@ -1545,8 +1545,8 @@ class Menu {
       animate(this.disk, null, { transform: "rotate(0turn)" }, `${_gs_}ms`);
       diskEntries.forEach(([diskKey, ring], index) => {
         let rotation = index / ringKnt;
-        ring.cellElm.style.transform = `rotate(${rotation}turn`;
-        ring.cellElm.firstElementChild.style.transform = `rotate(${1 - rotation}turn`;
+        ring.cellElm.style.transform = `rotate(${rotation}turn)`;
+        ring.cellElm.firstElementChild.style.transform = `rotate(${1 - rotation}turn)`;
         let cellEntries = Object.entries(ring.cells);
         let cellKnt = cellEntries.length;
         animate(ring.elm, null, { transform: "rotate(0turn)" }, `${_gs_}ms`);
@@ -1562,21 +1562,15 @@ class Menu {
   collapse() {
     this.op.completed = true;
     let holder = this.menuHolder;
-    // Start from an explicit scale(), so both ends of the transition list the same
-    // transform function. Whatever else the holder was left with (startup's rotate(0),
-    // its class's translateZ(0)) can't be interpolated with scale(0): the first
-    // collapse after startup used to jump straight to nothing.
-    if (!holder.style.transform.startsWith("scale(")) {
-      holder.style.transition = "none";
-      holder.style.transform = this.collapsed ? "scale(0)" : "scale(1)";
-      reflow();
-    }
+    // Collapse with the independent `scale` property, not `transform`: the holder's
+    // transform belongs to others (startup's spin, its class's translateZ(0)), and a
+    // transform list like rotate(0) can't be interpolated with scale(0).
     holder.style.transition = `all ${_gs_}ms ease-in`;
     if (this.collapsed) {
       this.collapsed = false;
-      holder.style.transform = "scale(1)";
+      holder.style.scale = "1";
     } else {
-      holder.style.transform = "scale(0)";
+      holder.style.scale = "0";
       this.collapsed = true;
     }
     schedule(_gs_, () => holder.style.transition = "unset");
