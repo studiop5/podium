@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, animateStop, clamp, css, dataIndex, delay, delayMs, dialog, Drag, fontMap, getBox, helm, hide, listen, mergeRecent, Schedule, schedule, svgWrap, toast, unlisten } from "./common.js";
+import { animate, animateFreeze, clamp, css, dataIndex, delay, delayMs, dialog, Drag, fontMap, getBox, helm, hide, listen, mergeRecent, Schedule, schedule, svgWrap, toast, unlisten } from "./common.js";
 import { checkUnsaved, FileSrc } from "./file.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
@@ -408,7 +408,7 @@ class Menu {
     this.disk.turn = 0;
 
     listen(elm, "pointerdown", (e) => {
-      animateStop(this.elm, true); // a menu caught mid-fling stays where it was caught
+      animateFreeze(this.elm); // a menu caught mid-fling stays where it was caught
       this.opDown(e);
     });
 

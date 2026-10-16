@@ -22,6 +22,7 @@
 
 export {
   animate,
+  animateFreeze,
   animateStop,
   css,
   cssIndex,
@@ -2095,20 +2096,25 @@ function animate(elm, from, to, transition, finalize) {
 
 let FLY_PROPS = ["left", "top", "fontSize"];
 
-function animateStop(elm, bake = false) {
-  // Stop a fly() in flight. @elm snaps to its end state or, if @bake, stays where
-  // it appears right now (e.g. so it can be grabbed mid-fling). Only a position
-  // can be baked: with @bake, a flight that is also resizing @elm is left to finish.
-  if (!elm._fly || (bake && elm._fly.resizing)) return;
-  let { listener, restore, shrinkTo } = elm._fly;
-  let now = bake ? flyState(elm) : null;
-  unlisten(listener);
+function animateFreeze(elm) {
+  // Stop a fly() where @elm appears right now (e.g. so it can be grabbed mid-fling).
+  // Only a move can be frozen: a flight that is also resizing @elm is left to finish.
+  if (!elm._fly || elm._fly.resizing) return;
+  // Not resizing, the flight's transform is a pure translate: what's left of it is
+  // how far @elm still appears from where it's laid out, at its end position.
+  let { e: dx, f: dy } = new DOMMatrix(getComputedStyle(elm).transform);
+  animateStop(elm);
+  elm.style.left = elm.offsetLeft + dx + "px";
+  elm.style.top = elm.offsetTop + dy + "px";
+}
+
+function animateStop(elm) {
+  // Finish a fly() now: @elm jumps to its end state.
+  let fly = elm._fly;
+  if (!fly) return;
   elm._fly = null;
-  Object.assign(elm.style, restore, shrinkTo ?? {});
-  if (!bake) return;
-  let end = flyState(elm);
-  elm.style.left = elm.offsetLeft + now.x - end.x + "px";
-  elm.style.top = elm.offsetTop + now.y - end.y + "px";
+  unlisten(fly.listener);
+  Object.assign(elm.style, { transition: "unset", transform: "", transformOrigin: fly.origin }, fly.shrinkTo);
 }
 
 function clamp(num, min, max) {
@@ -2280,7 +2286,7 @@ function fly(elm, from, to, transition, finalize) {
   let inFlight = elm._fly ? flyState(elm) : null; // re-targeted mid-flight: take off from where it appears
   animateStop(elm);
   let before = Object.fromEntries(FLY_PROPS.map((k) => [k, elm.style[k]]));
-  let restore = { transition: elm.style.transition, transform: "", transformOrigin: elm.style.transformOrigin };
+  let transition0 = elm.style.transition, origin = elm.style.transformOrigin;
   elm.style.transition = "none";
   if (from) Object.assign(elm.style, from);
   let a = !from && inFlight ? inFlight : flyState(elm);
@@ -2292,7 +2298,7 @@ function fly(elm, from, to, transition, finalize) {
   if (shrink) Object.assign(elm.style, before, from ?? {});
   let lay = shrink ? flyState(elm) : b;
   if (lay.font == 0) { // no size at either end: nothing to scale from
-    Object.assign(elm.style, before, { transition: restore.transition });
+    Object.assign(elm.style, before, { transition: transition0 });
     return false;
   }
   // a property the transition gave no duration jumps straight to its end value
@@ -2303,13 +2309,12 @@ function fly(elm, from, to, transition, finalize) {
   reflow();
   elm.style.transition = `transform ${Math.max(timing.move, timing.scale)}ms ${timing.ease}`;
   elm.style.transform = xform(b);
-  restore.transition = "unset";
   let listener = listen(elm, "transitionend", (e) => {
     if (e.target !== elm || e.propertyName != "transform") return; // (bubbled from a descendant)
     animateStop(elm);
     if (finalize) finalize();
   });
-  elm._fly = { listener, restore, shrinkTo: shrink ? to : null, resizing: start.font != b.font };
+  elm._fly = { listener, origin, shrinkTo: shrink ? to : null, resizing: start.font != b.font };
   return true;
 }
 
