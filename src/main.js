@@ -278,11 +278,8 @@ async function main() {
          (_mobile_ ? _gs_/1000 : _gsgs_/1000) ;
     animate(_menu_.elm, { left: innerWidth/2+"px", top: innerHeight/2+"px", fontSize: 0 },
        { fontSize: dim + "em" }, `font-size ${1000000 / _gs_}ms`);
-    // The holder's drop-shadow filter would be re-run on every frame the disk
-    // turns inside it: leave it off until the spin is over.
-    _menu_.menuHolder.style.filter = "none";
     animate(_menu_.menuHolder, { transform: "rotate(-1turn)" },
-      { transform: "rotate(0)" }, `transform ${1000000 / _gs_}ms`, () => _menu_.menuHolder.style.filter = "");
+      { transform: "rotate(0)" }, `transform ${1000000 / _gs_}ms`);
     animate(_menu_.disk, { transform: "rotate(2turn)" }, { transform: "rotate(0)" }, `transform ${1000000 / _gs_}ms`);
     await new SharedBuffer().init() ;
     // Extension-specific code: load PDF from URL parameter if present
