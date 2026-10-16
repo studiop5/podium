@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, dialog, Drag, getBox, helm, listen, pnToDiv, ptrMsg, reflow, rotatePoint, Schedule, toast, unlisten,} from "./common.js";
+import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, delayMs, dialog, Drag, getBox, helm, listen, pnToDiv, ptrMsg, reflow, rotatePoint, Schedule, toast, unlisten,} from "./common.js";
 import {ScreenPanel } from "./panel.js";
 import { Pg } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
@@ -1469,19 +1469,19 @@ class BookLayout extends Layout {
       // one page appearing and then the other reads as loading, which a flip used to cover.
       let spread = [this.slots[2], this.slots[3]];
       for (let slot of spread) Object.assign(slot.style, { transition: "none", opacity: 0 });
-      let fade = "";
+      let fadeMs = 250, fade = "";
       try {
         for (let [slot, nonblocking] of [[2, false], [3, false], [0, true], [1, true], [4, true], [5, true]])
           await this.pgMount(pn0 + slot, slot, nonblocking);
         // (after layoutSlots: it re-appends the slots, which would cancel a transition under way)
         this.layoutSlots();
         reflow();
-        fade = "opacity 250ms ease-out";
+        fade = `opacity ${fadeMs}ms ease-out`;
       } finally {
         for (let slot of spread) Object.assign(slot.style, { transition: fade, opacity: "" });
       }
       // Clean up by timer, not transitionend: a slot re-appended mid-fade never gets one.
-      setTimeout(() => { for (let slot of spread) slot.style.transition = ""; }, 300);
+      delayMs(fadeMs + 50, () => { for (let slot of spread) slot.style.transition = ""; });
       this.pnPost(pn, true);
       return pn;
     }
@@ -1864,7 +1864,7 @@ class ScrollLayout extends Layout {
     for (let { elm } of moves)
       Object.assign(elm.style, { transition: `transform ${_gsgs_}ms ease-in-out`, transform: "" });
     // Clean up by timer, not transitionend: a pg unmounted mid-slide never gets one.
-    setTimeout(() => { for (let { elm } of moves) elm.style.transition = ""; }, _gsgs_ + 50);
+    delayMs(_gsgs_ + 50, () => { for (let { elm } of moves) elm.style.transition = ""; });
   }
 
   async onDown(e) {
