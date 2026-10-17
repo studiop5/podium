@@ -1897,11 +1897,11 @@ class NumbersPanel extends Panel {
        <div style="font-size: var(--font-size-sm); margin-top: calc(var(--spacing-md) + 1em); margin-bottom: 0.1em">Foot Pedal Keys</div>
        <div style="margin: 0 var(--spacing-md)">
          <div style="display: flex; align-items: center; gap: 0.5em; margin-bottom: 0.5em">
-           <div style="min-width: 4em; text-align: left; font-size: 0.9em">Next (\u21e7/\u21e8):</div>
+           <div style="min-width: 4em; text-align: left; font-size: 0.9em">Next (\u21e8/\u21e9):</div>
            <div data-tag="forward" style="flex: 1"></div>
          </div>
          <div style="display: flex; align-items: center; gap: 0.5em">
-           <div style="min-width: 4em; text-align: left; font-size: 0.9em">Prev (\u21e6/\u21e9):</div>
+           <div style="min-width: 4em; text-align: left; font-size: 0.9em">Prev (\u21e6/\u21e7):</div>
            <div data-tag="reverse" style="flex: 1"></div>
          </div>
        </div>

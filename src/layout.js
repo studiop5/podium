@@ -33,10 +33,17 @@ let bkColors = [
   "#e52222", "#83e522", "#371699", "#2283e5",
 ];
 
-function nextBkColor() {
+function nextBkColor(pg) {
+  // The color for a new bookmark on @pg: the next in rotation that isn't used by
+  // either neighboring bookmark (the nearest before and after @pg), so bookmarks
+  // next to each other in the pager never match when created.
   let stash = _menu_.rings.score.cells.details.stash;
-  let color = bkColors[stash.bkColorIdx % bkColors.length];
-  stash.bkColorIdx++;
+  let pgs = _score_.pgs, i = pgs.indexOf(pg);
+  let before = pgs.slice(0, i).findLast((p) => p.bookmark)?.bookmark;
+  let after = pgs.slice(i + 1).find((p) => p.bookmark)?.bookmark;
+  let color;
+  do color = bkColors[stash.bkColorIdx++ % bkColors.length];
+  while (color == before || color == after); // (ends: 16 colors, at most 2 excluded)
   return color;
 }
 
@@ -2547,7 +2554,7 @@ e.taken = true ;
         if(pg.bookmark) {
           pg.bookmark = null;
           pnElm.style.background = "unset";
-        } else pnElm.style.background = pg.bookmark = nextBkColor();
+        } else pnElm.style.background = pg.bookmark = nextBkColor(pg);
       });
       _body_.dispatchEvent(new CustomEvent("BOOKMARK"));
     };
@@ -2851,7 +2858,7 @@ class Pager {
         ptrDiv.style.color = "";
       }
       else {
-        let bkCl = pg.bookmark = nextBkColor();
+        let bkCl = pg.bookmark = nextBkColor(pg);
         cursor.style.color = bkCl;
         ptrDiv.style.backgroundColor = bkCl;
         ptrDiv.style.color = contrastColor(bkCl);

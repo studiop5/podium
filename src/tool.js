@@ -984,9 +984,8 @@ class Volume extends Surface {
   constructor(panel) {
     super(panel, ScreenPanel);
     this.volumeSlider = new SliderGroup(panel.cell.stash,
-    { volume: { min: 0, max: 1, step: 0.1, value: 1, msg: "Volume: {value}" } },
+    { volume: { min: 0, max: 1, step: 0.01, value: 1, msg: (tag, value) => `Volume: ${Math.round(value * 100)}%` } },
     (e, tag, value) => {
-      this.panel.cell.stash.tag = value;
       _body_.dispatchEvent(new CustomEvent("VOLUME", { detail: value }));
     });
     this.surface.style.height = "4em" ;
