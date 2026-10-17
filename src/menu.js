@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, animateFreeze, clamp, css, dataIndex, delay, delayMs, dialog, Drag, fontMap, getBox, helm, hide, listen, mergeRecent, Schedule, schedule, svgWrap, toast, unlisten } from "./common.js";
+import { animate, clamp, css, dataIndex, delay, delayMs, dialog, Drag, fontMap, getBox, helm, hide, listen, mergeRecent, numb, Schedule, schedule, svgWrap, toast, unlisten } from "./common.js";
 import { checkUnsaved, FileSrc } from "./file.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
@@ -407,10 +407,7 @@ class Menu {
     };
     this.disk.turn = 0;
 
-    listen(elm, "pointerdown", (e) => {
-      animateFreeze(this.elm); // a menu caught mid-fling stays where it was caught
-      this.opDown(e);
-    });
+    listen(elm, "pointerdown", (e) => this.opDown(e));
 
     // ensure grip remains at least partially on-screen after any window resize
     listen(window, "resize", () => {
@@ -1170,13 +1167,15 @@ class Menu {
     let obj = isRing ? op.ring : this.disk;
     let spinElm = isRing ? op.ring.elm : this.disk;
     let rotation = 1 / spinElm.childElementCount;
-    let coast = clamp(Math.abs(vel) * 300, 0.5, 1) * Math.sign(vel); // turns to coast
-    let dur   = clamp(Math.abs(coast / vel / 2), 0.3, 2).toFixed(2); // seconds
+    // constant deceleration (as Drag.fling): a faster flick spins longer and farther
+    // ms: decelerating at 6.7e-7 turns/ms², which reaches the 3/4-turn cap at the same speed as the 1500ms cap
+    let dur   = clamp(Math.abs(vel) / 0.00000067, 500, 1500);
+    let coast = clamp(vel * dur / 2, -0.75, 0.75); // turns travelled while decelerating: at most 3/4 turn
     obj.turn += coast;
-    spinElm.style.transition = `transform ${dur}s ease-out`;
+    spinElm.style.transition = `transform ${dur}ms ease-out`;
     spinElm.style.transform  = `rotate(${obj.turn}turn)`;
     [...spinElm.children].forEach((child, i) => {
-      child.firstElementChild.style.transition = `transform ${dur}s ease-out`;
+      child.firstElementChild.style.transition = `transform ${dur}ms ease-out`;
       child.firstElementChild.style.transform  = `rotate(${-rotation * i - obj.turn}turn)`;
     });
     this._spinElm = spinElm;
@@ -1239,8 +1238,9 @@ class Menu {
           let ey = snapped ? snapped[1] : my + t*dy;
           let dist = Math.hypot(ex - mx, ey - my);
           op.drag.power(0.5);
-          let dur = clamp(dist / (op.drag.vXY * 1000), 0.1, 3.0).toFixed(2);
-          animate(this.elm, null, { left: ex + "px", top: ey + "px" }, `left ${dur}s, top ${dur}s`);
+          let dur = Math.round(clamp(dist / op.drag.vXY, 100, 3000)); // ms (vXY is px/ms)
+          numb(this.elm, dur);
+          animate(this.elm, null, { left: ex + "px", top: ey + "px" }, `left ${dur}ms, top ${dur}ms`);
         }
        else if(eup.timeStamp - op.e.timeStamp < 200) this.notify("up");
     }
@@ -1529,6 +1529,7 @@ class Menu {
   center(reset = false) {
     this.clearSpinFling();
     // move to the center of the current window
+    numb(this.elm, _gs_);
     animate(this.elm, null, {
       left: innerWidth / 2 + "px",
       top: innerHeight / 2 + "px",
@@ -1577,6 +1578,7 @@ class Menu {
 
   park() {
     if(!this.collapsed) this.collapse() ;
+    numb(this.elm, _gs_);
     animate(this.elm, null, { left: 0, top: 0 }, `all ${_gs_}ms ease-in`);
   }
 
@@ -1698,7 +1700,7 @@ class Menu {
           cursorColor: "black",
           left: opts.absolutePointer.x,
           top: opts.absolutePointer.y,
-          objectCaching: false, ///
+          objectCaching: false, 
           hasControls: false,
           podiumStash: { alpha, font, size, height, rgb }, // see Panel.load
         };
