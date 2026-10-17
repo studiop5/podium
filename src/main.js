@@ -28,7 +28,7 @@
 // python3 build.py --podium.  All text  between +/- skip fill be stripped out,
 // and all the following // #include files will be  textually included.
 
-import { animate, clamp, delay, delayMs, helm, listen, schedule, Schedule, unlisten } from "./common.js";
+import { animate, clamp, delay, delayMs, helm, listen, numb, numbed, schedule, Schedule, unlisten } from "./common.js";
 import "./font.js";
 import { Menu } from "./menu.js";
 import { Layout } from "./layout.js";
@@ -114,6 +114,9 @@ class Gestures {
   }
 
   onDown(e) {
+    // Swallow a touch on anything flying (see numb() in common.js). This listener is
+    // capture-phase on _body_, so it runs ahead of every other pointerdown handler.
+    if (numbed(e.target)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
     if (e.target.dataset.midi) return; // piano keys are polyphonic
     if (e.button != 0) return;        // ignore right-click / middle-click
     if (e.target.closest("input, textarea, [contenteditable]")) return;
@@ -148,6 +151,7 @@ class Gestures {
       // when e.taken == true, the long-press timer is a no-op.
       if(e.taken) return;
       if (!onBody) Layout.activeLayout?.cancelNav();
+      numb(_menu_.elm, _gsgs_);
       animate(_menu_.elm, null, { left: e.clientX + "px", top: e.clientY + "px" }, `${_gsgs_}ms`);
       if (_menu_.collapsed) _menu_.collapse();
       _menu_.opDown(e);
@@ -276,6 +280,7 @@ async function main() {
     // on mobile, the menu opens bigger to fill more of the screen
     let dim = (Math.min(innerWidth, innerHeight) / _menu_.menuHolder.offsetWidth) *
          (_mobile_ ? _gs_/1000 : _gsgs_/1000) ;
+    numb(_menu_.elm, 1000000 / _gs_);
     animate(_menu_.elm, { left: innerWidth/2+"px", top: innerHeight/2+"px", fontSize: 0 },
        { fontSize: dim + "em" }, `font-size ${1000000 / _gs_}ms`);
     animate(_menu_.menuHolder, { transform: "rotate(-1turn)" },

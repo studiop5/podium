@@ -2278,7 +2278,7 @@ class FileListView {
         drag.up(eup);
         unlisten(mv);
         if (drag.moved) {
-          elm.style.transition = "1s top ease-out";
+          elm.style.transition = "1000ms top ease-out";
           return (elm.style.top = clamp(elm.offsetTop + drag.vY * 1000, minTop, 0) + "px");
         }
         let fileElm = e.target.closest(".Flv-list__file");

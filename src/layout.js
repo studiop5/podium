@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, delayMs, dialog, Drag, getBox, helm, listen, pnToDiv, ptrMsg, reflow, rotatePoint, Schedule, toast, unlisten,} from "./common.js";
+import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, delayMs, dialog, Drag, getBox, helm, listen, numb, pnToDiv, ptrMsg, reflow, rotatePoint, Schedule, toast, unlisten,} from "./common.js";
 import {ScreenPanel } from "./panel.js";
 import { Pg } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
@@ -402,6 +402,7 @@ class Layout {
       let dx = dstBox.x + dstBox.width/2 - srcBox.x, dy = dstBox.y + dstBox.height/2 - srcBox.y;
       // transform (vs. left/top/width/height) animates on the compositor, without re-layout.
       // Ease-in: linger near full size, then accelerate into the cell.
+      numb(snap, _gsgs_);
       animate(snap, null, { transform: `translate(${dx}px, ${dy}px) scale(0)` },
         `transform ${_gsgs_}ms cubic-bezier(0.55, 0, 0.75, 0.2)`, () => {
           snap.remove();
@@ -421,6 +422,7 @@ class Layout {
     }
     _body_.append(elm);
     let css = elm.style.cssText; 
+    numb(elm, _gsgs_);
     animate(elm, 
      { left: srcBox.x + "px", top: srcBox.y + "px", zIndex:_zTop_+ 1 },
      { left: dstBox.x + dstBox.width/2 + "px", top: dstBox.y + dstBox.height/2 +  "px", fontSize: 0},
@@ -693,7 +695,7 @@ class Layout {
           break;
       }
     }
-    this.pnPost(await this.pgGoTo(pn));
+    await this.pgGoTo(pn);
   }
 
   pgPad(pg) {
@@ -715,8 +717,8 @@ class Layout {
   }
 
   pgGoTo(pn) {
-    // Subclasses override with logic to display given page number
-    return pn;
+    // Subclasses override with logic to display given page number, and post it
+    // (pnPost) once they do: callers rely on pgGoTo for that, not on a return value.
   }
 
   pnPost(pn, force = false) {
@@ -752,6 +754,7 @@ class Layout {
     let icon = dataIndex("tag", this.cell.elm).cellIcon;
     let iconBox = getBox(icon);
     let layoutBox = getBox(layout);
+    numb(elm, _gs_);
     animate(elm, 
      { left: iconBox.x + iconBox.width / 2 + "px",
        top: iconBox.y + iconBox.height / 2 + "px",
@@ -1062,6 +1065,7 @@ class BookLayout extends Layout {
     let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
 
     let pz = this.userPz();
+    numb(this.elm, _gs_);
     if(pz)  // custom user-set size/position
       animate(this.elm, { left:iconBox.x + iconBox.width / 2 + "px", top:iconBox.y + iconBox.height / 2 + "px", fontSize: 0}, pz, `all ${_gs_}ms`);
     else animate(this.elm,
@@ -1422,7 +1426,7 @@ class BookLayout extends Layout {
 
     // Clamp to valid range
     pn = clamp(pn, 1, pgCount);
-    this.pnPost(await this.pgGoTo(pn));
+    await this.pgGoTo(pn);
   }
 
   async pgShift(advancing, post = true) {
@@ -1483,7 +1487,7 @@ class BookLayout extends Layout {
       // Clean up by timer, not transitionend: a slot re-appended mid-fade never gets one.
       delayMs(fadeMs + 50, () => { for (let slot of spread) slot.style.transition = ""; });
       this.pnPost(pn, true);
-      return pn;
+      return;
     }
     let advancing = pn - 2 > this.pn0;
     if(pn == 1) advancing = false; // can't advance into 1st page
@@ -1499,7 +1503,6 @@ class BookLayout extends Layout {
     else this.pgFlip(-pgWidth, pgHeight, pgWidth, pgHeight / 2, false, 
 		     async() => await this.pgShift(false, false));
     this.pnPost(pn, true);
-    return pn;
   }
 
   layoutSlots() {
@@ -1828,6 +1831,7 @@ class ScrollLayout extends Layout {
       this.sash.style[this.props.LEFT] = (startSashStart / _pxPerEm_) + "em";
 
       let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
+      numb(this.elm, _gs_);
       animate(this.elm, 
         { left:iconBox.x + iconBox.width / 2 + "px", top:iconBox.y + iconBox.height / 2 + "px", fontSize: 0},
         this.userPz() ?? this.centerLT({ fontSize: "1em"}),
@@ -2312,6 +2316,7 @@ class TableLayout extends Layout {
     // build one of 2 locations: 1. all thumbnails 2. user cancelled in-flight thumbnail build
     let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
     let pz = this.userPz();
+    if (pz || this.animated) numb(this.elm, _gs_);
     if(pz)
       animate(this.elm, { left:iconBox.x + iconBox.width / 2 + "px", top:iconBox.y + iconBox.height / 2 + "px", fontSize: 0},
         pz, `all ${_gs_}ms`);
@@ -2466,7 +2471,7 @@ class TableLayout extends Layout {
             if(elm) {
               splitsStyle[i] = elm.style.cssText;
               elm.style.transform = this.splitsTransform[i];
-              elm.style.transition = "0.25s ease-in-out";
+              elm.style.transition = "250ms ease-in-out";
             }
           });
           this.splits = newSplits;
@@ -2603,17 +2608,16 @@ e.taken = true ;
   }
 
   async pgGoTo(pn) {
-    if (this.active?.pn == pn) return pn; // active page was reselected, noop
+    if (this.active?.pn == pn) return; // active page was reselected, noop
     // After a cancelled build, thumbnails beyond the cancel point don't
     // exist; navigating to one (e.g. End key) is a noop rather than a crash.
     let elm = this.grid.children.item(pn - 1);
-    if (!elm) return pn;
+    if (!elm) return;
     this.inOp = true;
     this.pnPost(pn);
     // turn elm at pn into an active (full) pg
     await this.buildPgActive(pn, elm);
     this.inOp = false;
-    return pn;
   }
 
   async pgOpen(how, bookMarks) {
@@ -2643,7 +2647,7 @@ e.taken = true ;
         break;
     }
 
-    this.pnPost(await this.pgGoTo(pn));
+    await this.pgGoTo(pn);
   }
 
   renumber() {
@@ -2679,7 +2683,7 @@ class Pager {
       font-size: ${50 / _dvPxRt_}px;
       line-height: ${50 / _dvPxRt_}px;
       text-align:center;
-      transition: opacity .35s ease-in-out;
+      transition: opacity 350ms ease-in-out;
      }
      .Pager__cursor {
        position:absolute;

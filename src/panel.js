@@ -41,6 +41,7 @@ import {
   listen,
   mergeRecent,
   noTranslate,
+  numb,
   pnToHtml,
   pxToEm,
   reflow,
@@ -171,7 +172,7 @@ class Select {
 
     let closeFrame = () => {
       if(frame.style.visibility == "hidden") return;
-      animate(frame, null, {height:0}, "height .35s", () => frame.style.visibility = "hidden");
+      animate(frame, null, {height:0}, "height 350ms", () => frame.style.visibility = "hidden");
       keyBuf = "";
     };
 
@@ -179,7 +180,7 @@ class Select {
       e.taken = true ;
       if(frame.style.visibility == "hidden") {
         frame.style.visibility = "visible" ;
-        animate(frame, {height:0}, {height:frameHeight}, "height .35s");
+        animate(frame, {height:0}, {height:frameHeight}, "height 350ms");
       }
       else closeFrame() ;
     });
@@ -606,6 +607,7 @@ class Panel {
     elm.style.transform = "scale(0)";
     reflow();
     elm.style.transition = `transform ${_gs_}ms`;
+    numb(elm, _gs_);
     if(onShown) delayMs(_gs_, () => onShown()) ;
     elm.style.transform = "scale(1)";
     _pzTarget_ = elm;

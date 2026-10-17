@@ -22,7 +22,6 @@
 
 export {
   animate,
-  animateFreeze,
   animateStop,
   css,
   cssIndex,
@@ -63,6 +62,8 @@ export {
   TabView,
   ColorPicker,
   mergeRecent,
+  numb,
+  numbed,
 };
 import { iconPaths } from "./icon.js";
 // -skip
@@ -299,9 +300,9 @@ css( // common css declarations.
     --line-height-loose: 1.75;
 
     /* Transitions */
-    --transition-fast: 0.15s ease;
-    --transition-normal: 0.3s ease;
-    --transition-slow: 0.5s ease;
+    --transition-fast: 150ms ease;
+    --transition-normal: 300ms ease;
+    --transition-slow: 500ms ease;
 
     /* Z-index layers */
     --z-base: 1;
@@ -968,7 +969,7 @@ class Curtain {
   level = 60 ;
 
   curtain = helm(`<div data-tag="Curtain" style=
-     "position:fixed;inset:0;pointer-events:none;opacity:0;transition: opacity 1.5s ease;z-index:var(--z-curtain)">
+     "position:fixed;inset:0;pointer-events:none;opacity:0;transition: opacity 1500ms ease;z-index:var(--z-curtain)">
       </div>`) ; // singleton div
 
   constructor() {
@@ -996,7 +997,7 @@ class Curtain {
             }
             curtain.style.visibility = "visible" ;
             curtain.offsetHeight;
-            curtain.style.transition = "opacity 1.5s ease";
+            curtain.style.transition = "opacity 1500ms ease";
           }
         }
       } catch (err) {}
@@ -1035,7 +1036,7 @@ class Curtain {
     else curtain.style.opacity = 0 ;
     if (immediate) {
       curtain.offsetHeight ; // force reflow
-      curtain.style.transition = "opacity 1.5s ease" ;
+      curtain.style.transition = "opacity 1500ms ease" ;
     }
   }
 
@@ -1501,7 +1502,7 @@ class Shade {
 
   hide() {
    this.msgStack = [];
-    this.elm.style.transition = "opacity 5.5s ease-in";
+    this.elm.style.transition = "opacity 5500ms ease-in";
     this.elm.style.opacity = 0;
     this.scheduler.run(500, () => this.elm.remove());
   }
@@ -1838,6 +1839,7 @@ class Surface {
     if (surface.parentElement != _body_ || surface.hiding) return;
     surface.hiding = true;
     let ms = 500;
+    numb(surface, ms);
     let onElmBox = getBox(dataIndex("tag", this.panel.cell.elm).cellIcon);
     let elmBox = getBox(surface);
     // translate the surface's CENTER onto the cell icon's CENTER, shrinking to nothing
@@ -2096,18 +2098,6 @@ function animate(elm, from, to, transition, finalize) {
 
 let FLY_PROPS = ["left", "top", "fontSize"];
 
-function animateFreeze(elm) {
-  // Stop a fly() where @elm appears right now (e.g. so it can be grabbed mid-fling).
-  // Only a move can be frozen: a flight that is also resizing @elm is left to finish.
-  if (!elm._fly || elm._fly.resizing) return;
-  // Not resizing, the flight's transform is a pure translate: what's left of it is
-  // how far @elm still appears from where it's laid out, at its end position.
-  let { e: dx, f: dy } = new DOMMatrix(getComputedStyle(elm).transform);
-  animateStop(elm);
-  elm.style.left = elm.offsetLeft + dx + "px";
-  elm.style.top = elm.offsetTop + dy + "px";
-}
-
 function animateStop(elm) {
   // Finish a fly() now: @elm jumps to its end state.
   let fly = elm._fly;
@@ -2314,7 +2304,7 @@ function fly(elm, from, to, transition, finalize) {
     animateStop(elm);
     if (finalize) finalize();
   });
-  elm._fly = { listener, origin, shrinkTo: shrink ? to : null, resizing: start.font != b.font };
+  elm._fly = { listener, origin, shrinkTo: shrink ? to : null };
   return true;
 }
 
@@ -2365,6 +2355,7 @@ function hide(elm, onElm) {
   // then elm's visibility will be set hidden, and its size restored.
   if (elm.hiding) return;
   else elm.hiding = true; // prevent hiding until schedule(500...) has run
+  numb(elm, 500);
   // The animation is a single `transform` (translate + scale to nothing, about
   // elm's transform origin): compositor-only, where left/top/font-size would
   // re-layout elm every frame. elm's own left and font-size are never touched.
@@ -2423,7 +2414,7 @@ function hideByLayout(elm, onElm) {
   let top  = (elmBox.y - offsetParentBox.y) + "px";
   elm.style.left = left;
   elm.style.top = top;
-  elm.style.transition = "top .5s, left .5s,font-size .5s, opacity .5s";
+  elm.style.transition = "top 500ms, left 500ms, font-size 500ms, opacity 500ms";
   reflow();
   elm.style.left = (onElmBox.x + onElmBox.width / 2 - offsetParentBox.x) + "px"; 
   elm.style.top = (onElmBox.y + onElmBox.height / 2 - offsetParentBox.y) + "px";  
@@ -2603,6 +2594,28 @@ function mergeRecent(existing, incoming) {
   return Object.fromEntries(
     Object.entries(merged).sort((a, b) => b[1] - a[1]).slice(0, _maxRecent_)
   );
+}
+
+let _numb_ = new Map(); // numbed elm => performance.now() at which it can feel again
+
+function numb(elm, ms) {
+  // For the next @ms milliseconds, @elm and its subtree feel no pointerdown: it is swallowed, so a
+  // touch on something flying across the ui neither catches it nor falls through to
+  // what's underneath. The swallowing is done by main.js's onDown (the capture-phase
+  // pointerdown listener on _body_, which runs ahead of every other handler) via numbed().
+  if (!(ms > 0)) return; // (NaN, a negative or no @ms: never numb forever by mistake)
+  let until = performance.now() + Math.min(ms, 5000);
+  _numb_.set(elm, Math.max(until, _numb_.get(elm) ?? 0));
+}
+
+function numbed(target) {
+  // Is @target inside an element that numb() has numbed?
+  let now = performance.now();
+  for (let [elm, until] of _numb_) {
+    if (until <= now) _numb_.delete(elm);
+    else if (elm.contains(target)) return true;
+  }
+  return false;
 }
 
 
