@@ -150,11 +150,11 @@ class Pg {
 
     // Detect silently-broken PDFs (e.g. non-standard compression or missing fonts).
     // These trigger the onUnsupportedFeature callback during loading or rendering.
-    if (this.mozPn == 1 && !this.score._brokenPDFWarned && this.score._unsupportedFeatures?.size > 0) {
+    if (this.mozPn == 1 && !this.score.brokenPDFWarned && this.score.unsupportedFeatures?.size > 0) {
       let unsupported = window.pdfjsLib.UNSUPPORTED_FEATURES;
       let fatal = [unsupported?.font, unsupported?.jbig2, unsupported?.jpeg2000].filter(v => v !== undefined);
-      if (Array.from(this.score._unsupportedFeatures).some(f => fatal.includes(f))) {
-        this.score._brokenPDFWarned = true;
+      if (Array.from(this.score.unsupportedFeatures).some(f => fatal.includes(f))) {
+        this.score.brokenPDFWarned = true;
         dialog("Warning: This PDF uses advanced features (e.g. non-native compression or fonts) that may not be fully supported in a web browser and may not render correctly.", { OK: { svg: "OK" } });
       }
     }
@@ -1252,8 +1252,8 @@ class Score {
 
       // detect non-standard or missing features (fonts, non-standard compression, etc)
       loadingTask.onUnsupportedFeature = (featureId) => {
-        if (!this._unsupportedFeatures) this._unsupportedFeatures = new Set();
-        this._unsupportedFeatures.add(featureId);
+        if (!this.unsupportedFeatures) this.unsupportedFeatures = new Set();
+        this.unsupportedFeatures.add(featureId);
       };
 
       // is this an encrypted pdf?

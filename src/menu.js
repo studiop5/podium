@@ -357,7 +357,7 @@ class Menu {
       if (wakeLockCell.stash.on) {
         (async () => {
           try {
-            wakeLockCell._wakeLock = await navigator.wakeLock.request("screen");
+            wakeLockCell.wakeLock = await navigator.wakeLock.request("screen");
             dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Wakelock On"];
           } catch {
             // Silently ignore page-load failures. The wake lock will be requested
@@ -365,12 +365,12 @@ class Menu {
             dataIndex("tag", wakeLockCell.elm).cellIcon.innerHTML = iconPaths["Wakelock On"];
             let l = listen(document, "pointerup", async () => {
               if (wakeLockCell.stash.on) {
-                if (wakeLockCell._wakeLock) {
+                if (wakeLockCell.wakeLock) {
                   unlisten(l);
                   return;
                 }
                 try {
-                  wakeLockCell._wakeLock = await navigator.wakeLock.request("screen");
+                  wakeLockCell.wakeLock = await navigator.wakeLock.request("screen");
                   unlisten(l);
                 } catch (err) {
                   if (err.name !== "NotAllowedError") {
@@ -753,12 +753,12 @@ class Menu {
       let cellIcon = dataIndex("tag", rings.app.cells.wakeLock.elm).cellIcon;
       if (cell.stash.on) {
         cell.stash.on = false;
-        cell._wakeLock?.release();
-        cell._wakeLock = null;
+        cell.wakeLock?.release();
+        cell.wakeLock = null;
         cellIcon.innerHTML = iconPaths["Wakelock Off"];
       } else {
         try {
-          cell._wakeLock = await navigator.wakeLock.request("screen");
+          cell.wakeLock = await navigator.wakeLock.request("screen");
           cell.stash.on = true;
           cellIcon.innerHTML = iconPaths["Wakelock On"];
         } catch {
@@ -771,7 +771,7 @@ class Menu {
       let cell = rings.app?.cells?.wakeLock;
       if (cell?.stash.on && document.visibilityState == "visible") {
         try {
-          cell._wakeLock = await navigator.wakeLock.request("screen");
+          cell.wakeLock = await navigator.wakeLock.request("screen");
         } catch {
           // silently ignore — e.g. low power mode
         }
@@ -968,11 +968,6 @@ class Menu {
     if (e.ctrlKey || e.shiftKey) return;
     this.elm.style.zIndex = ++_zTop_;
     this.clearSpinFling();
-    // Cancel any active spin flings on touch
-    Object.values(this.rings).forEach(r => {
-      if (r._spinRaf) { cancelAnimationFrame(r._spinRaf); r._spinRaf = null; }
-    });
-    if (this.disk._spinRaf) { cancelAnimationFrame(this.disk._spinRaf); this.disk._spinRaf = null; }
     let op = this.op;
     op.schedule.cancel();
     let keys = e.target.dataset.key || "grip";
@@ -1178,14 +1173,14 @@ class Menu {
       child.firstElementChild.style.transition = `transform ${dur}ms ease-out`;
       child.firstElementChild.style.transform  = `rotate(${-rotation * i - obj.turn}turn)`;
     });
-    this._spinElm = spinElm;
+    this.spinElm = spinElm;
   }
 
   clearSpinFling() {
-    if (!this._spinElm) return;
-    this._spinElm.style.transition = "unset";
-    [...this._spinElm.children].forEach(child => child.firstElementChild.style.transition = "unset");
-    this._spinElm = null;
+    if (!this.spinElm) return;
+    this.spinElm.style.transition = "unset";
+    [...this.spinElm.children].forEach(child => child.firstElementChild.style.transition = "unset");
+    this.spinElm = null;
   }
 
   opUp(eup) {

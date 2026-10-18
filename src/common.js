@@ -2078,7 +2078,7 @@ function animate(elm, from, to, transition, finalize) {
   // A move and/or resize (@to holding only left, top, fontSize) is not transitioned
   // on those properties: each frame of that is a re-layout (and, for fontSize, a
   // re-raster of everything inside @elm). It "flies" instead: see fly().
-  if (Object.keys(to).every((k) => FLY_PROPS.includes(k)) && (!elm.style.transform || elm._fly)
+  if (Object.keys(to).every((k) => FLY_PROPS.includes(k)) && (!elm.style.transform || elm.flight)
       && fly(elm, from, to, transition, finalize)) return;
   animateStop(elm);
   if(from) 
@@ -2100,11 +2100,11 @@ let FLY_PROPS = ["left", "top", "fontSize"];
 
 function animateStop(elm) {
   // Finish a fly() now: @elm jumps to its end state.
-  let fly = elm._fly;
-  if (!fly) return;
-  elm._fly = null;
-  unlisten(fly.listener);
-  Object.assign(elm.style, { transition: "unset", transform: "", transformOrigin: fly.origin }, fly.shrinkTo);
+  let flight = elm.flight;
+  if (!flight) return;
+  elm.flight = null;
+  unlisten(flight.listener);
+  Object.assign(elm.style, { transition: "unset", transform: "", transformOrigin: flight.origin }, flight.shrinkTo);
 }
 
 function clamp(num, min, max) {
@@ -2273,7 +2273,7 @@ function fly(elm, from, to, transition, finalize) {
   // Returns false, having changed nothing, if there's nothing it can fly.
   let timing = flyTiming(transition);
   if (!timing) return false;
-  let inFlight = elm._fly ? flyState(elm) : null; // re-targeted mid-flight: take off from where it appears
+  let inFlight = elm.flight ? flyState(elm) : null; // re-targeted mid-flight: take off from where it appears
   animateStop(elm);
   let before = Object.fromEntries(FLY_PROPS.map((k) => [k, elm.style[k]]));
   let transition0 = elm.style.transition, origin = elm.style.transformOrigin;
@@ -2304,7 +2304,7 @@ function fly(elm, from, to, transition, finalize) {
     animateStop(elm);
     if (finalize) finalize();
   });
-  elm._fly = { listener, origin, shrinkTo: shrink ? to : null };
+  elm.flight = { listener, origin, shrinkTo: shrink ? to : null };
   return true;
 }
 
