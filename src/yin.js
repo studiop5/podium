@@ -43,9 +43,9 @@ class Yin {
     this.highPassFilter.frequency.value = 40;
     this.highPassFilter.Q.value = 0.7;
 
-    if (!this.audioContext.audioWorklet._yinModulePromise) {
+    if (!this.audioContext.audioWorklet.yinModulePromise) {
       // Cache the whole load, including fetch, so simultaneous instances share it.
-      this.audioContext.audioWorklet._yinModulePromise = (async () => {
+      this.audioContext.audioWorklet.yinModulePromise = (async () => {
         // Load worklet with embedded WASM via blob URL
         let workletCode;
 // #include build/yin-worklet.js as workletCode
@@ -65,11 +65,11 @@ class Yin {
           if(workletUrl.startsWith("blob:")) URL.revokeObjectURL(workletUrl);
         }
       })().catch((err) => {
-        audioContext.audioWorklet._yinModulePromise = null;
+        audioContext.audioWorklet.yinModulePromise = null;
         throw err;
       });
     }
-    await audioContext.audioWorklet._yinModulePromise;
+    await audioContext.audioWorklet.yinModulePromise;
     if(this.released) return;
 
     this.workletNode = new AudioWorkletNode(this.audioContext, 'yin');
@@ -118,9 +118,9 @@ class Yin {
     if(this.released || startId !== this.startId) return;
     if (this.audioContext.state === 'suspended') await this.audioContext.resume();
     if(this.released || startId !== this.startId) return;
-    if (this._keepaliveStream) {
-      this._keepaliveStream.getTracks().forEach(t => t.stop());
-      this._keepaliveStream = null;
+    if (this.keepaliveStream) {
+      this.keepaliveStream.getTracks().forEach(t => t.stop());
+      this.keepaliveStream = null;
     }
     let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     if(this.released || startId !== this.startId) {
@@ -143,7 +143,7 @@ class Yin {
       if (/AppleWebKit/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent) && navigator.maxTouchPoints > 1) {
         // iOS: stopping mic tracks resets the audio session, suspending AudioContext.
         // Keep the stream alive to hold the session open; release() stops it when Piano closes.
-        this._keepaliveStream = this.currentStream;
+        this.keepaliveStream = this.currentStream;
       } else {
         this.currentStream.getTracks().forEach(track => track.stop());
       }
@@ -155,9 +155,9 @@ class Yin {
     if(this.released) return;
     this.released = true;
     this.stop();
-    if (this._keepaliveStream) {
-      this._keepaliveStream.getTracks().forEach(t => t.stop());
-      this._keepaliveStream = null;
+    if (this.keepaliveStream) {
+      this.keepaliveStream.getTracks().forEach(t => t.stop());
+      this.keepaliveStream = null;
     }
     this.sharedContext?.removeEventListener('statechange', this.contextStateListener);
     this.sharedContext = this.contextStateListener = null;

@@ -1014,32 +1014,32 @@ class GDriveSrc extends CachedSrc {
         callback: (response) => {
           _shade_.pop();
           if (response.error) {
-            this._pendingReject?.(new Error(response.error, { cause: "auth" }));
+            this.pendingReject?.(new Error(response.error, { cause: "auth" }));
           } else {
             let now = Date.now() / 1000;
             this.tokens = {
               access_token: response.access_token,
               expiry: now + (response.expires_in || 3600),
             };
-            this._pendingResolve?.();
+            this.pendingResolve?.();
           }
-          this._pendingResolve = null;
-          this._pendingReject = null;
+          this.pendingResolve = null;
+          this.pendingReject = null;
         },
         error_callback: (error) => {
           // Called when popup is closed or fails to open (error.type: popup_closed, popup_failed_to_open)
           _shade_.pop();
-          this._pendingReject?.(new Error("Authentication cancelled by user.", { cause: "cancelled" }));
-          this._pendingResolve = null;
-          this._pendingReject = null;
+          this.pendingReject?.(new Error("Authentication cancelled by user.", { cause: "cancelled" }));
+          this.pendingResolve = null;
+          this.pendingReject = null;
         },
       });
     }
 
     // Wrap GIS callback in a Promise
     return new Promise((resolve, reject) => {
-      this._pendingResolve = resolve;
-      this._pendingReject = reject;
+      this.pendingResolve = resolve;
+      this.pendingReject = reject;
       _shade_.show("Authorizing");
       this.gisClient.requestAccessToken();
     });

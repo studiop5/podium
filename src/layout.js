@@ -331,16 +331,16 @@ class Layout {
 
   async build(...args) {
     if(this.destroyed) return; // (e.g. a rebuild requested by an animation that outlived the layout)
-    // Wrapper around each layout's _build(). Subclasses implement _build(); this
+    // Wrapper around each layout's doBuild(). Subclasses implement doBuild(); this
     // wrapper guarantees the `pasting` guard is cleared once a (re)build completes,
-    // even if _build() returns early (e.g. BookLayout._build returns when
+    // even if doBuild() returns early (e.g. BookLayout.doBuild returns when
     // animated==false) or throws. This is the single, traceable reset point for
     // the guard: every code path that mutates the model then rebuilds passes
     // through here, so the guard can never leave input permanently frozen.
     // A build interrupted by the layout's destruction just ends: callers (e.g.
     // Layout.open) see a normal return, as they did before whileAlive() existed.
     try {
-      return await this._build(...args);
+      return await this.doBuild(...args);
     } catch (err) {
       if (!(err instanceof LayoutDestroyed)) throw err;
     } finally {
@@ -353,7 +353,7 @@ class Layout {
     return this.build(false);
   }
 
-  _build() {
+  doBuild() {
     // Subclasses override: (re) build the ui: called on initial
     // display, and any time the layout needs to be updated, due to screen size
     // change, re-orientation, or request to jump to specific page.
@@ -959,7 +959,7 @@ class BookLayout extends Layout {
     unlisten(this.pointerListener);
   }
 
-  async _build(animated=true) {
+  async doBuild(animated=true) {
     Object.assign(this, this.cell.stash);
     this.pn0 = -2;
     let { fit, score } = this;
@@ -1706,7 +1706,7 @@ class ScrollLayout extends Layout {
     unlisten(this.pointerListener);
   }
 
-  async _build(animated=true) {
+  async doBuild(animated=true) {
     this.animated = animated;
     Object.assign(this, this.cell.stash);
     let { fit, gap, pgSnap, sash, score, pgShow } = this;
@@ -2226,7 +2226,7 @@ class TableLayout extends Layout {
     unlisten(this.pointerListener);
   }
 
-  async _build(animated=true) {
+  async doBuild(animated=true) {
     // @animated set to false to skip some of the animation effects during building...
     // When true, we build 1 page per animation frame, and move the layout as more
     // rows are added. This works fine for initial builds, but is too much if
