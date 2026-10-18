@@ -759,7 +759,7 @@ function closeVideo(event, container) {
                 <li><a href="#chapter-2-extension">2.1 Browser Extension</a> — <span style="color:#666">Install as a browser extension on desktop</span></li>
                 <li><a href="#chapter-2-pwa">2.2 Progressive Web App (PWA)</a> — <span style="color:#666">Install as a standalone app on any device</span></li>
                 <li><a href="#chapter-2-compat">2.3 Browser Compatibility</a> — <span style="color:#666">Supported browsers and platforms</span></li>
-                <li><a href="#chapter-2-foot-pedal">2.4 Foot Pedal</a> — <span style="color:#666">Page turning with a Bluetooth foot pedal</span></li>
+                <li><a href="#chapter-2-foot-pedal">2.4 Foot Pedal</a> — <span style="color:#666">Page turning with a Bluetooth or USB foot pedal</span></li>
                 <li><a href="#chapter-2-language">2.5 Using Podium in Your Language</a> — <span style="color:#666">Translate the interface with your browser</span></li>
             </ul>
         </li>
@@ -1066,7 +1066,7 @@ function closeVideo(event, container) {
     <p><a href="#chapter-9" class="chapter-link">See Chapter 9: More Ring</a> for detailed information on each practice tool</p>
 
     <h3>Keyboard and Pedal Support</h3>
-    <p>Podium works with foot pedal page turners that simulate arrow key presses. Configure arrow key behavior in the Page Ring's Numbers panel to map pedal presses to page turns or bookmark navigation.</p>
+    <p>Podium works with Bluetooth and USB foot pedal page turners that send arrow key or Page Up/Down presses. Configure arrow key behavior in the Page Ring's Numbers panel to map pedal presses to page turns or bookmark navigation.</p>
     <p><a href="#chapter-7-numbers" class="chapter-link">See Chapter 7: Page Ring - Numbers</a> for keyboard shortcut configuration</p>
 
     <h3>Need Help?</h3>
@@ -1210,7 +1210,9 @@ function closeVideo(event, container) {
 
     <h3 id="chapter-2-foot-pedal">2.4 Foot Pedal</h3>
 
-    <p>Podium works with Bluetooth foot pedal page turners commonly used by performing musicians. Most foot pedals emulate keyboard arrow keys — Podium detects these and uses them to turn pages.</p>
+    <p>Podium works with the Bluetooth and USB foot pedal page turners commonly used by performing musicians. To your device, these pedals are simply keyboards with only a few keys: each press sends a key, and when that key is an arrow key or Page Up/Down, Podium uses it to turn pages. Many pedals let you choose which key each pedal sends (the setting is usually stored in the pedal itself); if yours sends some other key, such as Space or Enter, set it to send arrow keys or Page Up/Down.</p>
+
+    <p>Pedals that don't present themselves as a keyboard, such as transcription pedals and MIDI footswitches, aren't supported.</p>
 
     <p>The behavior of the arrow keys (and therefore the pedal) is configured in the <a href="#chapter-7-numbers" class="chapter-link">Numbers panel</a> (Page Ring → Numbers). You can assign the right/down arrow (and Page Down) to advance a page or jump to the next bookmark, and the left/up arrow (and Page Up) to go back a page or jump to the previous bookmark. The bookmark mode is especially useful for scores with repeats: navigate to the first page of the repeated section and long-press its page number to place a bookmark there, then use the back pedal to snap directly to it when the repeat begins.</p>
 
@@ -2060,7 +2062,7 @@ function closeVideo(event, container) {
 
     <h4>Foot Pedal Keys:</h4>
 
-    <p>These controls are designed for Bluetooth foot pedal page turners commonly used by musicians. Since foot pedals are simply specialized keyboards with only a few keys, these commands work equally well with regular computer keyboards.</p>
+    <p>These controls are designed for the Bluetooth and USB foot pedal page turners commonly used by musicians. Since foot pedals are simply specialized keyboards with only a few keys, these commands work equally well with regular computer keyboards.</p>
 
     <p>You can assign one shortcut to the right and down cursor arrow keys (and Page Down), and one to the left and up cursor arrow keys (and Page Up). Tap the appropriate button to determine if a right or down key press will navigate to the next page, or instead navigate to the next bookmark. Similarly, choose the appropriate button to determine if the left or up keys will navigate to the previous page, or navigate to the previous bookmark.</p>
 
@@ -2616,7 +2618,7 @@ function closeVideo(event, container) {
         <li><strong>Progressive search</strong> — as you type, the result in the active field changes to show only the first matching item. Progressive search is available in file panels (Open and Save) and in any dropdown, most usefully the category picker in the <a href="#chapter-6-symbols" class="chapter-link">Symbols panel</a>.</li>
     </ul>
 
-    <p>The key labeled "<strong>…</strong>" switches the keyboard to its <strong>special keys</strong> layout, which includes international characters, cursor arrow keys, and the Home and End keys. The key labeled "<strong>Aa</strong>" switches back to the normal letter keys. The arrow keys are also useful for testing your <a href="#chapter-7-numbers" class="chapter-link">Bluetooth foot pedal configuration</a> without needing the physical pedal nearby.</p>
+    <p>The key labeled "<strong>…</strong>" switches the keyboard to its <strong>special keys</strong> layout, which includes international characters, cursor arrow keys, and the Home and End keys. The key labeled "<strong>Aa</strong>" switches back to the normal letter keys. The arrow keys are also useful for testing your <a href="#chapter-7-numbers" class="chapter-link">foot pedal configuration</a> without needing the physical pedal nearby.</p>
 
 
     <figure>
