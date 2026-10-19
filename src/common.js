@@ -1971,7 +1971,7 @@ class TabView {
     deselect() {
       this.tag.classList.remove("Tab__tag-selected");
       this.face.classList.add("void");
-      if (this.onDeselect) this.ondelect();
+      if (this.onDeselect) this.onDeselect(this);
     }
   };
 
