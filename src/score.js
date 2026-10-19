@@ -811,16 +811,27 @@ class Pg {
           let matrix = obj.calcTransformMatrix();
           let po = obj.pathOffset || { x: 0, y: 0 };
           let pathStr = "";
+          let last, start; // the current point, and the current subpath's start
           obj.path.forEach((pathlet) => {
-            pathStr += pathlet[0];
-            // each "pathlet" will have an operator (M, L, or Q) followed by
+            // each "pathlet" will have an operator (M, L, C, Q, or Z) followed by
             // pairs of x,y coordinates
-            for (let i = 1; i < pathlet.length; ) {
-              let p = fabric.util.transformPoint({ x: pathlet[i++] - po.x, y: pathlet[i++] - po.y }, matrix);
-              // toFixed: tiny float artifacts would serialize in scientific
-              // notation, which the svg path parser rejects
-              pathStr += p.x.toFixed(2) + " " + p.y.toFixed(2) + " ";
+            let op = pathlet[0], pts = [];
+            for (let i = 1; i < pathlet.length; )
+              pts.push(fabric.util.transformPoint({ x: pathlet[i++] - po.x, y: pathlet[i++] - po.y }, matrix));
+            if (op == "Q") {
+              // pdf-lib writes an svg Q as pdf's "v" operator, which is a different curve
+              // (it bulges 4/9 of the way to the control point, not 1/2, skewed toward its
+              // end): hand it the exact cubic equivalent instead
+              let [c, end] = pts;
+              let toward = (p, f) => ({ x: p.x + (c.x - p.x) * f, y: p.y + (c.y - p.y) * f });
+              op = "C";
+              pts = [toward(last, 2 / 3), toward(end, 2 / 3), end];
             }
+            // toFixed: tiny float artifacts would serialize in scientific
+            // notation, which the svg path parser rejects
+            pathStr += op + pts.map((p) => " " + p.x.toFixed(2) + " " + p.y.toFixed(2)).join("") + " ";
+            if (op == "M") start = pts[0];
+            last = op == "Z" ? start : pts[pts.length - 1];
           });
 
           // we do fill or stroke, but not both
