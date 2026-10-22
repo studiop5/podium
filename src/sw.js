@@ -1,7 +1,7 @@
 // Podium Service Worker
 // Enables offline functionality and PWA installation
 
-let CACHE_NAME = 'podium-v2.3.0'; 
+let CACHE_NAME = 'podium-v2.3.1'; 
 let urlsToCache = [
   './podium.html',
 ];
