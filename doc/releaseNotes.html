@@ -178,6 +178,7 @@
 <nav>
     <h2>Versions</h2>
     <ul>
+        <li><a href="#v2.3.1">Version 2.3.1</a> <span class="version-date">— coming soon</span></li>
         <li><a href="#v2.3.0">Version 2.3.0</a> <span class="version-date">— October 2026</span></li>
         <li><a href="#v2.2.0">Version 2.2.0</a> <span class="version-date">— August 2026</span></li>
         <li><a href="#v2.1.0">Version 2.1.0</a> <span class="version-date">— July 2026</span></li>
@@ -190,6 +191,64 @@
         For detailed usage instructions, see the <a href="Guidebook.html">Guidebook</a>.
     </p>
 </nav>
+
+
+<!-- ═══════════════════════════════════════════════════════════ V2.3.1 -->
+<!-- (date to be set at release) -->
+<section id="v2.3.1">
+    <h2>Version 2.3.1 <span class="version-tag">— coming soon</span></h2>
+
+    <div class="entry">
+        <h3>Foot Pedal Bookmark Navigation Stops at the Ends</h3>
+        <p class="location">Page Ring &rarr; Numbers (foot pedal and arrow keys)</p>
+        <p>When the foot pedal (or the arrow keys) is set to step through bookmarks, it now
+        stops at the first and last bookmark, just as paging stops at the first and last page.
+        Previously, going forward from the last bookmark wrapped around to the first, and going
+        back from before the first bookmark jumped to the last, so a stray press during a
+        performance could send you to the other end of the score.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-7-numbers">§7.1 Numbers</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Foot Pedal Bookmark Navigation Fixed in Horizontal and Vertical Layouts</h3>
+        <p class="location">Horizontal and Vertical layouts (foot pedal and arrow keys)</p>
+        <p>In version 2.3.0, stepping through bookmarks with the foot pedal (or the arrow keys)
+        didn't work in the Horizontal and Vertical layouts. It now works there just as it does
+        in Book and Table.</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-7-numbers">§7.1 Numbers</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Volume Shown as a Percentage</h3>
+        <p class="location">More Ring &rarr; Volume</p>
+        <p>The Volume panel now shows the volume as a percentage, from 0% to 100%, and the slider
+        moves in finer 1% steps (previously 10%).</p>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#chapter-9-volume">§9.8 Volume</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Other Improvements and Bug Fixes</h3>
+        <p class="location">Throughout PODIUM</p>
+        <ul>
+            <li><strong>Animation:</strong> flung menus, panels, and objects move more smoothly, and
+            ignore taps until they've landed. Opening the Book layout no longer shows a stray page
+            flip.</li>
+            <li><strong>Panels:</strong> a panel now drags in from the right place, and no longer
+            ends up behind the menu if it was already on screen. The menu no longer collapses
+            at startup.</li>
+            <li><strong>Bookmarks:</strong> a new bookmark gets a different color from its nearest
+            neighbors, so adjacent bookmarks are easy to tell apart.</li>
+            <li><strong>Saving:</strong> pencil strokes keep their exact shape in the saved PDF.
+            Previously, curves could be slightly flattened.</li>
+        </ul>
+    </div>
+</section>
 
 
 <!-- ═══════════════════════════════════════════════════════════ V2.3 -->

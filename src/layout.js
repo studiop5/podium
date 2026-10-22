@@ -676,32 +676,20 @@ class Layout {
     // Ignore rapid page turn requests while operation is in progress
     if (this.inOp) return;
 
-    let bookmarks = [];
+    let bookmarks = []; // ascending pns (1-based)
     this.score.pgs.forEach((pg, i) => {
-      if (pg.bookmark) bookmarks.push(i + 1); // pn is 1-based
+      if (pg.bookmark) bookmarks.push(i + 1);
     });
-    if (bookmarks.length == 0) return;
-    let pn = bookmarks[0];
-    if (bookmarks.length > 1) {
-      let current = _score_.numbers.pn;
-      switch (how) {
-        case "next":
-          bookmarks.sort((a, b) => a - b);
-          pn = bookmarks.find((x) => x > current);
-          if (!pn) pn = bookmarks[0]; // wrap
-          break;
-        case "prev":
-          bookmarks.sort((b, a) => a - b);
-          pn = bookmarks.find((x) => x < current);
-          if (!pn) pn = bookmarks[0]; // wrap
-          break;
-        case "first":
-          break;
-        case "last":
-          pn = bookmarks.pop();
-          break;
-      }
+    let current = _score_.numbers.pn, pn;
+    switch (how) {
+      case "next":  pn = bookmarks.find((x) => x > current); break;
+      case "prev":  pn = bookmarks.findLast((x) => x < current); break;
+      case "first": pn = bookmarks[0]; break;
+      case "last":  pn = bookmarks.at(-1); break;
     }
+    // No mark that way: do nothing, as paging does at the first and last page. (No
+    // wrapping: a stray press on stage mustn't jump to the other end of the score.)
+    if (!pn) return;
     await this.pgGoTo(pn);
   }
 
