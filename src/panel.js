@@ -1834,11 +1834,7 @@ class StoragePanel extends Panel {
   }
 
   formatBytes(bytes) {
-    if (bytes === 0) return "0 B";
-    let k = 1024;
-    let sizes = ["B", "KB", "MB", "GB"];
-    let i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
+    return DetailsPanel.fileSize(bytes); // (as the Details panel shows sizes: "3.4 MB")
   }
 }
 
@@ -3114,7 +3110,8 @@ class SymbolsPanel extends Panel {
       border: 0.02em solid #d0d0d0;
       overflow: hidden;
    }
-   .SymbolsPanel__credit {
+   /* (:link/:visited, to outrank the app-wide "a:link, a:visited { color: blue }") */
+   .SymbolsPanel__credit, .SymbolsPanel__credit:link, .SymbolsPanel__credit:visited {
      font-size: .7em;
      letter-spacing: .05em;
      color: var(--label-color);
@@ -3487,7 +3484,8 @@ class StopwatchPanel extends Panel {
     "StopwatchPanel",
     `.Stopwatch__splits {
       width: 100%;
-      overflow: hidden;
+      overflow-y: auto; /* (the newest split is at the top; scroll for the oldest) */
+      resize: none;
       font-family: 'Courier New', Courier, monospace;
       font-size: 0.9em;
       border-radius: var(--borderRadius);
@@ -3503,7 +3501,7 @@ class StopwatchPanel extends Panel {
     `<div data-tag="body" style="display:flex;flex-flow:column;align-items:center;margin:1em;text-align:center;">
        <div data-tag="options"></div>
        <div class="Panel__heading">Splits</div>
-       <textarea data-tag="splits" class="Stopwatch__splits"></textarea>
+       <textarea data-tag="splits" class="Stopwatch__splits" rows="4"></textarea>
      </div>`
   );
 
