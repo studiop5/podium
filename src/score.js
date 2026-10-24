@@ -1046,6 +1046,17 @@ class Score {
   // maximum depth of undo stack
   static MAX_UNDO = (navigator.deviceMemory >= 8) ? 8 : 6;
 
+  static pdfDate(str) {
+    // A pdf date string ("D:YYYYMMDDHHmmSSOHH'mm'", all but the year optional) as a
+    // Date, or null if it isn't one
+    let m = /^D:(\d{4})(\d\d)?(\d\d)?(\d\d)?(\d\d)?(\d\d)?([Z+-])?(\d\d)?'?(\d\d)?'?$/.exec(String(str).trim());
+    if (!m) return null;
+    let [, y, mo = "01", d = "01", h = "00", mi = "00", s = "00", o, oh = "00", om = "00"] = m;
+    let tz = !o ? "" : o == "Z" ? "Z" : `${o}${oh}:${om}`; // (no offset: local time)
+    let date = new Date(`${y}-${mo}-${d}T${h}:${mi}:${s}${tz}`);
+    return isNaN(date) ? null : date;
+  }
+
   // Define constants to identify the various sources that Scores
   // can be created from.  These will be strings that are shown to
   // users, so they should be meaningful.
@@ -1150,7 +1161,7 @@ class Score {
         source: score.source,
         path: score.path,
         size: updates.size || prev?.size || "?",
-        created: "created" in updates ? updates.created : prev?.size || "?",
+        created: "created" in updates ? updates.created : prev?.created || "?",
         modified: "modified" in updates ? updates.modified : prev?.modified || "?",
       });
     }
@@ -1166,7 +1177,10 @@ class Score {
   now = Date.now();
   created = this.now;
   modified = this.now;
-  pdfInfo = null; // meta-info extracted from pdf src
+  // The original pdf's metadata (its Info: Title, Author, CreationDate...), or null for a
+  // score Podium made from scratch. Kept in Podium's attachment, since each save rewrites
+  // the pdf's own Info (its ModDate, at least).
+  pdfInfo = null;
   encrypted = false;    // true if PDF has an encryption dictionary
   permissions = null;   // array of allowed PermissionFlag values, or null if no encrypt dict
 
@@ -1320,6 +1334,10 @@ class Score {
         scoreJson = JSON.parse(new TextDecoder().decode(podiumAttachment.content));
         this.created = scoreJson.created || this.created;
         this.modified = scoreJson.modified || this.modified;
+        if ("pdfInfo" in scoreJson) this.pdfInfo = scoreJson.pdfInfo;
+        // (else saved by an older Podium: the pdf's Info is the best guess at the original's,
+        // unless Podium made the score itself)
+        else if (/^Podium vers\./.test(this.pdfInfo?.Creator)) this.pdfInfo = null;
         this.quality = scoreJson.quality ?? this.quality;
         if(activate) // don't use stashed values if not activating!
           _menu_.stashFromJsonObj(scoreJson.menu, "score");
@@ -1709,6 +1727,7 @@ class Score {
         maxWidth: this.maxWidth,
         maxHeight: this.maxHeight,
         quality: this.quality,
+        pdfInfo: this.pdfInfo,
         pages: {},
         menu: _menu_.stashToJsonObj("score"),
       };
@@ -1753,10 +1772,9 @@ class Score {
         creationDate: now,
         modificationDate: now,
       });
-      // set pdf doc metadata
+      // set pdf doc metadata: its ModDate is this save; the rest is the original pdf's
       dstPLibDoc.setModificationDate(now);
 
-      // If this is an original PDF with metadata, preserve it
       if (this.pdfInfo) {
         // Preserve original metadata
         if (this.pdfInfo.Title) dstPLibDoc.setTitle(this.pdfInfo.Title);
@@ -1766,10 +1784,13 @@ class Score {
             Array.isArray(this.pdfInfo.Keywords) ? this.pdfInfo.Keywords : this.pdfInfo.Keywords.split(/[,;]\s*/));
         if (this.pdfInfo.Producer) dstPLibDoc.setProducer(this.pdfInfo.Producer);
         if (this.pdfInfo.Creator) dstPLibDoc.setCreator(this.pdfInfo.Creator);
-        if (this.pdfInfo.CreationDate) dstPLibDoc.setCreationDate(new Date(this.pdfInfo.CreationDate));
+        // (a pdf date string: new Date() can't parse it, and pdf-lib would write the
+        // resulting Invalid Date as "D:0NaNNaN...")
+        let created = Score.pdfDate(this.pdfInfo.CreationDate);
+        if (created) dstPLibDoc.setCreationDate(created);
       } else {
         // New score created from scratch - set Podium metadata
-        dstPLibDoc.setCreationDate(now);
+        dstPLibDoc.setCreationDate(new Date(this.created));
         dstPLibDoc.setCreator("Podium vers." + _podiumVersion_);
         dstPLibDoc.setProducer("pdf-lib v1.17.1");
       }

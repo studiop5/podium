@@ -1670,7 +1670,11 @@ class Clip and class Recorder
     record(mediaStream) {
       unlisten(this.listener);
       if(this.recorder && this.recorder.state != "inactive") this.recorder.stop();
-      this.recorder = new MediaRecorder(mediaStream); // let browser choose mimeType (i.e. webm vs mp4)
+      // Let the browser choose the mimeType (i.e. webm vs mp4), but cap the video bitrate:
+      // its default (~2.5 Mbps) runs ~20 MB/min, and the Recorder holds up to 3x its period
+      // (two staggered Clips), so 10 minutes would need ~600 MB. 1 Mbps is plenty to
+      // review playing at camera resolution, and keeps 10 minutes to ~240 MB.
+      this.recorder = new MediaRecorder(mediaStream, { videoBitsPerSecond: 1_000_000 });
       this.recorder.start();
       this.listener = listen(this.recorder, "dataavailable", (e) => {
          if(this.resolve) 
@@ -1720,8 +1724,11 @@ class Recorder {
     });
 
     this.progress = new Schedule(1000, () => {
+      // p: the length of what's kept, between period and 2*period (see above). The scrubber
+      // spans only its last period, s.t. what can be replayed is exactly "the last period"
+      // (as the Replay option says), not the extra that the cycling happens to keep.
       let p = this.cycler.elapsed() + ((this.cycle == 0? 0: this.period));
-      scrubber.progress("time", p, 0, p);
+      scrubber.progress("time", p, Math.max(0, p - this.period), p);
       this.progress.run();
     });
 
@@ -1948,11 +1955,11 @@ class Review {
 
        <!--  Options Panel -->
        <div data-tag="options" class="Review__options hidden">
-         <br>Video Direction:
+         <div class="Panel__heading Panel__heading-first">Video Direction</div>
          <div data-tag="videoMirrorGroupElm"></div>
-         <br>Recording Length:
+         <div class="Panel__heading">Review Length</div>
          <div data-tag="videoReplayGroupElm"></div>
-         <br>Input Devices:
+         <div class="Panel__heading">Input Devices</div>
          <div data-tag="mediaDevicesGroupElm"></div>
          <div class="Review__options__details" translate="no"> <!-- device names come from the hardware -->
            <div data-tag="audioSrc"></div>
@@ -2132,7 +2139,11 @@ class Review {
 
     // Build slidergroup to set video replay time:
     this.videoReplayGroup = new SliderGroup(this.stash, {
-      replay: { min: 5, max: 120, value: 15, msg: (tag, value) => `${value}s to ${value * 2}s` }
+      // up to 10 minutes; the curve keeps the short lengths easy to set
+      replay: { min: 5, max: 600, step: 5, curve: 2, value: 15, msg: (tag, value) => {
+        let time = (s) => s < 60 ? `${s}s` : `${Math.floor(s / 60)}m` + (s % 60 ? ` ${s % 60}s` : "");
+        return `Last ${time(value)}`;
+      }}
     }, async () => {
       await this.restart();
     });
@@ -2214,9 +2225,13 @@ class Review {
 
     // add video scrub bar
     this.scrubber = new SliderGroup({time:1}, {
-      time: {min:0, max:0, step:1, value:0, 
-      msg: (tag, value) => Math.floor(value / 60000) + ":" + 
-           String(Math.floor((value % 60000) / 1000)).padStart(2,0) }},
+      // the readout counts back from now (the scrubber's right end): "−1:05" is 1:05 ago
+      time: {min:0, max:0, step:1, value:0,
+      msg: (tag, value) => {
+        let max = this.scrubber?.defs.time.max ?? value; // (msg runs once before this.scrubber is set)
+        let back = Math.max(0, Math.round((max - value) / 1000));
+        return (back ? "\u2212" : "") + Math.floor(back / 60) + ":" + String(back % 60).padStart(2, "0");
+      }}},
       (e, tag, value, scrubber) => { 
         if (e.type == "change") {
           if(this.state == "Live") this.replay(value);

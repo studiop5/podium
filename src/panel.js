@@ -71,32 +71,35 @@ class Select {
     mark {
       background-color: #aaa;
     }
+    /* The toggle is a tile like a ButtonGroup button. Text is in the UI font, with
+       Bravura behind it for any music glyphs in an option. */
     .Select__toggle {
-      border:2px solid black;
-      border-radius:var(--borderRadius);
-      font-family:Bravura;
+      border-radius: .45em;
+      background-image: var(--button-bg);
+      box-shadow: var(--button-shadow);
+      font-family: var(--body-font-family), Bravura;
       display:flex;
       align-items:center;
       justify-content:center;
       position:relative;
-      padding-right:1.5em;
-      height:3em;
+      padding: 0 1.8em 0 .6em;
+      height:2.6em;
       box-sizing: border-box;
     }
     .Select__toggle:after {
       content: "\ueb7c";
+      font-family: Bravura;
+      color: var(--label-color);
       position:absolute;
       right:.2em;
-      font-size:3em;
+      font-size:2.5em;
       top: calc(50% - .2em);
       line-height:0;
      }
     .Select__toggle:focus {
-      background-color: #fff;
+      background-image: var(--button-on-bg);
+      box-shadow: var(--button-on-shadow);
       outline: none;
-    }
-    [data-theme="Dark"] .Select__toggle:focus {
-      background-color: #555;
     }
     .Select__frame {
       border-radius:var(--borderRadius);
@@ -105,14 +108,14 @@ class Select {
       z-index: var(--z-modal);
     }
     .Select__sash {
-      color:black;
+      color: var(--select-option-text);
       text-align:left;
-      background:white;
-      font-family:Bravura;
+      background: var(--select-option-bg);
+      font-family: var(--body-font-family), Bravura;
       position:absolute;
     }
     .Select__option {
-      padding: .25em;
+      padding: .4em .6em;
     }
 
     /* for older Safari and Firefox */
@@ -129,11 +132,13 @@ class Select {
      </div>
     </div>`) ;
 
-  constructor(options, option=null, panel, translatable=() => true) {
+  constructor(options, option=null, panel, translatable=() => true, optionStyle=null) {
     // @translatable(option) says whether the browser's translator may translate an option's
     // label; options are always identified by their original (untranslated) string.
+    // @optionStyle(option), if given, returns style properties for showing an option's label,
+    // in the list and in the toggle (e.g. each font name in its own typeface).
     Object.assign(this, dataIndex("tag", this.elm));
-    Object.assign(this, {options, option, panel, translatable}) ;
+    Object.assign(this, {options, option, panel, translatable, optionStyle}) ;
     delayMs(_gs_ + 1, () => this.build()) ; // call build after we're confident panel has animated (duration _gs_) to its full size
   }
 
@@ -150,6 +155,7 @@ class Select {
       let elm = helm(`<div class="Select__option">${escapeHtml(option)}</div>`) ;
       elm.dataset.option = option ;
       elm.translate = translatable(option) ;
+      if (this.optionStyle) Object.assign(elm.style, this.optionStyle(option)) ;
       sash.append(elm) ;
     }
 
@@ -167,6 +173,7 @@ class Select {
       }
       else toggle.textContent = option;
       toggle.translate = translatable(option) ;
+      if (this.optionStyle) Object.assign(toggle.style, this.optionStyle(option)) ;
       toggle.dispatchEvent(new CustomEvent('SELECTED', { detail:option}));
     }
 
@@ -207,7 +214,7 @@ class Select {
           if(!target) return closeFrame() ;
           if(this.target) this.target.style.background = "none" ;
           this.target = target ;
-          this.target.style.background = "#aaa" ;
+          this.target.style.background = "color-mix(in srgb, var(--select-option-text) 22%, transparent)" ; // readable in every theme
           closeFrame();
           return selectOption(target.dataset.option) ;
         }
@@ -254,7 +261,7 @@ class Select {
             sashTop = frame.offsetHeight/2 - sash.offsetHeight * (lineNumber / options.length) ;
             if(this.target) this.target.style.background = "none" ;
             this.target = sash.children[lineNumber-1] ;
-            this.target.style.background = "#aaa" ;
+            this.target.style.background = "color-mix(in srgb, var(--select-option-text) 22%, transparent)" ; // readable in every theme
           }
           else if (e.key != "Backspace" && e.key != "Delete") keyBuf = keyBuf.slice(0,-1) ;
       }
@@ -279,7 +286,7 @@ class Select {
         sash.style.top = clamp(frame.offsetHeight/2 - sash.offsetHeight * (lineNumber / options.length), frame.offsetHeight - sash.offsetHeight, 0) + "px" ;
         if(this.target) this.target.style.background = "none" ;
         this.target = sash.children[lineNumber-1] ;
-        this.target.style.background = "#aaa" ;
+        this.target.style.background = "color-mix(in srgb, var(--select-option-text) 22%, transparent)" ; // readable in every theme
       }
     }
 
@@ -293,6 +300,7 @@ class Select {
     if (!elm) return;
     this.toggle.textContent = option;
     this.toggle.translate = this.translatable(option);
+    if (this.optionStyle) Object.assign(this.toggle.style, this.optionStyle(option));
     if (this.target) this.target.style.background = "none";
     this.target = elm;
     elm.style.background = "#aaa";
@@ -417,7 +425,7 @@ class Panel {
       text-align: center;
       vertical-align: middle;
       line-height: 3em;
-      font-weight: bold;
+      letter-spacing: .03em; /* (no bold: Vercetti has one weight, and a synthesized bold looks crude) */
       color: var(--color-text);
       pointer-events: none;
     }
@@ -441,6 +449,33 @@ class Panel {
     .Panel__item {
       /* used to seperate logical items in a panel body */
       margin-top: var(--spacing-sm);
+    }
+    /* A section heading: small, muted and letter-spaced, s.t. it reads as a heading
+       rather than as one more line of text, under a hairline that frames its section.
+       (Panel__heading-first: a heading at the top of a panel, with no rule above it.) */
+    .Panel__heading {
+      margin-top: var(--spacing-md);
+      padding-top: var(--spacing-md);
+      border-top: 1px solid color-mix(in srgb, var(--color-text) 15%, transparent);
+      margin-bottom: var(--spacing-xs);
+      font-size: var(--font-size-sm); /* as big as a slider's text */
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--label-color);
+      text-align: center;
+      align-self: stretch; /* full width, even in a panel that centers its items */
+    }
+    .Panel__heading-first {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: 0;
+    }
+    /* the same rule, over a section that has no heading (e.g. a block of sliders) */
+    .Panel__ruled {
+      margin-top: var(--spacing-md);
+      padding-top: var(--spacing-md);
+      border-top: 1px solid color-mix(in srgb, var(--color-text) 15%, transparent);
+      align-self: stretch;
     }
   `
   );
@@ -793,7 +828,7 @@ class AddPanel extends Panel {
   content = helm(`
     <div>
       <div data-tag="colorPickerProxy"></div>
-      <div class="Panel__item">Size</div>
+      <div class="Panel__heading">Size</div>
       <div data-tag="selectProxy"></div>
       <div data-tag="customProxy"></div>
     </div>
@@ -813,6 +848,7 @@ class AddPanel extends Panel {
       }
     );
     this.colorPickerProxy.replaceWith(this.colorPicker.elm);
+    this.colorPicker.title.classList.add("Panel__heading-first"); // (it tops the panel)
     // Preset paper names (A4, Octavo, Hand Copy (Trad), ...) are proper names and never
     // translated; only the app's own wording is.
     this.select = new Select(Object.keys(this.options), stash.size, this, (size) => size == "Custom" || size == "Match Score") ;
@@ -873,12 +909,58 @@ class NewPanel extends AddPanel {
       {  pages: { min: 1, max: 100, value: 5, 
          msg: (tag, val) => `${val.toFixed(0)} page${val > 1 ? "s":""}`, step: 1 }, }, null );
     this.body.prepend(this.pagesGroup.elm);    
+    this.colorPicker.title.classList.remove("Panel__heading-first"); // (the pages slider is above it)
     this.pagesGroup.refresh();
   }
 }
 
 class DetailsPanel extends Panel {
-  content = helm(`<div style="margin:1em;width:20em;"></div>`);
+  static css = css(
+    "DetailsPanel", `
+    .DetailsPanel { margin: 1em; width: 20em; display: flex; flex-direction: column; gap: var(--spacing-md); }
+    .DetailsPanel__heading {
+      font-size: .7em;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--label-color);
+    }
+    .DetailsPanel__name { position: relative; display: flex; flex-direction: column; gap: .25em; }
+    .DetailsPanel__name input {
+      font: inherit;
+      font-size: 1.25em;
+      color: var(--color-text);
+      width: 100%;
+      box-sizing: border-box;
+      padding: .3em 2.2em .25em .4em;
+      border: 0;
+      border-bottom: .1em solid color-mix(in srgb, var(--color-text) 30%, transparent);
+      border-radius: .3em .3em 0 0;
+      background: color-mix(in srgb, var(--color-text) 7%, transparent);
+    }
+    .DetailsPanel__name input:focus { outline: none; border-bottom-color: var(--accent); }
+    .DetailsPanel__ext { position: absolute; right: .6em; bottom: .45em; font-size: .8em; color: var(--label-color); pointer-events: none; }
+    .DetailsPanel__info {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: .3em .8em;
+      font-size: .8em;
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
+    }
+    .DetailsPanel__info > :nth-child(odd) { color: var(--label-color); }
+    .DetailsPanel__sub { color: var(--label-color); font-size: .9em; }
+    .DetailsPanel__section {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+      padding-top: var(--spacing-md);
+      border-top: 1px solid color-mix(in srgb, var(--color-text) 15%, transparent);
+    }
+    /* the section draws its own rule and spacing, above its heading */
+    .DetailsPanel__section > .Panel__heading { margin-top: 0; padding-top: 0; border-top: 0; }
+  `);
+
+  content = helm(`<div class="DetailsPanel"></div>`);
 
   constructor(cell) {
     super(cell);
@@ -946,35 +1028,21 @@ class DetailsPanel extends Panel {
     this.refresh();
   }
 
-  parseTs(ts) {
-    // Convert a pdf "internal" date string to a timestamp
-    try {
-      let l = ts.length;
-      let j = "";
-      if (l > 5) j += ts.substring(2, 6);
-      if (l > 7) j += "-" + ts.substring(6, 8);
-      if (l > 9) j += "-" + ts.substring(8, 10);
-      if (l > 11) j += "T" + ts.substring(10, 12);
-      if (l > 13) j += ":" + ts.substring(12, 14);
-      if (l > 15) j += ":" + ts.substring(14, 16);
-      if (l > 16) j += ".000" + ts.substring(16, 17);
-      if (l > 18) j += ts.substring(17, 19);
-      if (l > 21) j += ":" + ts.substring(20, 22);
-      return Date.parse(j);
-    } catch (error) {
-      return null;
-    }
-  }
-
   refresh() {
     this.qualityGroup.refresh();
     clearChildren(this.content);
     if (_score_) {
       let score = _score_;
 
-      let nameInput = helm(
-        `<input type="text" style="font-size:1.5em;text-align:center;margin-bottom:.5em;width:100%;box-sizing:border-box;border:none;border-radius:var(--borderRadius);background:white;">`
+      // file name, editable, without its extension (which stays .pdf)
+      let name = helm(
+        `<label class="DetailsPanel__name">
+           <span class="DetailsPanel__heading">File name</span>
+           <input type="text" spellcheck="false" enterkeyhint="done">
+           <span class="DetailsPanel__ext notranslate" translate="no">.pdf</span>
+         </label>`
       );
+      let nameInput = name.querySelector("input");
       nameInput.value = score.name.replace(/\.pdf$/i, "");
       listen(nameInput, "change", () => {
         let newName = nameInput.value.trim();
@@ -982,18 +1050,11 @@ class DetailsPanel extends Panel {
         score.name = newName;
         score.setTitle();
       });
-      this.content.append(nameInput);
-      let source = score.source
-        ? `<div style="text-align:right;">Source:&nbsp;</div><div>${noTranslate(escapeHtml(score.source))}</div>`
-        : "";
-      let path = score.path
-        ? `<div style="text-align:right;">Path:&nbsp;</div><div>${noTranslate(escapeHtml(score.path))} </div>`
-        : "";
-      let size = score.size
-        ? `<div style="text-align:right;">Size:&nbsp;</div><div>${noTranslate(`${Number(
-            score.size
-          ).toLocaleString()} B`)}</div>`
-        : "";
+      this.content.append(name);
+
+      // label/value rows: muted labels, no colons
+      let row = (label, value) => `<div>${label}</div><div>${value}</div>`;
+      let when = (ts) => ts ? noTranslate(DetailsPanel.dateFormat.format(new Date(ts))) : "?";
       let PERM_FLAGS = [
         [4,    "Print"],
         [16,   "Copy"],
@@ -1012,35 +1073,27 @@ class DetailsPanel extends Panel {
           ? "All allowed"
           : `<span style="color:#c44">Restricted: ${denied.join(", ")}</span>`;
       }
-      let permHtml = `<div style="text-align:right;">Permissions:&nbsp;</div><div>${permVal}</div>`;
       this.content.append(
-        helm(`<div style="display:grid;grid-template-columns:40% 60%;font-size:.8em;">
-          ${source} ${path} ${size}
-          <div style="text-align:right;">Pages:&nbsp;</div><div>${
-            score.pgs.length
-          }</div>
-          ${permHtml}
-          <div style="text-align:right;">Created:&nbsp;</div><div>${
-            score.created ? noTranslate(new Date(score.created).toLocaleString()) : "?"
-          }</div>
-          <div style="text-align:right;">Modified:&nbsp;</div><div>${
-            score.modified ? noTranslate(new Date(score.modified).toLocaleString()) : "?"
-          }</div>
-          <div style="text-align:right;">Width:&nbsp;</div><div>${noTranslate(`${score.maxWidth.toFixed(0)} pt, ${(score.maxWidth / 2.8346456693).toFixed(0)} mm, ${(score.maxWidth / 72).toFixed(2)} in`)}</div>
-          <div style="text-align:right;">Height:&nbsp;</div><div>${noTranslate(`${score.maxHeight.toFixed(0)} pt, ${(score.maxHeight / 2.8346456693).toFixed(0)} mm, ${(score.maxHeight / 72).toFixed(2)} in`)}</div>
+        helm(`<div class="DetailsPanel__info">
+          ${score.source ? row("Source", noTranslate(escapeHtml(score.source))) : ""}
+          ${score.path ? row("Path", noTranslate(escapeHtml(score.path))) : ""}
+          ${score.size ? row("Size", noTranslate(DetailsPanel.fileSize(score.size))) : ""}
+          ${row("Pages", score.pgs.length)}
+          ${row("Permissions", permVal)}
+          ${row("Created", when(score.created))}
+          ${row("Modified", when(score.modified))}
+          ${row("Page size", DetailsPanel.pageSize(score.maxWidth, score.maxHeight))}
           </div>`)
       );
 
-      this.content.append(helm(`<div style="text-align:center;"><br>Page Fit</div>`));
-      this.content.append(this.fitGroup.elm);
-      this.content.append(this.qualityGroup.elm);
+      let fit = helm(`<div class="DetailsPanel__section"><div class="Panel__heading">Page fit</div></div>`);
+      fit.append(this.fitGroup.elm);
+      this.content.append(fit);
+      let quality = helm(`<div class="DetailsPanel__section"></div>`);
+      quality.append(this.qualityGroup.elm);
+      this.content.append(quality);
 
       if (score.pdfInfo) {
-        this.content.append(
-          helm(
-            `<div style="font-size:1em;text-align:center;padding:.5em;">PDF Metadata:</div>`
-          )
-        );
         let detailsHtml = "";
         for (let [k, v] of Object.entries(score.pdfInfo)) {
           if (!k) continue;
@@ -1050,17 +1103,41 @@ class DetailsPanel extends Panel {
 
           // For date fields, show only the decoded date
           if (typeof v == "string" && v.startsWith("D:")) {
-            v = new Date(this.parseTs(v)).toLocaleString();
+            let date = Score.pdfDate(v);
+            v = date ? DetailsPanel.dateFormat.format(date) : "?"; // (some writers store garbage)
           }
-          detailsHtml += `<div style="text-align:right">${escapeHtml(k)}:&nbsp;&nbsp;</div><div>${noTranslate(escapeHtml(String(v)))}</div>`;
+          detailsHtml += row(escapeHtml(k), noTranslate(escapeHtml(String(v))));
         }
         this.content.append(
           helm(
-            `<div style="display:grid;grid-template-columns:40% 60%;font-size:.8em;">${detailsHtml}</div>`
+            `<div class="DetailsPanel__section">
+               <div class="Panel__heading">Original PDF</div>
+               <div class="DetailsPanel__info">${detailsHtml}</div>
+             </div>`
           )
         );
       }
     }
+  }
+
+  static dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+
+  static fileSize(bytes) {
+    // e.g. "3.4 MB", "820 KB", "512 B" (1 KB = 1000 B, as storage makers and macOS count)
+    let units = ["B", "KB", "MB", "GB"], i = 0, n = Number(bytes);
+    while (n >= 1000 && i < units.length - 1) { n /= 1000; i++; }
+    return `${n.toLocaleString(undefined, { maximumFractionDigits: n < 10 && i > 0 ? 1 : 0 })} ${units[i]}`;
+  }
+
+  static pageSize(wPt, hPt) {
+    // "210 × 297 mm (A4)", over the same size in points and inches
+    let mm = (pt) => Math.round(pt / 2.8346456693);
+    let [w, h] = [mm(wPt), mm(hPt)];
+    let paper = [["A4", 210, 297], ["A3", 297, 420], ["B4", 250, 353], ["Letter", 216, 279],
+      ["Legal", 216, 356], ["Tabloid", 279, 432], ["9 × 12 in", 229, 305]].find(([, pw, ph]) =>
+      (Math.abs(w - pw) <= 2 && Math.abs(h - ph) <= 2) || (Math.abs(w - ph) <= 2 && Math.abs(h - pw) <= 2));
+    return noTranslate(`${w} × ${h} mm${paper ? ` (${paper[0]})` : ""}`) +
+      `<div class="DetailsPanel__sub">${noTranslate(`${wPt.toFixed(0)} × ${hPt.toFixed(0)} pt · ${(wPt / 72).toFixed(2)} × ${(hPt / 72).toFixed(2)} in`)}</div>`;
   }
 
   show() {
@@ -1197,7 +1274,7 @@ class GridPanel extends Panel {
     <div class="Panel__body">
       <div data-tag="options"></div>
       <div data-tag="sliders"></div>
-      Numbers<br>
+      <div class="Panel__heading">Numbers</div>
       <div data-tag="numbers"></div>
     </div>`);
 
@@ -1457,34 +1534,34 @@ class LayoutPanel extends Panel {
   content = helm(`
     <div>
       <div data-tag="bookFace" class="Panel__body">
-        Page Fit<br>
+        <div class="Panel__heading Panel__heading-first">Page Fit</div>
         <div data-tag="fitBook"></div>
         <div data-tag="bookSliders"></div>
-        Numbers<br>
+        <div class="Panel__heading">Numbers</div>
         <div data-tag="pnBook"></div>
        </div>
 
       <div data-tag="horizontalFace" class="Panel__body">
-        Page Fit<br>
+        <div class="Panel__heading Panel__heading-first">Page Fit</div>
         <div data-tag="fitHorizontal"></div>
         <div data-tag="fitHorizontalSliders"></div>
-        Numbers<br>
+        <div class="Panel__heading">Numbers</div>
         <div data-tag="pnHorizontal"></div>
       </div>
 
       <div data-tag="verticalFace" class="Panel__body">
-        Page Fit<br>
+        <div class="Panel__heading Panel__heading-first">Page Fit</div>
         <div data-tag="fitVertical"></div>
         <div data-tag="fitVerticalSliders"></div>
-        Numbers<br>
+        <div class="Panel__heading">Numbers</div>
         <div data-tag="pnVertical"></div>
       </div>
 
       <div data-tag="tableFace" class="Panel__body">
-        Page Fit<br>
+        <div class="Panel__heading Panel__heading-first">Page Fit</div>
         <div data-tag="fitTable"></div>
         <div data-tag="tableFlowSliders"></div>
-        Numbers<br>
+        <div class="Panel__heading">Numbers</div>
         <div data-tag="pnTable"></div>
       </div>
     </div>
@@ -1531,9 +1608,9 @@ class LayoutPanel extends Panel {
         if (value == -2) return "Snap: 1/4 page";
         if (value == -1) return "Snap: 1/3 page";
         if (value == 0) return "Snap: 1/2 page";
-        return "Snap: " + value + (value == 1 ? " page." : " pages");
+        return "Snap: " + value + (value == 1 ? " page" : " pages");
       } else if(tag == "gap") return `Gap: ${value}%`;
-      else if(tag == "pace") return `Pace: ${(value/1000).toFixed(2)} sec/snap`
+      else if(tag == "pace") return `Pace: ${(value/1000).toFixed(2)}... sec/snap` // (panel shows "Pace: 0.35...")
     };
 
     // defs for scroll/slider groups
@@ -1546,7 +1623,7 @@ class LayoutPanel extends Panel {
 
     let bookSlidersGroupDef = {
       pace: { min: 0, max: 1500, step: 10, curve:2, msg: (tag,value) =>
-         `Pace: ${(value/1000).toFixed(2)} sec/flip`}}
+         `Pace: ${(value/1000).toFixed(2)}... sec/flip`}} // (panel shows "Pace: 0.35...")
 
     let horzSlidersGroupDef = {
       pgShow: { min: 1, max: 8, step: 1, throttle: 750, row:1, col:1, msg: msgCallback},
@@ -1579,12 +1656,13 @@ class LayoutPanel extends Panel {
     // must pass shallow copies...deep copies are not required, as the only non-reference
     // value is msgCallback, and it doesn't need to be unique.
 
+    // (each face's sliders get a rule of their own: they aren't part of Page Fit)
+    let ruled = (elm) => (elm.classList.add("Panel__ruled"), elm);
+
     // build book face
     let stash = _menu_.rings.layout.cells.book.stash;
     tags.fitBook.replaceWith(new ButtonGroup(stash, fitGroupDef, handler).elm);
-    tags.bookSliders.replaceWith(
-      new SliderGroup(stash, bookSlidersGroupDef, handler).elm,
-    );
+    tags.bookSliders.replaceWith(ruled(new SliderGroup(stash, bookSlidersGroupDef, handler).elm));
     tags.pnBook.replaceWith(new ButtonGroup(stash, pnGroupDef, handler).elm);
 
     // build horizontal face
@@ -1592,9 +1670,7 @@ class LayoutPanel extends Panel {
     tags.fitHorizontal.replaceWith(
       new ButtonGroup(stash, fitGroupDef, handler).elm
     );
-    tags.fitHorizontalSliders.replaceWith(
-      new SliderGroup(stash, horzSlidersGroupDef, handler).elm,
-    );
+    tags.fitHorizontalSliders.replaceWith(ruled(new SliderGroup(stash, horzSlidersGroupDef, handler).elm));
     tags.pnHorizontal.replaceWith(
       new ButtonGroup(stash, pnGroupDef, handler).elm
     );
@@ -1604,9 +1680,7 @@ class LayoutPanel extends Panel {
     tags.fitVertical.replaceWith(
       new ButtonGroup(stash, fitGroupDef, handler).elm
     );
-    tags.fitVerticalSliders.replaceWith(
-      new SliderGroup(stash, vertSlidersGroupDef, handler).elm
-    );
+    tags.fitVerticalSliders.replaceWith(ruled(new SliderGroup(stash, vertSlidersGroupDef, handler).elm));
     tags.pnVertical.replaceWith(
       new ButtonGroup(stash, pnGroupDef, handler).elm
     );
@@ -1615,9 +1689,7 @@ class LayoutPanel extends Panel {
     stash = _menu_.rings.layout.cells.table.stash;
     let def = { Width: fitGroupDef.Width, Height: fitGroupDef.Height };
     tags.fitTable.replaceWith(new ButtonGroup(stash, def, handler).elm);
-    tags.tableFlowSliders.replaceWith(
-      new SliderGroup(stash, tableSlidersGroupDef, handler).elm
-    );
+    tags.tableFlowSliders.replaceWith(ruled(new SliderGroup(stash, tableSlidersGroupDef, handler).elm));
     tags.pnTable.replaceWith(new ButtonGroup(stash, pnGroupDef, handler).elm);
   }
 
@@ -1649,11 +1721,11 @@ class StoragePanel extends Panel {
     let content = helm(`
       <div style="text-align:center;">
         <div style="margin-bottom:1.5em;">
-          <div style="font-size:1.2em;margin-bottom:0.5em;">Factory Reset</div>
+          <div class="Panel__heading Panel__heading-first">Factory Reset</div>
           <div data-tag="buttons"></div>
         </div>
         <div>
-          <div style="font-size:1.2em;margin-bottom:0.5em;">Storage</div>
+          <div class="Panel__heading">Storage</div>
           <div data-tag="stats" style="display:grid;grid-template-columns:auto auto;font-size:.8em;text-align:left;width:fit-content;margin:0 auto;"></div>
           <div data-tag="refresh" style="margin-top:0.5em;"></div>
         </div>
@@ -1843,6 +1915,9 @@ class MetronomePanel extends Panel {
         } 
         this.mediaGroup.refresh() ;
     });
+    // the buttons and the sliders are each a section, under a rule as wide as the sliders
+    this.mediaGroup.elm.classList.add("Panel__ruled");
+    this.mediaGroup.elm.style.width = "14em";
     this.content.append(this.mediaGroup.elm);
     this.mediaGroup.refresh();
 
@@ -1871,6 +1946,7 @@ class MetronomePanel extends Panel {
       }
     );
     this.tempoGroup.elm.style.width = "14em";
+    this.tempoGroup.elm.classList.add("Panel__ruled");
     this.content.append(this.tempoGroup.elm);
     this.tempoGroup.refresh();
 
@@ -1894,7 +1970,7 @@ class NumbersPanel extends Panel {
   content = helm(`
      <div data-tag="body" style="width:15em;" class="Panel__body">
        <div data-tag="sliders"></div>
-       <div style="font-size: var(--font-size-sm); margin-top: calc(var(--spacing-md) + 1em); margin-bottom: 0.1em">Foot Pedal Keys</div>
+       <div class="Panel__heading">Foot Pedal Keys</div>
        <div style="margin: 0 var(--spacing-md)">
          <div style="display: flex; align-items: center; gap: 0.5em; margin-bottom: 0.5em">
            <div style="min-width: 4em; text-align: left; font-size: 0.9em">Next (\u21e8/\u21e9):</div>
@@ -2021,7 +2097,7 @@ class PencilPanel extends Panel {
     // This code block is delayed so that it runs after any subclass constructor:
     delay(1, () => {
       if (this.buttonsDef)
-        this.sliders.after(helm(`<div>Style</div>`));
+        this.sliders.after(helm(`<div class="Panel__heading">Style</div>`));
 
       let picker = new ColorPicker(
         "Color",
@@ -2045,6 +2121,7 @@ class PencilPanel extends Panel {
             this.update();
           }
         );
+        sliders.elm.classList.add("Panel__ruled"); // (a section of its own, after Color)
         this.sliders.replaceWith(sliders.elm);
         this.sliders = sliders;
       }
@@ -2227,9 +2304,10 @@ class TextPanel extends PencilPanel {
 
   constructor(cell) {
     super(cell);
-    let fontLabel = helm(`<div class="Panel__item">Font</div>`);
+    let fontLabel = helm(`<div class="Panel__heading">Font</div>`);
     this.picker.after(fontLabel);
-    let select = new Select(this.fonts, cell.stash.font, this, () => false) ; // font names are never translated
+    // font names are never translated, and each is shown in its own typeface
+    let select = new Select(this.fonts, cell.stash.font, this, () => false, (font) => fontMap[font]) ;
     this.fontSelect = select;
     fontLabel.after(select.elm) ;
     this.preview.append(this.text);
@@ -3036,8 +3114,16 @@ class SymbolsPanel extends Panel {
       border: 0.02em solid #d0d0d0;
       overflow: hidden;
    }
+   .SymbolsPanel__credit {
+     font-size: .7em;
+     letter-spacing: .05em;
+     color: var(--label-color);
+     text-decoration-color: color-mix(in srgb, var(--label-color) 40%, transparent);
+     text-underline-offset: .2em;
+   }
    .SymbolsPanel__symbol-active {
-     background-color: #e0e8fff0;
+     background-color: color-mix(in srgb, var(--accent) 15%, #fff);
+     box-shadow: inset 0 0 0 .08em var(--accent);
    }
    `);
 
@@ -3046,11 +3132,11 @@ class SymbolsPanel extends Panel {
        <div class="SymbolsPanel__frame" data-tag="gridFrame">
          <div class="SymbolsPanel__grid" data-tag="grid"></div>
        </div>
-      <div style="padding-top: var(--spacing-sm)">Group<div>
+      <div class="Panel__heading">Group</div>
       <div data-tag="select"></div>
       <div data-tag="picker"></div>
       <div data-tag="staffSpace"></div>
-      <div style="margin: var(--spacing-md); height: 2.5em; display: flex; align-items: center; justify-content: center;"><a href="https://www.w3.org/2021/03/smufl14/" rel="noopener noreferrer">SMuFL</a></div>
+      <div style="margin: var(--spacing-md); height: 2.5em; display: flex; align-items: center; justify-content: center;"><a class="SymbolsPanel__credit" href="https://www.w3.org/2021/03/smufl14/" rel="noopener noreferrer">SMuFL</a></div>
      </div>
    `);
 
@@ -3141,6 +3227,7 @@ class SymbolsPanel extends Panel {
         this.update();
     });
 
+    staffSpace.elm.classList.add("Panel__ruled"); // (a section of its own, after Color)
     this.staffSpace.replaceWith(staffSpace.elm);
     this.staffSpace = staffSpace;
     this.update();
@@ -3415,7 +3502,7 @@ class StopwatchPanel extends Panel {
   content = helm(
     `<div data-tag="body" style="display:flex;flex-flow:column;align-items:center;margin:1em;text-align:center;">
        <div data-tag="options"></div>
-       Splits:
+       <div class="Panel__heading">Splits</div>
        <textarea data-tag="splits" class="Stopwatch__splits"></textarea>
      </div>`
   );
@@ -3442,6 +3529,7 @@ class StopwatchPanel extends Panel {
         else if (tag == "Reset") stopWatch.reset(); 
       }
     );
+    this.optionsGroup.elm.classList.add("Panel__ruled"); // (under the stopwatch face)
     this.options.replaceWith(this.optionsGroup.elm);
     this.optionsGroup.refresh();
     return this;

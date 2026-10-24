@@ -249,7 +249,21 @@ css( // common css declarations.
 
     /* Slider colors */
     --slider-indicator: #666;
-    --slider-indicator-active: #eef;
+    --slider-indicator-active: var(--accent);
+    --slider-slot: #7e8796;
+    --slider-slot-shadow: inset 0 .05em .1em #0006, 0 .05em 0 #fff9;
+
+    /* Accent: selected/active details (slider fill, fader index while moving) */
+    --accent: #2f6fbf;
+    /* Muted text, e.g. the labels in a label/value list, and section headings */
+    --label-color: #4f5866;
+
+    /* ButtonGroup buttons: tiles like the menu's cells; "on" is lit like a selected cell.
+       (Backgrounds are always images, s.t. a toggle button can layer its arrows on top.) */
+    --button-bg: radial-gradient(rgba(220,226,236,.95) 0%, rgba(200,209,224,.9) 60%, rgba(178,187,204,.9) 100%);
+    --button-on-bg: radial-gradient(rgba(252,253,255,.98) 0%, rgba(228,234,246,.95) 100%);
+    --button-shadow: 0 .05em .1em #0002, inset 0 .05em 0 #fff8;
+    --button-on-shadow: inset 0 .05em .15em #0003;
     --slider-knob-bg: #b8b8b8;
     --slider-knob-selected-bg: #b0b0b0;
     --slider-knob-shadow: 0.1em 0.1em 0.2em #fff2 inset,
@@ -388,8 +402,18 @@ css( // common css declarations.
                           0.15em 0.15em 0.3em #fff1 inset;
 
     /* Slider colors - dark theme */
-    --slider-indicator: #444;
-    --slider-indicator-active: #eef;
+    --slider-indicator: #555;
+    --slider-indicator-active: var(--accent);
+    --slider-slot: #141414;
+    --slider-slot-shadow: inset 0 .05em .15em #000c, 0 .05em 0 #fff1;
+
+    --accent: #d8b37a;
+    --label-color: #a8a090;
+
+    --button-bg: linear-gradient(135deg, #3a3a3a 0%, #303030 100%);
+    --button-on-bg: linear-gradient(135deg, #565656 0%, #4a4a4a 100%);
+    --button-shadow: 0 .05em .15em #000a, inset 0 .05em 0 #fff1;
+    --button-on-shadow: inset 0 .05em .15em #0008;
     --slider-knob-bg: #2c2c2c;
     --slider-knob-selected-bg: #404040;
     --slider-knob-shadow: 0.1em 0.1em 0.2em #fff1 inset,
@@ -427,8 +451,18 @@ css( // common css declarations.
     --panel-inset-shadow: 0.15em 0.15em 0.3em #fff3 inset,
                           -0.15em -0.15em 0.3em #0002 inset;
 
-    --slider-indicator: #888;
-    --slider-indicator-active: #eef;
+    --slider-indicator: #777;
+    --slider-indicator-active: var(--accent);
+    --slider-slot: #8f8f8f;
+    --slider-slot-shadow: inset 0 .05em .1em #0007, 0 .05em 0 #fff8;
+
+    --accent: #9a4a17; /* the Light layouts' saddle brown */
+    --label-color: #50555b;
+
+    --button-bg: radial-gradient(#d2d2d2 45%, #cdcdcd 70%, #bdbdbd 100%);
+    --button-on-bg: radial-gradient(#ffffff 60%, #e6e6e6 100%);
+    --button-shadow: 0 .05em .1em #0003, inset 0 .05em 0 #fff6;
+    --button-on-shadow: inset 0 .05em .15em #0003;
   }
 
   body {
@@ -590,7 +624,7 @@ class ButtonGroup
 **/
 
 class ButtonGroup {
-  static toggleButtonSvg = `url("data:image/svg+xml;${encodeURIComponent('<svg width="100%" height="100%" viewBox="0 0 24 24" xmlns="http:/\/www.w3.org/2000/svg"><path style="fill:none;stroke:black;stroke-width:0.5px" d="M5 15.5L4 16.5L5 17.5M19 15.4L20 16.5L19 17.5"/></svg>')}")'`;
+  static toggleButtonSvg = `url("data:image/svg+xml,${encodeURIComponent('<svg width="100%" height="100%" viewBox="0 0 24 24" xmlns="http:/\/www.w3.org/2000/svg"><path style="fill:none;stroke:black;stroke-width:0.5px" d="M5 15.5L4 16.5L5 17.5M19 15.4L20 16.5L19 17.5"/></svg>')}")`;
 
 
   static css = css(
@@ -598,34 +632,45 @@ class ButtonGroup {
     `
     .ButtonGroup {
       display: flex;
-      justify-content: space-around;
+      justify-content: center;
+      gap: var(--spacing-sm);
       margin-top: var(--spacing-sm);
     }
+    /* Each button is a tile like a menu cell: label over icon. An "on" button (the chosen
+       one of a radio group, or an onOff that's on) is lit and pressed in. */
     .ButtonGroup__button {
       text-align: center;
       font-size: var(--font-size-sm);
       color: var(--color-text);
-      width: 3.5em;
-      height: 3.5em;
-      padding-top: var(--spacing-xs);
+      flex: 0 1 4.5em;
+      min-width: 3.5em;
+      min-height: 3.5em;
+      padding: var(--spacing-xs) var(--spacing-xs) .2em;
+      box-sizing: border-box;
       white-space: nowrap;
+      border-radius: .45em;
+      background-image: var(--button-bg);
+      box-shadow: var(--button-shadow);
     }
     .ButtonGroup__icon {
     }
-    .ButtonGroup__button-active {
-      box-shadow: 0.1em 0.1em 0.2em var(--color-shadow-strong) inset, -0.1em -0.2em 0.2em var(--color-shadow-strong) inset;
-      border-radius: calc(var(--borderRadius) / 4);
-      background: var(--color-surface-selected);
+    .ButtonGroup__button-active, .ButtonGroup__button-selected {
+      background-image: var(--button-on-bg);
+      box-shadow: var(--button-on-shadow);
+    }
+    /* the unchosen buttons of a radio group recede a little */
+    .ButtonGroup__button-radio:not(.ButtonGroup__button-active) {
+      color: color-mix(in srgb, var(--color-text) 75%, transparent);
     }
     .ButtonGroup__button-toggle {
-      background-image: ${ButtonGroup.toggleButtonSvg};
+      background-image: ${ButtonGroup.toggleButtonSvg}, var(--button-bg);
+    }
+    .ButtonGroup__button-toggle.ButtonGroup__button-active {
+      background-image: ${ButtonGroup.toggleButtonSvg}, var(--button-on-bg);
     }
     .ButtonGroup__button-disabled {
       color: var(--color-text-muted);
       left: 0;
-    }
-    .ButtonGroup__button-selected {
-      background: var(--color-surface-selected);
     }
    `
   );
@@ -658,6 +703,7 @@ class ButtonGroup {
             ${iconSvg(svg, { class: "ButtonGroup__icon" })}          
           </div>`);
       if (toggle) elm.classList.add("ButtonGroup__button-toggle");
+      if (radio) elm.classList.add("ButtonGroup__button-radio");
       let iconElm = dataIndex("tag", elm)["iconSvg"];
       if (disabled) {
         elm.classList.add("ButtonGroup__button-disabled");
@@ -784,7 +830,16 @@ class ColorPicker {
     clearChildren(elm);
     for (let hexColor of recentColors)
       elm.append(helm(`<option value="${hexColor}"></option>`));
+    // ...and every picker's row of recent-color chips
+    for (let ref of ColorPicker.pickers) {
+      let picker = ref.deref();
+      if (picker) picker.buildRecents();
+      else ColorPicker.pickers.delete(ref);
+    }
   }
+
+  static pickers = new Set(); // WeakRefs to every ColorPicker, to update their recent colors
+  static recentCount = 5; // recent-color chips shown in a picker
 
   // Push given 7-digit hex color code onto the recentColors
   // list and stash it in menu's ink cell, then update
@@ -808,15 +863,19 @@ class ColorPicker {
        font-size: var(--font-size-base);
        display: flex;
        align-items: center;
-       gap: var(--spacing-md);
+       gap: var(--spacing-sm);
        box-sizing: border-box;
       }
+      /* A row of round chips: the current color (tap: the color picker), the most
+         recently used other colors (tap: use it), and the opacity button. Each has a
+         hairline ring, so even a color close to the panel's shows. */
       .ColorPicker__colorWrapper {
         position: relative;
-        flex: 1;
-        height: 2.5em;
-        border-radius: var(--borderRadius);
-        border: 0.1em solid #aaa;
+        flex: none;
+        width: 2.2em;
+        height: 2.2em;
+        border-radius: 50%;
+        box-shadow: inset 0 0 0 1px #0003, var(--button-shadow);
         background-image:
           linear-gradient(45deg, #ccc 25%, transparent 25%),
           linear-gradient(-45deg, #ccc 25%, transparent 25%),
@@ -838,16 +897,35 @@ class ColorPicker {
      .ColorPicker__colorDisplay {
         position: absolute;
         inset: 0;
-        border-radius: var(--borderRadius);
+        border-radius: inherit;
+        box-shadow: inset 0 0 0 1px #0003;
         pointer-events: none;
      }
+     .ColorPicker__recents {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        justify-content: center;
+        gap: .4em;
+        overflow: hidden;
+     }
+     .ColorPicker__recent {
+        flex: none;
+        width: 1.5em;
+        height: 1.5em;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        box-shadow: inset 0 0 0 1px #0003, var(--button-shadow);
+        cursor: pointer;
+     }
      .ColorPicker__alpha {
-        width: 2.5em;
-        height: 2.5em;
+        width: 2em;
+        height: 2em;
         flex-shrink: 0;
         cursor: pointer;
         border-radius: 50%;
-        border: 0.1em solid #aaa;
+        box-shadow: 0 0 0 1px #0003, var(--button-shadow);
         box-sizing: border-box;
      }
      .ColorPicker__alphaSlider {
@@ -863,12 +941,13 @@ class ColorPicker {
 
   elm = helm(`
    <div class="Panel__item">
-   <div data-tag="title"></div>
+   <div data-tag="title" class="Panel__heading"></div>
    <div class="ColorPicker">
       <div class="ColorPicker__colorWrapper">
         <input data-tag="color" class="ColorPicker__color" type="color" colorpick-eyedropper-active="true" list="recentColors"></input>
         <div data-tag="colorDisplay" class="ColorPicker__colorDisplay"></div>
       </div>
+      <div data-tag="recents" class="ColorPicker__recents"></div>
       <svg data-tag="alpha" class="ColorPicker__alpha" viewBox="0 0 24 24">
           <defs>
             <pattern id="checkerboard" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
@@ -883,7 +962,7 @@ class ColorPicker {
         </svg>
         <div data-tag="alphaSlider"></div>
      </div>
-   <div>`);
+   </div>`);
 
   constructor(title, rgb = "#000", alpha = 1, handler = null) {
     Object.assign(this, dataIndex("tag", this.elm));
@@ -923,6 +1002,18 @@ class ColorPicker {
       if (e.type == "change") ColorPicker.pushRecentColor(stash.rgb);
     });
 
+    // tap a recent color's chip to use it
+    listen(this.recents, "pointerup", (e) => {
+      let rgb = e.target.closest(".ColorPicker__recent")?.dataset.color;
+      if (!rgb) return;
+      stash.rgb = this.color.value = rgb;
+      this.colorDisplay.style.backgroundColor = this.alphaCircle.style.fill = rgb;
+      if (handler) handler(stash.rgb, stash.alpha);
+      ColorPicker.pushRecentColor(rgb);
+    });
+    ColorPicker.pickers.add(new WeakRef(this));
+    this.buildRecents();
+
     listen(this.alpha, "pointerup", () => {
       if (!alphaSlider.elm.classList.toggle("void"))
         delay(1, () =>
@@ -945,6 +1036,20 @@ class ColorPicker {
     this.alphaCircle.style.fill = rgb;
     this.alphaCircle.style.opacity = alpha;
     this.alphaGroup.refresh();
+    this.buildRecents();
+  }
+
+  buildRecents() {
+    // Show chips for the most recently used colors, other than the current one.
+    let current = String(this.stash.rgb).toLowerCase();
+    let colors = (_menu_.rings.ink.stash.recentColors || [])
+      // (only plain hex colors: the list is stashed data, and goes into html below)
+      .filter((c) => /^#[0-9a-f]{6}$/i.test(c) && c.toLowerCase() != current)
+      .slice(0, ColorPicker.recentCount);
+    clearChildren(this.recents);
+    for (let c of colors)
+      this.recents.append(helm(
+        `<button class="ColorPicker__recent notranslate" translate="no" data-color="${c}" style="background-color:${c}" aria-label="${c}"></button>`));
   }
 }
 
@@ -1166,22 +1271,33 @@ class PodiumSlider extends HTMLElement {
        height: 2em;
        left: 1.25em;
      }
+     /* A mixing desk's fader: a slot, filled up to the cap in the accent color, and a
+        ridged cap with an index line that lights while the value changes. */
      .Slider__track {
        position: absolute;
-       top: calc(50% - .2em);
-       height: .5em;
+       top: calc(50% - .125em);
+       height: .25em;
        width: 100%;
-       background: var(--color-border);
-       border-radius: var(--borderRadius);
+       background: var(--slider-slot);
+       box-shadow: var(--slider-slot-shadow);
+       border-radius: .125em;
+     }
+     .Slider__fill {
+       height: 100%;
+       background: var(--accent);
+       border-radius: inherit;
      }
      .Slider__knob {
        position: absolute;
-       width: 2.8em;
+       width: 2em;
        height: 2.8em;
        top: calc(50% - 1.4em);
-       border-radius: var(--borderRadius); /* was inherited from .raisedEdge */
-       background: var(--slider-knob-bg);
-       background-image: var(--panTexture);
+       border-radius: .25em;
+       background-color: var(--slider-knob-bg);
+       background-image:
+         repeating-linear-gradient(to right, #0000 0 .2em, #0002 .2em .25em),
+         linear-gradient(to bottom, #fff6, #fff0 45%, #0001),
+         var(--panTexture);
        box-shadow: var(--slider-knob-shadow); /* drop-shadow is here, not a filter (iOS) */
      }
      .Slider__knob-selected {
@@ -1190,11 +1306,11 @@ class PodiumSlider extends HTMLElement {
      .Slider__knob__indicator {
         position: relative;
         pointer-events: none;
-        border-radius: 100%;
-        width: .6em;
-        height: .6em;
-        top: calc(50% - .3em);
-        left: calc(50% - .3em);
+        border-radius: .1em;
+        width: .2em;
+        height: 70%;
+        top: 15%;
+        left: calc(50% - .1em);
         background: var(--slider-indicator);
      }
      .Slider__knob__indicator-active {
@@ -1206,7 +1322,7 @@ class PodiumSlider extends HTMLElement {
 
   elm = helm(`
     <div data-tag="slider" class="Slider">
-       <div data-tag="track" class="Slider__track"></div>
+       <div data-tag="track" class="Slider__track"><div data-tag="fill" class="Slider__fill"></div></div>
        <div data-tag="knob" class="Slider__knob">
           <div data-tag="indicator" class="Slider__knob__indicator"></div>
        </div>
@@ -1326,9 +1442,10 @@ class PodiumSlider extends HTMLElement {
     let value = (this.max - this.min) * Math.pow(pos, this.curve) + this.min;
     let snapped = Math.round(value / this.step) * this.step;
     this.value = Number.isInteger(snapped) ? snapped : parseFloat(snapped.toPrecision(6)); // discrete-ize value in this.step
-    // Position knob as % of track width minus half the knob's fixed 2.8em width.
+    // Position knob as % of track width minus half the knob's fixed 2em width.
     // Using calc() avoids pxToEm, which breaks during font-size transitions.
-    this.knob.style.left = `calc(${(pos * 100).toFixed(4)}% - 1.4em)`;
+    this.knob.style.left = `calc(${(pos * 100).toFixed(4)}% - 1em)`;
+    this.fill.style.width = (pos * 100).toFixed(4) + "%";
   }
 }
 
@@ -1537,10 +1654,15 @@ class SliderGroup {
   static css = css(
     "SliderGroup",
     `.SliderGroup {
-       font-size: var(--font-size-base);
+       font-size: var(--font-size-sm);
        color: var(--color-text);
        text-align: center;
       }
+    /* A "Label: value" message shows its label muted and its value in the text color
+       (see setMsg). */
+    .SliderGroup__msg { display: block; }
+    .SliderGroup__label { color: var(--label-color); }
+    .SliderGroup__value { font-variant-numeric: tabular-nums; }
     .SliderGroup__SliderBlock {
        margin-bottom: var(--spacing-md);
      }
@@ -1558,8 +1680,7 @@ class SliderGroup {
     .SliderGroup--grid {
        display: grid;
        grid-template-columns: 1fr 1fr;
-       column-gap: var(--spacing-sm);
-       font-size: 75%;
+       column-gap: var(--spacing-md);
      }
    `
   );
@@ -1595,7 +1716,7 @@ class SliderGroup {
       );
       defs[tag] = tagDef;
       let elm = helm(
-        `<div class="SliderGroup__SliderBlock" data-tag="${tag}"><span data-tag="${tag}_msg">${this.formatMsg(
+        `<div class="SliderGroup__SliderBlock" data-tag="${tag}"><span data-tag="${tag}_msg" class="SliderGroup__msg">${this.formatMsg(
           tag
         )}</span>
              <pod-slider class="SliderGroup__SliderBlock__Slider" data-tag="${tag}_slider"
@@ -1621,7 +1742,8 @@ class SliderGroup {
     // that will be formatted using {min},{max},{value},{step}
     // substitutions. If value is non-null, it's used instead of
     // the value in the tag def: see this.progress. If the msg
-    // contains "...", everything after any "..." is removed.
+    // contains "...", the panel shows it only up to the "..." (see refresh), and the floating
+    // msg shows all of it, without the "..." (see handle).
     let tagDef = this.defs[tag];
     let value = this.props[tag];
     if (tagDef.msg instanceof Function) return tagDef.msg(tag, value) ;
@@ -1654,7 +1776,8 @@ class SliderGroup {
     } else if (this.handler) this.handler(e, tag, sliderElm.value, this);
     // Create a ptrMsg...but only once per pointerDown...pointerUp. We use this.ptrMsg to know if we've already
     // created one, and set it to null when we get the "sliderDone" msg sent when the slider gets a pointerup.
-    if (!this.ptrMsg) this.ptrMsg = ptrMsg(e, () => this.formatMsg(tag));
+    // (the floating msg shows the whole msg: what follows any "..." too, without the "...")
+    if (!this.ptrMsg) this.ptrMsg = ptrMsg(e, () => this.formatMsg(tag).replace("...", ""));
     if (e.type == "change") this.ptrMsg = null;
   }
 
@@ -1687,8 +1810,8 @@ class SliderGroup {
     // update the single slider defined by tag, value, min, max,
     // and skip the usual call this.handler. min and max are optional
     let sliderElm = this.dataIndex[tag + "_slider"];
-    if (min) this.defs[tag].min = sliderElm.min = min;
-    if (max) this.defs[tag].max = sliderElm.max = max;
+    if (min != null) this.defs[tag].min = sliderElm.min = min; // (0 is a min, too)
+    if (max != null) this.defs[tag].max = sliderElm.max = max;
     sliderElm.setAttribute("value", value);
     this.props[tag] = value;
     this.setMsg(tag, this.formatMsg(tag));
@@ -1698,8 +1821,15 @@ class SliderGroup {
     // Messages are html (e.g. with page numbers exempted from auto-translation), and are
     // (re)written as a whole into their own element: the browser's auto-translation
     // replaces text nodes with its own elements, so a text node can't be updated in place.
+    // A "Label: value" message is split into a label and a value, to style each (see the css).
     let msgElm = this.dataIndex[tag + "_msg"];
-    if (msgElm.innerHTML != html) msgElm.innerHTML = html;
+    if (msgElm.msg == html) return;
+    msgElm.msg = html;
+    let i = html.indexOf(": ");
+    let split = i > 0 && !html.slice(0, i).includes("<");
+    msgElm.innerHTML = split
+      ? `<span class="SliderGroup__label">${html.slice(0, i)}:</span> <span class="SliderGroup__value">${html.slice(i + 2)}</span>`
+      : html;
   }
 }
 

@@ -1054,7 +1054,7 @@ function closeVideo(event, container) {
         <li><strong>Stopwatch:</strong> Session timer with lap/split.</li>
         <li><strong>Clock:</strong> Analog wall clock display to keep track of time during practice sessions.</li>
         <li><strong>Piano:</strong> Playable 5-octave keyboard with configurable pitch (A4 frequency), historical temperaments (Equal, Meantone, etc.), tuning mode for the beats method, and a YIN-based pitch detector that displays detected notes and cents deviation for electronic tuner functionality.</li>
-        <li><strong>Review:</strong> Record the last ~30 seconds of audio/video with instant replay. Visualize your playing with waveform and spectrogram displays. Perfect for quick practice assessment.</li>
+        <li><strong>Review:</strong> Record audio/video with instant replay of the last 15 seconds to 10 minutes. Visualize your playing with waveform and spectrogram displays. Perfect for quick practice assessment.</li>
         <li><strong>Volume:</strong> Master volume control for all Podium audio (metronome, piano, review playback).</li>
     </ul>
 
@@ -1490,8 +1490,8 @@ function closeVideo(event, container) {
     <ul>
         <li><strong>Number of Pages:</strong> Set the initial number of pages in the score (you can add or remove pages later using the Page Ring)</li>
         <li><strong>Page Size:</strong> A dropdown menu allows you to pick from standard page sizes (Letter, Legal, A4, etc.) or specify custom dimensions</li>
-        <li><strong>Background Color:</strong> Tap the color swatch to choose the background color for new pages</li>
-        <li><strong>Background Opacity:</strong> Adjust the opacity of the background color</li>
+        <li><strong>Background Color:</strong> Tap the round color chip to choose the background color for new pages, or tap one of the recent colors beside it</li>
+        <li><strong>Background Opacity:</strong> Tap the circle on the right of the Color section to adjust the opacity of the background color</li>
     </ul>
 
     <h3 id="chapter-4-close">4.3 Score Ring: Close<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-close"/></svg></h3>
@@ -1531,9 +1531,11 @@ function closeVideo(event, container) {
         <figcaption>Details Panel showing score metadata and display options</figcaption>
     </figure>
 
-    <p><strong>Score Name:</strong> At the top of the panel is an editable field showing the score's file name. Edit this field to rename the score before saving. The .pdf extension is not required&mdash;it's added automatically on save if not present. This is especially useful on platforms where you cannot specify a file name during save (such as Firefox or Android).</p>
+    <p><strong>File Name:</strong> At the top of the panel is an editable field showing the score's file name. Edit this field to rename the score before saving. The .pdf extension is shown at the end of the field but isn't part of what you edit&mdash;it's always kept. This is especially useful on platforms where you cannot specify a file name during save (such as Firefox or Android).</p>
 
-    <p><strong>Metadata:</strong> The panel displays metadata created by Podium (such as when the score was last modified) as well as any metadata from the original PDF file. This may include information about the score's provenance, such as the original author, creation date, and other document properties.</p>
+    <p><strong>Information:</strong> Below the file name, the panel lists where the score came from (its source, path and file size), its number of pages, any restrictions the PDF places on it, and its page size, in millimeters (naming common paper sizes such as A4 or Letter), points and inches. <strong>Created</strong> and <strong>Modified</strong> are Podium's own dates: when Podium first opened the score and when it last saved it.</p>
+
+    <p><strong>Original PDF:</strong> If the score came from a PDF file, the last section of the panel shows that PDF's own metadata, such as its title, author, the program that created it, and its creation and modification dates. This is a record of the score's provenance: Podium keeps it unchanged when it saves the score, and shows each field under the name the PDF itself uses (for example, <em>CreationDate</em> and <em>ModDate</em>), so there's no doubt about which field is which.</p>
 
     <p><strong>Page Sizing:</strong> In Podium, all pages in a score are displayed at the same size, though this is not necessarily the case for PDF files in general. A single PDF file can contain pages of many different sizes&mdash;for example, a score might mix Letter and A4 pages, or include wide foldout pages alongside standard portrait pages. This is common with scanned scores from libraries like IMSLP, where pages may have been scanned at different times or from different editions. By default, Podium sizes pages to match the largest page in the PDF and centers smaller pages within that rectangle. The Details Panel contains a radio button that determines how smaller pages are treated:</p>
     <ul>
@@ -1587,7 +1589,7 @@ function closeVideo(event, container) {
 
     <h4 id="chapter-5-bookmarks">Bookmarks</h4>
     <p>Bookmarks mark pages for quick navigation. In Book, Horizontal, and Vertical layouts, first navigate to the desired page, then long-press its page number to toggle a bookmark on or off. Bookmarks appear as colored tabs along the edge of the layout; press any tab to jump directly to that page. In Table layout, long-press on a page to make it current and toggle its bookmark state. Bookmarks are saved with the score.</p>
-    <p>The thickness of each bookmark tab corresponds to one page's position in the pager, so tabs are thinner in longer scores — giving a visual sense of how many pages the score contains.</p>
+    <p>The thickness of each bookmark tab corresponds to one page's position in the pager, so tabs are thinner in longer scores — giving a visual sense of how many pages the score contains. Each pager cursor sits at its own page's position, so when that page is bookmarked, its page number lines up with the tab. A new bookmark is always given a color different from its nearest neighbors', so bookmarks next to each other are easy to tell apart.</p>
     <p>When dragging a pager cursor over a bookmarked page, the floating readout is painted in that bookmark's color — making it easy to navigate to a specific bookmark even when several adjacent tabs are too small to press directly.</p>
 
     <h3 id="chapter-5-book">5.1 Layout Ring: Book<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-book"/></svg></h3>
@@ -1789,9 +1791,12 @@ function closeVideo(event, container) {
 
     <p>The Pen and Pencil Tools have identical functionality. Configure them independently: that way, two unique line-drawing styles will be readily available.</p>
 
-    <p>Tap on the color swatch in the Panel to invoke the Browser's native color chooser.</p>
-
-    <p>Tap on the interlocking circles in the Panel to reveal a slider that adjusts opacity.</p>
+    <p>The Color section is a row of round chips:</p>
+    <ul>
+        <li><strong>Current color</strong> (the large chip on the left): tap it to invoke the browser's native color chooser.</li>
+        <li><strong>Recent colors</strong> (the smaller chips): the colors you've used most recently. Tap one to use it right away. The list is shared by every panel with a Color section, so a color you choose for the Pen is ready in the Pencil, Rastrum, Text and Symbols panels too.</li>
+        <li><strong>Opacity</strong> (the circle on the right): tap it to reveal a slider that adjusts opacity.</li>
+    </ul>
 
     <p>Buttons on the bottom affect how the lines are drawn:</p>
     <ul>
@@ -2096,8 +2101,8 @@ function closeVideo(event, container) {
 
     <h4>To configure the color and opacity of added pages:</h4>
     <ul>
-        <li>Tap on the Color dropdown to launch the browser's native color chooser.</li>
-        <li>Tap on the double circle to launch a slider that sets the page's opacity.</li>
+        <li>Tap on the round color chip to launch the browser's native color chooser, or tap one of the recent colors beside it.</li>
+        <li>Tap on the circle on the right of the Color section to launch a slider that sets the page's opacity.</li>
     </ul>
 
     <h4>To set the size of added pages:</h4>
@@ -2545,7 +2550,7 @@ function closeVideo(event, container) {
 
     <div class="note">The browser will request camera and microphone permissions when this tool is first used. If Podium does not find a usable camera and microphone, this tool will not run.</div>
 
-    <p>Monitor a device's camera and microphone, with instant replay of the last ~30 seconds (configurable).</p>
+    <p>Monitor a device's camera and microphone, with instant replay of the last 15 seconds (or as much as 10 minutes: see Review Length, below).</p>
 
     <div class="note">The tool is designed for interactive use only. By design, its recordings are transient and discarded when the tool is closed.</div>
 
@@ -2561,21 +2566,21 @@ function closeVideo(event, container) {
 
     <p>The Review tool records you continuously while practicing/rehearsing. If you make a mistake (or do something great!) you can immediately replay the moment for analysis.</p>
 
-    <p>You can let the Review run for hours without worrying about running out of memory. Behind the scenes, Podium automatically manages memory by keeping only the most recent portion of your session available for replay (typically 30 seconds to a few minutes). This ensures that you can always review your most recent performance without exhausting your device's resources.</p>
+    <p>You can let the Review run for hours without worrying about running out of memory. Behind the scenes, Podium automatically manages memory by keeping only the most recent portion of your session available for replay: as much as you set in the Review Length option, from 15 seconds up to 10 minutes. This ensures that you can always review your most recent performance without exhausting your device's resources.</p>
 
     <div class="note">Although this prevents your system from consuming memory, it can use a lot of battery, so it works best if your device is plugged in to a power supply rather than running off battery.</div>
 
     <p>At any time, the tool will be in one of two modes:</p>
 
-    <p><strong>Live Mode:</strong> Audio and video are continuously recorded, and the Play button displays "Live". As described above, when the recording reaches the preset maximum, older content is automatically discarded while recording continues.</p>
+    <p><strong>Live Mode:</strong> Audio and video are continuously recorded, and the Play button displays "Live". As described above, older content is automatically discarded while recording continues, so you can always replay the most recent part of your session, as set by Review Length.</p>
 
     <p>Pause recording by tapping the Pause button, and resume by tapping the Play button (labeled Live).</p>
 
-    <p>The scrubber will always be at the far right, with its label indicating the recording duration in seconds. This duration will skip backwards by half whenever the first half of the recording is discarded.</p>
+    <p>The scrubber will always be at the far right. It spans the most recent part of your session, up to the Review Length, and its label counts back from the present moment: <strong>0:00</strong> is now, and <strong>−1:05</strong> is 1 minute 5 seconds ago.</p>
 
     <p>To enter Playback mode, drag the scrubber to the left. Playback begins at the chosen location.</p>
 
-    <p><strong>Playback Mode:</strong> Recorded audio and video are played back, and the Play button's text label is "Replay".</p>
+    <p><strong>Playback Mode:</strong> Recorded audio and video are played back, and the Play button's text label is "Replay". The scrubber's label still counts back from the moment you stopped recording, so it counts up toward 0:00 as playback catches up.</p>
 
     <p>Pause playback by tapping the Pause button, and resume by tapping the Play Button (labeled Replay).</p>
 
@@ -2593,10 +2598,12 @@ function closeVideo(event, container) {
     <p>Configure the Review tool settings:</p>
 
     <ul>
-        <li><strong>Camera Orientation:</strong> Choose whether the video tab shows how you will look through a camera (Front) or if you were looking in a mirror (Mirror).</li>
-        <li><strong>Recording Length:</strong> Set the minimum and maximum recording length. These two numbers work as described in Live Mode above.</li>
-        <li><strong>Device Selection:</strong> If your device has multiple cameras or microphones, you can choose which devices will be used by the tool.</li>
+        <li><strong>Video Direction:</strong> Choose whether the video tab shows how you will look through a camera (Front) or if you were looking in a mirror (Mirror).</li>
+        <li><strong>Review Length:</strong> Set how far back you can replay, from 15 seconds up to 10 minutes. The slider shows it as, for example, <strong>Last 4m 35s</strong>.</li>
+        <li><strong>Input Devices:</strong> If your device has multiple cameras or microphones, you can choose which devices will be used by the tool.</li>
     </ul>
+
+    <div class="note">Longer review lengths use more memory: at 10 minutes, the recording can take a few hundred megabytes. On a device with little memory, such as a tablet or Chromebook with 4 GB, a shorter length is safer, especially with large scores open.</div>
 
     <figure>
         <img src="assets/morereviewoptions.jpg" alt="Review options tab">
