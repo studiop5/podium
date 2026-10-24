@@ -26,11 +26,13 @@ import { Pg } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
 // -skip
 
+// Bookmark colors: 10 hues, all clearly different from each other (CIEDE2000 >= 24)
+// and from the pagers' backgrounds in every theme (>= 25: no orange/tan for Light,
+// no black/gray for Glass and Dark). Ordered s.t. consecutive colors also differ in
+// lightness, which still tells neighbors apart for color-blind users.
 let bkColors = [
-  "#e58322", "#163799", "#e5e522", "#1a1a1a",
-  "#22e5e5", "#991637", "#22e522", "#8322e5",
-  "#808080", "#379916", "#e522e5", "#167899",
-  "#e52222", "#83e522", "#371699", "#2283e5",
+  "#e52222", "#22c822", "#6a1b9a", "#4fb3ff", "#137a2a", // red, green, purple, sky, dark green
+  "#ffffff", "#2264e5", "#f2e600", "#e522e5", "#22e5e5", // white, blue, yellow, magenta, cyan
 ];
 
 function nextBkColor(pg) {
@@ -43,7 +45,7 @@ function nextBkColor(pg) {
   let after = pgs.slice(i + 1).find((p) => p.bookmark)?.bookmark;
   let color;
   do color = bkColors[stash.bkColorIdx++ % bkColors.length];
-  while (color == before || color == after); // (ends: 16 colors, at most 2 excluded)
+  while (color == before || color == after); // (ends: 10 colors, at most 2 excluded)
   return color;
 }
 
@@ -913,23 +915,11 @@ class BookLayout extends Layout {
     this.slots = this.slotArrays[this.slotArraysIndex];
 
     // Create left/right pager instances:
-    this.pagerLeft = new Pager("left", (stash, adjusting, cursor) => {
-      let pn = stash.pn;
-      // left page number must always be even, except when adjusting
-      if (!adjusting && pn == 1) return (cursor.textContent = "\u2219"); // no pg 1 on left side
-      else if (!adjusting && pn & 1) pn--;
-      return pnToDiv(pn, cursor);
-    });
+    // left page number is always even (0 at pg 1: no page on the left side)
+    this.pagerLeft = new Pager("left", (numbers) => numbers.pn & ~1);
     this.layout.append(this.pagerLeft.elm);
-    this.pagerRight = new Pager("right", (stash, adjusting, cursor) => {
-      let pn = stash.pn;
-      let pgCount = this.score.pgs.length;
-      // right page number must always be odd, except when adjusting
-      pn = Math.min(pn, pgCount);
-      if (!adjusting && !(pn & 1)) pn++;
-      if (!adjusting && pn > pgCount) return (cursor.textContent = "\u2219"); // no pg on right side, so no pn either
-      return pnToDiv(pn, cursor);
-    });
+    // right page number is always odd (past the last page: no page on the right side)
+    this.pagerRight = new Pager("right", (numbers) => Math.min(numbers.pn, this.score.pgs.length) | 1);
     this.pagerLeft.elm.style.left = this.pagerRight.elm.style.right = 0;
   }
 
@@ -1665,26 +1655,21 @@ class ScrollLayout extends Layout {
     this.elm.dataset.scrollOrient = cell.key == "horizontal" ? "h" : "v";
 
     // Create left/right (top/bottom) pager instances:
-    this.pagerLeft = new Pager(this.props.LEFT, (stash, adjusting, cursor) => {
-      if (adjusting) return pnToDiv(stash.pn, cursor);
-      let [left] = this.snapPns();
-      return pnToDiv(left, cursor);
-    });
+    this.pagerLeft = new Pager(this.props.LEFT, () => this.snapPns()[0]);
     Object.assign(this.pagerLeft.elm.style, {
       left: 0,
       zIndex: 20,
     });
-    this.pagerRight = new Pager(this.props.RIGHT, (stash, adjusting, cursor) => {
-      if (adjusting) return pnToDiv(Math.min(stash.pn + this.cell.geo.pgShow - 1, this.cell.geo.pgCount), cursor);
-      let [, right] = this.snapPns();
-      return pnToDiv(right, cursor);
-    });
+    // dragging the right pager picks the rightmost page: the layout's pn is the leftmost
+    this.pagerRight = new Pager(this.props.RIGHT, () => this.snapPns()[1],
+      (pn) => pn - this.cell.geo.pgShow + 1);
     Object.assign(this.pagerRight.elm.style, {
       right: 0,
       zIndex: 20,
     });
     this.leftRollShadow.style.background = this.rightRollShadow.style.background =
       `linear-gradient(to ${this.cell.key == "horizontal" ? "right" : "bottom"}, #666b 0, #0000 50%, #8888 100%)`;
+    this.pagerLeft.rolled = this.pagerRight.rolled = true; // bookmarks curl around the rollers
   }
 
   destructor() {
@@ -2693,9 +2678,9 @@ class Pager {
        background: #8884;
      }
      .Pager__bookmark {
+       /* drawn as a file-folder tab poking out from under the page: see buildBookmarks */
        position:absolute;
-       opacity:.75;
-       border-radius:.5em;
+       box-shadow: 1px 2px 3px #0009; /* cast on the pager, lit from the top left like the layout */
      }
      .Pager--hidden .Pager__cursor,
      .Pager--hidden .Pager__bookmark { visibility: hidden; }`);
@@ -2709,10 +2694,17 @@ class Pager {
      </div>`
   );
 
-  constructor(position, formatFunc) {
+  constructor(position, pnFunc, toPn = (pn) => pn) {
     // position is one of "left", "right", "top", "bottom"
+    // @pnFunc(numbers) returns the page number this pager stands for, i.e. the page
+    // at its end of the layout. The cursor shows it, and sits at its position, s.t.
+    // a pager for the rightmost page doesn't sit at the leftmost page's position.
+    // (Outside 1..pgCount: no page at that end; the cursor shows a dot.)
+    // @toPn(pn) converts this pager's page number to the layout's pn, when the
+    // user drags the cursor to a page
     Object.assign(this, dataIndex("tag", this.elm));
-    this.formatFunc = formatFunc;
+    this.pnFunc = pnFunc;
+    this.toPn = toPn;
     this.position = position;
     this.props = ["left", "right"].includes(position) ? NORMAL_PROPS : ORTHO_PROPS;
     let { WIDTH, HEIGHT } = this.props;
@@ -2761,14 +2753,32 @@ class Pager {
     let cursorHeight = pagerBox[WIDTH]; // cursor height matches pager width
     this.cursor.style[HEIGHT] = cursorHeight + "px";
     this.cursor.style.lineHeight = this.cursor.style.fontSize ;
-    // The cursor is positioned s.t. pg 1 is always at the top of the pager, and the max page is always at the bottom
-    // of the pager.  Its Position is expressed as a percentage so that when a layout is scaled by adjusting
-    // the font size of its pz element, the pager position will automatically adjust.
-    let topPx = (_score_.numbers.pn -1) * (pagerBox[HEIGHT] - cursorHeight) / (_score_.pgs.length - 1);
+    // The cursor is centered on its page's band (see cursorTop).  Its Position is expressed as a percentage
+    // so that when a layout is scaled by adjusting the font size of its pz element, the pager position will
+    // automatically adjust.
+    let pgCount = _score_.pgs.length;
+    let pn = this.pnFunc(_score_.numbers);
+    let posPn = clamp(pn, 1, pgCount); // with no page at its end, sit at the end page
+    let topPx = Pager.cursorTop(posPn, pgCount, pagerBox[HEIGHT], cursorHeight);
     this.cursor.style[TOP] = 100 * topPx / pagerBox[HEIGHT] + "%";
-    let bkCl = _score_.pgs[_score_.numbers.pn - 1]?.bookmark;
+    let bkCl = _score_.pgs[pn - 1]?.bookmark;
     this.cursor.style.color = bkCl || "";
-    this.formatFunc(_score_.numbers, false, this.cursor);
+    this.showPn(pn, this.cursor);
+  }
+
+  static cursorTop(pn, pgCount, pagerHeight, cursorHeight) {
+    // The cursor's top (px) for page @pn: centered on the page's band, i.e. the 1/pgCount
+    // of the pager's height where buildBookmarks draws its bookmark, so the page number
+    // lines up with the bookmark beside it. Kept inside the pager: when bands are shorter
+    // than the cursor, the first and last few pages' cursors sit at the pager's ends.
+    let center = (pn - 0.5) * pagerHeight / pgCount;
+    return clamp(center - cursorHeight / 2, 0, pagerHeight - cursorHeight);
+  }
+
+  showPn(pn, div) {
+    // show page number @pn in @div, or a dot if there's no such page
+    if (pn < 1 || pn > _score_.pgs.length) div.textContent = "\u2219";
+    else pnToDiv(pn, div);
   }
 
   buildBookmarks() {
@@ -2778,13 +2788,38 @@ class Pager {
     let pgSpan = 100 / pgCount;
     // bookmarks for positions right and bottom are on opposite side of those for left and top
     let leftPercent = ["left", "top"].includes(this.position) ? 70 : -10;
+    // Each bookmark looks like a file-folder tab: its free end (toward the pager's outer
+    // edge, i.e. toward this.position) is rounded and catches the light; the end that
+    // goes under the page is square and in the page's shadow.
+    let free = this.position;
+    let radius = { left: ".4em 0 0 .4em", right: "0 .4em .4em 0", top: ".4em .4em 0 0", bottom: "0 0 .4em .4em" }[free];
+    let sheen = `linear-gradient(to ${free}, #0004, #0000 40%, #fff2 80%, #fff5)`;
+    let tabWidth = 40; // % of the pager's width
+    let bg = `background-image:${sheen}`;
+    if (this.rolled) {
+      // On a ScrollLayout's roller, shade the tab like a cylinder (dark toward both edges,
+      // lit along the top), s.t. it seems to curl around the roller from under the page.
+      // The shading is in the roller's coordinates: the tab shows the slice of it under the
+      // tab, so tabs on the left and right rollers share it.
+      let axis = ["left", "right"].includes(free) ? "right" : "bottom";
+      let cylinder = `linear-gradient(to ${axis}, #0007, #0000 35%, #fff3 50%, #0000 65%, #0007)`;
+      let size = 100 * 100 / tabWidth + "%"; // the roller's girth, as % of the tab's width
+      let pos = 100 * leftPercent / (100 - tabWidth) + "%"; // s.t. the slice starts at leftPercent
+      bg = `background-image:${cylinder};` + (axis == "right"
+        ? `background-size:${size} 100%;background-position:${pos} 0`
+        : `background-size:100% ${size};background-position:0 ${pos}`);
+    }
+    // Inset each tab from both ends of its page's band, s.t. bookmarks on consecutive
+    // pages read as separate tabs. (At most a quarter of the band, for long scores.)
+    let inset = `min(2px, ${pgSpan / 4}%)`;
 
     _score_.pgs.forEach((pg, i) => {
       if(!pg.bookmark) return;
       let elm = helm(
         `<div data-tag="bookmark" class="Pager__bookmark"
-         style="${TOP}:${i * pgSpan}%;
-           ${HEIGHT}:${pgSpan}%;${WIDTH}:40%;${LEFT}:${leftPercent}%"></div>`
+         style="${TOP}:calc(${i * pgSpan}% + ${inset});
+           ${HEIGHT}:calc(${pgSpan}% - 2 * ${inset});${WIDTH}:${tabWidth}%;${LEFT}:${leftPercent}%;
+           border-radius:${radius};${bg}"></div>`
       );
       elm.style.backgroundColor =
         typeof pg.bookmark == "string" && CSS.supports("color", pg.bookmark)
@@ -2805,13 +2840,18 @@ class Pager {
     pager.setPointerCapture(e.pointerId);
     cursor.classList.add("Pager__cursor-active");
 
+    // dragPn: the page under the cursor, which is this pager's page number (not
+    // necessarily the layout's pn: see toPn)
+    let dragPn = clamp(this.pnFunc(_score_.numbers), 1, pgCount);
     // display:block (overriding .floatingMsg's flex): the page number is drawn with
     // zero-advance Bravura time-sig glyphs whose ink overflows the box; iOS/WebKit
     // clips that overflow inside a flex item, so the readout shows blank. Block layout
     // paints it (same as the cursor, which is why the cursor renders fine).
-    let ptrDiv = ptrMsg(e, (e,div) => this.formatFunc(_score_.numbers, true, div) && false, `width: ${cursor.style.width};display:block;text-align:center;`);
+    let ptrDiv = ptrMsg(e, (e,div) => this.showPn(dragPn, div) && false, `width: ${cursor.style.width};display:block;text-align:center;`);
     let prevPos = e[CLIENTY];
-    let cursorTop = clamp(e[CLIENTY] - pagerBox[Y] - cursorBox[HEIGHT] / 2, 0, pagerBox[HEIGHT] - cursorBox[HEIGHT]);
+    // center: the point the drag moves, which picks the page whose band it's in. The
+    // cursor is centered on it, but kept inside the pager, s.t. every page is reachable.
+    let center = clamp(e[CLIENTY] - pagerBox[Y], 0, pagerBox[HEIGHT]);
     let cursorOffset = pagerBox[Y] + cursorBox.height ;
 
     let setCursor = (clientPos, delta) => {
@@ -2820,25 +2860,25 @@ class Pager {
       let t = Math.max(0, delta / pagerBox[WIDTH] - 0.5);
       let unitsPerPx = pgCount / pagerBox[HEIGHT];
       let sensitivity = 1 + t * unitsPerPx * _sliderPrecision_;
-      cursorTop = clamp(cursorTop + dPos / sensitivity, 0, pagerBox[HEIGHT] - cursorBox[HEIGHT]);
-      cursor.style[TOP] = cursorTop + "px";
+      center = clamp(center + dPos / sensitivity, 0, pagerBox[HEIGHT]);
+      cursor.style[TOP] = clamp(center - cursorBox[HEIGHT] / 2, 0, pagerBox[HEIGHT] - cursorBox[HEIGHT]) + "px";
       // pn calculation will equal pgCount at last pixel of slider, so we need Math.min
-      _score_.numbers.pn = Math.min(Math.floor(pgCount * cursorTop / (pagerBox[HEIGHT] - cursorBox[HEIGHT])) + 1, pgCount);
-      // are we at a bookmark? 
-      let bkCl = _score_.pgs[_score_.numbers.pn -1].bookmark;
+      dragPn = Math.min(Math.floor(pgCount * center / pagerBox[HEIGHT]) + 1, pgCount);
+      _score_.numbers.pn = clamp(this.toPn(dragPn), 1, pgCount);
+      // are we at a bookmark?
+      let bkCl = _score_.pgs[dragPn - 1].bookmark;
       cursor.style.color = bkCl || "";
       ptrDiv.style.backgroundColor = bkCl || "";
       ptrDiv.style.color = bkCl ? contrastColor(bkCl) : "";
       clearChildren(cursor);
       clearChildren(this.cursor);
-      this.formatFunc(_score_.numbers, true, this.cursor);
+      this.showPn(dragPn, this.cursor);
     };
 
     setCursor(e[CLIENTY], 0) ;
 
     this.bMarkTimer.run(_gs_, () => {
-      let pn = _score_.numbers.pn;
-      let pg = _score_.pgs[pn - 1];
+      let pg = _score_.pgs[dragPn - 1];
       if (pg.bookmark) {
         pg.bookmark = null;
         cursor.style.color = "";
