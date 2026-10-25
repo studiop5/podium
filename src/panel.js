@@ -425,7 +425,7 @@ class Panel {
       text-align: center;
       vertical-align: middle;
       line-height: 3em;
-      letter-spacing: .03em; /* (no bold: Vercetti has one weight, and a synthesized bold looks crude) */
+      font-weight: 600;
       color: var(--color-text);
       pointer-events: none;
     }
@@ -460,6 +460,7 @@ class Panel {
       margin-bottom: var(--spacing-xs);
       font-size: var(--font-size-sm); /* as big as a slider's text */
       letter-spacing: .1em;
+      font-weight: 500;
       text-transform: uppercase;
       color: var(--label-color);
       text-align: center;
@@ -710,6 +711,7 @@ class AboutPanel extends Panel {
         font-size: 1.1em;
         color: var(--color-text);
      }
+     .AboutPanel__name a { font-weight: 600; }
      .AboutPanel__name span { font-variant-numeric: tabular-nums; white-space: nowrap; }
      .AboutPanel__scroll {
         overflow-y: auto;
@@ -741,6 +743,11 @@ for more details.</p>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://github.com/steinbergmedia/bravura">Bravura Text</a><span>1.392</span></div>
           <div>© 2021 Steinberg Media Technologies GmbH</div>
+          <div>SIL Open Font License 1.1</div>
+        </div>
+        <div class="AboutPanel__credit" translate="no">
+          <div class="AboutPanel__name"><a href="https://rsms.me/inter/">Inter</a><span>4.001</span></div>
+          <div>© 2016 The Inter Project Authors</div>
           <div>SIL Open Font License 1.1</div>
         </div>
         <div class="AboutPanel__credit" translate="no">

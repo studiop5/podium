@@ -208,9 +208,9 @@ css( // common css declarations.
     --bodyVignette: radial-gradient(ellipse at 50% 45%, transparent 30%, rgba(0,0,0,0.13) 100%);
 
     /* Typography */
-    --body-font-family: Vercetti, sans-serif;
+    --body-font-family: Inter, sans-serif;
     --body-font-weight: 400;
-    --body-letter-spacing: .02em;
+    --body-letter-spacing: normal;
     --body-line-height: 1.2;
     --body-color: #1f2328;
 
@@ -240,6 +240,8 @@ css( // common css declarations.
                             0.2em 0.2em 0.4em #aaa4 inset;
     --menu-disk-shadow: none;
 
+    --link-color: blue;
+
     /* Panel colors */
     --panel-bg: rgba(200, 208, 222, 0.93);
     --panel-header-bg: #b8b8b8;
@@ -257,6 +259,9 @@ css( // common css declarations.
     --accent: #2f6fbf;
     /* Muted text, e.g. the labels in a label/value list, and section headings */
     --label-color: #4f5866;
+    /* a slider's value; in the grey themes the muted label is too close to the text color,
+       so weight does the work */
+    --value-weight: 600;
 
     /* ButtonGroup buttons: tiles like the menu's cells; "on" is lit like a selected cell.
        (Backgrounds are always images, s.t. a toggle button can layer its arrows on top.) */
@@ -338,12 +343,13 @@ css( // common css declarations.
   [data-theme="Dark"] {
     --bodyColor: #242424;
     --panTexture: ${panSvgDark};
+    --link-color: #6fa8ff; /* blue is unreadable on dark grey */
     --bodyVignette: radial-gradient(ellipse at 50% 45%, transparent 20%, rgba(0,0,0,0.45) 100%);
 
     /* Typography - dark theme */
-    --body-font-family: Vercetti, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --body-font-family: Inter, sans-serif;
     --body-font-weight: 400;
-    --body-letter-spacing: .02em;
+    --body-letter-spacing: normal;
     --body-line-height: 1.2;
     --body-color: #e5e5e5;
 
@@ -401,6 +407,7 @@ css( // common css declarations.
 
     --accent: #d8b37a;
     --label-color: #a8a090;
+    --value-weight: normal; /* the tan label already stands apart */
 
     --button-bg: linear-gradient(135deg, #3a3a3a 0%, #303030 100%);
     --button-on-bg: linear-gradient(135deg, #565656 0%, #4a4a4a 100%);
@@ -533,13 +540,14 @@ css( // common css declarations.
     /* marker for root-div of elements that *have been* pan-zoomed by user interaction */
     {}
     a:link,a:visited, a:active {
-      color:blue;
+      color:var(--link-color);
       background:inherit;
   }
   .taken
    /* marker for elements that should not be processed by main.py's Gesture class's long press action */
   {}
   .dialog {
+    --link-color: blue; /* the dialog stays light grey in every theme */
     border: var(--border);
     border-radius:var(--borderRadius);
     background:#ccc;
@@ -639,6 +647,7 @@ class ButtonGroup {
       padding: var(--spacing-xs) var(--spacing-xs) .2em;
       box-sizing: border-box;
       white-space: nowrap;
+      font-weight: 500;
       border-radius: .45em;
       background-image: var(--button-bg);
       box-shadow: var(--button-shadow);
@@ -1666,7 +1675,7 @@ class SliderGroup {
        (see setMsg). */
     .SliderGroup__msg { display: block; }
     .SliderGroup__label { color: var(--label-color); }
-    .SliderGroup__value { font-variant-numeric: tabular-nums; }
+    .SliderGroup__value { font-variant-numeric: tabular-nums; font-weight: var(--value-weight); }
     .SliderGroup__SliderBlock {
        margin-bottom: var(--spacing-md);
      }
@@ -2032,6 +2041,7 @@ class TabView {
        width: 8em;
        text-align: center;
        margin: 0.4em;
+       font-weight: 500;
     }
     .Tab__tag-selected {
       border-radius: var(--borderRadius);

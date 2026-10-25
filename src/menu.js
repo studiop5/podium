@@ -875,7 +875,7 @@ class Menu {
         `<div data-tag="diskCell" style="width:${diskDiameter}em;height:${diskDiameter}em;clip-path:${clipPath};transform:rotate(${rotation}turn);"
             class="Menu__diskCell" data-key="${diskKey}">
           <div data-tag="cellContents" class="Menu__cell-contents" style="transform:rotate(${-rotation}turn)">
-            <div data-tag="cellName" style="font-size:${fontSize}em;pointer-events:none;"><br>${ring.name}</div>
+            <div data-tag="cellName" style="font-size:${fontSize}em;font-weight:500;pointer-events:none;"><br>${ring.name}</div>
             ${svgWrap(ring.svgPath, { tag: "cellIcon", class: "cellIcon", size: cellIcon + "em", style: `width:${cellIcon}em;height:${cellIcon}em;pointer-events:none` })}
          </div>
 
@@ -904,7 +904,7 @@ class Menu {
           cell.elm = helm(`<div data-tag="ringCell" style="width:${ringDiameter}em;height:${ringDiameter}em;clip-path:${clipPath};transform:rotate(${rotation}turn);" class="Menu__cell"
              data-key="${diskKey + "/" + cellKey}">
            <div data-tag="cellContents" class="Menu__cell-contents" style="transform:rotate(${-rotation}turn);">
-             <div data-tag="cellName" style="font-size:${fontSize}em;"><br>${cell.name}</div>
+             <div data-tag="cellName" style="font-size:${fontSize}em;font-weight:500;"><br>${cell.name}</div>
              ${svgWrap(cell.svgPath, { tag: "cellIcon", class: "cellIcon", size: cellIcon + "em", style: `width:${cellIcon}em;height:${cellIcon}em;` })}
           </div>
         </div>`);

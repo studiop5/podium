@@ -146,6 +146,23 @@ if args.font:
       return this._bytes;
     }.bind({});
 
+    // Inter: the interface font (not offered by the Text tool, so no PDF-lib data). One
+    // variable file holds every weight. lib/Inter-LGC.woff2 is Inter 4.001 (google/fonts:
+    // ofl/inter) with its optical size fixed at 14, cut down to Latin, Greek and Cyrillic:
+    //   python3 -m fontTools.varLib.instancer "Inter[opsz,wght].ttf" opsz=14 -o Inter-wght.ttf
+    //   python3 -m fontTools.subset Inter-wght.ttf --flavor=woff2 --output-file=Inter-LGC.woff2
+    //     --unicodes=U+0000-024F,U+0300-036F,U+0370-03FF,U+0400-04FF,U+1E00-1EFF,U+2000-206F,U+20A0-20CF,U+2100-214F,U+2190-21FF,U+2212
+    const interBase64 = \"""")
+
+        with open('lib/Inter-LGC.woff2','rb') as inFile:
+            outFile.write(base64.b64encode(inFile.read()))
+
+        outFile.write(b"""\";
+
+    let interFont = new FontFace("Inter", "url(data:font/woff2;base64," + interBase64 + ")", { weight: "100 900" });
+    document.fonts.add(interFont);
+    await interFont.load();
+
     // Patrick Hand font
     const patrickHandBase64 = \"""")
 
