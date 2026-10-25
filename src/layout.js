@@ -49,6 +49,13 @@ function nextBkColor(pg) {
   return color;
 }
 
+function setBookmark(pnElm, color) {
+  // Show the Table layout page number @pnElm on a ribbon of bookmark @color, or plain when none.
+  pnElm.style.setProperty("--bk", color);
+  pnElm.style.color = color ? contrastColor(color) : ""; // (else the CSS's black)
+  pnElm.classList.toggle("TableLayout__pn--bookmark", !!color);
+}
+
 function contrastColor(hex) {
   // Return black or white for readable text on a hex background color (#RGB or #RRGGBB).
   let r, g, b;
@@ -61,7 +68,9 @@ function contrastColor(hex) {
     g = parseInt(hex.slice(3, 5), 16);
     b = parseInt(hex.slice(5, 7), 16);
   }
-  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.179 ? "#000" : "#fff";
+  // (relative luminance, as WCAG defines it: of the linear, not the gamma-encoded, values)
+  let lin = (c) => (c /= 255) <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b) > 0.179 ? "#000" : "#fff";
 }
 
 // The classes Pager and ScrollLayout are used with both horizontal
@@ -2166,9 +2175,25 @@ class TableLayout extends Layout {
           position:absolute;
           font-size:${1 / _dvPxRt_}em;    
           line-height:${1 / _dvPxRt_}em; 
+          color: #000; /* on the page, which is white in every theme */
           text-shadow: .075em 0 .2em #bbb, -.075em 0 .2em #bbb, 0 .075em .2em #bbb, 0 -.075em .2em #bbb;
           pointer-events: none;
           z-index: 2;
+        }
+        /* A bookmarked page's number is on a ribbon (of color --bk), notched at its foot,
+           with a hairline edge so even a white one shows on the page. (The ribbon is a
+           clipped ::before, as clip-path would clip away an edge drawn on the element.) */
+        .TableLayout__pn--bookmark {
+          padding: 0 .2em .45em;
+          filter: drop-shadow(0 0 .5px #000) drop-shadow(0 0 .5px #000);
+        }
+        .TableLayout__pn--bookmark::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          background: var(--bk);
+          clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - .3em), 0 100%);
         }
    `
   );
@@ -2338,11 +2363,8 @@ class TableLayout extends Layout {
       let pnElm = elm.getElementsByClassName("TableLayout__pn").item(0) || helm(`<div class="TableLayout__pn"></div>`);
       pnElm.pg = pg; // Pn div is clickable
       pnElm.pn = pn; 
-      Object.assign(pnElm.style, {
-         background: this.score.pgs[pn -1].bookmark  || "unset",
-         top: 0, 
-         left: 0,
-      });
+      Object.assign(pnElm.style, { top: 0, left: 0 });
+      setBookmark(pnElm, this.score.pgs[pn - 1].bookmark);
       elm.append(pnElm);
       pnToDiv(pn, pnElm, false);
     }
@@ -2524,10 +2546,7 @@ e.taken = true ;
     if(pnElm) {
       this.bMarkTimer.run(_gs_, () => {
         // toggle bookmark for this pg
-        if(pg.bookmark) {
-          pg.bookmark = null;
-          pnElm.style.background = "unset";
-        } else pnElm.style.background = pg.bookmark = nextBkColor(pg);
+        setBookmark(pnElm, pg.bookmark = pg.bookmark ? null : nextBkColor(pg));
       });
       _body_.dispatchEvent(new CustomEvent("BOOKMARK"));
     };
@@ -2689,7 +2708,7 @@ class Pager {
   static width = 45 / _dvPxRt_; // px
 
   elm = helm(
-    `<div data-tag="pager" class="Pager notranslate" translate="no">
+    `<div data-tag="pager" class="Pager" translate="no">
         <div data-tag="cursor" class="Pager__cursor"></div>
      </div>`
   );

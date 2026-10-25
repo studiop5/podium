@@ -1945,8 +1945,9 @@ class FileListView {
     .Flv-list__frame--save-mode {
       height: calc(100% - 16em); /* frame in save mode: allows room for FlvSave */
     }
+    /* A file's or folder's own color is the same in every theme, so is its text's. */
     .Flv-list__item-selected {
-      background: var(--panel-header-selected-bg) !important;
+      background: #b0b0b0 !important;
     }
     .Flv-list__file {
       width: calc(100% - 2em);
@@ -1959,21 +1960,19 @@ class FileListView {
       display:flex;
       align-items:center;
       column-gap:.5em;
-      color: var(--color-text);
-      text-shadow: var(--file-text-shadow);
+      color: #333;
+      text-shadow: 1px 1px 1px #fff8;
     }
     .Flv-list__file-details {
       display:flex;
       justify-content: space-between;
       align-items:center;
-      color: var(--color-text);
-      text-shadow: var(--file-text-shadow);
+      color: #333;
+      text-shadow: 1px 1px 1px #fff8;
     }
      .Flv-list__file-properties {
        font-size:.75em;
-       color: var(--file-properties-color);
        margin:.5em;
-       text-shadow: var(--file-text-shadow);
     }
     .Flv-path__sash {
       display: flex;
@@ -2000,20 +1999,25 @@ class FileListView {
       padding:.5em;
       margin: 0 0.25em;
       border-radius: var(--borderRadius);
-      color: var(--color-text);
-      text-shadow: var(--file-text-shadow);
+      color: #333;
+      text-shadow: 1px 1px 1px #fff8;
     }
     /* file name input element */
     .Flv-save__file
     { height: 2em;
       position: relative;
-      width:100%;
+      /* (flex: fill the row less its margins; width:100% plus margins ran under the
+         Upload button) */
+      flex: 1;
+      min-width: 0;
+      box-sizing: border-box;
       font-size:1.5em;
       border:none;
       border-radius:var(--borderRadius);
       text-align: center;
-      padding: 0em 4em 0em 1em;
-      margin:1em 2em 1em 2em;
+      text-overflow: ellipsis;
+      padding: 0em 3em 0em 1em;
+      margin:.67em 1.33em;
       outline:none;
     }
    }
@@ -2124,8 +2128,13 @@ class FileListView {
     let isDir = properties.isDir ?? false;
     let source = properties.source || FileSrc.get(this.src) || "?";
     let size = properties.size || null;
-    let created = properties.created ? new Date(properties.created).toLocaleString() : null;
-    let modified = properties.modified ? new Date(properties.modified).toLocaleString() : null;
+    // sizes and dates as the Details panel shows them ("3.4 MB", "Sep 1, 2026, 6:00 AM")
+    let when = (t) => {
+      let date = t ? new Date(t) : null;
+      return date && !isNaN(date) ? panels.DetailsPanel.dateFormat.format(date) : null;
+    };
+    let created = when(properties.created);
+    let modified = when(properties.modified);
     let iconName = isDir ? "Folder" : (this.iconsByExtension[name.slice(name.lastIndexOf(".")).toLowerCase()] || "File");
     let color = this.colorFromText(name);
     let elm = helm(`
@@ -2138,7 +2147,7 @@ class FileListView {
            <div class="Flv-list__file-properties">
              Source: ${noTranslate(escapeHtml(source))}<br>
              ${source == "Local" ? "" : "Path: " + noTranslate(escapeHtml(path) || "/") + "<br>"}
-             ${size ? "Size: "+ noTranslate(Number(size).toLocaleString()) + "<br>" : ""}
+             ${size ? "Size: "+ noTranslate(panels.DetailsPanel.fileSize(size)) + "<br>" : ""}
              ${created ? "Created: "+ noTranslate(created) + "<br>" : ""}
              ${modified ? "Modified: "+ noTranslate(modified) + "<br>" : ""}
            </div>
@@ -2155,11 +2164,15 @@ class FileListView {
     // Return a css background from given text using
     // a hash, with no alpha so the color looks identical in both light and dark modes.
     // Mix with white to create pastel colors.
-    let hex = strToHash(text).toString(16);
-
-    let r = parseInt(hex.substring(0, 2), 16);
-    let g = parseInt(hex.substring(2, 4), 16);
-    let b = parseInt(hex.substring(4, 6), 16);
+    // The hash is scrambled first, so that similar names ("x2", "x5"), whose hashes differ
+    // only in their low bits, still get clearly different colors. Then its low 3 bytes are r, g, b.
+    let h = strToHash(text);
+    h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+    h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+    h ^= h >>> 16;
+    let r = h & 255;
+    let g = (h >>> 8) & 255;
+    let b = (h >>> 16) & 255;
 
     // Mix 33% color with 67% white to create very light pastel
     r = Math.round(r / 3 + 170);

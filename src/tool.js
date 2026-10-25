@@ -404,8 +404,7 @@ class Piano {
     // options button
     this.optionsButton = helm(
       `<div class="Piano__button-holder" style="left: calc(50% + 1em)">
-        ${iconSvg("Options", { tag: "options", class: "Piano__button",
-           style: "transform:scale(.9) translate(0px,2px);"})}` );
+        ${iconSvg("Options", { tag: "options", class: "Piano__button" })}` );
     this.panel.header.append(this.optionsButton);
 
     this.panel.listeners.push(
@@ -446,8 +445,7 @@ class Piano {
     // pitch tracker button
     this.pitchButton = helm(
       `<div class="Piano__button-holder" style="left: calc(50% + 10em)">
-        ${iconSvg("TuningFork", { tag: "pitch", class: "Piano__button",
-           style: "transform:scale(.9) translate(0px,2px);"})}` );
+        ${iconSvg("TuningFork", { tag: "pitch", class: "Piano__button" })}` );
     this.panel.header.append(this.pitchButton);
 
     this.panel.listeners.push(

@@ -277,10 +277,6 @@ css( // common css declarations.
     /* Text shadow for contrast */
     --text-shadow-contrast: 0 0 0.2em rgba(255, 255, 255, 0.5), 1px 1px 1px rgba(255, 255, 255, 0.3);
 
-    /* File list colors */
-    --file-properties-color: #333;
-    --file-text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.5);
-
     /* Color palette */
     --color-primary: #4a90e2;
     --color-primary-active: #3a7bc8;
@@ -343,10 +339,6 @@ css( // common css declarations.
     --bodyColor: #242424;
     --panTexture: ${panSvgDark};
     --bodyVignette: radial-gradient(ellipse at 50% 45%, transparent 20%, rgba(0,0,0,0.45) 100%);
-
-    /* File list colors */
-    --file-properties-color: #ddd;
-    --file-text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.9);
 
     /* Typography - dark theme */
     --body-font-family: Vercetti, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -624,7 +616,6 @@ class ButtonGroup
 **/
 
 class ButtonGroup {
-  static toggleButtonSvg = `url("data:image/svg+xml,${encodeURIComponent('<svg width="100%" height="100%" viewBox="0 0 24 24" xmlns="http:/\/www.w3.org/2000/svg"><path style="fill:none;stroke:black;stroke-width:0.5px" d="M5 15.5L4 16.5L5 17.5M19 15.4L20 16.5L19 17.5"/></svg>')}")`;
 
 
   static css = css(
@@ -662,12 +653,21 @@ class ButtonGroup {
     .ButtonGroup__button-radio:not(.ButtonGroup__button-active) {
       color: color-mix(in srgb, var(--color-text) 75%, transparent);
     }
-    .ButtonGroup__button-toggle {
-      background-image: ${ButtonGroup.toggleButtonSvg}, var(--button-bg);
+    /* A toggle cycles through its group's buttons, shown one at a time: a dot for each,
+       the shown one filled, as in a carousel. */
+    .ButtonGroup__dots {
+      display: flex;
+      justify-content: center;
+      gap: .3em;
+      margin-top: .2em;
     }
-    .ButtonGroup__button-toggle.ButtonGroup__button-active {
-      background-image: ${ButtonGroup.toggleButtonSvg}, var(--button-on-bg);
+    .ButtonGroup__dots i {
+      width: .35em;
+      height: .35em;
+      border-radius: 50%;
+      background: color-mix(in srgb, currentColor 30%, transparent);
     }
+    .ButtonGroup__dots i.on { background: currentColor; }
     .ButtonGroup__button-disabled {
       color: var(--color-text-muted);
       left: 0;
@@ -709,6 +709,11 @@ class ButtonGroup {
         elm.classList.add("ButtonGroup__button-disabled");
         iconElm.classList.add("ButtonGroup__button-disabled");
       }
+      if (toggle) {
+        let cycle = Object.keys(defs).filter((t) => defs[t].toggle == toggle);
+        if (cycle.length > 1)
+          elm.append(helm(`<div class="ButtonGroup__dots">${cycle.map((t) => t == tag ? `<i class="on"></i>` : `<i></i>`).join("")}</div>`));
+      }
       this.elms[tag] = elm;
       this.iconElms[tag] = iconElm;
       // Add buttonElm to this.elm, unless it is a toggle for a property
@@ -742,9 +747,10 @@ class ButtonGroup {
             elm.classList.remove("ButtonGroup__button-active");
           }
         } else if (toggle) {
-          if (tag == itemTag) {
-            let currentToggleElm = dataIndex("property", this.elm)[property];
+          let currentToggleElm = dataIndex("property", this.elm)[property];
+          if (tag == itemTag && currentToggleElm !== elm) {
             currentToggleElm.replaceWith(elm);
+            if (this.elm.isConnected) elm.animate([{ transform: "rotateY(90deg)" }, { transform: "none" }], 250); // flips over
           }
         }
       }
@@ -913,8 +919,6 @@ class ColorPicker {
         flex: none;
         width: 1.5em;
         height: 1.5em;
-        padding: 0;
-        border: 0;
         border-radius: 50%;
         box-shadow: inset 0 0 0 1px #0003, var(--button-shadow);
         cursor: pointer;
@@ -1049,7 +1053,7 @@ class ColorPicker {
     clearChildren(this.recents);
     for (let c of colors)
       this.recents.append(helm(
-        `<button class="ColorPicker__recent notranslate" translate="no" data-color="${c}" style="background-color:${c}" aria-label="${c}"></button>`));
+        `<div class="ColorPicker__recent" data-color="${c}" style="background-color:${c}"></div>`));
   }
 }
 
@@ -2771,7 +2775,6 @@ function pnToDiv(pn, div, autoSize = true) {
   // for i18n): it turns both roman numerals (e.g. "vi", "mix") and Bravura's digit glyphs
   // (private-use code points, meaningless to a translator) into garbage, e.g. "NaN".
   div.translate = false;
-  div.classList.add("notranslate"); // (older Chrome/Google Translate convention)
 
   if (autoSize && div.offsetWidth > 0) {
     // Determine font size needed so str will fit within 90% of the div's width
@@ -2805,7 +2808,7 @@ function pnToHtml(pn) {
 
 function noTranslate(html) {
   // @return @html wrapped s.t. the browser's auto-translation leaves it alone.
-  return `<span translate="no" class="notranslate">${html}</span>`;
+  return `<span translate="no">${html}</span>`;
 }
 
 function pnToString(pn, useSMuFL = false) {

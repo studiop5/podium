@@ -692,14 +692,29 @@ class Panel {
 class AboutPanel extends Panel {
   static css = css(
     "AboutPanel",
-    `.Credit {
-        font-size: var(--font-size-xs);
-        margin: var(--spacing-lg);
+    `.AboutPanel__credits {
+        padding: var(--spacing-sm) var(--spacing-lg) var(--spacing-lg);
+        text-align: left;
      }
+     .AboutPanel__credits > .Panel__heading:first-child { margin-top: 0; border-top: 0; }
+     .AboutPanel__credit {
+        margin-bottom: var(--spacing-md);
+        font-size: .9em;
+        color: var(--label-color);
+     }
+     /* the name (a link) and, at the right, its version */
+     .AboutPanel__name {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--spacing-md);
+        font-size: 1.1em;
+        color: var(--color-text);
+     }
+     .AboutPanel__name span { font-variant-numeric: tabular-nums; white-space: nowrap; }
      .AboutPanel__scroll {
         overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
+        touch-action: none; /* (a drag scrolls it, below: touch too, so it doesn't fight the browser's own pan) */
         height: 100%;
         box-sizing: border-box;
         cursor: grab;
@@ -721,44 +736,56 @@ class AboutPanel extends Panel {
 for more details.</p>
       `);
 
-  creditsFace = helm(`<div translate="no">
-        <div class="Credit">
-          <a href="https://github.com/steinbergmedia/bravura">Bravura</a> Version 1.1<br>
-          © 2019, Steinberg Media Technologies GmbH<br>
-          SIL OPEN FONT LICENSE Version 1.1
-        </div><div class="Credit">
-          <a href="https://codepen.io/zastrow/details/kxdYdk">CSS Piano</a><br>
-          © 2026 Philip Zastrow
-        </div><div class="Credit">
-          <a href="https://github.com/fabricjs">fabric.js</a> Version 5.3.0 (2023)<br>
-          © 2008-2015 Printio (Juriy Zaytsev, Maxim Chernyak)<br>
-          MIT LICENSE
-        </div><div class="Credit">
-          <a href="https://github.com/foliojs/fontkit">fontkit.js</a> Version 1.1.1<br>
-          Author: Devon Govett<br>
-          MIT LICENSE
-        </div><div class="Credit">
-          <a href="https://fonts.google.com/specimen/Patrick+Hand">Patrick Hand Regular</a> Version 1.1.1<br>
-          © 2010-2012 Patrick Wagesreiter<br>
-          SIL OPEN FONT LICENSE Version 1.1
-        </div><div class="Credit">
-          <a href="https://github.com/mozilla/pdf.js">pdf.js</a> Version 4.10.38<br>
-          © 2024 Mozilla Foundation<br>
-          APACHE LICENSE Version 2.0<br>
-        </div><div class="Credit">
-          <a href="https://github.com/Hopding/pdf-lib">pdf-lib.js</a> Version 1.17.1<br>
-          © 2019 Andrew Dillon<br>
-          MIT LICENSE
-        </div><div class="Credit">
-          <a href="https://github.com/sfzinstruments/SalamanderGrandPiano">Salamander Grand Piano</a>  V2 Yamaha C5<br>
-          Author: Alexander Holm<br>
-          Creative Commons 3.0
-        </div><div class="Credit">
-          <a href="https://filipposfragkogiannis.com/fonts/vercetti-regular">Vercetti Regular</a> Version 1.1<br>
-          Designer: Filippos Fragkogiannis<br>
-          LICENSE AMICALE V. 0.2
-        </div></div>
-         `);
+  creditsFace = helm(`<div class="AboutPanel__credits">
+        <div class="Panel__heading">Fonts</div>
+        <div class="AboutPanel__credit" translate="no">
+          <div class="AboutPanel__name"><a href="https://github.com/steinbergmedia/bravura">Bravura Text</a><span>1.392</span></div>
+          <div>© 2021 Steinberg Media Technologies GmbH</div>
+          <div>SIL Open Font License 1.1</div>
+        </div>
+        <div class="AboutPanel__credit" translate="no">
+          <div class="AboutPanel__name"><a href="https://fonts.google.com/specimen/Patrick+Hand">Patrick Hand</a><span>1.003</span></div>
+          <div>© 2012 Patrick Wagesreiter</div>
+          <div>SIL Open Font License 1.1</div>
+        </div>
+        <div class="AboutPanel__credit" translate="no">
+          <div class="AboutPanel__name"><a href="https://filipposfragkogiannis.com/fonts/vercetti-regular">Vercetti</a><span>1.001</span></div>
+          <div>© 2022 Filippos Fragkogiannis and Richard Mandona</div>
+          <div>Licence Amicale 0.2</div>
+        </div>
+        <div class="Panel__heading">Code</div>
+        <div class="AboutPanel__credit" translate="no">
+          <div class="AboutPanel__name"><a href="https://codepen.io/zastrow/details/kxdYdk">CSS Piano</a><span></span></div>
+          <div>© 2026 Philip Zastrow</div>
+          <div>MIT</div>
+        </div>
+        <div class="AboutPanel__credit" translate="no">
+          <div class="AboutPanel__name"><a href="https://github.com/fabricjs">fabric.js</a><span>5.3.0</span></div>
+          <div>© 2008–2015 Printio (Juriy Zaytsev, Maxim Chernyak)</div>
+          <div>MIT</div>
+        </div>
+        <div class="AboutPanel__credit" translate="no">
+          <div class="AboutPanel__name"><a href="https://github.com/foliojs/fontkit">fontkit</a><span>1.1.1</span></div>
+          <div>© Devon Govett</div>
+          <div>MIT</div>
+        </div>
+        <div class="AboutPanel__credit" translate="no">
+          <div class="AboutPanel__name"><a href="https://github.com/mozilla/pdf.js">pdf.js</a><span>4.10.38</span></div>
+          <div>© 2024 Mozilla Foundation</div>
+          <div>Apache 2.0</div>
+        </div>
+        <div class="AboutPanel__credit" translate="no">
+          <div class="AboutPanel__name"><a href="https://github.com/Hopding/pdf-lib">pdf-lib</a><span>1.17.1</span></div>
+          <div>© 2019 Andrew Dillon</div>
+          <div>MIT</div>
+        </div>
+        <div class="Panel__heading">Sound</div>
+        <div class="AboutPanel__credit" translate="no">
+          <div class="AboutPanel__name"><a href="https://github.com/sfzinstruments/SalamanderGrandPiano">Salamander Grand Piano</a><span>V2 Yamaha C5</span></div>
+          <div>© Alexander Holm</div>
+          <div><a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a></div>
+        </div>
+      </div>`);
 
   versionFace = helm(
     `<div style="display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:100%;width:100%;box-sizing:border-box;padding:2em 1em;text-align:center;">
@@ -798,10 +825,28 @@ for more details.</p>
     tabView.tabs["Version"].face.append(this.versionFace);
     tabView.tabs["Credits"].face.append(this.creditsFace);
     tabView.tabs["License"].face.append(this.licenseFace);
-    // Touch-drag scroll (no visible scrollbar) for any tab whose content
-    // exceeds the viewport-capped face — Credits most often.
-    for (let t of ["Version", "Credits", "License"])
-      tabView.tabs[t].face.classList.add("AboutPanel__scroll");
+    // The credits don't fit: a drag anywhere in them scrolls them (no scrollbar is ever shown).
+    let face = tabView.tabs["Credits"].face;
+    face.classList.add("AboutPanel__scroll");
+    this.listeners.push(listen(face, "pointerdown", (e) => {
+      e.taken = true;
+      e.preventDefault(); // no text selection, nor dragging a link away
+      // (captured right away: capturing mid-drag ends the touch on Android, see TabView.
+      // So a click lands on the face, not on a link: a tap is passed to its link below)
+      face.setPointerCapture(e.pointerId);
+      let startY = e.clientY;
+      let startTop = face.scrollTop;
+      let dragged = false;
+      let mv = listen(face, "pointermove", (emv) => {
+        let dy = emv.clientY - startY;
+        if (Math.abs(dy) > 4) dragged = true;
+        if (dragged) face.scrollTop = startTop - dy;
+      });
+      listen(face, "pointerup", () => {
+        unlisten(mv);
+        if (!dragged) e.target.closest("a")?.click();
+      }, { once: true });
+    }));
     this.body.append(tabView.elm);
     tabView.tabs["Version"].select();
   }
@@ -1039,7 +1084,7 @@ class DetailsPanel extends Panel {
         `<label class="DetailsPanel__name">
            <span class="DetailsPanel__heading">File name</span>
            <input type="text" spellcheck="false" enterkeyhint="done">
-           <span class="DetailsPanel__ext notranslate" translate="no">.pdf</span>
+           <span class="DetailsPanel__ext" translate="no">.pdf</span>
          </label>`
       );
       let nameInput = name.querySelector("input");
@@ -2059,6 +2104,12 @@ class PencilPanel extends Panel {
        background-size: 0.5em 0.5em;
        background-position: 0 0, 0 0.25em, 0.25em -0.25em, -0.25em 0;
       }
+    /* the drawing fits the box, centered (else it's as tall as the box is wide, and cropped) */
+    .PencilPanel__preview svg {
+       display: block;
+       width: 100%;
+       height: 100%;
+      }
     `
   );
 
@@ -2244,14 +2295,14 @@ class RastrumPanel extends PencilPanel {
       let barSpan = (90 - barWidth) / bars;
       if (style == "L-R") 
         for (let i = 0, x = 5; i++ <= bars; x += barSpan)
-          barPath += `M${x} ${offset}5v${staffHeight}h${barWidth}v${-staffHeight}Z`; 
+          barPath += `M${x} ${offset}v${staffHeight}h${barWidth}v${-staffHeight}Z`; 
       else
         for (let i = 0, y = 5; i <= bars; i++, y += barSpan)
           barPath += `M${offset} ${y}v${barWidth}h${staffHeight}v${-barWidth}Z`;
     }
     this.preview.append(
       helm(
-        `<svg viewBox="0 0 100 100">
+        `<svg viewBox="${style == "L-R" ? "0 0 100 50" : "0 0 50 100"}">
            <path style="fill:${rgb};opacity:${alpha}" d="${linePath}"/>
            <path style="fill:${rgb};opacity:${alpha}" d="${barPath}"/>
          </svg>`
@@ -2273,7 +2324,7 @@ class TextPanel extends PencilPanel {
 
   slidersDef = {
     size: { min: 1, max: 100, step: 1, value: 1, row:1, col:1, msg: "Size: {value} px"},
-    height: { min: 1, max: 100, step: 1, value: 1, row:1, col:2, msg: "Spacing: {value} px"},
+    height: { min: 1, max: 100, step: 1, value: 1, row:1, col:2, msg: "Line: {value} px"},
   };
 
   buttonsDef = null;
@@ -3081,8 +3132,7 @@ class SymbolsPanel extends Panel {
       width: fit-content;
       padding: 0.25em;
       box-sizing: border-box;
-      margin-bottom: 0.2em;
-      height: 16em;
+      height: calc(4 * 4em + 3 * .08em + .5em); /* four whole rows (symbol 2em and gap .04em, at the grid's 2em), plus the padding */
       overflow-y: auto;
       scrollbar-width: none;
       border-radius: var(--borderRadius);
@@ -3097,7 +3147,7 @@ class SymbolsPanel extends Panel {
       display: grid;
       color: black;
       grid-template-columns: repeat(6, 1.55em);
-      gap: 2px;
+      gap: .04em; /* (em, not px: a px gap doesn't grow with the panel, so the frame fell short of it) */
     }
     .SymbolsPanel__symbol {
       width: 1.55em;
@@ -3110,13 +3160,9 @@ class SymbolsPanel extends Panel {
       border: 0.02em solid #d0d0d0;
       overflow: hidden;
    }
-   /* (:link/:visited, to outrank the app-wide "a:link, a:visited { color: blue }") */
-   .SymbolsPanel__credit, .SymbolsPanel__credit:link, .SymbolsPanel__credit:visited {
+   .SymbolsPanel__credit {
      font-size: .7em;
      letter-spacing: .05em;
-     color: var(--label-color);
-     text-decoration-color: color-mix(in srgb, var(--label-color) 40%, transparent);
-     text-underline-offset: .2em;
    }
    .SymbolsPanel__symbol-active {
      background-color: color-mix(in srgb, var(--accent) 15%, #fff);

@@ -1340,6 +1340,10 @@ function closeVideo(event, container) {
 
     <p><strong>Double-tap to activate:</strong> Double-tapping any panel's textured header activates its corresponding menu cell&mdash;exactly as if you had tapped the cell in the ring. If the second tap is a long press (held for about half a second), the cell is also locked. This is a convenient shortcut for activating or de-activating a tool from its open panel, without reaching for the menu.</p>
 
+    <h3>Buttons</h3>
+
+    <p>Most panel buttons come in groups of choices that are all in view: tap one to choose it, and it lights up. Where there isn't room for every choice, a single <em>toggle</em> button shows one choice at a time, such as Play or Pause, and tapping it flips it over to the next. The dots under a toggle's icon show how many choices it has, with the one shown filled in.</p>
+
     <h3>Sliders</h3>
 
     <p>Many panels use sliders to adjust values. For more precision, drag the slider to approximately the right value, then (without lifting your finger) drag up or down. The farther you drag up or down from the slider, the more precise left ⇄ right motion of the slider becomes.</p>
@@ -1588,7 +1592,7 @@ function closeVideo(event, container) {
     </ul>
 
     <h4 id="chapter-5-bookmarks">Bookmarks</h4>
-    <p>Bookmarks mark pages for quick navigation. In Book, Horizontal, and Vertical layouts, first navigate to the desired page, then long-press its page number to toggle a bookmark on or off. Bookmarks appear as colored tabs along the edge of the layout; press any tab to jump directly to that page. In Table layout, long-press on a page to make it current and toggle its bookmark state. Bookmarks are saved with the score.</p>
+    <p>Bookmarks mark pages for quick navigation. In Book, Horizontal, and Vertical layouts, first navigate to the desired page, then long-press its page number to toggle a bookmark on or off. Bookmarks appear as colored tabs along the edge of the layout; press any tab to jump directly to that page. In Table layout, long-press on a page to make it current and toggle its bookmark state: a bookmarked page shows its page number on a ribbon of the bookmark's color. Bookmarks are saved with the score.</p>
     <p>The thickness of each bookmark tab corresponds to one page's position in the pager, so tabs are thinner in longer scores — giving a visual sense of how many pages the score contains. Each pager cursor sits at its own page's position, so when that page is bookmarked, its page number lines up with the tab. A new bookmark is always given a color different from its nearest neighbors', so bookmarks next to each other are easy to tell apart.</p>
     <p>When dragging a pager cursor over a bookmarked page, the floating readout is painted in that bookmark's color — making it easy to navigate to a specific bookmark even when several adjacent tabs are too small to press directly.</p>
 
@@ -1842,7 +1846,7 @@ function closeVideo(event, container) {
 
     <p>The Text Panel allows you to configure text properties:</p>
     <ul>
-        <li>Set inter-line spacing for multi-line text.</li>
+        <li><strong>Line:</strong> sets the inter-line spacing of multi-line text: the distance from one line to the next, in pixels.</li>
         <li>Choose from standard PDF text fonts, plus Vercetti, Bravura, and Patrick Hand fonts.</li>
     </ul>
 
@@ -2296,7 +2300,7 @@ function closeVideo(event, container) {
     </ul>
 
     <h4>Credits Tab:</h4>
-    <p>Lists the open source projects Podium is built on.</p>
+    <p>Lists the fonts, code and sound Podium is built on, grouped under those headings, each with its version, copyright holder and license. Tap a name to visit its project. Drag the list up or down to see all of it.</p>
 
     <h4>License Tab:</h4>
     <p>Official copyright and license statement (<a href="https://www.gnu.org/licenses/agpl-3.0-standalone.html" target="_blank">GNU Affero General Public License v3</a>).</p>
