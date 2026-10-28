@@ -616,106 +616,106 @@ if args.guide:
     # Curated keywords: body-text terms not found in headings.
     # Maps keyword -> list of anchor IDs.
     CURATED_KEYWORDS = {
-        "Annotations": ["chapter-6", "chapter-1"],
-        "Aspect ratio": ["chapter-6-edit"],
-        "Bookmarks": ["chapter-5-bookmarks"],
-        "Bravura font": ["chapter-6-symbols"],
-        "Browser extension": ["chapter-2"],
-        "Browser tab naming": ["chapter-3"],
-        "Cell auto-deactivation": ["chapter-3-auto-deactivation"],
-        "Cell locking": ["chapter-3-cell-locking", "chapter-6"],
-        "Cloud storage": ["chapter-4-open-save"],
-        "Color chooser": ["chapter-6-pen-pencil", "chapter-7-add"],
-        "Conducting patterns": ["chapter-9-metronome"],
-        "Cross-instance sharing": ["chapter-7-export-import"],
-        "CSS pixels": ["chapter-5-book", "chapter-5-horizontal"],
-        "Dark theme": ["chapter-8-theme"],
-        "Delcamp": ["chapter-2"],
-        "Display quality": ["chapter-4-details"],
-        "Drag and drop": ["chapter-4-open-save"],
-        "Dropbox": ["chapter-4-open-save"],
+        "Annotations": ["ink", "quick-start"],
+        "Aspect ratio": ["ink-edit"],
+        "Bookmarks": ["bookmarks"],
+        "Bravura font": ["ink-symbols"],
+        "Browser extension": ["running"],
+        "Browser tab naming": ["interface"],
+        "Cell auto-deactivation": ["auto-deactivation"],
+        "Cell locking": ["cell-locking", "ink"],
+        "Cloud storage": ["score-open-save"],
+        "Color chooser": ["ink-pen-pencil", "page-add"],
+        "Conducting patterns": ["more-metronome"],
+        "Cross-instance sharing": ["page-export-import"],
+        "CSS pixels": ["layout-book", "layout-horizontal"],
+        "Dark theme": ["app-theme"],
+        "Delcamp": ["running"],
+        "Display quality": ["score-details"],
+        "Drag and drop": ["score-open-save"],
+        "Dropbox": ["score-open-save"],
         "E-reader": ["overture"],
-        "Equal temperament": ["chapter-9-piano"],
-        "Expand mode": ["chapter-4-details"],
-        "Export": ["chapter-7-export-import"],
-        "File System Access API": ["chapter-4-open-save"],
+        "Equal temperament": ["more-piano"],
+        "Expand mode": ["score-details"],
+        "Export": ["page-export-import"],
+        "File System Access API": ["score-open-save"],
         "Firefox settings": ["firefox-settings"],
-        "Fling gesture": ["chapter-3", "chapter-5-page-turning"],
-        "Foot pedal": ["chapter-2-foot-pedal", "chapter-7-numbers"],
-        "Full screen": ["chapter-8-screen", "chapter-3"],
-        "Gestures": ["chapter-3"],
-        "Google Drive": ["chapter-4-open-save"],
-        "Grip": ["chapter-3"],
-        "Group selection": ["chapter-6-edit"],
-        "Images, importing": ["chapter-6-cut-copy-paste"],
-        "IMSLP": ["chapter-2"],
-        "Import": ["chapter-7-export-import"],
-        "Inner ring": ["chapter-3"],
-        "Installation": ["chapter-2"],
-        "Keyboard shortcuts": ["chapter-7-numbers"],
-        "Light theme": ["chapter-8-theme"],
-        "Line drawing": ["chapter-6-pen-pencil"],
-        "Live mode": ["chapter-9-review"],
-        "Local storage": ["chapter-8-storage"],
-        "Long press": ["chapter-3"],
-        "Magnify": ["chapter-7-magnify"],
-        "Manuscript paper": ["chapter-7-flatten", "chapter-6-rastrum"],
-        "Merge": ["chapter-7-merge"],
-        "Metadata": ["chapter-4-details"],
-        "Microphone": ["chapter-9-review", "chapter-9-piano"],
-        "Mouse controls": ["chapter-3"],
-        "CPDL": ["chapter-2"],
-        "Navigation": ["chapter-1", "chapter-5-book"],
-        "Offline use": ["chapter-2"],
-        "OneDrive": ["chapter-4-open-save"],
-        "Opacity": ["chapter-6-pen-pencil", "chapter-7-add"],
+        "Fling gesture": ["interface", "turning-pages"],
+        "Foot pedal": ["foot-pedal", "page-numbers"],
+        "Full screen": ["app-screen", "interface"],
+        "Gestures": ["interface"],
+        "Google Drive": ["score-open-save"],
+        "Grip": ["grip"],
+        "Group selection": ["ink-edit"],
+        "Images, importing": ["ink-cut-copy-paste"],
+        "IMSLP": ["running"],
+        "Import": ["page-export-import"],
+        "Inner ring": ["menu"],
+        "Installation": ["running"],
+        "Keyboard shortcuts": ["page-numbers"],
+        "Light theme": ["app-theme"],
+        "Line drawing": ["ink-pen-pencil"],
+        "Live mode": ["more-review"],
+        "Local storage": ["app-storage"],
+        "Long press": ["interface"],
+        "Magnify": ["page-magnify"],
+        "Manuscript paper": ["page-flatten", "ink-rastrum"],
+        "Merge": ["page-merge"],
+        "Metadata": ["score-details"],
+        "Microphone": ["more-review", "more-piano"],
+        "Mouse controls": ["interface"],
+        "CPDL": ["running"],
+        "Navigation": ["quick-start", "layout-book"],
+        "Offline use": ["running"],
+        "OneDrive": ["score-open-save"],
+        "Opacity": ["ink-pen-pencil", "page-add"],
         "Open source": ["overture"],
-        "Outer ring": ["chapter-3"],
-        "Page numbers": ["chapter-7-numbers", "chapter-5-book"],
-        "Page ordering": ["chapter-5-table"],
-        "Page range": ["chapter-4-print"],
-        "Page sizing": ["chapter-4-details"],
-        "Page Turning": ["chapter-5-page-turning"],
-        "Pager": ["chapter-5-page-turning"],
-        "Password-protected PDF": ["chapter-4-open-save"],
-        "Paste buffer": ["chapter-7-export-import"],
-        "PDF files": ["chapter-4-open-save", "overture"],
-        "Pinch-zoom": ["chapter-3", "chapter-5-book"],
-        "Pitch detector": ["chapter-9-piano"],
-        "Playback": ["chapter-9-review"],
-        "Practice scores": ["chapter-7-export-import"],
-        "Precision sliders": ["chapter-6-edit"],
-        "Print": ["chapter-4-print"],
-        "Privacy": ["chapter-7-export-import", "chapter-8-storage"],
-        "Progressive Web App (PWA)": ["chapter-2"],
-        "Recent files": ["chapter-4-open-save", "chapter-8-storage"],
-        "Recording": ["chapter-9-review"],
-        "Reorder pages": ["chapter-5-table"],
-        "Resize": ["chapter-3"],
-        "Revert to saved": ["chapter-4-open-save"],
-        "Roman numerals": ["chapter-7-numbers"],
-        "Rotating rings": ["chapter-3"],
-        "Salamander Grand Piano": ["chapter-9-piano"],
-        "Scrubber": ["chapter-9-review"],
-        "Shared buffer": ["chapter-7-export-import"],
-        "Sliders": ["chapter-3"],
-        "SMuFL": ["chapter-6-symbols"],
-        "Snap scrolling": ["chapter-5-horizontal", "chapter-5-vertical"],
-        "Spectrogram": ["chapter-9-review"],
-        "Split times": ["chapter-9-stopwatch"],
-        "Staff space": ["chapter-6-rastrum", "chapter-6-symbols"],
-        "Staves": ["chapter-6-rastrum"],
-        "Sustain mode": ["chapter-9-piano"],
-        "Symbol library": ["chapter-6-symbols"],
-        "Tablature": ["chapter-6-rastrum"],
-        "Temperament": ["chapter-9-piano"],
-        "Timbre": ["chapter-9-piano"],
-        "Transform handles": ["chapter-6-edit"],
-        "Tuner": ["chapter-9-piano"],
-        "Undo history": ["chapter-6-undo", "chapter-7-undo"],
-        "Waveform": ["chapter-9-review"],
-        "YIN pitch detection": ["chapter-9-piano"],
-        "Zoom": ["chapter-7-magnify", "chapter-3"],
+        "Outer ring": ["menu"],
+        "Page numbers": ["page-numbers", "layout-book"],
+        "Page ordering": ["layout-table"],
+        "Page range": ["score-print"],
+        "Page sizing": ["score-details"],
+        "Page Turning": ["turning-pages"],
+        "Pager": ["turning-pages"],
+        "Password-protected PDF": ["score-open-save"],
+        "Paste buffer": ["page-export-import"],
+        "PDF files": ["score-open-save", "overture"],
+        "Pinch-zoom": ["interface", "layout-book"],
+        "Pitch detector": ["more-piano"],
+        "Playback": ["more-review"],
+        "Practice scores": ["page-export-import"],
+        "Precision sliders": ["ink-edit"],
+        "Print": ["score-print"],
+        "Privacy": ["page-export-import", "app-storage"],
+        "Progressive Web App (PWA)": ["running"],
+        "Recent files": ["score-open-save", "app-storage"],
+        "Recording": ["more-review"],
+        "Reorder pages": ["layout-table"],
+        "Resize": ["interface"],
+        "Revert to saved": ["score-open-save"],
+        "Roman numerals": ["page-numbers"],
+        "Rotating rings": ["interface"],
+        "Salamander Grand Piano": ["more-piano"],
+        "Scrubber": ["more-review"],
+        "Shared buffer": ["page-export-import"],
+        "Sliders": ["interface"],
+        "SMuFL": ["ink-symbols"],
+        "Snap scrolling": ["layout-horizontal", "layout-vertical"],
+        "Spectrogram": ["more-review"],
+        "Split times": ["more-stopwatch"],
+        "Staff space": ["ink-rastrum", "ink-symbols"],
+        "Staves": ["ink-rastrum"],
+        "Sustain mode": ["more-piano"],
+        "Symbol library": ["ink-symbols"],
+        "Tablature": ["ink-rastrum"],
+        "Temperament": ["more-piano"],
+        "Timbre": ["more-piano"],
+        "Transform handles": ["ink-edit"],
+        "Tuner": ["more-piano"],
+        "Undo history": ["ink-undo", "page-undo"],
+        "Waveform": ["more-review"],
+        "YIN pitch detection": ["more-piano"],
+        "Zoom": ["page-magnify", "interface"],
     }
 
     with open(GUIDEBOOK_PATH, 'r', encoding='utf-8') as f:
@@ -728,7 +728,7 @@ if args.guide:
 
     pattern = (
         r'<section\s+id="([^"]+)"[^>]*>\s*<h2>(.+?)</h2>|'
-        r'<h3\s+id="([^"]+)">(\d+\.\d+)\s+(?:.+?:\s+)?(.+?)</h3>|'
+        r'<h3\s+id="([^"]+)">(?:(\d+\.\d+)\s+)?(?:.+?:\s+)?(.+?)</h3>|'
         r'<h4\s+id="([^"]+)">(.+?)</h4>'
     )
 
@@ -740,7 +740,7 @@ if args.guide:
             clean_text = _re.sub(r'<[^>]+>', '', text).strip()
             if aid == 'overture':
                 label = 'Overture'
-            elif aid == 'chapter-10':
+            elif aid == 'author':
                 label = 'Ch.10'
             else:
                 ch = _re.match(r'Chapter (\d+)', clean_text)
@@ -750,13 +750,13 @@ if args.guide:
             headings.append((aid, label, clean_text))
         elif m.group(3) is not None:
             # h3
-            aid, label, text = m.group(3), m.group(4), m.group(5)
+            aid, label, text = m.group(3), m.group(4) or current_chapter_label, m.group(5) # (unnumbered: its chapter's)
             # Keep raw text (with HTML/SVG) to preserve icons
             current_section_label = label
             headings.append((aid, label, text))
         elif m.group(6) is not None:
             # h4
-            aid, text = m.group(6), m.group(7)
+            aid, text = m.group(6), _re.sub(r'\s*\([^)]*\)$', '', m.group(7)) # "Grip (center circle)" -> "Grip"
             headings.append((aid, current_section_label, text))
 
     section_labels = {h[0]: h[1] for h in headings}
@@ -849,8 +849,8 @@ if args.guide:
 
     # Add Index entry to TOC if not present
     if '#keyword-index' not in guide_html[:guide_html.index('</nav>')]:
-        toc_last = '<li><a href="#chapter-10">Chapter 10: About the Author</a></li>\n    </ul>\n</nav>'
-        toc_new = ('<li><a href="#chapter-10">Chapter 10: About the Author</a></li>\n'
+        toc_last = '<li><a href="#author">Chapter 10: About the Author</a></li>\n    </ul>\n</nav>'
+        toc_new = ('<li><a href="#author">Chapter 10: About the Author</a></li>\n'
                    '        <li><a href="#keyword-index">Index</a></li>\n    </ul>\n</nav>')
         guide_html = guide_html.replace(toc_last, toc_new)
 

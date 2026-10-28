@@ -442,10 +442,37 @@
         vertical-align: middle;
         overflow: visible;
     }
+    /* Text size buttons (A− 100% A+), fixed in a corner. Sized in px so they don't
+       grow with the text they size. */
+    .text-size {
+        position: fixed; top: 10px; right: 10px; z-index: 10;
+        display: flex; align-items: center; gap: 3px; padding: 3px;
+        font: 19px/1 system-ui, sans-serif;
+        background: #fffe; border: 1px solid #ccc; border-radius: 8px;
+        opacity: .6;
+    }
+    .text-size:hover, .text-size:focus-within { opacity: 1; }
+    .text-size button {
+        font: inherit; color: #333; background: none; border: 0; border-radius: 5px;
+        min-width: 43px; min-height: 43px; cursor: pointer;
+    }
+    .text-size button:hover { background: #eee; }
+    .text-size [data-step="1"] { font-size: 23px; }
+    @media print { .text-size { display: none; } }
 </style>
+<script>
+// Text size: a percentage of the browser's default, remembered in localStorage (when the
+// browser allows it) and applied here, before the first paint, so the text doesn't jump
+try { document.documentElement.style.fontSize = (localStorage.getItem("guidebookFontSize") || 100) + "%"; } catch {}
+</script>
 </head>
 <body>
 <a class="skip-link" href="#guide-content">Skip to guidebook content</a>
+<div class="text-size" role="group" aria-label="Text size">
+  <button type="button" data-step="-1" aria-label="Smaller text">A&minus;</button>
+  <button type="button" data-step="0" aria-label="Reset text size">100%</button>
+  <button type="button" data-step="1" aria-label="Larger text">A+</button>
+</div>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
   <symbol id="gb-score" viewBox="0 0 24 24">
     <path fill="#aaa" stroke="currentColor" stroke-width="0.8" d="m14.309339,12.611855v0m-2.543782,-3.2802594 3.122609,-0.01247M1.6649238,22.289353 21.865783,22.478636M18.366179,22.221781 18.066257,3.5141062 20.086952,3.4646895 20.102136,22.20106Zm-1.51175,0.05511-0.560058,-17.6242436 1.367543,0.014358 0.16507,17.6551636zm-6.050171,-0.19639 0.300854,-16.1871633 4.813427,-0.031453 0.02069,16.3211033zM6.1506929,22.108151 11.756662,2.5432418 8.2865928,1.7325439 2.6529156,20.947044Z"/>
@@ -753,84 +780,84 @@ function closeVideo(event, container) {
     <h2 id="toc-heading">Table of Contents</h2>
     <ul>
         <li><a href="#overture">Overture</a></li>
-        <li><a href="#chapter-1">Chapter 1: Quick Start</a> — <span style="color:#666">Just the basics</span></li>
-        <li><a href="#chapter-2">Chapter 2: Running Podium</a> — <span style="color:#666">Launch from URL or install</span>
+        <li><a href="#quick-start">Chapter 1: Quick Start</a> — <span style="color:#666">Just the basics</span></li>
+        <li><a href="#running">Chapter 2: Running Podium</a> — <span style="color:#666">Launch from URL or install</span>
             <ul>
-                <li><a href="#chapter-2-extension">2.1 Browser Extension</a> — <span style="color:#666">Install as a browser extension on desktop</span></li>
-                <li><a href="#chapter-2-pwa">2.2 Progressive Web App (PWA)</a> — <span style="color:#666">Install as a standalone app on any device</span></li>
-                <li><a href="#chapter-2-compat">2.3 Browser Compatibility</a> — <span style="color:#666">Supported browsers and platforms</span></li>
-                <li><a href="#chapter-2-foot-pedal">2.4 Foot Pedal</a> — <span style="color:#666">Page turning with a Bluetooth or USB foot pedal</span></li>
-                <li><a href="#chapter-2-language">2.5 Using Podium in Your Language</a> — <span style="color:#666">Translate the interface with your browser</span></li>
+                <li><a href="#extension">2.1 Browser Extension</a> — <span style="color:#666">Install as a browser extension on desktop</span></li>
+                <li><a href="#pwa">2.2 Progressive Web App (PWA)</a> — <span style="color:#666">Install as a standalone app on any device</span></li>
+                <li><a href="#browsers">2.3 Browser Compatibility</a> — <span style="color:#666">Supported browsers and platforms</span></li>
+                <li><a href="#foot-pedal">2.4 Foot Pedal</a> — <span style="color:#666">Page turning with a Bluetooth or USB foot pedal</span></li>
+                <li><a href="#language">2.5 Using Podium in Your Language</a> — <span style="color:#666">Translate the interface with your browser</span></li>
             </ul>
         </li>
-        <li><a href="#chapter-3">Chapter 3: Interface Basics</a> — <span style="color:#666">Menu, panels, gestures, background</span></li>
-        <li><a href="#chapter-4">Chapter 4: Score Ring</a> — <span style="color:#666">Manage scores stored as PDF files</span>
+        <li><a href="#interface">Chapter 3: Interface Basics</a> — <span style="color:#666">Menu, panels, gestures, background</span></li>
+        <li><a href="#score">Chapter 4: Score Ring</a> — <span style="color:#666">Manage scores stored as PDF files</span>
             <ul>
-                <li><a href="#chapter-4-open-save">4.1 Open, Save</a> — <span style="color:#666">Open and save PDF score files</span></li>
-                <li><a href="#chapter-4-new">4.2 New</a> — <span style="color:#666">Create new, empty scores</span></li>
-                <li><a href="#chapter-4-close">4.3 Close</a> — <span style="color:#666">Close the current score</span></li>
-                <li><a href="#chapter-4-print">4.4 Print</a> — <span style="color:#666">Print with or without annotations</span></li>
-                <li><a href="#chapter-4-details">4.5 Details</a> — <span style="color:#666">Score information and metadata</span></li>
+                <li><a href="#score-open-save">4.1 Open, Save</a> — <span style="color:#666">Open and save PDF score files</span></li>
+                <li><a href="#score-new">4.2 New</a> — <span style="color:#666">Create new, empty scores</span></li>
+                <li><a href="#score-close">4.3 Close</a> — <span style="color:#666">Close the current score</span></li>
+                <li><a href="#score-print">4.4 Print</a> — <span style="color:#666">Print with or without annotations</span></li>
+                <li><a href="#score-details">4.5 Details</a> — <span style="color:#666">Score information and metadata</span></li>
             </ul>
         </li>
-        <li><a href="#chapter-5">Chapter 5: Layout Ring</a> — <span style="color:#666">Determine how scores are displayed</span>
+        <li><a href="#layout">Chapter 5: Layout Ring</a> — <span style="color:#666">Determine how scores are displayed</span>
             <ul>
-                <li><a href="#chapter-5-page-turning">Page Turning</a> — <span style="color:#666">Tap, drag, and fling gestures</span></li>
-                <li><a href="#chapter-5-bookmarks">Bookmarks</a> — <span style="color:#666">Mark and navigate to pages</span></li>
-                <li><a href="#chapter-5-book">5.1 Book Layout</a> — <span style="color:#666">Simulate a physical book</span></li>
-                <li><a href="#chapter-5-horizontal">5.2 Horizontal Layout</a> — <span style="color:#666">Horizontally-scrollable page flow</span></li>
-                <li><a href="#chapter-5-vertical">5.3 Vertical Layout</a> — <span style="color:#666">Vertically-scrollable page flow</span></li>
-                <li><a href="#chapter-5-table">5.4 Table Layout</a> — <span style="color:#666">All pages in a single table</span></li>
+                <li><a href="#turning-pages">Page Turning</a> — <span style="color:#666">Tap, drag, and fling gestures</span></li>
+                <li><a href="#bookmarks">Bookmarks</a> — <span style="color:#666">Mark and navigate to pages</span></li>
+                <li><a href="#layout-book">5.1 Book Layout</a> — <span style="color:#666">Simulate a physical book</span></li>
+                <li><a href="#layout-horizontal">5.2 Horizontal Layout</a> — <span style="color:#666">Horizontally-scrollable page flow</span></li>
+                <li><a href="#layout-vertical">5.3 Vertical Layout</a> — <span style="color:#666">Vertically-scrollable page flow</span></li>
+                <li><a href="#layout-table">5.4 Table Layout</a> — <span style="color:#666">All pages in a single table</span></li>
             </ul>
         </li>
-        <li><a href="#chapter-6">Chapter 6: Ink Ring</a> — <span style="color:#666">Add annotations to a score</span>
+        <li><a href="#ink">Chapter 6: Ink Ring</a> — <span style="color:#666">Add annotations to a score</span>
             <ul>
-                <li><a href="#chapter-6-pen-pencil">6.1 Pen, Pencil</a> — <span style="color:#666">Draw on score pages</span></li>
-                <li><a href="#chapter-6-rastrum">6.2 Rastrum</a> — <span style="color:#666">Draw music staves</span></li>
-                <li><a href="#chapter-6-text">6.3 Text</a> — <span style="color:#666">Add text boxes to a page</span></li>
-                <li><a href="#chapter-6-symbols">6.4 Symbols</a> — <span style="color:#666">Add music symbols to a page</span></li>
-                <li><a href="#chapter-6-cut-copy-paste">6.5 Cut, Copy, Paste</a> — <span style="color:#666">Manage annotation objects</span></li>
-                <li><a href="#chapter-6-undo">6.6 Undo</a> — <span style="color:#666">Undo the last Ink Ring action</span></li>
-                <li><a href="#chapter-6-grid">6.7 Grid</a> — <span style="color:#666">Guide grid for measuring and layout</span></li>
-                <li><a href="#chapter-6-edit">6.8 Edit</a> — <span style="color:#666">Move, resize, rotate annotations</span></li>
+                <li><a href="#ink-pen-pencil">6.1 Pen, Pencil</a> — <span style="color:#666">Draw on score pages</span></li>
+                <li><a href="#ink-rastrum">6.2 Rastrum</a> — <span style="color:#666">Draw music staves</span></li>
+                <li><a href="#ink-text">6.3 Text</a> — <span style="color:#666">Add text boxes to a page</span></li>
+                <li><a href="#ink-symbols">6.4 Symbols</a> — <span style="color:#666">Add music symbols to a page</span></li>
+                <li><a href="#ink-cut-copy-paste">6.5 Cut, Copy, Paste</a> — <span style="color:#666">Manage annotation objects</span></li>
+                <li><a href="#ink-undo">6.6 Undo</a> — <span style="color:#666">Undo the last Ink Ring action</span></li>
+                <li><a href="#ink-grid">6.7 Grid</a> — <span style="color:#666">Guide grid for measuring and layout</span></li>
+                <li><a href="#ink-edit">6.8 Edit</a> — <span style="color:#666">Move, resize, rotate annotations</span></li>
             </ul>
         </li>
-        <li><a href="#chapter-7">Chapter 7: Page Ring</a> — <span style="color:#666">Manage pages and page numbers</span>
+        <li><a href="#page">Chapter 7: Page Ring</a> — <span style="color:#666">Manage pages and page numbers</span>
             <ul>
-                <li><a href="#chapter-7-numbers">7.1 Numbers</a> — <span style="color:#666">Configure page numbering</span></li>
-                <li><a href="#chapter-7-add">7.2 Add</a> — <span style="color:#666">Configure appearance of new pages</span></li>
-                <li><a href="#chapter-7-cut-copy-paste">7.3 Cut, Copy, Paste</a> — <span style="color:#666">Duplicate, rearrange, or delete pages within the score</span></li>
-                <li><a href="#chapter-7-undo">7.4 Undo</a> — <span style="color:#666">Undo the last page operation</span></li>
-                <li><a href="#chapter-7-export-import">7.5 Export, Import</a> — <span style="color:#666">Share pages via the cross-tab shared buffer</span></li>
-                <li><a href="#chapter-7-merge">7.6 Merge</a> — <span style="color:#666">Merge another PDF into the current score</span></li>
-                <li><a href="#chapter-7-flatten">7.7 Flatten</a> — <span style="color:#666">Merge Ink annotations into the PDF</span></li>
-                <li><a href="#chapter-7-magnify">7.8 Magnify</a> — <span style="color:#666">Magnify a portion of a page</span></li>
+                <li><a href="#page-numbers">7.1 Numbers</a> — <span style="color:#666">Configure page numbering</span></li>
+                <li><a href="#page-add">7.2 Add</a> — <span style="color:#666">Configure appearance of new pages</span></li>
+                <li><a href="#page-cut-copy-paste">7.3 Cut, Copy, Paste</a> — <span style="color:#666">Duplicate, rearrange, or delete pages within the score</span></li>
+                <li><a href="#page-undo">7.4 Undo</a> — <span style="color:#666">Undo the last page operation</span></li>
+                <li><a href="#page-export-import">7.5 Export, Import</a> — <span style="color:#666">Share pages via the cross-tab shared buffer</span></li>
+                <li><a href="#page-merge">7.6 Merge</a> — <span style="color:#666">Merge another PDF into the current score</span></li>
+                <li><a href="#page-flatten">7.7 Flatten</a> — <span style="color:#666">Merge Ink annotations into the PDF</span></li>
+                <li><a href="#page-magnify">7.8 Magnify</a> — <span style="color:#666">Magnify a portion of a page</span></li>
             </ul>
         </li>
-        <li><a href="#chapter-8">Chapter 8: App Ring</a> — <span style="color:#666">Application information and display settings</span>
+        <li><a href="#app">Chapter 8: App Ring</a> — <span style="color:#666">Application information and display settings</span>
             <ul>
-                <li><a href="#chapter-8-about">8.1 About</a> — <span style="color:#666">Application information</span></li>
-                <li><a href="#chapter-8-theme">8.2 Theme</a> — <span style="color:#666">Toggle among Light, Glass, and Dark display themes</span></li>
-                <li><a href="#chapter-8-guide">8.3 Guide</a> — <span style="color:#666">Opens this guidebook in the app</span></li>
-                <li><a href="#chapter-8-storage">8.4 Storage</a> — <span style="color:#666">Manage browser storage</span></li>
-                <li><a href="#chapter-8-curtain">8.5 Curtain</a> — <span style="color:#666">Darken the screen</span></li>
-                <li><a href="#chapter-8-wakelock">8.6 Wakelock</a> — <span style="color:#666">Prevent the screen from automatically dimming</span></li>
-                <li><a href="#chapter-8-screen">8.7 Screen</a> — <span style="color:#666">Toggle full screen mode</span></li>
+                <li><a href="#app-about">8.1 About</a> — <span style="color:#666">Application information</span></li>
+                <li><a href="#app-theme">8.2 Theme</a> — <span style="color:#666">Toggle among Light, Glass, and Dark display themes</span></li>
+                <li><a href="#app-guide">8.3 Guide</a> — <span style="color:#666">Opens this guidebook in the app</span></li>
+                <li><a href="#app-storage">8.4 Storage</a> — <span style="color:#666">Manage browser storage</span></li>
+                <li><a href="#app-curtain">8.5 Curtain</a> — <span style="color:#666">Darken the screen</span></li>
+                <li><a href="#app-wakelock">8.6 Wakelock</a> — <span style="color:#666">Prevent the screen from automatically dimming</span></li>
+                <li><a href="#app-screen">8.7 Screen</a> — <span style="color:#666">Toggle full screen mode</span></li>
             </ul>
         </li>
-        <li><a href="#chapter-9">Chapter 9: More Ring</a> — <span style="color:#666">Musician's toolkit</span>
+        <li><a href="#more">Chapter 9: More Ring</a> — <span style="color:#666">Musician's toolkit</span>
             <ul>
-                <li><a href="#chapter-9-detached">9.1 Detached Panels</a> — <span style="color:#666">Simplify layout by detaching panels</span></li>
-                <li><a href="#chapter-9-metronome">9.2 Metronome</a> — <span style="color:#666">Animated metronome with conductor</span></li>
-                <li><a href="#chapter-9-stopwatch">9.3 Stopwatch</a> — <span style="color:#666">Timer for practice sessions</span></li>
-                <li><a href="#chapter-9-clock">9.4 Clock</a> — <span style="color:#666">Current time and date</span></li>
-                <li><a href="#chapter-9-piano">9.5 Piano</a> — <span style="color:#666">Keyboard with tuning and pitch detection</span></li>
-                <li><a href="#chapter-9-review">9.6 Review</a> — <span style="color:#666">Record audio/video with instant replay</span></li>
-                <li><a href="#chapter-9-keyboard">9.7 Keyboard</a> — <span style="color:#666">On-screen keyboard with progressive search</span></li>
-                <li><a href="#chapter-9-volume">9.8 Volume</a> — <span style="color:#666">Master volume control</span></li>
+                <li><a href="#detached-panels">9.1 Detached Panels</a> — <span style="color:#666">Simplify layout by detaching panels</span></li>
+                <li><a href="#more-metronome">9.2 Metronome</a> — <span style="color:#666">Animated metronome with conductor</span></li>
+                <li><a href="#more-stopwatch">9.3 Stopwatch</a> — <span style="color:#666">Timer for practice sessions</span></li>
+                <li><a href="#more-clock">9.4 Clock</a> — <span style="color:#666">Current time and date</span></li>
+                <li><a href="#more-piano">9.5 Piano</a> — <span style="color:#666">Keyboard with tuning and pitch detection</span></li>
+                <li><a href="#more-review">9.6 Review</a> — <span style="color:#666">Record audio/video with instant replay</span></li>
+                <li><a href="#more-keyboard">9.7 Keyboard</a> — <span style="color:#666">On-screen keyboard with progressive search</span></li>
+                <li><a href="#more-volume">9.8 Volume</a> — <span style="color:#666">Master volume control</span></li>
             </ul>
         </li>
-        <li><a href="#chapter-10">Chapter 10: About the Author</a></li>
+        <li><a href="#author">Chapter 10: About the Author</a></li>
         <li><a href="#keyword-index">Index</a></li>
     </ul>
 </nav>
@@ -868,7 +895,7 @@ function closeVideo(event, container) {
     <p style="font-size:.85em;color:#666;">Podium is provided as-is, without warranty of any kind. See the <a href="https://www.gnu.org/licenses/agpl-3.0-standalone.html" target="_blank">license</a> for complete terms. Users are responsible for ensuring they have the right to use any score files opened in Podium.</p>
 </section>
 
-<section id="chapter-1">
+<section id="quick-start">
     <h2>Chapter 1: Quick Start</h2>
 
     <p>Welcome to Podium! This chapter introduces everything you'll need to start using Podium. For more information on any topic, follow the chapter references throughout.</p>
@@ -892,7 +919,7 @@ function closeVideo(event, container) {
         <p class="video-status" role="status"></p>
     </figure>
 
-    <p><a href="#chapter-4" class="chapter-link">See Chapter 4: Score Ring</a> for complete file management details</p>
+    <p><a href="#score" class="chapter-link">See Chapter 4: Score Ring</a> for complete file management details</p>
 
     <h4>2. Choose Your Layout</h4>
     <p>Once your score is open, tap the inner ring's Layout cell. The outer ring will show 4 layout options:</p>
@@ -923,7 +950,7 @@ function closeVideo(event, container) {
         <p class="video-status" role="status"></p>
     </figure>
 
-    <p><a href="#chapter-5" class="chapter-link">See Chapter 5: Layout Ring</a> for detailed layout controls and settings</p>
+    <p><a href="#layout" class="chapter-link">See Chapter 5: Layout Ring</a> for detailed layout controls and settings</p>
 
     <h4>3. Navigate and Annotate</h4>
     <p><strong>Navigation:</strong> Tap, swipe, or fling score pages to turn them. Long-press anywhere on the background to summon the menu. To hide the menu, fling it to any corner or edge, or long-press its center grip to park it in the upper left corner.</p>
@@ -951,9 +978,9 @@ function closeVideo(event, container) {
         <figcaption>Screenshot (dark theme) showing Ink Ring activated with various annotation types visible on a score</figcaption>
         <p class="video-status" role="status"></p>
     </figure>
-    <div class="note">Most Ink tools <a href="#chapter-3-auto-deactivation" class="chapter-link">automatically deactivate</a> after four seconds of inactivity, so you won't accidentally add an annotation when you wanted to navigate to a different page. You can override this by <a href="#chapter-3-cell-locking" class="chapter-link">locking the cell</a>: long-press it and a small circle will appear on its outer edge. Press the cell again (or activate a different cell) to unlock.</div>
+    <div class="note">Most Ink tools <a href="#auto-deactivation" class="chapter-link">automatically deactivate</a> after four seconds of inactivity, so you won't accidentally add an annotation when you wanted to navigate to a different page. You can override this by <a href="#cell-locking" class="chapter-link">locking the cell</a>: long-press it and a small circle will appear on its outer edge. Press the cell again (or activate a different cell) to unlock.</div>
 
-    <p><a href="#chapter-6" class="chapter-link">See Chapter 6: Ink Ring</a> for complete annotation tools and techniques</p>
+    <p><a href="#ink" class="chapter-link">See Chapter 6: Ink Ring</a> for complete annotation tools and techniques</p>
 
     <h3>Essential Interface Tips:</h3>
 
@@ -980,13 +1007,13 @@ function closeVideo(event, container) {
         <p class="video-status" role="status"></p>
     </figure>
 
-    <p><a href="#chapter-3" class="chapter-link">See Chapter 3: Interface Basics</a> for complete interface details</p>
+    <p><a href="#interface" class="chapter-link">See Chapter 3: Interface Basics</a> for complete interface details</p>
 
     <h4>Panels</h4>
     <p>Cells with small diamond-shaped pointers (like compass points) conceal panels used to configure the cell. Drag out from these cells to reveal the panel. Using this touch-drag-release motion, you can open and position any panel with a single gesture. Once open, you can always reposition a panel by dragging on its textured header. Hide any panel by flinging it, in any direction, from the header. Alternatively, close it by tapping the &#x1F5D9; button.</p>
 
     <h4>Resizing and Moving</h4>
-    <p>We've just seen that panels can be moved by dragging on their textured header. In addition, everything in Podium—menu, panels, layouts—is resizable and movable using two-finger pinch-and-pan gestures (or Ctrl+mouse/Ctrl+wheel for desktop). <a href="#chapter-3" class="chapter-link">See Chapter 3: Interface Basics</a> for details.</p>
+    <p>We've just seen that panels can be moved by dragging on their textured header. In addition, everything in Podium—menu, panels, layouts—is resizable and movable using two-finger pinch-and-pan gestures (or Ctrl+mouse/Ctrl+wheel for desktop). <a href="#interface" class="chapter-link">See Chapter 3: Interface Basics</a> for details.</p>
 
     <h4>Gestures:</h4>
     <ul>
@@ -1011,7 +1038,7 @@ function closeVideo(event, container) {
         <p class="video-status" role="status"></p>
     </figure>
 
-    <p><a href="#chapter-4" class="chapter-link">See Chapter 4: Score Ring</a> for saving, printing, and score details</p>
+    <p><a href="#score" class="chapter-link">See Chapter 4: Score Ring</a> for saving, printing, and score details</p>
 
     <h3>Managing Pages</h3>
     <p>To add, remove, or rearrange pages, tap the inner ring's Page cell. The outer ring provides:</p>
@@ -1043,9 +1070,9 @@ function closeVideo(event, container) {
         <p class="video-status" role="status"></p>
     </figure>
 
-    <div class="note"><strong>Quick tip:</strong> In <a href="#chapter-5-table-reorder" class="chapter-link">Table layout</a>, you can reorder pages by simply dragging them to a new location; other pages split apart to show where the page will be inserted. You can also cut pages by dragging them completely out of the layout. This direct manipulation is often faster than using Page Ring tools!</div>
+    <div class="note"><strong>Quick tip:</strong> In <a href="#table-reorder" class="chapter-link">Table layout</a>, you can reorder pages by simply dragging them to a new location; other pages split apart to show where the page will be inserted. You can also cut pages by dragging them completely out of the layout. This direct manipulation is often faster than using Page Ring tools!</div>
 
-    <p><a href="#chapter-7" class="chapter-link">See Chapter 7: Page Ring</a> for complete page management features</p>
+    <p><a href="#page" class="chapter-link">See Chapter 7: Page Ring</a> for complete page management features</p>
 
     <h3>Practice Tools</h3>
     <p>Tap the inner ring's More cell to access a suite of musician's practice tools. Most of these panels can be detached from their headers and positioned anywhere on screen for convenient access while practicing:</p>
@@ -1063,11 +1090,11 @@ function closeVideo(event, container) {
         <figcaption>Screenshot showing Clock, Metronome, Stopwatch, Piano, Volume, and Review panels open simultaneously</figcaption>
     </figure>
 
-    <p><a href="#chapter-9" class="chapter-link">See Chapter 9: More Ring</a> for detailed information on each practice tool</p>
+    <p><a href="#more" class="chapter-link">See Chapter 9: More Ring</a> for detailed information on each practice tool</p>
 
     <h3>Keyboard and Pedal Support</h3>
     <p>Podium works with Bluetooth and USB foot pedal page turners that send arrow key or Page Up/Down presses. Configure arrow key behavior in the Page Ring's Numbers panel to map pedal presses to page turns or bookmark navigation.</p>
-    <p><a href="#chapter-7-numbers" class="chapter-link">See Chapter 7: Page Ring - Numbers</a> for keyboard shortcut configuration</p>
+    <p><a href="#page-numbers" class="chapter-link">See Chapter 7: Page Ring - Numbers</a> for keyboard shortcut configuration</p>
 
     <h3>Need Help?</h3>
     <p>Tap the inner ring's App cell, then tap the Guide cell to access this document.</p>
@@ -1076,7 +1103,7 @@ function closeVideo(event, container) {
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
-<section id="chapter-2">
+<section id="running">
     <h2>Chapter 2: Running Podium</h2>
 
     <p>The simplest way to use Podium is to launch it directly from the URL. No installation required. Just open <a href="https://studiop5.org/podium">studiop5.org/podium</a> in your browser and start using it immediately. There is no registration, login, or onboarding of any kind.</p>
@@ -1089,9 +1116,9 @@ function closeVideo(event, container) {
 
     <p><strong>iPad screen real estate and gestures.</strong> Installing Podium as a PWA is particularly important on iPads. By default, Safari adds significant "decoration" (address bars, tab strips, and toolbars) that consumes precious screen space. When launched from the iPad home screen as a PWA, Podium runs in full-screen standalone mode, reclaiming every pixel of screen real estate for your sheet music. Furthermore, standalone mode suppresses Safari's default edge-swipe gestures (like swiping from the left edge to go back in history), ensuring that page turns and panel dragging never trigger accidental browser navigation during a performance.</p>
 
-    <p>Keep in mind that only scores you have stored locally will be available offline; scores in cloud storage require an internet connection to open. If you use Podium in a language other than English, browser translation may also need a connection; see <a href="#chapter-2-language">2.5 Using Podium in Your Language</a>.</p>
+    <p>Keep in mind that only scores you have stored locally will be available offline; scores in cloud storage require an internet connection to open. If you use Podium in a language other than English, browser translation may also need a connection; see <a href="#language">2.5 Using Podium in Your Language</a>.</p>
 
-    <h3 id="chapter-2-extension">2.1 Browser Extension</h3>
+    <h3 id="extension">2.1 Browser Extension</h3>
 
     <p>Podium can be installed as a browser extension in supported desktop browsers (Chrome, Edge, and other Chromium-based browsers like Brave or Opera). After installation, the Podium icon will be available under the browser's extensions menu (the puzzle piece icon in the toolbar). We recommend pinning it straight away for easy access: tap the puzzle piece, find Podium in the list, and tap the pin icon next to it. Once pinned, tap the Podium icon in the toolbar and tap "Launch Podium" to open the app directly. Scores can then be loaded in the usual way. The extension also provides two fast ways to open scores while you are browsing the web:</p>
 
@@ -1121,7 +1148,7 @@ function closeVideo(event, container) {
 
     <div class="note">Podium's extension is not available on iPhone or iPad, but can be installed as a progressive web app, see below. On Android, Chrome does not support extensions. Other third-party Chromium-based browsers like Kiwi Browser and Lemur Browser support Chrome extensions on Android, and Edge for Android has limited Beta support, though note that Podium is not yet tested on these browsers.</div>
 
-    <h3 id="chapter-2-pwa">2.2 Progressive Web App (PWA)</h3>
+    <h3 id="pwa">2.2 Progressive Web App (PWA)</h3>
 
     <p>Podium can also be installed as a Progressive Web App. Once installed, Podium appears as a standalone application on your device and works offline.</p>
 
@@ -1140,7 +1167,7 @@ function closeVideo(event, container) {
 
     <div class="note">Naturally, when offline, only locally stored scores can be accessed.</div>
 
-    <h3 id="chapter-2-compat">2.3 Browser Compatibility</h3>
+    <h3 id="browsers">2.3 Browser Compatibility</h3>
     <p>Podium works in all modern browsers. The table below summarizes feature availability:</p>
     <div class="table-scroll" role="region" aria-label="Browser compatibility table" tabindex="0">
     <table class="compat">
@@ -1208,19 +1235,19 @@ function closeVideo(event, container) {
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
-    <h3 id="chapter-2-foot-pedal">2.4 Foot Pedal</h3>
+    <h3 id="foot-pedal">2.4 Foot Pedal</h3>
 
     <p>Podium works with the Bluetooth and USB foot pedal page turners commonly used by performing musicians. To your device, these pedals are simply keyboards with only a few keys: each press sends a key, and when that key is an arrow key or Page Up/Down, Podium uses it to turn pages. Many pedals let you choose which key each pedal sends (the setting is usually stored in the pedal itself); if yours sends some other key, such as Space or Enter, set it to send arrow keys or Page Up/Down.</p>
 
     <p>Pedals that don't present themselves as a keyboard, such as transcription pedals and MIDI footswitches, aren't supported.</p>
 
-    <p>The behavior of the arrow keys (and therefore the pedal) is configured in the <a href="#chapter-7-numbers" class="chapter-link">Numbers panel</a> (Page Ring → Numbers). You can assign the right/down arrow (and Page Down) to advance a page or jump to the next bookmark, and the left/up arrow (and Page Up) to go back a page or jump to the previous bookmark. The bookmark mode is especially useful for scores with repeats: navigate to the first page of the repeated section and long-press its page number to place a bookmark there, then use the back pedal to snap directly to it when the repeat begins. Pedal navigation stops at the first and last page (or bookmark) rather than wrapping around.</p>
+    <p>The behavior of the arrow keys (and therefore the pedal) is configured in the <a href="#page-numbers" class="chapter-link">Numbers panel</a> (Page Ring → Numbers). You can assign the right/down arrow (and Page Down) to advance a page or jump to the next bookmark, and the left/up arrow (and Page Up) to go back a page or jump to the previous bookmark. The bookmark mode is especially useful for scores with repeats: navigate to the first page of the repeated section and long-press its page number to place a bookmark there, then use the back pedal to snap directly to it when the repeat begins. Pedal navigation stops at the first and last page (or bookmark) rather than wrapping around.</p>
 
-    <div class="note">The foot pedal triggers the same tap-speed page turn setting as tapping the score layout directly. Use the <strong>Pace</strong> slider in the layout panel for the chosen layout to control how fast the page turns — see <a href="#chapter-5-page-turning" class="chapter-link">§5 Page Turning</a>.</div>
+    <div class="note">The foot pedal triggers the same tap-speed page turn setting as tapping the score layout directly. Use the <strong>Pace</strong> slider in the layout panel for the chosen layout to control how fast the page turns — see <a href="#turning-pages" class="chapter-link">§5 Page Turning</a>.</div>
 
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 
-    <h3 id="chapter-2-language">2.5 Using Podium in Your Language</h3>
+    <h3 id="language">2.5 Using Podium in Your Language</h3>
 
     <p>Podium's interface is written in English, but you can use your browser's built-in translation to read its menus, panels, and instructions in another language. You can translate this guidebook the same way. Available languages depend on your browser.</p>
 
@@ -1245,7 +1272,7 @@ function closeVideo(event, container) {
 
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 
-<section id="chapter-3">
+<section id="interface">
     <h2>Chapter 3: Interface Basics</h2>
 
     <p>Podium has four interface elements:</p>
@@ -1279,10 +1306,10 @@ function closeVideo(event, container) {
         <li><strong>Long press:</strong> Summon menu to that spot</li>
     </ul>
 
-    <h3>Menu</h3>
+    <h3 id="menu">Menu</h3>
 
     <p>On launch, Podium displays a circular menu on a gray background. The menu has three parts:</p>
-    <h4>Grip (center circle)</h4>
+    <h4 id="grip">Grip (center circle)</h4>
     <ul>
         <li><strong>Tap:</strong> Collapse or expand the menu</li>
         <li><strong>Drag:</strong> Move the menu</li>
@@ -1298,11 +1325,11 @@ function closeVideo(event, container) {
 
     <p>Unavailable cells are grayed out. On launch, only the Score and More cells (inner ring) and Open and New cells (outer ring) are available.</p>
 
-    <h4 id="chapter-3-auto-deactivation">Cell Auto-Deactivation</h4>
+    <h4 id="auto-deactivation">Cell Auto-Deactivation</h4>
 
     <p>Cells in the Ink Ring and Page Ring automatically deactivate after 4 seconds of inactivity, returning control to normal page navigation. This is an important feature: when an Ink or Page cell is active, touch gestures on score pages are intercepted by that cell's action rather than being interpreted as page navigation. Auto-deactivation ensures you won't accidentally draw on a page or delete it when you intended to simply turn the page.</p>
 
-    <h4 id="chapter-3-cell-locking">Cell Locking</h4>
+    <h4 id="cell-locking">Cell Locking</h4>
 
     <p>To prevent a cell from auto-deactivating, long-press it. A locked cell displays a circle around its outer edge and remains active indefinitely. Long-press the cell again, or select a different cell, to unlock it. Cell locking is supported by all Ink Ring cells and most Page Ring cells (except Numbers).</p>
 
@@ -1320,7 +1347,7 @@ function closeVideo(event, container) {
         <figcaption>Rotating a ring to reveal hidden cells when the menu is near a screen edge</figcaption>
     </figure>
 
-    <h3 id="chapter-3-panels">Panels</h3>
+    <h3 id="panels">Panels</h3>
 
     <p>Menu cells with small diamond-shaped pointers contain hidden panels. To open a panel, drag inward or outward. As long as the drag motion isn't circular, the panel will be revealed&mdash;circular motion rotates the ring instead.</p>
 
@@ -1365,19 +1392,19 @@ function closeVideo(event, container) {
     </figure>
     <h3>Browser Tab Naming</h3>
 
-    <p>Podium can run in multiple browser tabs simultaneously, sharing a common <a href="#chapter-7-export-import">shared buffer</a> between them. Tabs of the web app (studiop5.org) share one buffer, and tabs of the browser extension share another; transferring across these boundaries is not possible. To distinguish tabs, each is assigned a short musical identifier drawn from dynamics and solfege: <em>do, re, mi, fa, so, la, ti, ff, mf, mp, pp, sf</em>. When a score is loaded, the browser tab displays the score's file name; otherwise it shows <em>Podium</em> followed by the tab's identifier in parentheses, for example <em>Podium (do)</em>. Extension tabs use square brackets instead, like <em>Podium [do]</em>, so you can tell at a glance whether a tab is running the web app or the browser extension. In theory, up to 12 Podium tabs can be open at the same time. Keep in mind that each tab consumes additional browser memory and processing resources, so opening more than two or three can be impractical.</p>
+    <p>Podium can run in multiple browser tabs simultaneously, sharing a common <a href="#page-export-import">shared buffer</a> between them. Tabs of the web app (studiop5.org) share one buffer, and tabs of the browser extension share another; transferring across these boundaries is not possible. To distinguish tabs, each is assigned a short musical identifier drawn from dynamics and solfege: <em>do, re, mi, fa, so, la, ti, ff, mf, mp, pp, sf</em>. When a score is loaded, the browser tab displays the score's file name; otherwise it shows <em>Podium</em> followed by the tab's identifier in parentheses, for example <em>Podium (do)</em>. Extension tabs use square brackets instead, like <em>Podium [do]</em>, so you can tell at a glance whether a tab is running the web app or the browser extension. In theory, up to 12 Podium tabs can be open at the same time. Keep in mind that each tab consumes additional browser memory and processing resources, so opening more than two or three can be impractical.</p>
 
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
-<section id="chapter-4">
+<section id="score">
     <h2><svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-right:0.3em"><use href="#gb-score"/></svg>Chapter 4: Score Ring</h2>
 
     <p>Manage scores stored as PDF files.</p>
 
     <p>Most of the Score Ring's cells are grayed out until a score is Opened, or until a New, empty score is created.</p>
 
-    <div class="note">In Podium, only one score can be open at a time in each browser window or tab. When opening a score, if the current score has unsaved changes, those changes will be lost. For this reason, you'll be prompted to confirm. You can open multiple scores simultaneously by opening Podium in additional browser windows or tabs. The <a href="#chapter-7" class="chapter-link">Page Ring</a> allows you to copy pages between scores opened in different windows.</div>
+    <div class="note">In Podium, only one score can be open at a time in each browser window or tab. When opening a score, if the current score has unsaved changes, those changes will be lost. For this reason, you'll be prompted to confirm. You can open multiple scores simultaneously by opening Podium in additional browser windows or tabs. The <a href="#page" class="chapter-link">Page Ring</a> allows you to copy pages between scores opened in different windows.</div>
 
     <figure>
         <img src="assets/scorecells.jpg" alt="Score Ring menu cells" class="cells">
@@ -1396,7 +1423,7 @@ function closeVideo(event, container) {
         <li><strong>Details (drag):</strong> Drag out to reveal a Panel showing detailed information about the score</li>
     </ul>
 
-    <h3 id="chapter-4-open-save">4.1 Score Ring: Open, Save<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-open"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-save"/></svg></h3>
+    <h3 id="score-open-save">4.1 Score Ring: Open, Save<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-open"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-save"/></svg></h3>
 
     <p>Open and save PDF score files.</p>
 
@@ -1479,11 +1506,11 @@ function closeVideo(event, container) {
 
     <p>While you can still view and annotate these restricted files within Podium, the PDF standard may prevent Podium from saving your annotations, metadata, or page changes (like insertions or deletions) back to the file. If you attempt to save a protected document, Podium will offer you the option to save a "clean," original copy of the PDF instead. This fallback save ensures you can still back up the document to your local or cloud storage, even if your Podium modifications cannot be preserved.</p>
 
-    <h3 id="chapter-4-new">4.2 Score Ring: New<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-score"/></svg></h3>
+    <h3 id="score-new">4.2 Score Ring: New<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-score"/></svg></h3>
 
     <p>Create new, empty scores.</p>
 
-    <p>New empty scores are created by activating the New cell. The newly created score is made using the number of pages, size, and background color and opacity specified in the New Panel. Each new score is given a default name (e.g. "Opus 42"). If desired, use the <a href="#chapter-4-details">Details Panel</a> to rename it before saving.</p>
+    <p>New empty scores are created by activating the New cell. The newly created score is made using the number of pages, size, and background color and opacity specified in the New Panel. Each new score is given a default name (e.g. "Opus 42"). If desired, use the <a href="#score-details">Details Panel</a> to rename it before saving.</p>
 
     <figure>
         <img src="assets/scorenew.jpg" alt="New Panel">
@@ -1498,7 +1525,7 @@ function closeVideo(event, container) {
         <li><strong>Background Opacity:</strong> Tap the circle on the right of the Color section to adjust the opacity of the background color</li>
     </ul>
 
-    <h3 id="chapter-4-close">4.3 Score Ring: Close<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-close"/></svg></h3>
+    <h3 id="score-close">4.3 Score Ring: Close<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-close"/></svg></h3>
 
     <p>Close the current score.</p>
 
@@ -1506,7 +1533,7 @@ function closeVideo(event, container) {
 
     <p>If the current score has unsaved changes, a confirmation dialog appears before closing.</p>
 
-    <h3 id="chapter-4-print">4.4 Score Ring: Print<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-print"/></svg></h3>
+    <h3 id="score-print">4.4 Score Ring: Print<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-print"/></svg></h3>
 
     <p>Print the current score with or without annotations.</p>
 
@@ -1526,7 +1553,7 @@ function closeVideo(event, container) {
 
     <div class="note">Large scores or scores with particularly dense or poorly encoded, unoptimized PDF content can fail while printing. If you encounter printing failures, try printing the score in several smaller sections by specifying different page ranges.</div>
 
-    <h3 id="chapter-4-details">4.5 Score Ring: Details<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></h3>
+    <h3 id="score-details">4.5 Score Ring: Details<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></h3>
 
     <p>The Details Panel displays comprehensive information about the currently open score.</p>
 
@@ -1551,7 +1578,7 @@ function closeVideo(event, container) {
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
-<section id="chapter-5">
+<section id="layout">
     <h2><svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-right:0.3em"><use href="#gb-layout"/></svg>Chapter 5: Layout Ring</h2>
 
     <p>Determine how scores are displayed.</p>
@@ -1571,13 +1598,13 @@ function closeVideo(event, container) {
 
     <p>By default, scores open with the last used layout on the current browser/platform or, if none, Book. The layout can be changed any time by tapping the desired cell. Whenever a score is saved, its last layout is stored as metadata in the PDF file, as well as in browser local storage.</p>
 
-    <p id="chapter-5-remembered-view"><strong>Remembered view:</strong> However you pan and zoom a layout — for instance, dragging and pinching the score to fill the screen on a tablet — Podium remembers that position and size. Each layout keeps its own view, so switching layouts and back restores each one as you left it. Your view is also saved with the score, so reopening the file returns to exactly where you left off.</p>
+    <p id="remembered-view"><strong>Remembered view:</strong> However you pan and zoom a layout — for instance, dragging and pinching the score to fill the screen on a tablet — Podium remembers that position and size. Each layout keeps its own view, so switching layouts and back restores each one as you left it. Your view is also saved with the score, so reopening the file returns to exactly where you left off.</p>
 
     <div class="note">A remembered view is tied to the screen size it was captured on. If you reopen a score on a device with a differently sized window — or simply rotate a tablet between portrait and landscape — Podium ignores the saved position and falls back to the default fit, so the score can never end up positioned off-screen.</div>
 
-    <div class="note">In a Podium Layout, all pages must be the same size. Whenever a score file is opened, the maximum page width and height are first determined. Then, if any pages are smaller than this maximum, they are by default centered and padded with a gray border on all sides. Alternatively, smaller pages can be expanded: the score is scaled so its largest dimension fills the page, then centered in the other dimension. See the <a href="#chapter-4-details" class="chapter-link">Details Panel</a> to configure this behavior.</div>
+    <div class="note">In a Podium Layout, all pages must be the same size. Whenever a score file is opened, the maximum page width and height are first determined. Then, if any pages are smaller than this maximum, they are by default centered and padded with a gray border on all sides. Alternatively, smaller pages can be expanded: the score is scaled so its largest dimension fills the page, then centered in the other dimension. See the <a href="#score-details" class="chapter-link">Details Panel</a> to configure this behavior.</div>
 
-    <h4 id="chapter-5-page-turning">Page Turning</h4>
+    <h4 id="turning-pages">Page Turning</h4>
     <p>Book, Horizontal, and Vertical layouts all support four ways to navigate pages:</p>
     <ul>
       <li><strong>Tap:</strong> Turns the page at a controlled speed set by the layout's <strong>Pace</strong> setting (configured in its panel). For Book layout, Pace is in seconds/flip; for Horizontal and Vertical, it is seconds/snap.</li>
@@ -1591,12 +1618,12 @@ function closeVideo(event, container) {
       <li><strong>Pager:</strong> Book, Horizontal, and Vertical layouts have gutters to the left and right of the score (top and bottom in Vertical layout), each containing a draggable page number called the <em>pager cursor</em>. The left cursor shows the page number of the first visible page; the right cursor shows the last. Drag a cursor to navigate quickly through the score. As you drag, a floating readout follows your pointer showing the selected page number — useful when your finger is obscuring the cursor itself. For finer control in a large score, drag the cursor away from the gutter: the further away, the greater the sensitivity, making it easy to land precisely on an individual page. The pager can be toggled on or off using the <strong>Numbers</strong> button on the layout's corresponding panel. When off, the gutter becomes very narrow and the page number is hidden, but dragging on the gutter still navigates the score and the floating readout remains visible.</li>
     </ul>
 
-    <h4 id="chapter-5-bookmarks">Bookmarks</h4>
+    <h4 id="bookmarks">Bookmarks</h4>
     <p>Bookmarks mark pages for quick navigation. In Book, Horizontal, and Vertical layouts, first navigate to the desired page, then long-press its page number to toggle a bookmark on or off. Bookmarks appear as colored tabs along the edge of the layout; press any tab to jump directly to that page. In Table layout, long-press on a page to make it current and toggle its bookmark state: a bookmarked page shows its page number on a ribbon of the bookmark's color. Bookmarks are saved with the score.</p>
     <p>The thickness of each bookmark tab corresponds to one page's position in the pager, so tabs are thinner in longer scores — giving a visual sense of how many pages the score contains. Each pager cursor sits at its own page's position, so when that page is bookmarked, its page number lines up with the tab. A new bookmark is always given a color different from its nearest neighbors', so bookmarks next to each other are easy to tell apart.</p>
     <p>When dragging a pager cursor over a bookmarked page, the floating readout is painted in that bookmark's color — making it easy to navigate to a specific bookmark even when several adjacent tabs are too small to press directly.</p>
 
-    <h3 id="chapter-5-book">5.1 Layout Ring: Book<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-book"/></svg></h3>
+    <h3 id="layout-book">5.1 Layout Ring: Book<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-book"/></svg></h3>
 
     <p>Simulate a physical book.</p>
 
@@ -1632,7 +1659,7 @@ function closeVideo(event, container) {
 
     <div class="note">Physical books must have an even number of pages, as each page has 2 sides. If the PDF score file contains an odd number of pages, the last page is displayed on the right (back inside cover position) and cannot be flipped to the left.</div>
 
-    <h3 id="chapter-5-horizontal">5.2 Layout Ring: Horizontal<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-horizontal-scroll"/></svg></h3>
+    <h3 id="layout-horizontal">5.2 Layout Ring: Horizontal<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-horizontal-scroll"/></svg></h3>
 
     <p>Display the score as a continuous, horizontally-scrollable flow of pages.</p>
 
@@ -1670,7 +1697,7 @@ function closeVideo(event, container) {
 
     <p>Page numbers can be turned on or off in the Panel. Current page numbers are shown at the left and right sides of the layout: drag the page number to quickly scroll to other pages.</p>
 
-    <h3 id="chapter-5-vertical">5.3 Layout Ring: Vertical<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-vertical-scroll"/></svg></h3>
+    <h3 id="layout-vertical">5.3 Layout Ring: Vertical<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-vertical-scroll"/></svg></h3>
 
     <p>Display the score as a continuous, vertically-scrollable flow of pages.</p>
 
@@ -1701,7 +1728,7 @@ function closeVideo(event, container) {
 
     <div class="note">For viewing on a smartphone or small tablet, Vertical layout often gives the best experience. Smartphones work best in landscape orientation. Activate full-screen mode, turn off Numbers, set Page Fit: Width, Show: 1 page, and Snap: disabled. Dismiss the Panel, either by tapping the close button's X, or by simply flinging the panel. Then thumb-scroll through the score. Pro tip: add a blank page at the end of the score so the bottom of the last page can be scrolled fully into view.</div>
 
-    <h3 id="chapter-5-table">5.4 Layout Ring: Table<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-table"/></svg></h3>
+    <h3 id="layout-table">5.4 Layout Ring: Table<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-table"/></svg></h3>
 
     <p>Display all pages of the score in a single table.</p>
 
@@ -1737,11 +1764,11 @@ function closeVideo(event, container) {
 
     <p>Page numbers can be turned on or off in the Panel.</p>
 
-    <p id="chapter-5-table-current-page"><strong>Current Page:</strong> At any time, there is always a current page, drawn in higher resolution, slightly larger, and on top of all other pages. Tap on any page to make it current. If you change to another layout, that layout will open at the current page.</p>
+    <p id="table-current-page"><strong>Current Page:</strong> At any time, there is always a current page, drawn in higher resolution, slightly larger, and on top of all other pages. Tap on any page to make it current. If you change to another layout, that layout will open at the current page.</p>
 
-    <div class="note">You cannot add annotations to a page in Table layout unless it is current. See the <a href="#chapter-6" class="chapter-link">Ink Ring</a> chapter for details on annotations.</div>
+    <div class="note">You cannot add annotations to a page in Table layout unless it is current. See the <a href="#ink" class="chapter-link">Ink Ring</a> chapter for details on annotations.</div>
 
-    <p id="chapter-5-table-reorder"><strong>Reordering pages:</strong> Touch-drag a page to a new location. As you drag the page across the layout, other pages will split apart showing you where the page will be inserted if you release the drag. This effect works best when pages are not too extensively overlapped using negative values for the Vertical and Horizontal Gap sliders in the layout panel. Watch the video associated with the preceding figure for a brief demonstration.</p>
+    <p id="table-reorder"><strong>Reordering pages:</strong> Touch-drag a page to a new location. As you drag the page across the layout, other pages will split apart showing you where the page will be inserted if you release the drag. This effect works best when pages are not too extensively overlapped using negative values for the Vertical and Horizontal Gap sliders in the layout panel. Watch the video associated with the preceding figure for a brief demonstration.</p>
 
     <p><strong>Cutting pages:</strong> Dragging pages out of the layout cuts them from the score. This can also be accomplished using the Cut cell of the menu's Page Ring.</p>
 
@@ -1750,7 +1777,7 @@ function closeVideo(event, container) {
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
-<section id="chapter-6">
+<section id="ink">
     <h2><svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-right:0.3em"><use href="#gb-ink"/></svg>Chapter 6: Ink Ring</h2>
 
     <p>Add annotations to a score.</p>
@@ -1784,7 +1811,7 @@ function closeVideo(event, container) {
 
     <p><strong>Edit:</strong> while active, tapping on any existing annotation allows it to be selected, moved, rotated, or resized. Drag out to reveal a panel with buttons to precisely move, resize, or rotate annotation objects.</p>
 
-    <h3 id="chapter-6-pen-pencil">6.1 Ink Ring: Pen, Pencil<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-pen"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-pencil"/></svg></h3>
+    <h3 id="ink-pen-pencil">6.1 Ink Ring: Pen, Pencil<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-pen"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-pencil"/></svg></h3>
 
     <p>Draw on score pages.</p>
 
@@ -1812,7 +1839,7 @@ function closeVideo(event, container) {
 
     <p><strong>Drawing a dot:</strong> A quick tap on the page does not leave a mark, so that an accidental touch cannot add a stray dot that might go unnoticed, especially with a thin line. To draw a single dot on purpose, touch the page and hold still for a moment (about a quarter of a second) before lifting. This applies to every drawing style.</p>
 
-    <h3 id="chapter-6-rastrum">6.2 Ink Ring: Rastrum<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-rastrum"/></svg></h3>
+    <h3 id="ink-rastrum">6.2 Ink Ring: Rastrum<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-rastrum"/></svg></h3>
 
     <p>Draw music staves.</p>
 
@@ -1827,15 +1854,15 @@ function closeVideo(event, container) {
 
     <p>Set the style to L-R or T-B to draw horizontally or vertically. The T-B setting is useful for making chord charts for guitar, ukulele, mandolin, and other fretted instruments. Once drawn, a rastrum object can always be rotated using the Edit tool.</p>
 
-    <p><strong>Staff Space:</strong> In music typography, a staff space is the standard unit of measurement: the distance from one staff line to the next. All musical elements&mdash;noteheads, rests, clefs, accidentals&mdash;are sized relative to this unit, so that notation scales consistently regardless of the physical size of the staff. A standard notehead, for example, is designed to fill the space between two adjacent lines. The staff space panel setting determines the distance in pixels between staff lines. Matching this value with the staff space setting in the <a href="#chapter-6-symbols" class="chapter-link">Symbols tool</a> ensures that staves and symbols are correctly sized for each other.</p>
+    <p><strong>Staff Space:</strong> In music typography, a staff space is the standard unit of measurement: the distance from one staff line to the next. All musical elements&mdash;noteheads, rests, clefs, accidentals&mdash;are sized relative to this unit, so that notation scales consistently regardless of the physical size of the staff. A standard notehead, for example, is designed to fill the space between two adjacent lines. The staff space panel setting determines the distance in pixels between staff lines. Matching this value with the staff space setting in the <a href="#ink-symbols" class="chapter-link">Symbols tool</a> ensures that staves and symbols are correctly sized for each other.</p>
 
     <p><strong>Width:</strong> Sets the thickness of staff lines. Move the slider all the way to the left for Auto, which uses the default recommended thickness for the Bravura font at the current Staff Space value.</p>
 
     <p><strong>Barline Width:</strong> Sets the thickness of barlines. Move the slider all the way to the left for Auto, which uses the default recommended thickness for the Bravura font at the current Staff Space value.</p>
 
-    <div class="note">The Rastrum tool, in combination with <a href="#chapter-6-cut-copy-paste" class="chapter-link">Copy/Paste</a>, the <a href="#chapter-6-grid" class="chapter-link">Grid</a>, and the <a href="#chapter-7-flatten" class="chapter-link">Flatten operation</a>, can be used to design manuscript paper of considerable complexity.</div>
+    <div class="note">The Rastrum tool, in combination with <a href="#ink-cut-copy-paste" class="chapter-link">Copy/Paste</a>, the <a href="#ink-grid" class="chapter-link">Grid</a>, and the <a href="#page-flatten" class="chapter-link">Flatten operation</a>, can be used to design manuscript paper of considerable complexity.</div>
 
-    <h3 id="chapter-6-text">6.3 Ink Ring: Text<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-text"/></svg></h3>
+    <h3 id="ink-text">6.3 Ink Ring: Text<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-text"/></svg></h3>
 
     <p>Add text boxes to a page.</p>
 
@@ -1850,7 +1877,7 @@ function closeVideo(event, container) {
         <li>Choose from standard PDF text fonts, plus Vercetti, Bravura, and Patrick Hand fonts.</li>
     </ul>
 
-    <h3 id="chapter-6-symbols">6.4 Ink Ring: Symbols<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-symbols"/></svg></h3>
+    <h3 id="ink-symbols">6.4 Ink Ring: Symbols<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-symbols"/></svg></h3>
 
     <p>Add music symbols to a page.</p>
 
@@ -1880,13 +1907,13 @@ function closeVideo(event, container) {
             symbols.</li>
     </ul>
 
-    <div class="note">The Group dropdown contains 134 entries — scrolling through them to find a particular group can be tedious. To jump directly to any group, type the first few letters of its name using a physical keyboard or Podium's on-screen <a href="#chapter-9-keyboard" class="chapter-link">Keyboard</a> (More ring). The first group whose name matches what you have typed is selected automatically.</div>
+    <div class="note">The Group dropdown contains 134 entries — scrolling through them to find a particular group can be tedious. To jump directly to any group, type the first few letters of its name using a physical keyboard or Podium's on-screen <a href="#more-keyboard" class="chapter-link">Keyboard</a> (More ring). The first group whose name matches what you have typed is selected automatically.</div>
 
-    <p><strong>Staff Space Sizing:</strong> This setting sizes the symbol by specifying the distance between adjacent staff lines the symbol is designed for. Matching this value with the staff space setting in the <a href="#chapter-6-rastrum" class="chapter-link">Rastrum tool</a> ensures that symbols and staves are correctly sized relative to each other.</p>
+    <p><strong>Staff Space Sizing:</strong> This setting sizes the symbol by specifying the distance between adjacent staff lines the symbol is designed for. Matching this value with the staff space setting in the <a href="#ink-rastrum" class="chapter-link">Rastrum tool</a> ensures that symbols and staves are correctly sized relative to each other.</p>
 
-    <p>After placing a symbol, use the <a href="#chapter-6-edit" class="chapter-link">Edit tool</a> to precisely position, resize, or rotate it.</p>
+    <p>After placing a symbol, use the <a href="#ink-edit" class="chapter-link">Edit tool</a> to precisely position, resize, or rotate it.</p>
 
-    <h3 id="chapter-6-cut-copy-paste">6.5 Ink Ring: Cut, Copy, Paste<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-copy"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-paste"/></svg></h3>
+    <h3 id="ink-cut-copy-paste">6.5 Ink Ring: Cut, Copy, Paste<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-copy"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-paste"/></svg></h3>
 
     <p>Manage annotation objects.</p>
 
@@ -1900,7 +1927,7 @@ function closeVideo(event, container) {
 
     <p><strong>Deleting annotations:</strong> To delete an annotation object, activate the Cut cell and tap the object. If you don't subsequently paste the object elsewhere, it is effectively deleted from the score.</p>
 
-    <h3 id="chapter-6-undo">6.6 Ink Ring: Undo<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></h3>
+    <h3 id="ink-undo">6.6 Ink Ring: Undo<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></h3>
 
     <p>Undo the last Ink Ring action.</p>
 
@@ -1908,7 +1935,7 @@ function closeVideo(event, container) {
 
     <p>You can undo any Ink Ring action including paste, delete, and transform operations. The only exception is the Copy action itself, which cannot be undone (though you can undo the subsequent paste).</p>
 
-    <h3 id="chapter-6-grid">6.7 Ink Ring: Grid<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-grid"/></svg></h3>
+    <h3 id="ink-grid">6.7 Ink Ring: Grid<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-grid"/></svg></h3>
 
     <p>Draw a 2D guide grid for measuring and layout.</p>
 
@@ -1938,7 +1965,7 @@ function closeVideo(event, container) {
 
     <p>The Grid helps in aligning and precisely positioning ink elements. It can also be used to measure distance between elements or score features: when activating the grid, set the 0 point to the start of the measurement and then read off the length. Grid measurements represent Podium's best guess at the size of the corresponding printed representation of the score, regardless of zoom level or monitor resolution.</p>
 
-    <h3 id="chapter-6-edit">6.8 Ink Ring: Edit<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-edit"/></svg></h3>
+    <h3 id="ink-edit">6.8 Ink Ring: Edit<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-edit"/></svg></h3>
 
     <p>Edit (move, resize, rotate) annotation objects.</p>
 
@@ -1957,7 +1984,7 @@ function closeVideo(event, container) {
         <li><strong>Touch-drag within the object:</strong> move it.</li>
     </ul>
 
-    <p id="chapter-6-page-bounds"><strong>Staying on the page:</strong> Annotation objects are kept within the bounds of their page. An object cannot be dragged past a page edge, and the same limit applies when it is moved with the Edit Panel's arrow buttons, and when a text box, symbol, or pasted object is first placed: one placed too close to an edge is nudged inward so that it fits. A selected group of objects is kept on the page as a whole. Only position is limited: resizing or rotating an object can still extend part of it past an edge, and an object larger than the page is centered on it in that direction.</p>
+    <p id="edit-page-bounds"><strong>Staying on the page:</strong> Annotation objects are kept within the bounds of their page. An object cannot be dragged past a page edge, and the same limit applies when it is moved with the Edit Panel's arrow buttons, and when a text box, symbol, or pasted object is first placed: one placed too close to an edge is nudged inward so that it fits. A selected group of objects is kept on the page as a whole. Only position is limited: resizing or rotating an object can still extend part of it past an edge, and an object larger than the page is centered on it in that direction.</p>
 
     <figure>
         <img src="assets/inktransform2.jpg" alt="Group transformation">
@@ -1996,16 +2023,16 @@ function closeVideo(event, container) {
 
     <p><strong>Saving and persistence:</strong> All annotations are automatically saved with the score when you save the file. Annotations are preserved when switching between different layout modes.</p>
 
-    <p><strong>Page limitations:</strong> Annotation objects cannot span multiple pages, and cannot be placed or moved <a href="#chapter-6-page-bounds" class="chapter-link">off their page</a>, but they can be easily copied between pages using the Cut/Copy/Paste tools.</p>
+    <p><strong>Page limitations:</strong> Annotation objects cannot span multiple pages, and cannot be placed or moved <a href="#edit-page-bounds" class="chapter-link">off their page</a>, but they can be easily copied between pages using the Cut/Copy/Paste tools.</p>
 
-    <p><strong>Performance considerations:</strong> Annotations, especially free drawings with many pen/pencil strokes, can significantly increase the size of a saved score. For complex annotated pages, consider using the Flatten operation (in the <a href="#chapter-7" class="chapter-link">Page Ring</a>) to convert annotations into the PDF itself, which can improve performance.</p>
+    <p><strong>Performance considerations:</strong> Annotations, especially free drawings with many pen/pencil strokes, can significantly increase the size of a saved score. For complex annotated pages, consider using the Flatten operation (in the <a href="#page" class="chapter-link">Page Ring</a>) to convert annotations into the PDF itself, which can improve performance.</p>
 
     <p><strong>Precision workflow:</strong> For precise notation work, combine the Grid tool with Rastrum for staff placement, then use Symbols to add notation. The Edit tool allows fine-tuning of symbol positions after placement.</p>
 
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
-<section id="chapter-7">
+<section id="page">
     <h2><svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-right:0.3em"><use href="#gb-page"/></svg>Chapter 7: Page Ring</h2>
 
     <p>Manage the pages and page numbers of a score.</p>
@@ -2043,7 +2070,7 @@ function closeVideo(event, container) {
 
     <p><strong>Magnify:</strong> Drag out to reveal a magnifier panel that shows a zoomed-in view of the score at the touch point.</p>
 
-    <h3 id="chapter-7-numbers">7.1 Page Ring: Numbers<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-numbers"/></svg></h3>
+    <h3 id="page-numbers">7.1 Page Ring: Numbers<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-numbers"/></svg></h3>
 
     <p>Configure page numbering and view the current page number displayed in the layout margins.</p>
 
@@ -2090,7 +2117,7 @@ function closeVideo(event, container) {
         <li><strong>Ctrl+Arrow:</strong> Navigate to next/previous bookmark (regardless of the foot pedal arrow key setting above)</li>
     </ul>
 
-    <h3 id="chapter-7-add">7.2 Page Ring: Add<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-page"/></svg></h3>
+    <h3 id="page-add">7.2 Page Ring: Add<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-page"/></svg></h3>
 
     <p>Configure the appearance of new pages added to the score.</p>
 
@@ -2111,12 +2138,12 @@ function closeVideo(event, container) {
 
     <h4>To set the size of added pages:</h4>
     <ul>
-        <li><strong>Match Score (default):</strong> Added pages will have the maximum page width and height of all pages in the score. See the <a href="#chapter-4-details">Score Ring: Details Panel</a> for an explanation of expand vs center options.</li>
+        <li><strong>Match Score (default):</strong> Added pages will have the maximum page width and height of all pages in the score. See the <a href="#score-details">Score Ring: Details Panel</a> for an explanation of expand vs center options.</li>
         <li><strong>Standard Size:</strong> Choose from standard paper sizes (Letter, Legal, A4, etc.).</li>
         <li><strong>Custom Size:</strong> Specify custom dimensions for added pages.</li>
     </ul>
 
-    <h3 id="chapter-7-cut-copy-paste">7.3 Page Ring: Cut, Copy, Paste<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-copy-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-paste-page"/></svg></h3>
+    <h3 id="page-cut-copy-paste">7.3 Page Ring: Cut, Copy, Paste<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-copy-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-paste-page"/></svg></h3>
 
     <p>Cut, copy, and paste pages within the current score.</p>
 
@@ -2128,11 +2155,11 @@ function closeVideo(event, container) {
 
     <p><strong>Paste:</strong> Activate the Paste cell, then tap a page in the score. The clipboard page is inserted before or after the tapped page (tap left/top half to insert before, right/bottom half to insert after). The clipboard is preserved after pasting, so you can paste the same page multiple times.</p>
 
-    <p><strong>Deleting pages:</strong> To delete a page, activate the Cut cell and tap the page. If you don't subsequently paste it elsewhere, it is effectively deleted from the score. In <a href="#chapter-5-table" class="chapter-link">Table Layout</a>, you can also cut pages by dragging them out of the table.</p>
+    <p><strong>Deleting pages:</strong> To delete a page, activate the Cut cell and tap the page. If you don't subsequently paste it elsewhere, it is effectively deleted from the score. In <a href="#layout-table" class="chapter-link">Table Layout</a>, you can also cut pages by dragging them out of the table.</p>
 
     <div class="note">Cut and Paste operations can be undone using the Undo cell. Copy cannot be undone.</div>
 
-    <h3 id="chapter-7-undo">7.4 Page Ring: Undo<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></h3>
+    <h3 id="page-undo">7.4 Page Ring: Undo<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></h3>
 
     <p>Undo the last page operation.</p>
 
@@ -2142,7 +2169,7 @@ function closeVideo(event, container) {
 
     <div class="note">Unlike the Ink Ring's per-page undo stack, the Page Ring undo operates on page-level operations across the entire score.</div>
 
-    <h3 id="chapter-7-export-import">7.5 Page Ring: Export, Import<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-export-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-import-page"/></svg></h3>
+    <h3 id="page-export-import">7.5 Page Ring: Export, Import<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-export-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-import-page"/></svg></h3>
 
     <p>Share pages between Podium tabs via the shared buffer.</p>
 
@@ -2174,7 +2201,7 @@ function closeVideo(event, container) {
 
     <div class="note"><strong>Performance Note:</strong> Copying pages between PDFs is very compute intensive, as the PDF format was not designed for this type of operation. It's best not to fill the shared buffer with too many pages at once, or the system will become very slow.</div>
 
-    <h3 id="chapter-7-merge">7.6 Page Ring: Merge<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-merge"/></svg></h3>
+    <h3 id="page-merge">7.6 Page Ring: Merge<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-merge"/></svg></h3>
 
     <p>Merge an entire PDF score into the current score at a chosen page position.</p>
 
@@ -2197,7 +2224,7 @@ function closeVideo(event, container) {
 
     <p><strong>Adding a title page or appendix:</strong> Load a cover page or supplementary material as the source PDF, then tap the first or last page of your score to insert it at either end.</p>
 
-    <h3 id="chapter-7-flatten">7.7 Page Ring: Flatten<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-flatten"/></svg></h3>
+    <h3 id="page-flatten">7.7 Page Ring: Flatten<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-flatten"/></svg></h3>
 
     <p>Flatten a score page's Ink annotations into the PDF.</p>
 
@@ -2211,20 +2238,20 @@ function closeVideo(event, container) {
 
     <h4>Common Use Cases:</h4>
 
-    <p><strong>Adding smartphone photos to a score:</strong> If you've photographed score pages with your smartphone, you can incorporate them as permanent PDF pages. See the <a href="#chapter-6-cut-copy-paste" class="chapter-link">Ink Ring: Cut, Copy, Paste</a> section for the full workflow — Flatten is the final step that bakes the image into the PDF.</p>
+    <p><strong>Adding smartphone photos to a score:</strong> If you've photographed score pages with your smartphone, you can incorporate them as permanent PDF pages. See the <a href="#ink-cut-copy-paste" class="chapter-link">Ink Ring: Cut, Copy, Paste</a> section for the full workflow — Flatten is the final step that bakes the image into the PDF.</p>
 
     <p><strong>Preventing accidental edits:</strong> Suppose you've used the Ink Ring's Rastrum tool to draw a staff on a page, and you want to use the Pencil and Pen tools to draw on that staff. The drawing will be much easier to edit if you first Flatten the staff into the background layer. That way, you'll be able to perform edits without accidentally selecting and editing the staff itself.</p>
 
-    <p><strong>Creating manuscript paper:</strong> You can create custom manuscript paper by using Ink annotations to design the page layout, then flattening them to make them permanent. Use the <a href="#chapter-6-rastrum">Rastrum tool</a> to draw staves, add <a href="#chapter-6-symbols">Symbols</a> for clefs if desired, and use the <a href="#chapter-6-grid">Grid</a> for proper alignment. Once everything is positioned correctly, flatten all these annotations so they become an integral part of the page. You can then copy this page to create multiple pages of custom manuscript paper, or use it as a template for your compositions.</p>
+    <p><strong>Creating manuscript paper:</strong> You can create custom manuscript paper by using Ink annotations to design the page layout, then flattening them to make them permanent. Use the <a href="#ink-rastrum">Rastrum tool</a> to draw staves, add <a href="#ink-symbols">Symbols</a> for clefs if desired, and use the <a href="#ink-grid">Grid</a> for proper alignment. Once everything is positioned correctly, flatten all these annotations so they become an integral part of the page. You can then copy this page to create multiple pages of custom manuscript paper, or use it as a template for your compositions.</p>
 
     <div class="note">Because a flatten operation cannot be undone, you'll be prompted to confirm before the operation is performed.</div>
 
-    <h3 id="chapter-7-magnify">7.8 Page Ring: Magnify<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-magnify"/></svg></h3>
+    <h3 id="page-magnify">7.8 Page Ring: Magnify<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-magnify"/></svg></h3>
 
     <p>Magnify a portion of a page.</p>
 
     <p>Drag out from the Magnify cell to reveal a panel that displays a zoomed-in view of the page at the current touch point. Touch any page in the score and the magnifier panel updates in real time, showing both the PDF content and any annotations at the touched location.</p>
-    <div class="note">Only the <a href="#chapter-5-table-current-page" class="chapter-link">current page</a> in a Table Layout can be magnified, not the thumbnails.</div>
+    <div class="note">Only the <a href="#table-current-page" class="chapter-link">current page</a> in a Table Layout can be magnified, not the thumbnails.</div>
     <div class="note"><strong>Pro Tip:</strong> Think of the Magnify tool like a monitor connected to a camera. The magnifier panel is the monitor, and your finger or stylus is the camera. Activating the Magnify cell turns the camera on; dragging your finger across a score page then shows the area around the pointer dynamically in the monitor (you must lift and retouch to move between pages). When you deactivate the cell, the camera turns off and the last captured image remains in the panel until you reactivate the tool and touch the page again.</div>
 
 
@@ -2254,7 +2281,7 @@ function closeVideo(event, container) {
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
-<section id="chapter-8">
+<section id="app">
     <h2><svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-right:0.3em"><use href="#gb-podium"/></svg>Chapter 8: App Ring</h2>
 
     <p>Application information and display settings.</p>
@@ -2280,7 +2307,7 @@ function closeVideo(event, container) {
 
     <p><strong>Screen:</strong> Toggle full screen mode.</p>
 
-    <h3 id="chapter-8-about">8.1 App Ring: About<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-about"/></svg></h3>
+    <h3 id="app-about">8.1 App Ring: About<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-about"/></svg></h3>
 
     <p>A tabbed panel providing application information.</p>
 
@@ -2305,7 +2332,7 @@ function closeVideo(event, container) {
     <h4>License Tab:</h4>
     <p>Official copyright and license statement (<a href="https://www.gnu.org/licenses/agpl-3.0-standalone.html" target="_blank">GNU Affero General Public License v3</a>).</p>
 
-    <h3 id="chapter-8-theme">8.2 App Ring: Theme<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-light"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-glass"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-dark"/></svg></h3>
+    <h3 id="app-theme">8.2 App Ring: Theme<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-light"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-glass"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-dark"/></svg></h3>
 
     <p>Cycles among three display themes. The current theme is stored and persists across sessions.</p>
 
@@ -2315,11 +2342,17 @@ function closeVideo(event, container) {
         <li><strong>Dark</strong> — dark background with light content, ideal for low-light environments.</li>
     </ul>
 
-    <h3 id="chapter-8-guide">8.3 App Ring: Guide<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-guide"/></svg></h3>
+    <h3 id="app-guide">8.3 App Ring: Guide<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-guide"/></svg></h3>
 
     <p>Opens this guidebook in the app. The guidebook is fetched from the web, so an internet connection is required. In the browser extension, the guidebook opens in a new tab. To save it for offline reading, open it in a new window and use your browser's Save Page feature (typically Ctrl+S or Cmd+S) to download it with all images and videos.</p>
 
-    <h3 id="chapter-8-storage">8.4 App Ring: Storage<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-storage"/></svg></h3>
+    <p><strong>The guidebook follows you.</strong> While the guidebook is open, PODIUM keeps working as usual, and whatever you touch also turns the guidebook to the section about it: a menu cell, the <a href="#grip">grip</a>, a panel, the score's layout, or a pager. To read about the Pen, for example, just tap the Pen cell. In the browser extension, the guidebook's tab follows along in the same way.</p>
+
+    <p>The guidebook panel first opens beside the menu, covering no more than about a quarter of the screen. Resize it as you would any <a href="#panels">panel</a>; PODIUM remembers its size for next time. This size is kept in your browser, not in the score.</p>
+
+    <p><strong>Text size:</strong> the <strong>A&minus;</strong> and <strong>A+</strong> buttons at the top right of the guidebook make its text and figures smaller or larger, from 75% up to 300%; the button between them shows the current size, and tapping it returns to 100%. The guidebook keeps your place as the size changes and remembers the size you chose. These buttons are part of the guidebook itself, so they work wherever you read it, including in an ordinary browser tab.</p>
+
+    <h3 id="app-storage">8.4 App Ring: Storage<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-storage"/></svg></h3>
 
     <p>Manage Podium's browser storage.</p>
 
@@ -2333,7 +2366,7 @@ function closeVideo(event, container) {
     <ul>
         <li><strong>Menu:</strong> Clears stored values of many menu settings. Tapping this will reset the menu to its defaults, and restore all layouts (including the active layout's zoom, pan, and settings, if one is currently open) to their factory defaults.</li>
         <li><strong>Recent:</strong> Clears the recently visited list displayed in the Open, Save, and Copy panels.</li>
-        <li><strong>Buffer:</strong> Clears the shared buffer contents (see <a href="#chapter-7-export-import">Page Ring: Export, Import</a> for details).</li>
+        <li><strong>Buffer:</strong> Clears the shared buffer contents (see <a href="#page-export-import">Page Ring: Export, Import</a> for details).</li>
         <li><strong>Reload:</strong> Performs a hard reload (cache-clearing restart) of the Podium application, gating it behind a confirmation dialog to prevent accidental loss of unsaved changes.</li>
     </ul>
 
@@ -2341,7 +2374,7 @@ function closeVideo(event, container) {
 
     <div class="note"><strong>Privacy:</strong> If you share a browser with other users, use the factory reset buttons to clear information you don't want to share after your session. This includes recent file lists, shared buffer contents, and menu settings. Note that the web app and the browser extension maintain separate storage; if you use both, you must use these reset buttons in both environments to clear all your data.</div>
 
-    <h3 id="chapter-8-curtain">8.5 App Ring: Curtain<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-curtain"/></svg></h3>
+    <h3 id="app-curtain">8.5 App Ring: Curtain<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-curtain"/></svg></h3>
 
     <p>Draws a translucent curtain over the score. Tap the Curtain cell to toggle the curtain on and off. Drag out to reveal the Curtain panel, which lets you choose the curtain color and adjust its opacity.</p>
 
@@ -2356,7 +2389,7 @@ function closeVideo(event, container) {
         <figcaption>Curtain panel with color and opacity controls</figcaption>
     </figure>
 
-    <h3 id="chapter-8-wakelock">8.6 App Ring: Wakelock<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-wakelock"/></svg></h3>
+    <h3 id="app-wakelock">8.6 App Ring: Wakelock<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-wakelock"/></svg></h3>
 
     <p>Prevents the screen from automatically dimming or locking during a performance. When Wakelock is active, the device's screen stays on as long as Podium is in the foreground. Tap the Wakelock cell to toggle it on and off.</p>
 
@@ -2367,7 +2400,7 @@ function closeVideo(event, container) {
 
     <div class="note">Wakelock requires browser support and may not be available on all platforms. (It is supported on iPad and iPhone starting with Safari version 16.4.)</div>
 
-    <h3 id="chapter-8-screen">8.7 App Ring: Screen<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-full-screen"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-normal-screen"/></svg></h3>
+    <h3 id="app-screen">8.7 App Ring: Screen<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-full-screen"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-normal-screen"/></svg></h3>
 
     <p>Toggles full screen mode. Alternatively, toggle full screen by swiping down on the background. On iPhone/iPad, the swipe gesture can only exit full-screen; use this button to enter.</p>
 
@@ -2391,7 +2424,7 @@ function closeVideo(event, container) {
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
-<section id="chapter-9">
+<section id="more">
     <h2><svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-right:0.3em"><use href="#gb-more"/></svg>Chapter 9: More Ring</h2>
 
     <p>Musician's toolkit.</p>
@@ -2419,7 +2452,7 @@ function closeVideo(event, container) {
 
     <div class="note">Since all More Ring cells exist solely to provide panels, the touch action, an alternative to dragging, automatically opens the panel and positions it near its icon for convenient access.</div>
 
-    <h3 id="chapter-9-detached">9.1 More Ring: Detached Panels</h3>
+    <h3 id="detached-panels">9.1 More Ring: Detached Panels</h3>
 
     <p>Simplify layout by detaching panel contents.</p>
 
@@ -2436,7 +2469,7 @@ function closeVideo(event, container) {
 
     <p>To close and delete a detached panel, drag out the panel from the menu again, then tap the panel's X button.</p>
 
-    <h3 id="chapter-9-metronome">9.2 More Ring: Metronome<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-metronome"/></svg></h3>
+    <h3 id="more-metronome">9.2 More Ring: Metronome<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-metronome"/></svg></h3>
 
     <p>Animated metronome with simulated conductor.</p>
 
@@ -2452,7 +2485,7 @@ function closeVideo(event, container) {
         <figcaption>Metronome display options, showing detached panels</figcaption>
     </figure>
 
-    <p>Use the buttons to play/pause the metronome and the slider to set beats per minute. A <strong>Mute</strong> button silences the metronome's click without affecting Piano or Review playback. (You could always achieve this by setting the volume to zero in the <a href="#chapter-9-volume" class="chapter-link">Volume panel</a>, but that would silence all audio — the Mute button silences only the metronome.)</p>
+    <p>Use the buttons to play/pause the metronome and the slider to set beats per minute. A <strong>Mute</strong> button silences the metronome's click without affecting Piano or Review playback. (You could always achieve this by setting the volume to zero in the <a href="#more-volume" class="chapter-link">Volume panel</a>, but that would silence all audio — the Mute button silences only the metronome.)</p>
 
     <p>The <strong>Latency</strong> slider adjusts the timing relationship between the audible tick and the ictus — the moment the pendulum or conductor's hand reaches its beat point. Use it if the click and the visual beat feel out of sync. This is especially useful when listening through Bluetooth headphones, which introduce inherent audio delay that can make the click appear to lag behind the animation.</p>
 
@@ -2466,7 +2499,7 @@ function closeVideo(event, container) {
 
     <div class="note">The conducting patterns are experimental: due to the complexity of the animation, expect some misalignment between the pattern and the animation, particularly on slower devices, and at faster tempos.</div>
 
-    <h3 id="chapter-9-stopwatch">9.3 More Ring: Stopwatch<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-stopwatch"/></svg></h3>
+    <h3 id="more-stopwatch">9.3 More Ring: Stopwatch<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-stopwatch"/></svg></h3>
 
     <p>Timer for your practice sessions.</p>
 
@@ -2481,13 +2514,13 @@ function closeVideo(event, container) {
 
     <div class="note">Hiding the panel by flinging (detached or not) keeps the stopwatch running in the background. To stop and close the stopwatch, tap the X button—this effectively deletes the panel. The next time you drag out the Stopwatch cell, the panel is recreated from scratch.</div>
 
-    <h3 id="chapter-9-clock">9.4 More Ring: Clock<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-clock"/></svg></h3>
+    <h3 id="more-clock">9.4 More Ring: Clock<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-clock"/></svg></h3>
 
     <p>Wall clock displaying the current time and date, using the platform's default time zone. Useful for keeping track of time during practice sessions without leaving Podium.</p>
 
     <p>The clock can be detached and positioned anywhere on screen.</p>
 
-    <h3 id="chapter-9-piano">9.5 More Ring: Piano<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-piano"/></svg></h3>
+    <h3 id="more-piano">9.5 More Ring: Piano<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-piano"/></svg></h3>
 
     <p>Playable piano keyboard with tuning and pitch detection features.</p>
 
@@ -2548,7 +2581,7 @@ function closeVideo(event, container) {
 
     <div class="note">Most options include links to explanatory web articles. To select an option, tap the option name itself rather than the link.</div>
 
-    <h3 id="chapter-9-review">9.6 More Ring: Review<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-review"/></svg></h3>
+    <h3 id="more-review">9.6 More Ring: Review<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-review"/></svg></h3>
 
     <p>Record audio/video with instant replay.</p>
 
@@ -2614,7 +2647,7 @@ function closeVideo(event, container) {
         <figcaption>Review panel Options tab showing camera, recording, and device settings</figcaption>
     </figure>
 
-    <h3 id="chapter-9-keyboard">9.7 More Ring: Keyboard<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-keyboard"/></svg></h3>
+    <h3 id="more-keyboard">9.7 More Ring: Keyboard<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-keyboard"/></svg></h3>
 
     <p>On-screen keyboard for text entry and progressive search.</p>
 
@@ -2627,11 +2660,11 @@ function closeVideo(event, container) {
     or for situations where the operating system's software keyboard is inconvenient to summon. It serves two main purposes:</p>
 
     <ul>
-        <li><strong>Text annotation</strong> — enter text for the Ink Ring's <a href="#chapter-6-text" class="chapter-link">Text</a> annotation tool.</li>
-        <li><strong>Progressive search</strong> — as you type, the result in the active field changes to show only the first matching item. Progressive search is available in file panels (Open and Save) and in any dropdown, most usefully the category picker in the <a href="#chapter-6-symbols" class="chapter-link">Symbols panel</a>.</li>
+        <li><strong>Text annotation</strong> — enter text for the Ink Ring's <a href="#ink-text" class="chapter-link">Text</a> annotation tool.</li>
+        <li><strong>Progressive search</strong> — as you type, the result in the active field changes to show only the first matching item. Progressive search is available in file panels (Open and Save) and in any dropdown, most usefully the category picker in the <a href="#ink-symbols" class="chapter-link">Symbols panel</a>.</li>
     </ul>
 
-    <p>The key labeled "<strong>…</strong>" switches the keyboard to its <strong>special keys</strong> layout, which includes international characters, cursor arrow keys, and the Home and End keys. The key labeled "<strong>Aa</strong>" switches back to the normal letter keys. The arrow keys are also useful for testing your <a href="#chapter-7-numbers" class="chapter-link">foot pedal configuration</a> without needing the physical pedal nearby.</p>
+    <p>The key labeled "<strong>…</strong>" switches the keyboard to its <strong>special keys</strong> layout, which includes international characters, cursor arrow keys, and the Home and End keys. The key labeled "<strong>Aa</strong>" switches back to the normal letter keys. The arrow keys are also useful for testing your <a href="#page-numbers" class="chapter-link">foot pedal configuration</a> without needing the physical pedal nearby.</p>
 
 
     <figure>
@@ -2648,7 +2681,7 @@ function closeVideo(event, container) {
         <p class="video-status" role="status"></p>
     </figure>
 
-    <h3 id="chapter-9-volume">9.8 More Ring: Volume<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-volume"/></svg></h3>
+    <h3 id="more-volume">9.8 More Ring: Volume<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-volume"/></svg></h3>
 
     <p>Master volume control for all Podium audio output (metronome, piano, review playback).</p>
 
@@ -2657,7 +2690,7 @@ function closeVideo(event, container) {
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
-<section id="chapter-10">
+<section id="author">
     <h2>Chapter 10: About the Author</h2>
 
     <p>I'm a Canadian software engineer living in Colorado. Originally a classical guitar wannabe, I studied music theory / computer music at McGill U (<a href="https://www.mcgill.ca/music/" target="_blank">EMS</a>) and Stanford U (<a href="https://ccrma.stanford.edu/" target="_blank">CCRMA</a>). After ~30 years in the software industry, I now devote way too much of my free time to various music projects.</p>
@@ -2691,225 +2724,227 @@ function closeVideo(event, container) {
     <h2>Index</h2>
     <div class="idx-letter">A</div>
     <dl>
-        <dt>About<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-about"/></svg></dt><dd> &mdash; <a href="#chapter-8-about">8.1</a></dd>
-        <dt>About the Author</dt><dd> &mdash; <a href="#chapter-10">Ch.10</a></dd>
-        <dt>Add<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-page"/></svg></dt><dd> &mdash; <a href="#chapter-7-add">7.2</a></dd>
-        <dt>Annotations</dt><dd> &mdash; <a href="#chapter-1">Ch.1</a>, <a href="#chapter-6">Ch.6</a></dd>
-        <dt>App Ring</dt><dd> &mdash; <a href="#chapter-8">Ch.8</a></dd>
-        <dt>Aspect ratio</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
+        <dt>About<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-about"/></svg></dt><dd> &mdash; <a href="#app-about">8.1</a></dd>
+        <dt>About the Author</dt><dd> &mdash; <a href="#author">Ch.10</a></dd>
+        <dt>Add<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-page"/></svg></dt><dd> &mdash; <a href="#page-add">7.2</a></dd>
+        <dt>Annotations</dt><dd> &mdash; <a href="#quick-start">Ch.1</a>, <a href="#ink">Ch.6</a></dd>
+        <dt>App Ring</dt><dd> &mdash; <a href="#app">Ch.8</a></dd>
+        <dt>Aspect ratio</dt><dd> &mdash; <a href="#ink-edit">6.8</a></dd>
     </dl>
     <div class="idx-letter">B</div>
     <dl>
-        <dt>Book<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-book"/></svg></dt><dd> &mdash; <a href="#chapter-5-book">5.1</a></dd>
-        <dt>Bookmarks</dt><dd> &mdash; <a href="#chapter-5-bookmarks">Ch.5</a></dd>
-        <dt>Bravura font</dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
-        <dt>Browser Compatibility</dt><dd> &mdash; <a href="#chapter-2-compat">2.3</a></dd>
-        <dt>Browser Extension</dt><dd> &mdash; <a href="#chapter-2-extension">2.1</a>, <a href="#chapter-2">Ch.2</a></dd>
-        <dt>Browser tab naming</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Book<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-book"/></svg></dt><dd> &mdash; <a href="#layout-book">5.1</a></dd>
+        <dt>Bookmarks</dt><dd> &mdash; <a href="#bookmarks">Ch.5</a></dd>
+        <dt>Bravura font</dt><dd> &mdash; <a href="#ink-symbols">6.4</a></dd>
+        <dt>Browser Compatibility</dt><dd> &mdash; <a href="#browsers">2.3</a></dd>
+        <dt>Browser Extension</dt><dd> &mdash; <a href="#extension">2.1</a>, <a href="#running">Ch.2</a></dd>
+        <dt>Browser tab naming</dt><dd> &mdash; <a href="#interface">Ch.3</a></dd>
     </dl>
     <div class="idx-letter">C</div>
     <dl>
-        <dt>Cell Auto-Deactivation</dt><dd> &mdash; <a href="#chapter-3-auto-deactivation">Ch.3</a></dd>
-        <dt>Cell Locking</dt><dd> &mdash; <a href="#chapter-3-cell-locking">Ch.3</a>, <a href="#chapter-6">Ch.6</a></dd>
-        <dt>Clock<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-clock"/></svg></dt><dd> &mdash; <a href="#chapter-9-clock">9.4</a></dd>
-        <dt>Close<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-close"/></svg></dt><dd> &mdash; <a href="#chapter-4-close">4.3</a></dd>
-        <dt>Cloud storage</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Color chooser</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a>, <a href="#chapter-7-add">7.2</a></dd>
-        <dt>Conducting patterns</dt><dd> &mdash; <a href="#chapter-9-metronome">9.2</a></dd>
-        <dt>Copy</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a>, <a href="#chapter-7-cut-copy-paste">7.3</a></dd>
-        <dt>CPDL</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
-        <dt>Cross-instance sharing</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
-        <dt>CSS pixels</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-5-horizontal">5.2</a></dd>
-        <dt>Curtain<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-curtain"/></svg></dt><dd> &mdash; <a href="#chapter-8-curtain">8.5</a></dd>
-        <dt>Cut</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a>, <a href="#chapter-7-cut-copy-paste">7.3</a></dd>
+        <dt>Cell Auto-Deactivation</dt><dd> &mdash; <a href="#auto-deactivation">Ch.3</a></dd>
+        <dt>Cell Locking</dt><dd> &mdash; <a href="#cell-locking">Ch.3</a>, <a href="#ink">Ch.6</a></dd>
+        <dt>Clock<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-clock"/></svg></dt><dd> &mdash; <a href="#more-clock">9.4</a></dd>
+        <dt>Close<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-close"/></svg></dt><dd> &mdash; <a href="#score-close">4.3</a></dd>
+        <dt>Cloud storage</dt><dd> &mdash; <a href="#score-open-save">4.1</a></dd>
+        <dt>Color chooser</dt><dd> &mdash; <a href="#ink-pen-pencil">6.1</a>, <a href="#page-add">7.2</a></dd>
+        <dt>Conducting patterns</dt><dd> &mdash; <a href="#more-metronome">9.2</a></dd>
+        <dt>Copy</dt><dd> &mdash; <a href="#ink-cut-copy-paste">6.5</a>, <a href="#page-cut-copy-paste">7.3</a></dd>
+        <dt>CPDL</dt><dd> &mdash; <a href="#running">Ch.2</a></dd>
+        <dt>Cross-instance sharing</dt><dd> &mdash; <a href="#page-export-import">7.5</a></dd>
+        <dt>CSS pixels</dt><dd> &mdash; <a href="#layout-book">5.1</a>, <a href="#layout-horizontal">5.2</a></dd>
+        <dt>Curtain<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-curtain"/></svg></dt><dd> &mdash; <a href="#app-curtain">8.5</a></dd>
+        <dt>Cut</dt><dd> &mdash; <a href="#ink-cut-copy-paste">6.5</a>, <a href="#page-cut-copy-paste">7.3</a></dd>
     </dl>
     <div class="idx-letter">D</div>
     <dl>
-        <dt>Dark theme</dt><dd> &mdash; <a href="#chapter-8-theme">8.2</a></dd>
-        <dt>Delcamp</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
-        <dt>Detached Panels</dt><dd> &mdash; <a href="#chapter-9-detached">9.1</a></dd>
-        <dt>Details<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
-        <dt>Display quality</dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
-        <dt>Drag and drop</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Dropbox</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
+        <dt>Dark theme</dt><dd> &mdash; <a href="#app-theme">8.2</a></dd>
+        <dt>Delcamp</dt><dd> &mdash; <a href="#running">Ch.2</a></dd>
+        <dt>Detached Panels</dt><dd> &mdash; <a href="#detached-panels">9.1</a></dd>
+        <dt>Details<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></dt><dd> &mdash; <a href="#score-details">4.5</a></dd>
+        <dt>Display quality</dt><dd> &mdash; <a href="#score-details">4.5</a></dd>
+        <dt>Drag and drop</dt><dd> &mdash; <a href="#score-open-save">4.1</a></dd>
+        <dt>Dropbox</dt><dd> &mdash; <a href="#score-open-save">4.1</a></dd>
     </dl>
     <div class="idx-letter">E</div>
     <dl>
         <dt>E-reader</dt><dd> &mdash; <a href="#overture">Overture</a></dd>
-        <dt>Edit<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-edit"/></svg></dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
-        <dt>Equal temperament</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
-        <dt>Expand mode</dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
-        <dt>Export</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
+        <dt>Edit<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-edit"/></svg></dt><dd> &mdash; <a href="#ink-edit">6.8</a></dd>
+        <dt>Equal temperament</dt><dd> &mdash; <a href="#more-piano">9.5</a></dd>
+        <dt>Expand mode</dt><dd> &mdash; <a href="#score-details">4.5</a></dd>
+        <dt>Export</dt><dd> &mdash; <a href="#page-export-import">7.5</a></dd>
     </dl>
     <div class="idx-letter">F</div>
     <dl>
-        <dt>File System Access API</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
+        <dt>File System Access API</dt><dd> &mdash; <a href="#score-open-save">4.1</a></dd>
         <dt>Firefox settings</dt><dd> &mdash; <a href="#firefox-settings">4.1</a></dd>
-        <dt>Flatten<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-flatten"/></svg></dt><dd> &mdash; <a href="#chapter-7-flatten">7.7</a></dd>
-        <dt>Fling gesture</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a>, <a href="#chapter-5-page-turning">Ch.5</a></dd>
-        <dt>Foot Pedal</dt><dd> &mdash; <a href="#chapter-2-foot-pedal">2.4</a>, <a href="#chapter-7-numbers">7.1</a></dd>
-        <dt>Full screen</dt><dd> &mdash; <a href="#chapter-8-screen">8.7</a>, <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Flatten<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-flatten"/></svg></dt><dd> &mdash; <a href="#page-flatten">7.7</a></dd>
+        <dt>Fling gesture</dt><dd> &mdash; <a href="#interface">Ch.3</a>, <a href="#turning-pages">Ch.5</a></dd>
+        <dt>Foot Pedal</dt><dd> &mdash; <a href="#foot-pedal">2.4</a>, <a href="#page-numbers">7.1</a></dd>
+        <dt>Full screen</dt><dd> &mdash; <a href="#app-screen">8.7</a>, <a href="#interface">Ch.3</a></dd>
     </dl>
     <div class="idx-letter">G</div>
     <dl>
-        <dt>Gestures</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
-        <dt>Google Drive</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Grid<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-grid"/></svg></dt><dd> &mdash; <a href="#chapter-6-grid">6.7</a></dd>
-        <dt>Grip</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
-        <dt>Group selection</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
-        <dt>Guide<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-guide"/></svg></dt><dd> &mdash; <a href="#chapter-8-guide">8.3</a></dd>
+        <dt>Gestures</dt><dd> &mdash; <a href="#interface">Ch.3</a></dd>
+        <dt>Google Drive</dt><dd> &mdash; <a href="#score-open-save">4.1</a></dd>
+        <dt>Grid<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-grid"/></svg></dt><dd> &mdash; <a href="#ink-grid">6.7</a></dd>
+        <dt>Grip</dt><dd> &mdash; <a href="#grip">Ch.3</a></dd>
+        <dt>Group selection</dt><dd> &mdash; <a href="#ink-edit">6.8</a></dd>
+        <dt>Guide<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-guide"/></svg></dt><dd> &mdash; <a href="#app-guide">8.3</a></dd>
     </dl>
     <div class="idx-letter">H</div>
     <dl>
-        <dt>Horizontal<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-horizontal-scroll"/></svg></dt><dd> &mdash; <a href="#chapter-5-horizontal">5.2</a></dd>
+        <dt>Horizontal<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-horizontal-scroll"/></svg></dt><dd> &mdash; <a href="#layout-horizontal">5.2</a></dd>
     </dl>
     <div class="idx-letter">I</div>
     <dl>
-        <dt>Images, importing</dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a></dd>
-        <dt>Import<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-export-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-import-page"/></svg></dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
-        <dt>IMSLP</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
-        <dt>Ink Ring</dt><dd> &mdash; <a href="#chapter-6">Ch.6</a></dd>
-        <dt>Inner ring</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
-        <dt>Installation</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
-        <dt>Interface Basics</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Images, importing</dt><dd> &mdash; <a href="#ink-cut-copy-paste">6.5</a></dd>
+        <dt>Import<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-export-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-import-page"/></svg></dt><dd> &mdash; <a href="#page-export-import">7.5</a></dd>
+        <dt>IMSLP</dt><dd> &mdash; <a href="#running">Ch.2</a></dd>
+        <dt>Ink Ring</dt><dd> &mdash; <a href="#ink">Ch.6</a></dd>
+        <dt>Inner ring</dt><dd> &mdash; <a href="#menu">Ch.3</a></dd>
+        <dt>Installation</dt><dd> &mdash; <a href="#running">Ch.2</a></dd>
+        <dt>Interface Basics</dt><dd> &mdash; <a href="#interface">Ch.3</a></dd>
     </dl>
     <div class="idx-letter">K</div>
     <dl>
-        <dt>Keyboard<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-keyboard"/></svg></dt><dd> &mdash; <a href="#chapter-9-keyboard">9.7</a></dd>
-        <dt>Keyboard shortcuts</dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
+        <dt>Keyboard<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-keyboard"/></svg></dt><dd> &mdash; <a href="#more-keyboard">9.7</a></dd>
+        <dt>Keyboard shortcuts</dt><dd> &mdash; <a href="#page-numbers">7.1</a></dd>
     </dl>
     <div class="idx-letter">L</div>
     <dl>
-        <dt>Layout Ring</dt><dd> &mdash; <a href="#chapter-5">Ch.5</a></dd>
-        <dt>Light theme</dt><dd> &mdash; <a href="#chapter-8-theme">8.2</a></dd>
-        <dt>Line drawing</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a></dd>
-        <dt>Live mode</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
-        <dt>Local storage</dt><dd> &mdash; <a href="#chapter-8-storage">8.4</a></dd>
-        <dt>Long press</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Layout Ring</dt><dd> &mdash; <a href="#layout">Ch.5</a></dd>
+        <dt>Light theme</dt><dd> &mdash; <a href="#app-theme">8.2</a></dd>
+        <dt>Line drawing</dt><dd> &mdash; <a href="#ink-pen-pencil">6.1</a></dd>
+        <dt>Live mode</dt><dd> &mdash; <a href="#more-review">9.6</a></dd>
+        <dt>Local storage</dt><dd> &mdash; <a href="#app-storage">8.4</a></dd>
+        <dt>Long press</dt><dd> &mdash; <a href="#interface">Ch.3</a></dd>
     </dl>
     <div class="idx-letter">M</div>
     <dl>
-        <dt>Magnify<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-magnify"/></svg></dt><dd> &mdash; <a href="#chapter-7-magnify">7.8</a></dd>
-        <dt>Manuscript paper</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a>, <a href="#chapter-7-flatten">7.7</a></dd>
-        <dt>Merge<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-merge"/></svg></dt><dd> &mdash; <a href="#chapter-7-merge">7.6</a></dd>
-        <dt>Metadata</dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
-        <dt>Metronome<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-metronome"/></svg></dt><dd> &mdash; <a href="#chapter-9-metronome">9.2</a></dd>
-        <dt>Microphone</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a>, <a href="#chapter-9-review">9.6</a></dd>
-        <dt>More Ring</dt><dd> &mdash; <a href="#chapter-9">Ch.9</a></dd>
-        <dt>Mouse controls</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Magnify<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-magnify"/></svg></dt><dd> &mdash; <a href="#page-magnify">7.8</a></dd>
+        <dt>Manuscript paper</dt><dd> &mdash; <a href="#ink-rastrum">6.2</a>, <a href="#page-flatten">7.7</a></dd>
+        <dt>Menu</dt><dd> &mdash; <a href="#menu">Ch.3</a></dd>
+        <dt>Merge<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-merge"/></svg></dt><dd> &mdash; <a href="#page-merge">7.6</a></dd>
+        <dt>Metadata</dt><dd> &mdash; <a href="#score-details">4.5</a></dd>
+        <dt>Metronome<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-metronome"/></svg></dt><dd> &mdash; <a href="#more-metronome">9.2</a></dd>
+        <dt>Microphone</dt><dd> &mdash; <a href="#more-piano">9.5</a>, <a href="#more-review">9.6</a></dd>
+        <dt>More Ring</dt><dd> &mdash; <a href="#more">Ch.9</a></dd>
+        <dt>Mouse controls</dt><dd> &mdash; <a href="#interface">Ch.3</a></dd>
     </dl>
     <div class="idx-letter">N</div>
     <dl>
-        <dt>Navigation</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-1">Ch.1</a></dd>
-        <dt>New<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-score"/></svg></dt><dd> &mdash; <a href="#chapter-4-new">4.2</a></dd>
-        <dt>Numbers<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-numbers"/></svg></dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
+        <dt>Navigation</dt><dd> &mdash; <a href="#layout-book">5.1</a>, <a href="#quick-start">Ch.1</a></dd>
+        <dt>New<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-score"/></svg></dt><dd> &mdash; <a href="#score-new">4.2</a></dd>
+        <dt>Numbers<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-numbers"/></svg></dt><dd> &mdash; <a href="#page-numbers">7.1</a></dd>
     </dl>
     <div class="idx-letter">O</div>
     <dl>
-        <dt>Offline use</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
-        <dt>OneDrive</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Opacity</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a>, <a href="#chapter-7-add">7.2</a></dd>
-        <dt>Open</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
+        <dt>Offline use</dt><dd> &mdash; <a href="#running">Ch.2</a></dd>
+        <dt>OneDrive</dt><dd> &mdash; <a href="#score-open-save">4.1</a></dd>
+        <dt>Opacity</dt><dd> &mdash; <a href="#ink-pen-pencil">6.1</a>, <a href="#page-add">7.2</a></dd>
+        <dt>Open</dt><dd> &mdash; <a href="#score-open-save">4.1</a></dd>
         <dt>Open source</dt><dd> &mdash; <a href="#overture">Overture</a></dd>
-        <dt>Outer ring</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Outer ring</dt><dd> &mdash; <a href="#menu">Ch.3</a></dd>
     </dl>
     <div class="idx-letter">P</div>
     <dl>
-        <dt>Page numbers</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-7-numbers">7.1</a></dd>
-        <dt>Page ordering</dt><dd> &mdash; <a href="#chapter-5-table">5.4</a></dd>
-        <dt>Page range</dt><dd> &mdash; <a href="#chapter-4-print">4.4</a></dd>
-        <dt>Page Ring</dt><dd> &mdash; <a href="#chapter-7">Ch.7</a></dd>
-        <dt>Page sizing</dt><dd> &mdash; <a href="#chapter-4-details">4.5</a></dd>
-        <dt>Page Turning</dt><dd> &mdash; <a href="#chapter-5-page-turning">Ch.5</a></dd>
-        <dt>Pager</dt><dd> &mdash; <a href="#chapter-5-page-turning">Ch.5</a></dd>
-        <dt>Password-protected PDF</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Paste<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-copy-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-paste-page"/></svg></dt><dd> &mdash; <a href="#chapter-6-cut-copy-paste">6.5</a>, <a href="#chapter-7-cut-copy-paste">7.3</a></dd>
-        <dt>Paste buffer</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
-        <dt>PDF files</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a>, <a href="#overture">Overture</a></dd>
-        <dt>Pen</dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a></dd>
-        <dt>Pencil<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-pen"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-pencil"/></svg></dt><dd> &mdash; <a href="#chapter-6-pen-pencil">6.1</a></dd>
-        <dt>Piano<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-piano"/></svg></dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
-        <dt>Pinch-zoom</dt><dd> &mdash; <a href="#chapter-5-book">5.1</a>, <a href="#chapter-3">Ch.3</a></dd>
-        <dt>Pitch detector</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
-        <dt>Playback</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
-        <dt>Practice scores</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
-        <dt>Precision sliders</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
-        <dt>Print<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-print"/></svg></dt><dd> &mdash; <a href="#chapter-4-print">4.4</a></dd>
-        <dt>Privacy</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a>, <a href="#chapter-8-storage">8.4</a></dd>
-        <dt>Progressive Web App (PWA)</dt><dd> &mdash; <a href="#chapter-2-pwa">2.2</a>, <a href="#chapter-2">Ch.2</a></dd>
+        <dt>Page numbers</dt><dd> &mdash; <a href="#layout-book">5.1</a>, <a href="#page-numbers">7.1</a></dd>
+        <dt>Page ordering</dt><dd> &mdash; <a href="#layout-table">5.4</a></dd>
+        <dt>Page range</dt><dd> &mdash; <a href="#score-print">4.4</a></dd>
+        <dt>Page Ring</dt><dd> &mdash; <a href="#page">Ch.7</a></dd>
+        <dt>Page sizing</dt><dd> &mdash; <a href="#score-details">4.5</a></dd>
+        <dt>Page Turning</dt><dd> &mdash; <a href="#turning-pages">Ch.5</a></dd>
+        <dt>Pager</dt><dd> &mdash; <a href="#turning-pages">Ch.5</a></dd>
+        <dt>Panels</dt><dd> &mdash; <a href="#panels">Ch.3</a></dd>
+        <dt>Password-protected PDF</dt><dd> &mdash; <a href="#score-open-save">4.1</a></dd>
+        <dt>Paste<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-cut-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-copy-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-paste-page"/></svg></dt><dd> &mdash; <a href="#ink-cut-copy-paste">6.5</a>, <a href="#page-cut-copy-paste">7.3</a></dd>
+        <dt>Paste buffer</dt><dd> &mdash; <a href="#page-export-import">7.5</a></dd>
+        <dt>PDF files</dt><dd> &mdash; <a href="#score-open-save">4.1</a>, <a href="#overture">Overture</a></dd>
+        <dt>Pen</dt><dd> &mdash; <a href="#ink-pen-pencil">6.1</a></dd>
+        <dt>Pencil<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-pen"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-pencil"/></svg></dt><dd> &mdash; <a href="#ink-pen-pencil">6.1</a></dd>
+        <dt>Piano<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-piano"/></svg></dt><dd> &mdash; <a href="#more-piano">9.5</a></dd>
+        <dt>Pinch-zoom</dt><dd> &mdash; <a href="#layout-book">5.1</a>, <a href="#interface">Ch.3</a></dd>
+        <dt>Pitch detector</dt><dd> &mdash; <a href="#more-piano">9.5</a></dd>
+        <dt>Playback</dt><dd> &mdash; <a href="#more-review">9.6</a></dd>
+        <dt>Practice scores</dt><dd> &mdash; <a href="#page-export-import">7.5</a></dd>
+        <dt>Precision sliders</dt><dd> &mdash; <a href="#ink-edit">6.8</a></dd>
+        <dt>Print<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-print"/></svg></dt><dd> &mdash; <a href="#score-print">4.4</a></dd>
+        <dt>Privacy</dt><dd> &mdash; <a href="#page-export-import">7.5</a>, <a href="#app-storage">8.4</a></dd>
+        <dt>Progressive Web App (PWA)</dt><dd> &mdash; <a href="#pwa">2.2</a>, <a href="#running">Ch.2</a></dd>
     </dl>
     <div class="idx-letter">Q</div>
     <dl>
-        <dt>Quick Start</dt><dd> &mdash; <a href="#chapter-1">Ch.1</a></dd>
+        <dt>Quick Start</dt><dd> &mdash; <a href="#quick-start">Ch.1</a></dd>
     </dl>
     <div class="idx-letter">R</div>
     <dl>
-        <dt>Rastrum<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-rastrum"/></svg></dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a></dd>
-        <dt>Recent files</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a>, <a href="#chapter-8-storage">8.4</a></dd>
-        <dt>Recording</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
-        <dt>Reorder pages</dt><dd> &mdash; <a href="#chapter-5-table">5.4</a></dd>
-        <dt>Resize</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
-        <dt>Revert to saved</dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Review<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-review"/></svg></dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
-        <dt>Roman numerals</dt><dd> &mdash; <a href="#chapter-7-numbers">7.1</a></dd>
-        <dt>Rotating rings</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
-        <dt>Running Podium</dt><dd> &mdash; <a href="#chapter-2">Ch.2</a></dd>
+        <dt>Rastrum<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-rastrum"/></svg></dt><dd> &mdash; <a href="#ink-rastrum">6.2</a></dd>
+        <dt>Recent files</dt><dd> &mdash; <a href="#score-open-save">4.1</a>, <a href="#app-storage">8.4</a></dd>
+        <dt>Recording</dt><dd> &mdash; <a href="#more-review">9.6</a></dd>
+        <dt>Reorder pages</dt><dd> &mdash; <a href="#layout-table">5.4</a></dd>
+        <dt>Resize</dt><dd> &mdash; <a href="#interface">Ch.3</a></dd>
+        <dt>Revert to saved</dt><dd> &mdash; <a href="#score-open-save">4.1</a></dd>
+        <dt>Review<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-review"/></svg></dt><dd> &mdash; <a href="#more-review">9.6</a></dd>
+        <dt>Roman numerals</dt><dd> &mdash; <a href="#page-numbers">7.1</a></dd>
+        <dt>Rotating rings</dt><dd> &mdash; <a href="#interface">Ch.3</a></dd>
+        <dt>Running Podium</dt><dd> &mdash; <a href="#running">Ch.2</a></dd>
     </dl>
     <div class="idx-letter">S</div>
     <dl>
-        <dt>Salamander Grand Piano</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
-        <dt>Save<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-open"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-save"/></svg></dt><dd> &mdash; <a href="#chapter-4-open-save">4.1</a></dd>
-        <dt>Score Ring</dt><dd> &mdash; <a href="#chapter-4">Ch.4</a></dd>
-        <dt>Screen<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-full-screen"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-normal-screen"/></svg></dt><dd> &mdash; <a href="#chapter-8-screen">8.7</a></dd>
-        <dt>Scrubber</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
-        <dt>Shared buffer</dt><dd> &mdash; <a href="#chapter-7-export-import">7.5</a></dd>
-        <dt>Sliders</dt><dd> &mdash; <a href="#chapter-3">Ch.3</a></dd>
-        <dt>SMuFL</dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
-        <dt>Snap scrolling</dt><dd> &mdash; <a href="#chapter-5-horizontal">5.2</a>, <a href="#chapter-5-vertical">5.3</a></dd>
-        <dt>Spectrogram</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
-        <dt>Split times</dt><dd> &mdash; <a href="#chapter-9-stopwatch">9.3</a></dd>
-        <dt>Staff space</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a>, <a href="#chapter-6-symbols">6.4</a></dd>
-        <dt>Staves</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a></dd>
-        <dt>Stopwatch<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-stopwatch"/></svg></dt><dd> &mdash; <a href="#chapter-9-stopwatch">9.3</a></dd>
-        <dt>Storage<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-storage"/></svg></dt><dd> &mdash; <a href="#chapter-8-storage">8.4</a></dd>
-        <dt>Sustain mode</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
-        <dt>Symbol library</dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
-        <dt>Symbols<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-symbols"/></svg></dt><dd> &mdash; <a href="#chapter-6-symbols">6.4</a></dd>
+        <dt>Salamander Grand Piano</dt><dd> &mdash; <a href="#more-piano">9.5</a></dd>
+        <dt>Save<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-open"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-save"/></svg></dt><dd> &mdash; <a href="#score-open-save">4.1</a></dd>
+        <dt>Score Ring</dt><dd> &mdash; <a href="#score">Ch.4</a></dd>
+        <dt>Screen<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-full-screen"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-normal-screen"/></svg></dt><dd> &mdash; <a href="#app-screen">8.7</a></dd>
+        <dt>Scrubber</dt><dd> &mdash; <a href="#more-review">9.6</a></dd>
+        <dt>Shared buffer</dt><dd> &mdash; <a href="#page-export-import">7.5</a></dd>
+        <dt>Sliders</dt><dd> &mdash; <a href="#interface">Ch.3</a></dd>
+        <dt>SMuFL</dt><dd> &mdash; <a href="#ink-symbols">6.4</a></dd>
+        <dt>Snap scrolling</dt><dd> &mdash; <a href="#layout-horizontal">5.2</a>, <a href="#layout-vertical">5.3</a></dd>
+        <dt>Spectrogram</dt><dd> &mdash; <a href="#more-review">9.6</a></dd>
+        <dt>Split times</dt><dd> &mdash; <a href="#more-stopwatch">9.3</a></dd>
+        <dt>Staff space</dt><dd> &mdash; <a href="#ink-rastrum">6.2</a>, <a href="#ink-symbols">6.4</a></dd>
+        <dt>Staves</dt><dd> &mdash; <a href="#ink-rastrum">6.2</a></dd>
+        <dt>Stopwatch<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-stopwatch"/></svg></dt><dd> &mdash; <a href="#more-stopwatch">9.3</a></dd>
+        <dt>Storage<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-storage"/></svg></dt><dd> &mdash; <a href="#app-storage">8.4</a></dd>
+        <dt>Sustain mode</dt><dd> &mdash; <a href="#more-piano">9.5</a></dd>
+        <dt>Symbol library</dt><dd> &mdash; <a href="#ink-symbols">6.4</a></dd>
+        <dt>Symbols<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-symbols"/></svg></dt><dd> &mdash; <a href="#ink-symbols">6.4</a></dd>
     </dl>
     <div class="idx-letter">T</div>
     <dl>
-        <dt>Tablature</dt><dd> &mdash; <a href="#chapter-6-rastrum">6.2</a></dd>
-        <dt>Table<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-table"/></svg></dt><dd> &mdash; <a href="#chapter-5-table">5.4</a></dd>
-        <dt>Temperament</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
-        <dt>Text<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-text"/></svg></dt><dd> &mdash; <a href="#chapter-6-text">6.3</a></dd>
-        <dt>Theme<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-light"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-glass"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-dark"/></svg></dt><dd> &mdash; <a href="#chapter-8-theme">8.2</a></dd>
-        <dt>Timbre</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
-        <dt>Transform handles</dt><dd> &mdash; <a href="#chapter-6-edit">6.8</a></dd>
-        <dt>Tuner</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
+        <dt>Tablature</dt><dd> &mdash; <a href="#ink-rastrum">6.2</a></dd>
+        <dt>Table<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-table"/></svg></dt><dd> &mdash; <a href="#layout-table">5.4</a></dd>
+        <dt>Temperament</dt><dd> &mdash; <a href="#more-piano">9.5</a></dd>
+        <dt>Text<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-text"/></svg></dt><dd> &mdash; <a href="#ink-text">6.3</a></dd>
+        <dt>Theme<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-light"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-glass"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-dark"/></svg></dt><dd> &mdash; <a href="#app-theme">8.2</a></dd>
+        <dt>Timbre</dt><dd> &mdash; <a href="#more-piano">9.5</a></dd>
+        <dt>Transform handles</dt><dd> &mdash; <a href="#ink-edit">6.8</a></dd>
+        <dt>Tuner</dt><dd> &mdash; <a href="#more-piano">9.5</a></dd>
     </dl>
     <div class="idx-letter">U</div>
     <dl>
-        <dt>Undo<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></dt><dd> &mdash; <a href="#chapter-6-undo">6.6</a>, <a href="#chapter-7-undo">7.4</a></dd>
-        <dt>Undo history</dt><dd> &mdash; <a href="#chapter-6-undo">6.6</a>, <a href="#chapter-7-undo">7.4</a></dd>
-        <dt>Using Podium in Your Language</dt><dd> &mdash; <a href="#chapter-2-language">2.5</a></dd>
+        <dt>Undo<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></dt><dd> &mdash; <a href="#ink-undo">6.6</a>, <a href="#page-undo">7.4</a></dd>
+        <dt>Undo history</dt><dd> &mdash; <a href="#ink-undo">6.6</a>, <a href="#page-undo">7.4</a></dd>
+        <dt>Using Podium in Your Language</dt><dd> &mdash; <a href="#language">2.5</a></dd>
     </dl>
     <div class="idx-letter">V</div>
     <dl>
-        <dt>Vertical<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-vertical-scroll"/></svg></dt><dd> &mdash; <a href="#chapter-5-vertical">5.3</a></dd>
-        <dt>Volume<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-volume"/></svg></dt><dd> &mdash; <a href="#chapter-9-volume">9.8</a></dd>
+        <dt>Vertical<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-vertical-scroll"/></svg></dt><dd> &mdash; <a href="#layout-vertical">5.3</a></dd>
+        <dt>Volume<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-volume"/></svg></dt><dd> &mdash; <a href="#more-volume">9.8</a></dd>
     </dl>
     <div class="idx-letter">W</div>
     <dl>
-        <dt>Wakelock<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-wakelock"/></svg></dt><dd> &mdash; <a href="#chapter-8-wakelock">8.6</a></dd>
-        <dt>Waveform</dt><dd> &mdash; <a href="#chapter-9-review">9.6</a></dd>
+        <dt>Wakelock<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-wakelock"/></svg></dt><dd> &mdash; <a href="#app-wakelock">8.6</a></dd>
+        <dt>Waveform</dt><dd> &mdash; <a href="#more-review">9.6</a></dd>
     </dl>
     <div class="idx-letter">Y</div>
     <dl>
-        <dt>YIN pitch detection</dt><dd> &mdash; <a href="#chapter-9-piano">9.5</a></dd>
+        <dt>YIN pitch detection</dt><dd> &mdash; <a href="#more-piano">9.5</a></dd>
     </dl>
     <div class="idx-letter">Z</div>
     <dl>
-        <dt>Zoom</dt><dd> &mdash; <a href="#chapter-7-magnify">7.8</a>, <a href="#chapter-3">Ch.3</a></dd>
+        <dt>Zoom</dt><dd> &mdash; <a href="#page-magnify">7.8</a>, <a href="#interface">Ch.3</a></dd>
     </dl>
     <a href="#toc" class="back-to-toc">&uarr; Back to Table of Contents</a>
 </nav>
@@ -2921,5 +2956,29 @@ function closeVideo(event, container) {
     <p>Users are responsible for ensuring they have the right to use any score files opened in Podium.</p>
 </footer>
 
+<script>
+// Text size buttons: A− and A+ step through SIZES; the middle one shows the size and resets it
+(function () {
+    let SIZES = [75, 87.5, 100, 112.5, 125, 150, 175, 200, 250, 300];
+    let box = document.querySelector('.text-size');
+    let label = box.querySelector('[data-step="0"]');
+    let size = parseFloat(document.documentElement.style.fontSize) || 100;
+    let show = () => label.textContent = Math.round(size) + '%';
+    box.addEventListener('click', (e) => {
+        let step = Number(e.target.closest('button')?.dataset.step);
+        if (Number.isNaN(step)) return;
+        let i = SIZES.findIndex((s) => s >= size);
+        if (i < 0) i = SIZES.length - 1;
+        size = step == 0 ? 100 : SIZES[Math.max(0, Math.min(SIZES.length - 1, i + step))];
+        // keep the reader's place: what's at the top of the window stays there as the text reflows
+        let anchor = document.elementFromPoint(innerWidth / 2, 60), top = anchor?.getBoundingClientRect().top;
+        document.documentElement.style.fontSize = size + '%';
+        if (anchor) scrollBy(0, anchor.getBoundingClientRect().top - top);
+        try { localStorage.setItem('guidebookFontSize', size); } catch {}
+        show();
+    });
+    show();
+})();
+</script>
 </body>
 </html>

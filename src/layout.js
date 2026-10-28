@@ -265,6 +265,7 @@ class Layout {
     });
     delay(1, () => { // run after subclass constructor
       this.elm.dataset.tag = this.constructor.name; 
+      if (cell.gb) this.elm.dataset.gb = cell.gb; // its Guidebook section: see GuidePanel.follow
       this.elm.owner = this ;
     }) ;
   }
@@ -2708,7 +2709,7 @@ class Pager {
   static width = 45 / _dvPxRt_; // px
 
   elm = helm(
-    `<div data-tag="pager" class="Pager" translate="no">
+    `<div data-tag="pager" class="Pager" translate="no" data-gb="turning-pages">
         <div data-tag="cursor" class="Pager__cursor"></div>
      </div>`
   );

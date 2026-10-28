@@ -231,7 +231,7 @@ class Menu {
                  <div data-tag="disk" class="Menu__disk"></div>
                </div>
              </div>
-             <div data-tag="grip" class="Menu__grip"></div>
+             <div data-tag="grip" class="Menu__grip" data-gb="grip"></div>
              <datalist data-tag="recentColors" id="recentColors"></datalist>
            </div>`);
 
@@ -425,30 +425,30 @@ class Menu {
 
     // Score ring
     rings.score = {
-      name: "Score",
+      name: "Score", gb: "score",
       cells: {
         open: {
-          name: "Open",
+          name: "Open", gb: "score-open-save",
           stash: {},
           svgPath: iconPaths["Open"], 
         },
         save: {
           mode: "save",
-          name: "Save",
+          name: "Save", gb: "score-open-save",
           stash: {},
           svgPath: iconPaths["Save"],
         },
         new: {
-          name: "New",
+          name: "New", gb: "score-new",
           // Note capitalization of Width, Height, as these tags
           // are shown in the NewScore panel. Values are always in
           // pdf pts
           stash: { pages: 5, size: "A4", Width:595, Height:842, rgb: "#ffffff", alpha:1.0 },
           svgPath: iconPaths["New Score"],
         },
-        close: { name: "Close", svgPath: iconPaths["Close"] },
-        print: { name: "Print", svgPath: iconPaths["Print"] },
-        details: { name: "Details", svgPath: iconPaths["Details"], stash: { quality: 3, pgFit: "Center", bkColorIdx: 0 }, storage: "score" },
+        close: { name: "Close", gb: "score-close", svgPath: iconPaths["Close"] },
+        print: { name: "Print", gb: "score-print", svgPath: iconPaths["Print"] },
+        details: { name: "Details", gb: "score-details", svgPath: iconPaths["Details"], stash: { quality: 3, pgFit: "Center", bkColorIdx: 0 }, storage: "score" },
       },
       svgPath: iconPaths["Score"],
     };
@@ -503,7 +503,7 @@ class Menu {
     rings.layout = {
       cells: {
         book: {
-          name: "Book",
+          name: "Book", gb: "layout-book",
           storage: "score", // layout settings (incl. pz pan-zoom) persist per-score, not as a global localStorage default
           stash: {
             fit: "Auto", // "Auto","Width","Height","None",
@@ -514,7 +514,7 @@ class Menu {
           svgPath: iconPaths["Book"],
         },
         horizontal: {
-          name: "Horizontal",
+          name: "Horizontal", gb: "layout-horizontal",
           storage: "score",
           stash: {
             fit: "Auto", // "Auto", "Width","Height","None"
@@ -528,7 +528,7 @@ class Menu {
           svgPath: iconPaths["Horizontal Scroll"],
         },
         vertical: {
-          name: "Vertical",
+          name: "Vertical", gb: "layout-vertical",
           storage: "score",
           stash: {
             fit: "Auto", // "Auto", "Width","Height","None"
@@ -542,7 +542,7 @@ class Menu {
           svgPath: iconPaths["Vertical Scroll"],
         },
         table: {
-          name: "Table",
+          name: "Table", gb: "layout-table",
           storage: "score",
           stash: {
             fit: "Auto", // "Auto", "Width","Height" (note: no "None")
@@ -555,7 +555,7 @@ class Menu {
           svgPath: iconPaths["Table"],
         },
       },
-      name: "Layout",
+      name: "Layout", gb: "layout",
       stash: { active: "book"},
       svgPath: iconPaths["Layout"],
     };
@@ -577,53 +577,53 @@ class Menu {
     rings.ink = {
       cells: {
         edit: {
-          name: "Edit",
+          name: "Edit", gb: "ink-edit",
           svgPath: iconPaths["Edit"] },
         pencil: {
-          name: "Pencil",
+          name: "Pencil", gb: "ink-pen-pencil",
           svgPath: iconPaths["Pencil"],
           stash: { alpha:"1",  rgb: "#000000", style:"Free", width: 1.5},
         },
         pen: {
-          name: "Pen",
+          name: "Pen", gb: "ink-pen-pencil",
           svgPath: iconPaths["Pen"],
           stash: { alpha:".5",  rgb: "#FFFF00", style:"L-R", width: 10},
         },
         rastrum: {
-          name: "Rastrum",
+          name: "Rastrum", gb: "ink-rastrum",
           svgPath: iconPaths["Rastrum"],
             // note: gap == staff space
             stash: { alpha:"1", gap:5,  lines: 5, width: 0, // when width or gap == 0, displays as "Auto"
                      rgb: "#000000", style:"L-R", bars:0, barWidth:0}, // style is "L-R" or "T-B"
         },
         text: {
-          name: "Text",
+          name: "Text", gb: "ink-text",
           svgPath: iconPaths["Text"],
           stash: {alpha:"1", font: "Times-Roman", size: 20, height: 20, rgb: "#000000"},
         },
         symbols: {
-          name: "Symbols",
+          name: "Symbols", gb: "ink-symbols",
           svgPath: iconPaths["Symbols"],
           stash: {alpha:"1", rgb:"#000000", font: "Bravura", size: 5, group: "Basic", codePoint: "\ue050", recent: {}},
         },
         cut: {
-          name: "Cut",
+          name: "Cut", gb: "ink-cut-copy-paste",
           svgPath: iconPaths["Cut"],
         },
         copy: {
-          name: "Copy",
+          name: "Copy", gb: "ink-cut-copy-paste",
           svgPath: iconPaths["Copy"],
         },
         paste: {
-          name: "Paste",
+          name: "Paste", gb: "ink-cut-copy-paste",
           svgPath: iconPaths["Paste"],
         },
         undo: {
-          name: "Undo",
+          name: "Undo", gb: "ink-undo",
           svgPath: iconPaths["Undo"],
         },
         grid: {
-          name: "Grid",
+          name: "Grid", gb: "ink-grid",
           panel: "GridPanel",
           svgPath: iconPaths["Grid"],
           // units are Inch or Metric, while xStep and yStep are values in
@@ -632,7 +632,7 @@ class Menu {
           stash: {units:"Inch", xStep: 2, yStep:2, snap:"Snap", numbers:"On"},
         },
       },
-      name: "Ink",
+      name: "Ink", gb: "ink",
       stash: { active: "pencil", 
                recentColors:["#ff0000","#00ff00","#0000ff","#ffff8f","#ffa500","#000000","#333333","#666666","#999999","#cccccc"] },
       svgPath: iconPaths["Ink"],
@@ -652,27 +652,27 @@ class Menu {
     rings.page = {
       cells: {
         numbers: {
-          name: "Numbers",
+          name: "Numbers", gb: "page-numbers",
           svgPath: iconPaths["Numbers"],
           stash: { pn: 1, first: 1, prelim: 0, forward: "Pages", reverse: "Pages" },
           storage: "score",
         },
         add: {
-          name: "Add",
+          name: "Add", gb: "page-add",
           svgPath: iconPaths["New Page"],
           stash: { rgb: "#ffffff", alpha: 1.0, Width: 612, Height: 792, size: "Match Score" },
         },
-        cut: { name: "Cut", svgPath: iconPaths["Cut Page"] },
-        copy: { name: "Copy", svgPath: iconPaths["Copy Page"] },
-        paste: { name: "Paste", svgPath: iconPaths["Paste Page"] },
-        undo: { name: "Undo", svgPath: iconPaths["Undo"] },
-        export: { name: "Export", svgPath: iconPaths["Export Page"] },
-        import: { name: "Import", svgPath: iconPaths["Import Page"] },
-        merge: { name: "Merge", svgPath: iconPaths["Merge"] },
-        flatten: { name: "Flatten", svgPath: iconPaths["Flatten"] },
-        magnify: { name: "Magnify", svgPath: iconPaths["Magnify"], stash: { zoom: 2 } },
+        cut: { name: "Cut", gb: "page-cut-copy-paste", svgPath: iconPaths["Cut Page"] },
+        copy: { name: "Copy", gb: "page-cut-copy-paste", svgPath: iconPaths["Copy Page"] },
+        paste: { name: "Paste", gb: "page-cut-copy-paste", svgPath: iconPaths["Paste Page"] },
+        undo: { name: "Undo", gb: "page-undo", svgPath: iconPaths["Undo"] },
+        export: { name: "Export", gb: "page-export-import", svgPath: iconPaths["Export Page"] },
+        import: { name: "Import", gb: "page-export-import", svgPath: iconPaths["Import Page"] },
+        merge: { name: "Merge", gb: "page-merge", svgPath: iconPaths["Merge"] },
+        flatten: { name: "Flatten", gb: "page-flatten", svgPath: iconPaths["Flatten"] },
+        magnify: { name: "Magnify", gb: "page-magnify", svgPath: iconPaths["Magnify"], stash: { zoom: 2 } },
       },
-      name: "Page",
+      name: "Page", gb: "page",
       stash: {},
       svgPath: iconPaths["Page"],
     };
@@ -703,15 +703,15 @@ class Menu {
 
     
     rings.app = {
-      name: "App",
+      name: "App", gb: "app",
       cells: {
-        about: { name: "About", svgPath: iconPaths["About"], stash: {} },
-        theme: { name: "Theme", svgPath: iconPaths["Light"], stash: { theme: "Light" }, storage: "local" },
-        guide: { name: "Guide", svgPath: iconPaths["Guide"], stash: {} },
-        storage: { name: "Storage", svgPath: iconPaths["Storage"], stash: {} },
-        curtain: { name: "Curtain", svgPath: iconPaths["Curtain"], stash: { color:"Black", alpha: 60, on: false }, storage: "local" },
-        wakeLock: { name: "Wakelock", svgPath: iconPaths["Wakelock Off"], stash: { on: false }, storage: "local" },
-        screen: { name: "Screen", stash: {}, svgPath: iconPaths["Full Screen"], storage: "local" },
+        about: { name: "About", gb: "app-about", svgPath: iconPaths["About"], stash: {} },
+        theme: { name: "Theme", gb: "app-theme", svgPath: iconPaths["Light"], stash: { theme: "Light" }, storage: "local" },
+        guide: { name: "Guide", gb: "app-guide", svgPath: iconPaths["Guide"], stash: { w: 0, h: 0 }, storage: "local" }, // w, h: the panel's size (px), as last left
+        storage: { name: "Storage", gb: "app-storage", svgPath: iconPaths["Storage"], stash: {} },
+        curtain: { name: "Curtain", gb: "app-curtain", svgPath: iconPaths["Curtain"], stash: { color:"Black", alpha: 60, on: false }, storage: "local" },
+        wakeLock: { name: "Wakelock", gb: "app-wakelock", svgPath: iconPaths["Wakelock Off"], stash: { on: false }, storage: "local" },
+        screen: { name: "Screen", gb: "app-screen", stash: {}, svgPath: iconPaths["Full Screen"], storage: "local" },
 
       },
       svgPath: iconPaths["Podium"],
@@ -782,7 +782,7 @@ class Menu {
     rings.more = {
       cells: {
         metronome: {
-          name: "Metronome",
+          name: "Metronome", gb: "more-metronome",
           svgPath: iconPaths["Metronome"],
           stash: {
             tempo: 60,
@@ -794,19 +794,19 @@ class Menu {
           },
         },
         stopwatch: {
-          name: "Stopwatch",
+          name: "Stopwatch", gb: "more-stopwatch",
           svgPath: iconPaths["Stopwatch"],
           stash: {},
         },
-        clock: { name: "Clock", svgPath: iconPaths["Clock"], stash: {} },
+        clock: { name: "Clock", gb: "more-clock", svgPath: iconPaths["Clock"], stash: {} },
         piano: {
-          name: "Piano",
+          name: "Piano", gb: "more-piano",
           svgPath: iconPaths["Piano"],
           // a4 is cents offset from 440 Hz
           stash: { a4: 0, temperament: "Equal", timbre: "piano", voices: 4 },
         },
         review: {
-          name: "Review",
+          name: "Review", gb: "more-review",
           svgPath: iconPaths["Review"],
           stash: {
             audioSrc: "Audio 1",
@@ -817,13 +817,13 @@ class Menu {
           },
         },
         keyboard: {
-          name: "Keyboard",
+          name: "Keyboard", gb: "more-keyboard",
           svgPath: iconPaths["Keyboard"],
           stash: {},
         },
-        volume: { name: "Volume", svgPath: iconPaths["Volume"], stash: { volume:1}, },
+        volume: { name: "Volume", gb: "more-volume", svgPath: iconPaths["Volume"], stash: { volume:1}, },
       },
-      name: "More",
+      name: "More", gb: "more",
       stash: { active: null },
       svgPath: iconPaths["More"],
     };
@@ -873,7 +873,7 @@ class Menu {
       let rotation = index / ringKnt;
       let diskCellElm = helm(
         `<div data-tag="diskCell" style="width:${diskDiameter}em;height:${diskDiameter}em;clip-path:${clipPath};transform:rotate(${rotation}turn);"
-            class="Menu__diskCell" data-key="${diskKey}">
+            class="Menu__diskCell" data-key="${diskKey}" data-gb="${ring.gb}">
           <div data-tag="cellContents" class="Menu__cell-contents" style="transform:rotate(${-rotation}turn)">
             <div data-tag="cellName" style="font-size:${fontSize}em;font-weight:500;pointer-events:none;"><br>${ring.name}</div>
             ${svgWrap(ring.svgPath, { tag: "cellIcon", class: "cellIcon", size: cellIcon + "em", style: `width:${cellIcon}em;height:${cellIcon}em;pointer-events:none` })}
@@ -902,7 +902,7 @@ class Menu {
         cellEntries.forEach(([cellKey, cell], index) => {
           let rotation = ring.elm.childElementCount / cellKnt;
           cell.elm = helm(`<div data-tag="ringCell" style="width:${ringDiameter}em;height:${ringDiameter}em;clip-path:${clipPath};transform:rotate(${rotation}turn);" class="Menu__cell"
-             data-key="${diskKey + "/" + cellKey}">
+             data-key="${diskKey + "/" + cellKey}" data-gb="${cell.gb}">
            <div data-tag="cellContents" class="Menu__cell-contents" style="transform:rotate(${-rotation}turn);">
              <div data-tag="cellName" style="font-size:${fontSize}em;font-weight:500;"><br>${cell.name}</div>
              ${svgWrap(cell.svgPath, { tag: "cellIcon", class: "cellIcon", size: cellIcon + "em", style: `width:${cellIcon}em;height:${cellIcon}em;` })}

@@ -509,6 +509,7 @@ class Panel {
     this.elm.style.fontSize = _menu_.elm.style.fontSize; // open at same zoom level as menu
     this.cell = cell;
     this.elm.dataset.tag = this.constructor.name;
+    if (cell.gb) this.elm.dataset.gb = cell.gb; // its Guidebook section: see GuidePanel.follow
     this.elm.panel = this;
     this.setIcon(cell.svgPath);
     this.setTitle(cell.name);
@@ -1423,13 +1424,26 @@ class GuidePanel extends Panel {
 
   constructor(cell) {
     super(cell);
+    // Opens at the size it was last left at or, at first, at most a quarter of the screen,
+    // shrunk to fit beside the menu (but no narrower than the Guidebook needs to read
+    // well); never larger than the screen. In em, so it scales like any panel: only the
+    // Guidebook's text (in its iframe) doesn't.
+    let em = (parseFloat(this.elm.style.fontSize) || 1) * _pxPerEm_;
+    let { w, h } = cell.stash;
+    if (!w) {
+      w = Math.max(innerWidth / 2, 360);
+      h = innerHeight / 2;
+      let room = GuidePanel.menuRoom(), side = GuidePanel.bestSide(room, w, h);
+      if (side == "left" || side == "right") w = Math.max(Math.min(w, room[side]), 360);
+      else h = Math.max(Math.min(h, room[side] - 3 * em), 200); // (3em: about the header)
+    }
+    w = Math.min(w, innerWidth);
+    h = Math.min(h, innerHeight);
     Object.assign(this.body.style, {
       margin: 0,
       padding: 0,
-      width: "90vw",
-      maxWidth: "60em",
-      height: "90vh",
-      maxHeight: "50em",
+      width: w / em + "em",
+      height: h / em + "em",
     });
 
     this.body.append(this.content);
@@ -1443,9 +1457,11 @@ class GuidePanel extends Panel {
       // Extension: open in new tab (cross-origin iframe restrictions prevent embedding)
       if (this.guideWin && !this.guideWin.closed) this.guideWin.focus();
       else  this.guideWin = window.open(GuidePanel.guidebookUrl, "podium-guidebook");
+      this.follow(true);
       return this;
     }
     super.show();
+    this.follow(true);
     if (this.fetched) return this;
     this.fetched = true;
     this.msg.textContent = "Fetching Guidebook...";
@@ -1454,10 +1470,109 @@ class GuidePanel extends Panel {
       this.iframe.style.display = "block";
       this.msg.style.display = "none";
     }, { once: true });
+    listen(this.iframe, "load", () => this.hookFrame()); // (every load: each brings a new window)
     if (!navigator.onLine) {
       this.msg.textContent = "Guidebook is not available.";
     }
     return this;
+  }
+
+  // Open beside the menu rather than over it (when opened by a tap: a drag-out puts it
+  // where it's dropped), on whichever side has the most room for it, kept on screen
+  setPosition() {
+    let w = this.panel.offsetWidth, h = this.panel.offsetHeight; // (offset*: unaffected by show's animation)
+    let room = GuidePanel.menuRoom(), { x, y, r } = room, side = GuidePanel.bestSide(room, w, h);
+    let left = side == "left" ? x - r - w : side == "right" ? x + r : x - w / 2;
+    let top = side == "top" ? y - r - h : side == "bottom" ? y + r : y - h / 2;
+    // (a panel's left, top place its center)
+    this.elm.style.left = clamp(left, 0, Math.max(innerWidth - w, 0)) + w / 2 + "px";
+    this.elm.style.top = clamp(top, 0, Math.max(innerHeight - h, 0)) + h / 2 + "px";
+    this.constrain();
+    return this;
+  }
+
+  // Podium's zoom over the Guidebook. Events inside its iframe never reach Podium, so a
+  // ctrl+wheel or two-finger pinch there would zoom the whole browser page instead. The
+  // Guidebook's window (same origin) hands them over: any touch there selects this panel
+  // as the zoom target (as a tap on its header does), and a ctrl+wheel or pinch zooms it.
+  // One-finger scrolling stays the Guidebook's own.
+  hookFrame() {
+    let win = this.iframe.contentWindow;
+    let select = () => {
+      _pzTarget_ = this.elm;
+      ScreenPanel.update(this.elm);
+    };
+    listen(win, "pointerdown", select, { capture: true });
+    listen(win, "wheel", (e) => {
+      if (!e.ctrlKey) return; // (a plain wheel scrolls the Guidebook)
+      e.preventDefault();
+      select();
+      this.elm.dispatchEvent(new WheelEvent("wheel", { deltaY: e.deltaY, ctrlKey: true, shiftKey: e.shiftKey, bubbles: true, cancelable: true }));
+    }, { passive: false });
+    let pinch = null;
+    let spread = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    listen(win, "touchstart", (e) => {
+      if (e.touches.length != 2) return;
+      e.preventDefault(); // (no browser pinch-zoom)
+      select();
+      pinch = { spread: spread(e.touches), fontSize: parseFloat(this.elm.style.fontSize) || 1 };
+    }, { passive: false });
+    listen(win, "touchmove", (e) => {
+      if (!pinch || e.touches.length != 2) return;
+      e.preventDefault();
+      let ratio = 1 + (spread(e.touches) / pinch.spread - 1) / 3; // (damped, as Podium's own pinch)
+      this.elm.style.fontSize = Math.max(pinch.fontSize * ratio, 0.1) + "em";
+      this.elm.classList.add("pz-set");
+      this.constrain();
+    }, { passive: false });
+    listen(win, ["touchend", "touchcancel"], (e) => { if (e.touches.length < 2) pinch = null; });
+    listen(win, "gesturestart", (e) => e.preventDefault()); // (Safari's own pinch-zoom)
+  }
+
+  // The menu's center x, y and radius r, and the free space (px) on each side of it
+  static menuRoom() {
+    let b = _menu_.grip.getBoundingClientRect();
+    let x = b.left + b.width / 2, y = b.top + b.height / 2;
+    let r = _menu_.collapsed ? b.width / 2 : _menu_.menuHolder.offsetWidth / 2;
+    return { x, y, r, left: x - r, right: innerWidth - x - r, top: y - r, bottom: innerHeight - y - r };
+  }
+
+  // The side of the menu with the most room for a w x h panel
+  static bestSide(room, w, h) {
+    let fit = (k) => room[k] / (k == "left" || k == "right" ? w : h);
+    return ["left", "right", "top", "bottom"].reduce((best, k) => fit(k) > fit(best) ? k : best);
+  }
+
+  hidden() {
+    this.follow(false);
+    if (this.body.offsetWidth) Object.assign(this.cell.stash, { w: this.body.offsetWidth, h: this.body.offsetHeight }); // (offset*: unaffected by the hide animation's transform)
+  }
+
+  // While the Guidebook is showing, it follows the user around the app: a pointerdown on
+  // anything with a data-gb (or inside it) shows the Guidebook's section with that id.
+  // It only watches (window, capture phase: ahead of any handler that might stop the
+  // event); the app sees every event just as it always does.
+  follower = null;
+  follow(on) {
+    if (on == !!this.follower) return;
+    if (!on) {
+      unlisten(this.follower);
+      this.follower = null;
+      return;
+    }
+    this.follower = listen(window, "pointerdown", (e) => {
+      let id = e.target.closest?.("[data-gb]")?.dataset.gb;
+      if (id && !this.elm.contains(e.target)) this.goTo(id);
+    }, { capture: true });
+  }
+
+  // Show the Guidebook's section with id @id
+  goTo(id) {
+    let url = `${GuidePanel.guidebookUrl}#${id}`;
+    if (this.guideWin) { // extension: re-target its tab, without bringing it to the front
+      if (this.guideWin.closed) this.follow(false);
+      else this.guideWin.location.replace(url);
+    } else this.iframe.contentWindow.location.replace(url); // (scrolls even if already at #id; no history entry)
   }
 }
 
