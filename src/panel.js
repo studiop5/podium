@@ -713,6 +713,18 @@ class AboutPanel extends Panel {
      }
      .AboutPanel__name a { font-weight: 600; }
      .AboutPanel__name span { font-variant-numeric: tabular-nums; white-space: nowrap; }
+     /* the License face: its heading lines centered, the text left-aligned */
+     .AboutPanel__license {
+        padding: 2em;
+        overflow: auto;
+        text-align: left;
+     }
+     .AboutPanel__product {
+        text-align: center;
+        margin-top: 1em;
+     }
+     .AboutPanel__product:first-child { font-weight: 600; }
+     .AboutPanel__license p { margin: 1em 0 0; }
      .AboutPanel__scroll {
         overflow-y: auto;
         scrollbar-width: none;
@@ -727,15 +739,15 @@ class AboutPanel extends Panel {
      `
   );
 
-  licenseFace = helm(`<p style="padding:2em;overflow:auto;text-align:center;">
-  <br><b translate="no">PODIUM: Sheet Music Studio</b><br><br>
-  <span translate="no">Copyright 2026 Glendon Diener</span><br><br>
+  licenseFace = helm(`<div class="AboutPanel__license">
+  <div class="AboutPanel__product" translate="no">PODIUM: Sheet Music Studio</div>
+  <div class="AboutPanel__product" translate="no">Copyright &copy; 2026 Glendon Diener</div>
 
-  Podium is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br><br>
+  <p>Podium is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.</p>
 
-  Podium is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  <p>Podium is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
       <a rel="noopener noreferrer" translate="no" href="https://www.gnu.org/licenses/agpl-3.0-standalone.html">GNU Affero Public License</a>
-for more details.</p>
+for more details.</p></div>
       `);
 
   creditsFace = helm(`<div class="AboutPanel__credits">
@@ -1778,7 +1790,7 @@ class StoragePanel extends Panel {
         </div>
         <div>
           <div class="Panel__heading">Storage</div>
-          <div data-tag="stats" style="display:grid;grid-template-columns:auto auto;font-size:.8em;text-align:left;width:fit-content;margin:0 auto;"></div>
+          <div data-tag="stats" class="DetailsPanel__info" style="text-align:left;width:fit-content;margin:0 auto;"></div>
           <div data-tag="refresh" style="margin-top:0.5em;"></div>
         </div>
       </div>
@@ -1855,6 +1867,7 @@ class StoragePanel extends Panel {
   async updateStats() {
     let statsElm = this.statsElm;
     let rows = [];
+    let row = (label, value) => `<div>${label}</div><div>${value}</div>`; // (as the Details panel lists them)
 
     // localStorage size
     let localStorageSize = 0;
@@ -1863,23 +1876,23 @@ class StoragePanel extends Panel {
         localStorageSize += localStorage[key].length * 2; // UTF-16 = 2 bytes per char
       }
     }
-    rows.push(`<div style="text-align:right;">localStorage:&nbsp;</div><div>${this.formatBytes(localStorageSize)}</div>`);
+    rows.push(row("LocalStorage", this.formatBytes(localStorageSize)));
 
     // IndexedDB size (estimate via Storage API if available)
     if (navigator.storage && navigator.storage.estimate) {
       try {
         let estimate = await navigator.storage.estimate();
-        rows.push(`<div style="text-align:right;">IndexedDB:&nbsp;</div><div>${this.formatBytes(estimate.usage || 0)}</div>`);
-        rows.push(`<div style="text-align:right;">Quota:&nbsp;</div><div>${this.formatBytes(estimate.quota || 0)}</div>`);
+        rows.push(row("IndexedDB", this.formatBytes(estimate.usage || 0)));
+        rows.push(row("Quota", this.formatBytes(estimate.quota || 0)));
       } catch (e) {
-        rows.push(`<div style="text-align:right;">IndexedDB:&nbsp;</div><div>unavailable</div>`);
+        rows.push(row("IndexedDB", "unavailable"));
       }
     }
 
     // Memory usage (Chrome only)
     if (performance.memory) {
-      rows.push(`<div style="text-align:right;">JS Heap:&nbsp;</div><div>${this.formatBytes(performance.memory.usedJSHeapSize)}</div>`);
-      rows.push(`<div style="text-align:right;">Heap Limit:&nbsp;</div><div>${this.formatBytes(performance.memory.jsHeapSizeLimit)}</div>`);
+      rows.push(row("JS Heap", this.formatBytes(performance.memory.usedJSHeapSize)));
+      rows.push(row("Heap Limit", this.formatBytes(performance.memory.jsHeapSizeLimit)));
     }
 
     statsElm.innerHTML = rows.join("");
@@ -2933,7 +2946,7 @@ class Keyboard extends Surface {
   navKeys = {'↑':'ArrowUp','↓':'ArrowDown','←':'ArrowLeft','→':'ArrowRight','Home':'Home','End':'End'};
   repeater = new Schedule(); // implement auto-repeat on long press
 
-  content = helm(`<div class="Surface__outline"><div data-tag="plate" class="Keyboard__rows"></div></div>`) ;
+  content = helm(`<div class="Surface__outline"><div data-tag="plate" class="Keyboard__rows" translate="no"></div></div>`) ;
 
   constructor(panel) {
     super(panel, ScreenPanel) ;
