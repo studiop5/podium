@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, clamp, css, dataIndex, delay, delayMs, dialog, Drag, fontMap, getBox, helm, hide, listen, mergeRecent, numb, Schedule, schedule, svgWrap, toast, unlisten } from "./common.js";
+import { animate, clamp, css, dataIndex, delay, delayMs, dialog, Drag, fontMap, getBox, helm, hide, iconSvg, listen, mergeRecent, numb, Schedule, schedule, svgWrap, toast, unlisten } from "./common.js";
 import { checkUnsaved, FileSrc } from "./file.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
@@ -324,7 +324,8 @@ class Menu {
         // (First-time users never reach here — stashDefaults carries the
         // current version.)
         delay(2, () => dialog(
-          `Podium has been updated to version <strong>${_podiumVersion_}</strong>.<br><br>
+          `${iconSvg("Podium", { size: "4em" })}<br>
+           PODIUM has been updated to version <strong>${_podiumVersion_}</strong>.<br><br>
            <a href="https://studiop5.org/releaseNotes.html#v${_podiumVersion_}" target="_blank" rel="noopener">See what&rsquo;s new</a>`,
           { Close: { svg: "Cancel" } }
         ));

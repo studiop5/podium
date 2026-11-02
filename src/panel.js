@@ -60,7 +60,7 @@ import { Layout } from "./layout.js";
 import { Score } from "./score.js";
 import { smuflTable } from "./smufl.js";
 import { Clock, Metronome, Piano, Review, Stopwatch, Volume } from "./tool.js";
-export { Panel, panels, EditPanel, ScreenPanel, CurtainPanel };
+export { Panel, panels, EditPanel, ScreenPanel, CurtainPanel, Select };
 
 // -skip
 
@@ -132,6 +132,8 @@ class Select {
      </div>
     </div>`) ;
 
+  focusOnBuild = true; // focus the toggle once built, for typing to search the options
+
   constructor(options, option=null, panel, translatable=() => true, optionStyle=null) {
     // @translatable(option) says whether the browser's translator may translate an option's
     // label; options are always identified by their original (untranslated) string.
@@ -149,7 +151,10 @@ class Select {
     let toggleStyle = getComputedStyle(toggle);
     let emPerPx = parseFloat(toggleStyle.fontSize) ;
     toggle.style.width = frame.style.width = sash.style.width = parseFloat(toggleStyle.width) / emPerPx + "em";
-    let frameHeight = frame.style.height = ((getBox(panel.panel).bottom - getBox(frame).top) / emPerPx) -.5 + "em" ;
+    // the open list reaches down to the panel's bottom (measured on opening too: the panel's
+    // size may have changed since)
+    let fitFrame = () => ((getBox(panel.panel).bottom - getBox(frame).top) / parseFloat(getComputedStyle(toggle).fontSize)) - .5 + "em";
+    frame.style.height = fitFrame();
     // Add in all the options:
     for(let option of options) {
       let elm = helm(`<div class="Select__option">${escapeHtml(option)}</div>`) ;
@@ -187,7 +192,7 @@ class Select {
       e.taken = true ;
       if(frame.style.visibility == "hidden") {
         frame.style.visibility = "visible" ;
-        animate(frame, {height:0}, {height:frameHeight}, "height 350ms");
+        animate(frame, {height:0}, {height:fitFrame()}, "height 350ms");
       }
       else closeFrame() ;
     });
@@ -290,7 +295,7 @@ class Select {
       }
     }
 
-    this.toggle.focus();
+    if (this.focusOnBuild) this.toggle.focus();
   }
 
   set(option) {
@@ -565,17 +570,23 @@ class Panel {
       })
     );
     this.listeners.push(
-      listen(window, "resize", () => {
-        if (this.elm.style.visibility == "visible") {
-          this.constrain();
-      }
-    }));
+      // (after main.js rescales panel positions for a rotation: constraining
+      // first mixes the old window's coordinates with the new one's, and the
+      // panel drifts)
+      listen(window, "resize", () => delay(10, () => {
+        if (this.elm.style.visibility == "visible") this.resized();
+      })));
     delay(1, () => this.elm.owner = this) ;
   }
 
   hidden() { 
     // subclasses override to take action when they are about to
     // be hidden
+  }
+
+  resized() {
+    // The window was resized or rotated while the panel is showing
+    this.constrain();
   }
 
   close() {
@@ -3495,18 +3506,7 @@ class PianoPanel extends Panel {
 
   constrain() {
     super.constrain();
-    if (this.piano && this.piano.keyboard) {
-      let W = this.panel.clientWidth;
-      let K = this.piano.keyboard.offsetWidth;
-      if (this.piano.keyboardLeft !== undefined && this.piano.keyboardLeft !== null) {
-        if (K > W) {
-          this.piano.keyboardLeft = clamp(this.piano.keyboardLeft, W - K, 0);
-        } else {
-          this.piano.keyboardLeft = (W - K) / 2;
-        }
-        this.piano.keyboard.style.left = this.piano.keyboardLeft + "px";
-      }
-    }
+    if (this.piano?.keyboard.style.left) this.piano.placeKeyboard();
   }
 }
 

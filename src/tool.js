@@ -22,7 +22,7 @@
 
 import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, Drag, helm, hide, iconSvg, listen, schedule, Schedule, SliderGroup, Surface, TabView, toast, unlisten, pxToEm, noTranslate,} from "./common.js";
 import { pianoSamples } from "./sample.js";
-import { panels, ScreenPanel } from "./panel.js";
+import { panels, ScreenPanel, Select } from "./panel.js";
 import { Yin } from "./yin.js";
 export { Review, Metronome, Clock, Stopwatch, Piano, Volume };
 
@@ -157,12 +157,13 @@ class Piano {
       margin:0 0 0 -1.16em
     }
     /* piano buttons (pedaldown/up, resize, pitch, options, repeat) are surrounded by a larger "holder" button that makes their
-       touch area bigger: this helps on  small screens where they are otherwise hard to touch */
+       touch area bigger: this helps on  small screens where they are otherwise hard to touch. They sit close
+       to the title (out to 10.6em each side), leaving the header's ends free to grab and drag the panel */
     .Piano__button-holder { 
       position: absolute;
       font-family: Bravura;
       height: 4em;
-      width: 5em;
+      width: 3.2em;
       top: -.5em;
     }
     .Piano__button {
@@ -249,8 +250,6 @@ class Piano {
   constructor(panel, cell) {
     this.panel = panel;
     this.cell = cell;
-    this.keyboardLeft = null;
-    this.userWidth = null;
     this.pointerKeys = new Map();
     Object.assign(this, dataIndex("tag", this.elm));
     this.c4Elm = dataIndex("sample", this.elm)["60/0"];
@@ -268,10 +267,10 @@ class Piano {
 
     // pedal button...swaps Pedal and PedalUp icons
     let pedalDownButton = helm(
-      `<div class="Piano__button-holder" style="right: calc(50% + 10em)">
+      `<div class="Piano__button-holder" style="right: calc(50% + 7.4em)">
         ${iconSvg("Pedal", { tag: "pedal", class: "Piano__button" })}</div>`);
     let pedalUpButton = helm(
-      `<div class="Piano__button-holder" style="right: calc(50% + 10em)">
+      `<div class="Piano__button-holder" style="right: calc(50% + 7.4em)">
         ${iconSvg("Pedal Up", {tag: "pedalup", class: "Piano__button" })}</div>`);
 
     this.panel.header.append(pedalDownButton);
@@ -307,7 +306,7 @@ class Piano {
 
     // stretcher button
     let stretcherButton = helm(
-      `<div class="Piano__button-holder" style="right: calc(50% + 5.5em)">
+      `<div class="Piano__button-holder" style="right: calc(50% + 4.2em)">
         ${iconSvg("Stretcher", { tag: "tune", class: "Piano__button" })}</div>`);
 
     this.panel.header.append(stretcherButton);
@@ -321,9 +320,10 @@ class Piano {
         let emSize = parseFloat(getComputedStyle(this.panel.elm).fontSize);
         let minDrag = -5 * emSize;
         let maxDrag = 16 * emSize;
-        let labelWidth = this.panel.title ? this.panel.title.offsetWidth : 100;
-        let minWidth = this.c4Elm.offsetWidth * 10; // minimum 10 white keys
-        let maxWidth = Math.min(K, 2 * window.innerWidth - labelWidth / 2);
+        // From 10 white keys to the panel's usual 95% of the window (or its width
+        // now, if zooming has made it wider): 8va (the range control) scrolls the keys
+        let maxWidth = Math.min(K, Math.max(.95 * innerWidth, W));
+        let minWidth = Math.min(this.c4Elm.offsetWidth * 10, maxWidth);
 
         e.startWidth = W;
         e.target.setPointerCapture(e.pointerId);
@@ -337,16 +337,8 @@ class Piano {
           let factor = (maxWidth - minWidth) / (maxDrag - minDrag);
           let newWidth = clamp(e.startWidth + delta * factor, minWidth, maxWidth);
           
-          this.panel.panel.style.width = pxToEm(newWidth, this.panel.elm);
-          this.userWidth = newWidth;
-
-          // Clamp internal keyboard position to prevent blank spaces
-          if (K > newWidth) {
-            this.keyboardLeft = clamp(this.keyboardLeft, newWidth - K, 0);
-          } else {
-            this.keyboardLeft = (newWidth - K) / 2;
-          }
-          this.keyboard.style.left = this.keyboardLeft + "px";
+          this.panel.panel.style.width = pxToEm(newWidth, this.panel.elm); // (em, so zooming scales it)
+          this.placeKeyboard();
         });
 
         listen(e.target, "pointerup",
@@ -375,7 +367,7 @@ class Piano {
         let K = this.keyboard.offsetWidth;
         if (K <= W) return;
 
-        e.startLeft = parseFloat(this.keyboard.style.left) || 0;
+        e.startLeft = parseFloat(getComputedStyle(this.keyboard).left) || 0;
         e.target.setPointerCapture(e.pointerId);
         rangeButton.firstElementChild.classList.add("Piano__button-active");
         this.panel.header.classList.add("Panel__header-selected");
@@ -384,9 +376,7 @@ class Piano {
           let delta = emv.clientX - e.clientX;
           // Moving 1/4 of keyboard width to the right moves keys all the way to the right
           let shiftDelta = delta * 4 * (K - W) / K;
-          let newLeft = clamp(e.startLeft + shiftDelta, W - K, 0);
-          this.keyboard.style.left = newLeft + "px";
-          this.keyboardLeft = newLeft;
+          this.placeKeyboard(e.startLeft + shiftDelta);
         });
 
         listen(e.target, "pointerup",
@@ -426,7 +416,7 @@ class Piano {
     // repeater: control that repeats key press every 2 seconds
     // as an tuning aid. Must be an ivar: used on keyboard noteOn.
     this.repeatButton = helm(
-      `<div class="Piano__button-holder" style="left: calc(50% + 5.5em)">
+      `<div class="Piano__button-holder" style="left: calc(50% + 4.2em)">
         ${iconSvg("Repeat", { tag: "tune", class: "Piano__button" })}</div`);
     this.panel.header.append(this.repeatButton);
     this.panel.listeners.push(
@@ -444,7 +434,7 @@ class Piano {
 
     // pitch tracker button
     this.pitchButton = helm(
-      `<div class="Piano__button-holder" style="left: calc(50% + 10em)">
+      `<div class="Piano__button-holder" style="left: calc(50% + 7.4em)">
         ${iconSvg("TuningFork", { tag: "pitch", class: "Piano__button" })}` );
     this.panel.header.append(this.pitchButton);
 
@@ -690,11 +680,15 @@ class Piano {
       }
     }));
 
-    this.panel.listeners.push(listen(this.keyboard, ["pointerup", "pointercancel"], (e) => {
+    // (on the window, capturing: a key finger that's part of a pinch-zoom ends
+    // in a pointerup the pinch stops before it reaches the keyboard, and the
+    // key would stay down)
+    this.panel.listeners.push(listen(window, ["pointerup", "pointercancel"], (e) => {
+      if (!this.pointerKeys.has(e.pointerId)) return;
       let currentMidiOffset = this.pointerKeys.get(e.pointerId);
       if (currentMidiOffset) noteOff(currentMidiOffset);
       this.pointerKeys.delete(e.pointerId);
-    }));
+    }, { capture: true }));
   }
 
   buildKeyboard() {
@@ -944,33 +938,32 @@ class Piano {
     this.optionsView = optionsView;
   }
 
+  placeKeyboard(left = parseFloat(getComputedStyle(this.keyboard).left) || 0) {
+    // Place the keys at @left (px), kept filling the panel, or centered in it
+    // if they're narrower. Set in em, so a zoom (a font size change) keeps
+    // them where they were relative to the panel.
+    let W = this.panel.panel.clientWidth, K = this.keyboard.offsetWidth;
+    left = K > W ? clamp(left, W - K, 0) : (W - K) / 2;
+    this.keyboard.style.left = pxToEm(left, this.panel.elm);
+  }
+
   show() {
     // Force reflow to ensure DOM is laid out, then defer position calculation
     this.c4Elm.offsetWidth; // force reflow
     delay(4, () => {
-      let labelWidth = this.panel.title ? this.panel.title.offsetWidth : 100;
-      let maxWidth = Math.min(this.keyboard.offsetWidth, 2 * window.innerWidth - labelWidth / 2);
-      if (this.userWidth !== null && this.userWidth !== undefined) {
-        this.userWidth = Math.min(this.userWidth, maxWidth);
-        this.panel.panel.style.width = pxToEm(this.userWidth, this.panel.elm);
+      let panel = this.panel.panel;
+      if (!panel.style.width.endsWith("em")) {
+        // First showing: 95% of the window, but in em, so zooming scales it
+        // like everything else (past the screen's edges, if the user wants);
+        // and never too narrow for the header's buttons
+        let em = parseFloat(getComputedStyle(this.panel.elm).fontSize);
+        panel.style.width = Math.max(.95 * innerWidth / em, 28) + "em";
       }
-      let W = this.panel.panel.clientWidth;
-      let K = this.keyboard.offsetWidth;
-      if (this.keyboardLeft === undefined || this.keyboardLeft === null) {
+      if (this.keyboard.style.left) this.placeKeyboard();
+      else { // first showing: middle C in the middle
         let c4Center = this.c4Elm.offsetLeft + this.c4Elm.offsetWidth / 2;
-        if (K > W) {
-          this.keyboardLeft = clamp(W / 2 - c4Center, W - K, 0);
-        } else {
-          this.keyboardLeft = (W - K) / 2;
-        }
-      } else {
-        if (K > W) {
-          this.keyboardLeft = clamp(this.keyboardLeft, W - K, 0);
-        } else {
-          this.keyboardLeft = (W - K) / 2;
-        }
+        this.placeKeyboard(panel.clientWidth / 2 - c4Center);
       }
-      this.keyboard.style.left = this.keyboardLeft + "px";
     });
   }
 }
@@ -1877,13 +1870,26 @@ class Review {
       width: calc(100% - 1em);
        position:absolute; 
     }
-    .Review__options__details { 
-      margin-top:.2em;
-      width:100%;
+    /* a drop-down for the microphone and one for the camera, each by its icon */
+    .Review__devices {
       display:grid;
-      grid-template-columns:1fr 1fr;
-      justify-items:center;
-      font-size: .65em;
+      grid-template-columns: auto 1fr auto 1fr;
+      align-items:center;
+      gap:.3em;
+      margin: .6em 0 .8em;
+      font-size: .8em;
+    }
+    .Review__deviceIcon {
+      width:1.6em;
+      height:1.6em;
+    }
+    .Review__devices .Select__toggle { /* long device names end in an ellipsis */
+      display:block;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      line-height:2.6em;
+      text-align:left;
     }
    .Review__controls {
       position:absolute;
@@ -1958,11 +1964,10 @@ class Review {
          <div class="Panel__heading">Review Length</div>
          <div data-tag="videoReplayGroupElm"></div>
          <div class="Panel__heading">Input Devices</div>
-         <div data-tag="mediaDevicesGroupElm"></div>
-         <div class="Review__options__details" translate="no"> <!-- device names come from the hardware -->
-           <div data-tag="audioSrc"></div>
-           <div data-tag="videoSrc"></div>
-         </div> 
+         <div class="Review__devices">
+           ${iconSvg("Mike", { class: "Review__deviceIcon" })}<div data-tag="audioSelect"></div>
+           ${iconSvg("Video", { class: "Review__deviceIcon" })}<div data-tag="videoSelect"></div>
+         </div>
        </div>
        <!--  Controls Panel -->
        <div data-tag="controlsElm" class="Review__controls"></div>
@@ -2148,47 +2153,29 @@ class Review {
 
     this.videoReplayGroupElm.replace(this.videoReplayGroup.elm);
 
-    // Build ButtonGroup for selecting audio/video src/dst channels
-    // ...these indexes facilitate cycling through available devices:
-    let audioSrcIdx = 0;
-    let videoSrcIdx = 0;
-
-    this.devices.forEach((device) => {
-      if (device.kind == "audioinput")
-        mediaDevicesSpec[`Audio ${++audioSrcIdx}`] = Object.assign(device, {
-          svg: "Mike",
-          toggle: "audioSrc",
-        });
-      else if (device.kind == "videoinput")
-        mediaDevicesSpec[`Video ${++videoSrcIdx}`] = Object.assign(device, {
-          svg: "Video",
-          toggle: "videoSrc",
-        });
-    });
-
-    this.stash.audioSrc ??= "Audio 1";
-    this.stash.videoSrc ??= "Video 1";
-
-    this.mediaDevicesGroup = new ButtonGroup(this.stash, mediaDevicesSpec, async (e, prop, tag) => {
-      let index = parseInt(tag.split(" ")[1]) + 1;
-      if (prop == "audioSrc") {
-        if (index > audioSrcIdx) index = 1;
-        this.stash.audioSrc = "Audio " + index;
-      } else if (prop == "videoSrc") {
-        if (index > videoSrcIdx) index = 1;
-        this.stash.videoSrc = "Video " + index;
+    // A drop-down for each kind of input device, listing the devices by name. The stash
+    // keeps a device as "Audio <n>" or "Video <n>", its place among those of its kind.
+    for (let [kind, prefix, prop] of [["audioinput", "Audio", "audioSrc"], ["videoinput", "Video", "videoSrc"]]) {
+      let names = {}; // device name -> stash key
+      for (let device of this.devices.filter((device) => device.kind == kind)) {
+        let key = `${prefix} ${Object.keys(names).length + 1}`;
+        let name = device.label || key, n = 1;
+        while (names[name]) name = `${device.label || key} (${++n})`; // (two of the same model)
+        names[name] = key;
+        mediaDevicesSpec[key] = device;
       }
-      this.audioSrc.textContent = this.mediaDevicesSpec[this.stash.audioSrc]?.label ?? "";
-      this.videoSrc.textContent = this.mediaDevicesSpec[this.stash.videoSrc]?.label ?? "";
-      this.mediaDevicesGroup.refresh();
-
-      this.mediaStream.getTracks().forEach(track => track.stop());
-      await this.restart();
-    });
-    this.mediaDevicesGroupElm.replace(this.mediaDevicesGroup.elm);
-    this.mediaDevicesGroup.elm.style.marginTop = "1em";
-    this.audioSrc.textContent = this.mediaDevicesSpec[this.stash.audioSrc]?.label ?? "";
-    this.videoSrc.textContent = this.mediaDevicesSpec[this.stash.videoSrc]?.label ?? "";
+      if (!mediaDevicesSpec[this.stash[prop]]) this.stash[prop] = `${prefix} 1`; // (the device it had is gone)
+      let current = Object.keys(names).find((name) => names[name] == this.stash[prop]);
+      let select = new Select(Object.keys(names), current, this.panel, () => false); // (names come from the hardware)
+      select.focusOnBuild = false; // (two side by side: a focused one would look chosen)
+      this[prop == "audioSrc" ? "audioSelect" : "videoSelect"].replaceWith(select.elm);
+      listen(select.toggle, "SELECTED", async (e) => {
+        if (names[e.detail] == this.stash[prop]) return; // (also fired for the initial choice)
+        this.stash[prop] = names[e.detail];
+        this.mediaStream.getTracks().forEach(track => track.stop());
+        await this.restart();
+      });
+    }
     return true;
   }
 
@@ -2255,13 +2242,17 @@ class Review {
 
     listen(this.video, ["loadedmetadata"],() => {
       // After video first loads, resize this.elm and its children to
-      // accomodate the video's aspect reatio
+      // accomodate the video's aspect ratio. The face (the viewer or the options) is
+      // never shorter than the options need, though: a wide camera makes a short video,
+      // which then sits centered in the taller face.
       let controlsHeight = this.controls.elm.offsetHeight;
       let videoControlsHeight = this.videoControls.offsetHeight ;
       let videoHeight = this.video.offsetHeight;
+      let faceHeight = Math.max(videoHeight + videoControlsHeight, this.options.offsetHeight);
+      this.video.style.marginTop = this.waveview.style.top = pxToEm((faceHeight - videoHeight - videoControlsHeight) / 2, this.panel.elm);
       this.waveview.style.height = pxToEm(videoHeight, this.panel.elm);
-      this.viewer.style.height = this.options.style.height = pxToEm(videoControlsHeight + videoHeight, this.panel.elm);
-      this.elm.style.height = pxToEm(videoHeight + videoControlsHeight + controlsHeight, this.panel.elm);
+      this.viewer.style.height = this.options.style.height = pxToEm(faceHeight, this.panel.elm);
+      this.elm.style.height = pxToEm(faceHeight + controlsHeight, this.panel.elm);
       this.buildWave(); 
       }, { once: true }
     );
