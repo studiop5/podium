@@ -928,8 +928,16 @@ class Piano {
         (e, tag, value) => {
           let w = this.keyboard.offsetWidth / whites.length;
           if (tag == "width") {
+            // The panel grows about its middle, so the keys move by half the change to stay put
+            let W = this.panel.panel.clientWidth, left = parseFloat(getComputedStyle(this.keyboard).left) || 0;
             this.panel.panel.style.width = pxToEm(value * w, this.panel.elm); // (em, so zooming scales it)
-            this.placeKeyboard();
+            this.placeKeyboard(left + (this.panel.panel.clientWidth - W) / 2);
+            // ...and so do these settings, if they were dragged (else they're centered)
+            let frame = optionsView.frame;
+            if (frame.style.left.endsWith("px")) {
+              let dx = (parseFloat(getComputedStyle(this.keyboard).left) || 0) - left;
+              frame.style.left = clamp(frame.offsetLeft + dx, 0, this.body.offsetWidth - frame.offsetWidth) + "px";
+            }
           }
           else this.placeKeyboard(-value * w);
         }
