@@ -134,6 +134,20 @@ class Piano {
       background:linear-gradient(to bottom,#fff 0%,#e9e9e9 100%); 
       touch-action: manipulation; /* removes 300ms delay  browsers add for touch interactions (waiting to see if it's a double-tap) */
     }
+    /* while the pitch detector is on, each C is labeled with its octave, so you know where you are */
+    .Piano__key-white[data-name] {
+      position:relative;
+    }
+    .Panel:has(.Piano__button-active[data-tag="pitch"]) .Piano__key-white[data-name]::after {
+      content:attr(data-name);
+      position:absolute;
+      bottom:.6em;
+      width:100%;
+      text-align:center;
+      font-size:.9em;
+      color:#999;
+      pointer-events:none;
+    }
     .Piano__key-black {
       flex-shrink:0;
       height:8em;
@@ -156,9 +170,10 @@ class Piano {
     .a,.b,.d,.e,.g {
       margin:0 0 0 -1.16em
     }
-    /* piano buttons (pedaldown/up, resize, pitch, options, repeat) are surrounded by a larger "holder" button that makes their
+    /* piano buttons (options, pedaldown/up, pitch, repeat) are surrounded by a larger "holder" button that makes their
        touch area bigger: this helps on  small screens where they are otherwise hard to touch. They sit close
-       to the title (out to 10.6em each side), leaving the header's ends free to grab and drag the panel */
+       to the title (out to 7.4em each side), leaving the header's ends free to grab and drag the panel. The
+       inner pair sit far enough out that the gaps between buttons and title are about equal (for "Piano") */
     .Piano__button-holder { 
       position: absolute;
       font-family: Bravura;
@@ -180,14 +195,19 @@ class Piano {
     .Piano__button-active {
       background: #3336;
    }
+    /* a face's list of options takes what height is left, and scrolls if that's too little */
     .Piano__options-face {
       font-size:.75em;
+      height:100%;
+      box-sizing:border-box;
+      display:flex;
+      flex-direction:column;
     }
     .Piano__options {
       position:absolute;
       width:27em;
-      height:15.5em;
-      top:3.125em;
+      height:10.25em; /* (the Size face's height: the lists in the others scroll) */
+      top:6em; /* (centered on the keys: they show above and below it, to watch them move) */
       z-index:150;
       background: var(--panel-bg);
       border-radius: var(--borderRadius);
@@ -207,6 +227,24 @@ class Piano {
       text-align:left;
       background: var(--color-surface-selected);
       border-radius:var(--borderRadius);
+      position:relative;
+      min-height:0;
+      overflow-y:auto;
+      scrollbar-width:none;
+      touch-action:none; /* (a drag scrolls it: see buildOptions) */
+    }
+    .Piano__options__options::-webkit-scrollbar {
+      display:none;
+    }
+    .Piano__options .TabView__faces { /* (so a face fills what's below the tabs, not the whole panel) */
+      position:relative;
+      top:0;
+    }
+    .Piano__options .Tab__tag { /* (four tabs share the width) */
+      width:auto;
+      flex:1;
+      padding:0 .3em;
+      margin:.4em .2em;
     }
     .Piano__options__option {
        /* marker only */
@@ -267,10 +305,10 @@ class Piano {
 
     // pedal button...swaps Pedal and PedalUp icons
     let pedalDownButton = helm(
-      `<div class="Piano__button-holder" style="right: calc(50% + 7.4em)">
+      `<div class="Piano__button-holder" style="right: calc(50% + 1.5em)">
         ${iconSvg("Pedal", { tag: "pedal", class: "Piano__button" })}</div>`);
     let pedalUpButton = helm(
-      `<div class="Piano__button-holder" style="right: calc(50% + 7.4em)">
+      `<div class="Piano__button-holder" style="right: calc(50% + 1.5em)">
         ${iconSvg("Pedal Up", {tag: "pedalup", class: "Piano__button" })}</div>`);
 
     this.panel.header.append(pedalDownButton);
@@ -304,96 +342,9 @@ class Piano {
       })
     );
 
-    // stretcher button
-    let stretcherButton = helm(
-      `<div class="Piano__button-holder" style="right: calc(50% + 4.2em)">
-        ${iconSvg("Stretcher", { tag: "tune", class: "Piano__button" })}</div>`);
-
-    this.panel.header.append(stretcherButton);
-
-    this.panel.listeners.push(
-      listen(stretcherButton, "pointerdown", (e) => {
-        e.stopPropagation();
-        e.taken = true ;
-        let W = this.panel.panel.clientWidth;
-        let K = this.keyboard.offsetWidth;
-        let emSize = parseFloat(getComputedStyle(this.panel.elm).fontSize);
-        let minDrag = -5 * emSize;
-        let maxDrag = 16 * emSize;
-        // From 10 white keys to the panel's usual 95% of the window (or its width
-        // now, if zooming has made it wider): 8va (the range control) scrolls the keys
-        let maxWidth = Math.min(K, Math.max(.95 * innerWidth, W));
-        let minWidth = Math.min(this.c4Elm.offsetWidth * 10, maxWidth);
-
-        e.startWidth = W;
-        e.target.setPointerCapture(e.pointerId);
-        stretcherButton.firstElementChild.classList.add("Piano__button-active");
-        this.panel.header.classList.add("Panel__header-selected");
-
-        let mv = listen(e.target, "pointermove", (emv) => {
-          let delta = emv.clientX - e.clientX;
-          // Linear mapping: delta of minDrag -> minWidth, maxDrag -> maxWidth
-          // Width factor: (maxWidth - minWidth) / (maxDrag - minDrag)
-          let factor = (maxWidth - minWidth) / (maxDrag - minDrag);
-          let newWidth = clamp(e.startWidth + delta * factor, minWidth, maxWidth);
-          
-          this.panel.panel.style.width = pxToEm(newWidth, this.panel.elm); // (em, so zooming scales it)
-          this.placeKeyboard();
-        });
-
-        listen(e.target, "pointerup",
-          () => {
-            unlisten(mv);
-            stretcherButton.firstElementChild.classList.remove("Piano__button-active");
-            this.panel.header.classList.remove("Panel__header-selected");
-          },
-          { once: true }
-        );
-      })
-    );
-
-    // range: control to allow adjusting visible keyboard range
-    let rangeButton = helm(
-      `<div class="Piano__button-holder" style="right: calc(50% + 1em)">
-        ${iconSvg("Range", { tag: "tune", class: "Piano__button" })}</div>`);
-
-    this.panel.header.append(rangeButton);
-
-    this.panel.listeners.push(
-      listen(rangeButton, "pointerdown", (e) => {
-        e.stopPropagation();
-        e.taken = true ;
-        let W = this.panel.panel.clientWidth;
-        let K = this.keyboard.offsetWidth;
-        if (K <= W) return;
-
-        e.startLeft = parseFloat(getComputedStyle(this.keyboard).left) || 0;
-        e.target.setPointerCapture(e.pointerId);
-        rangeButton.firstElementChild.classList.add("Piano__button-active");
-        this.panel.header.classList.add("Panel__header-selected");
-
-        let mv = listen(e.target, "pointermove", (emv) => {
-          let delta = emv.clientX - e.clientX;
-          // Moving 1/4 of keyboard width to the right moves keys all the way to the right
-          let shiftDelta = delta * 4 * (K - W) / K;
-          this.placeKeyboard(e.startLeft + shiftDelta);
-        });
-
-        listen(e.target, "pointerup",
-          () => {
-            unlisten(mv);
-            rangeButton.firstElementChild.classList.remove("Piano__button-active");
-            this.panel.header.classList.remove("Panel__header-selected");
-          },
-          { once: true }
-        );
-      })
-    );
-
-
     // options button
     this.optionsButton = helm(
-      `<div class="Piano__button-holder" style="left: calc(50% + 1em)">
+      `<div class="Piano__button-holder" style="right: calc(50% + 4.2em)">
         ${iconSvg("Options", { tag: "options", class: "Piano__button" })}` );
     this.panel.header.append(this.optionsButton);
 
@@ -407,8 +358,9 @@ class Piano {
         } else {
           this.optionsButton.firstElementChild.classList.add("Piano__button-active");
           this.optionsView.elm.style.top = "" ;
-          this.optionsView.elm.style.left = "calc(50% - 13.5em);";
+          this.optionsView.elm.style.left = "calc(50% - 13.5em)";
           this.optionsView.elm.style.visibility = "visible";
+          this.syncOptions();
         }
       })
     );
@@ -434,7 +386,7 @@ class Piano {
 
     // pitch tracker button
     this.pitchButton = helm(
-      `<div class="Piano__button-holder" style="left: calc(50% + 7.4em)">
+      `<div class="Piano__button-holder" style="left: calc(50% + 1.5em)">
         ${iconSvg("TuningFork", { tag: "pitch", class: "Piano__button" })}` );
     this.panel.header.append(this.pitchButton);
 
@@ -442,20 +394,27 @@ class Piano {
       listen(this.pitchButton, "pointerdown", (e) => {
         e.stopPropagation();
         e.taken = true ;
+        // (a greyed-out button still says why, when tapped)
+        if (this.micMissing) return dialog("No microphone was found.", { OK: { svg: "OK" } });
+        if (this.yinFailed) return dialog("The pitch detector couldn't start.", { OK: { svg: "OK" } });
         this.marker.remove();
         if (this.pitchButton.firstElementChild.classList.contains("Piano__button-active")) {
           this.pitchButton.firstElementChild.classList.remove("Piano__button-active");
           this.yin.stop();
         } else {
           this.pitchButton.firstElementChild.classList.add("Piano__button-active");
-          // A mike can be present but unusable (permission denied, claimed by
-          // another app): revert the button and tell the user.
-          this.yin.start(this.cell.stash.a4).catch((err) => {
+          // A mike can be listed but unusable (permission denied, held by another app, muted):
+          // revert the button and tell the user. The one used is tried first next time.
+          this.yin.start(this.cell.stash.mic).then((id) => {
+            if (id) this.cell.stash.mic = id;
+          }).catch((err) => {
             if(this.closed) return;
             this.pitchButton.firstElementChild.classList.remove("Piano__button-active");
-            toast(err.name == "NotAllowedError"
-              ? "Microphone access denied"
-              : "No usable microphone found");
+            dialog(
+              err.name == "NotAllowedError" ? "Microphone access was denied.<br><br>Allow this site to use the microphone in the browser's settings." :
+              err.name == "MutedError" ? "Every microphone is muted.<br><br>Unmute one in your system's sound settings." :
+              "No usable microphone was found.<br><br>Check that one is connected and not in use by another app.",
+              { OK: { svg: "OK" } });
           });
         }
       })
@@ -471,8 +430,8 @@ class Piano {
         hasMic = devices.some((d) => d.kind == "audioinput");
       } catch (e) {} // no mediaDevices API: stay disabled
       if(this.closed) return;
-      this.pitchButton.style.opacity = hasMic ? "" : "0.35";
-      this.pitchButton.style.pointerEvents = hasMic ? "" : "none";
+      this.micMissing = !hasMic;
+      this.pitchButton.style.opacity = hasMic && !this.yinFailed ? "" : "0.35";
       if (!hasMic && this.pitchButton.firstElementChild.classList.contains("Piano__button-active")) {
         this.pitchButton.firstElementChild.classList.remove("Piano__button-active");
         this.marker.remove();
@@ -507,6 +466,10 @@ class Piano {
           this.marker.style.opacity = 0.5 + (arg.confidence || 0.3) * 0.5;
           this.marker.children[1].innerText = arg.cents;
           key.append(self.marker);
+          // Bring the key into view, once the same one is heard twice running (so a
+          // stray reading doesn't throw the keys about)
+          if (arg.midi == this.heardMidi) this.showKey(key);
+          this.heardMidi = arg.midi;
         } else {
           this.marker.style.color = "#808080";
           this.marker.style.opacity = "0.3";
@@ -516,8 +479,8 @@ class Piano {
         await this.yin.init(actx);
       } catch(error) {
         this.yin.release();
+        this.yinFailed = true;
         if(!this.closed) {
-          this.pitchButton.style.pointerEvents = "none";
           this.pitchButton.style.opacity = "0.35";
           console.error("Pitch detector initialization failed:", error);
         }
@@ -723,7 +686,8 @@ class Piano {
       let clazz = noteName.includes("s") ? "Piano__key-black" : "Piano__key-white" + " " + noteName;
       let realMidiNumber = midiTable[midi0][0] + octave;
       let midiOffset = realMidiNumber + "/" + midiTable[midi0][1];
-      keyHtml += `<div data-sample="${midiOffset}" data-midi=${"" + midi} class="${clazz}"></div>\n`;
+      let name = noteName == "c" ? ` data-name="C${octave / 12 - 1}"` : ""; // (shown while tuning: see css)
+      keyHtml += `<div data-sample="${midiOffset}" data-midi=${"" + midi}${name} class="${clazz}"></div>\n`;
     }
     // last high f taken from lower d2 + 200 cents
     keyHtml += `<div data-sample="87/200" class="Piano__key-white f"></div>`;
@@ -732,7 +696,7 @@ class Piano {
 
   buildOptions() {
     // build the options tabview
-    let optionsView = new TabView(this.panel, "Pitch", "Temperament", "Timbre");
+    let optionsView = new TabView(this.panel, "Size", "Pitch", "Temperament", "Timbre");
     let elm = optionsView.elm;
     elm.classList.add("Piano__options");
     this.options.replace(elm);
@@ -787,7 +751,7 @@ class Piano {
               "en.wikipedia.org/wiki/Scientific_pitch","Scientific Pitch")}
             ${option("data-hz=\"432\"", noTranslate("A = 432 Hz"), "",
               "www.youtube.com/watch?v=LjR0WpWwLrE","Verdi's A")}
-            ${option("data-hz=\"440\"", noTranslate("A = 440 Hz"), "International Standard ",
+            ${option("data-hz=\"440\"", noTranslate("A = 440 Hz"), "Standard, ",
                "www.iso.org/standard/3601.html", "ISO 16:1975")}
             ${option("data-hz=\"442\"", noTranslate("A = 442 Hz"), noTranslate("New York Philharmonic"))}
             ${option("data-hz=\"443\"", noTranslate("A = 443 Hz"), noTranslate("Berliner Philharmoniker"))}
@@ -829,7 +793,7 @@ class Piano {
 
       tags.a4.replace(a4Group.elm);
 
-      this.panel.listeners.push(listen(tags.options, "pointerup", (e) => {
+      this.panel.listeners.push(listen(tags.options, "click", (e) => {
         let active = e.target.closest(".Piano__options__option");
         if (!active) return;
         optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active"));
@@ -850,7 +814,7 @@ class Piano {
     // Temperament tab
     {
       let tags = dataIndex("tag", helm(
-        `<div data-tag="temperament" style="padding-top:2.5em" class="Piano__options-face">
+        `<div data-tag="temperament" style="padding-top:.8em" class="Piano__options-face">
            <div data-tag="options" class="Piano__options__options">
               ${option("data-temper=\"Equal\"", noTranslate("Equal"),  noTranslate("<sup>12</sup>\u221A2, "), // a formula: translator <font> wrappers inherit the <sup>'s vertical-align and shift the line
                 "en.wikipedia.org/wiki/12_equal_temperament", "12-ET")}
@@ -870,7 +834,7 @@ class Piano {
       optionsView.tabs.Temperament.face.append(tags.temperament);
       let optionElms = Object.values(dataIndex("temper", tags.options));
 
-      this.panel.listeners.push(listen(tags.options, "pointerup", (e) => {
+      this.panel.listeners.push(listen(tags.options, "click", (e) => {
         let active = e.target.closest(".Piano__options__option");
         if (!active) return;
         optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active"));
@@ -912,18 +876,17 @@ class Piano {
       );
 
       voicesGroup.elm = tags.voices.replace(voicesGroup.elm);
-      voicesGroup.elm.style.paddingBottom = "1em";
+      voicesGroup.elm.style.paddingBottom = ".5em";
 
       optionsView.tabs.Timbre.face.append(tags.timbre);
       let optionElms = Object.values(dataIndex("timbre", tags.options));
 
-      this.panel.listeners.push(listen(tags.options, "pointerup", (e) => {
-        optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active"));
+      this.panel.listeners.push(listen(tags.options, "click", (e) => {
         let active = e.target.closest(".Piano__options__option");
-        if(active) {
-          active.classList.add("Piano__options__option-active");
-          this.cell.stash.timbre = active.dataset.timbre;
-        }
+        if (!active) return;
+        optionElms.forEach((elm) => elm.classList.remove("Piano__options__option-active"));
+        active.classList.add("Piano__options__option-active");
+        this.cell.stash.timbre = active.dataset.timbre;
       }));
 
       // establish current timbre
@@ -934,7 +897,93 @@ class Piano {
       };
     }
 
-    optionsView.tabs.Pitch.select();
+    // Size tab: the Piano's width, and which keys it shows when they don't all fit
+    // (both counted in white keys, from the lowest: the keys overlap, so a key's
+    // share of the keyboard is its width / the number of white keys)
+    {
+      let tags = dataIndex("tag", helm(
+        `<div data-tag="size" style="padding-top:1em" class="Piano__options-face">
+           <div data-tag="sliders"></div>
+         </div>`));
+      optionsView.tabs.Size.face.append(tags.size);
+
+      let whites = [...this.keyboard.querySelectorAll(".Piano__key-white")];
+      let keyName = (i) => { // (the top key, with no data-midi, is a semitone above the one before it)
+        let midi = Number(whites[i].dataset.midi ?? Number(whites[i - 1].dataset.midi) + 1);
+        return noTranslate("C D EF G A B"[midi % 12] + (Math.floor(midi / 12) - 1));
+      };
+      let size = { width: 0, range: 0 };
+      let sizeGroup = new SliderGroup(size, {
+          width: { min: 7, max: whites.length, step: .1,
+            msg: (tag, value) => `Width: ${Math.round(value)} keys`,
+          },
+          range: { min: 0, max: 0, step: .1,
+            msg: (tag, value) => {
+              let first = clamp(Math.round(value), 0, whites.length - 1);
+              let last = clamp(Math.round(value + size.width), first + 1, whites.length) - 1;
+              return `Keys: ${keyName(first)} \u2013 ${keyName(last)}`;
+            },
+          },
+        },
+        (e, tag, value) => {
+          let w = this.keyboard.offsetWidth / whites.length;
+          if (tag == "width") {
+            this.panel.panel.style.width = pxToEm(value * w, this.panel.elm); // (em, so zooming scales it)
+            this.placeKeyboard();
+          }
+          else this.placeKeyboard(-value * w);
+        }
+      );
+      tags.sliders.replace(sizeGroup.elm);
+
+      // Bring the sliders up to date with the Piano (see placeKeyboard): the width goes from
+      // an octave of white keys (about 27.2em: just wider than this panel) to all of them (past the window's edges, if the user wants); the
+      // range only moves when the keys are wider than the panel.
+      this.syncSize = () => {
+        let K = this.keyboard.offsetWidth, W = this.panel.panel.clientWidth, w = K / whites.length;
+        if (!w) return; // (not laid out yet)
+        Object.assign(sizeGroup.defs.range, { max: Math.max(0, (K - W) / w), disabled: K <= W });
+        size.width = W / w;
+        size.range = Math.max(0, -(parseFloat(getComputedStyle(this.keyboard).left) || 0) / w);
+        sizeGroup.refresh();
+      };
+    }
+
+    // A list of options that doesn't fit its face scrolls when dragged (no scrollbar is
+    // shown). The pointer is captured right away (see TabView), which sends the click to
+    // the list: a tap is passed on to the option, or link, under it.
+    let lists = [...elm.querySelectorAll(".Piano__options__options")];
+    for (let list of lists)
+      this.panel.listeners.push(listen(list, "pointerdown", (e) => {
+        e.taken = true;
+        e.preventDefault(); // no text selection, nor dragging a link away
+        list.setPointerCapture(e.pointerId);
+        let startY = e.clientY;
+        let startTop = list.scrollTop;
+        let dragged = false;
+        let mv = listen(list, "pointermove", (emv) => {
+          let dy = emv.clientY - startY;
+          if (Math.abs(dy) > 4) dragged = true;
+          if (dragged) list.scrollTop = startTop - dy;
+        });
+        listen(list, "pointerup", (eup) => {
+          unlisten(mv);
+          let target = document.elementFromPoint(eup.clientX, eup.clientY);
+          if (!dragged && target != list && list.contains(target)) (target.closest("a") ?? target).click();
+        }, { once: true });
+      }));
+
+    // Each face's current option is scrolled into view when it shows
+    this.syncOptions = () => {
+      for (let list of lists) {
+        let active = list.querySelector(".Piano__options__option-active");
+        if (active) list.scrollTop = active.offsetTop - (list.clientHeight - active.offsetHeight) / 2;
+      }
+      this.syncSize();
+    };
+    for (let tab of Object.values(optionsView.tabs)) tab.onSelect = () => this.syncOptions();
+
+    optionsView.tabs.Size.select();
     this.optionsView = optionsView;
   }
 
@@ -945,6 +994,14 @@ class Piano {
     let W = this.panel.panel.clientWidth, K = this.keyboard.offsetWidth;
     left = K > W ? clamp(left, W - K, 0) : (W - K) / 2;
     this.keyboard.style.left = pxToEm(left, this.panel.elm);
+    this.syncSize?.();
+  }
+
+  showKey(key) {
+    // Center @key in the panel, if it's out of view
+    let W = this.panel.panel.clientWidth, left = parseFloat(getComputedStyle(this.keyboard).left) || 0;
+    let x = left + key.offsetLeft;
+    if (x < 0 || x + key.offsetWidth > W) this.placeKeyboard(W / 2 - key.offsetLeft - key.offsetWidth / 2);
   }
 
   show() {

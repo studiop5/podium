@@ -110,7 +110,9 @@ class Yin {
     this.silentGain.connect(this.audioContext.destination);
   }
 
-  async start() {
+  async start(deviceId = null) {
+    // Listen to the microphone @deviceId, if it isn't muted, else the first that isn't (see
+    // liveStream). Resolves to the id of the one used; rejects if there's none.
     if(this.released) return;
     this.stop();
     let startId = this.startId;
@@ -122,15 +124,50 @@ class Yin {
       this.keepaliveStream.getTracks().forEach(t => t.stop());
       this.keepaliveStream = null;
     }
-    let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    if(this.released || startId !== this.startId) {
-      stream.getTracks().forEach(track => track.stop());
-      return;
-    }
+    let stream = await this.liveStream(deviceId, () => this.released || startId !== this.startId);
+    if(!stream) return; // (stopped or released meanwhile)
     this.currentStream = stream;
     this.currentSource = this.audioContext.createMediaStreamSource(this.currentStream);
     this.currentSource.connect(this.highPassFilter);
     this.highPassFilter.connect(this.workletNode);
+    return stream.getAudioTracks()[0]?.getSettings().deviceId;
+  }
+
+  async liveStream(deviceId, cancelled) {
+    // A stream from the first microphone that isn't muted: @deviceId's, the default, then the
+    // others. A muted input (the browser marks its track so) is listed like any other, but sends
+    // nothing; a mic can take a second or more to start, so silence alone proves nothing. The
+    // browser's voice processing (for calls) is off: it can distort a steady tone.
+    let open = (id) => navigator.mediaDevices.getUserMedia({ audio: {
+      deviceId: id ? { exact: id } : undefined,
+      echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    let tried = new Set(), opened = false;
+    let ids = [deviceId, null];
+    for (let i = 0; i < ids.length; i++) {
+      let id = ids[i];
+      if (tried.has(id)) continue;
+      tried.add(id);
+      let stream;
+      try {
+        stream = await open(id);
+      } catch(err) {
+        if(err.name == "NotAllowedError") throw err;
+        continue; // (gone, or held by another app)
+      }
+      opened = true;
+      let track = stream.getAudioTracks()[0];
+      tried.add(track?.getSettings().deviceId);
+      if(track && !track.muted && !cancelled()) return stream;
+      stream.getTracks().forEach(track => track.stop());
+      if(cancelled()) return null;
+      if(id === null) // (with permission given, the others' ids are known)
+        for (let device of await navigator.mediaDevices.enumerateDevices())
+          if(device.kind == "audioinput" && !["default", "communications"].includes(device.deviceId))
+            ids.push(device.deviceId);
+    }
+    throw opened
+      ? Object.assign(new Error("Every microphone is muted"), { name: "MutedError" })
+      : Object.assign(new Error("No microphone found"), { name: "NotFoundError" });
   }
 
   stop() {

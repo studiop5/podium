@@ -115,7 +115,14 @@ class Select {
       position:absolute;
     }
     .Select__option {
-      padding: .4em .6em;
+      position: relative;
+      padding: .4em .6em .4em 1.5em;
+    }
+    /* the current option is checked (a tinted background read as unselected on a light list) */
+    .Select__option-current::before {
+      content: "\\2713";
+      position: absolute;
+      left: .45em;
     }
 
     /* for older Safari and Firefox */
@@ -217,9 +224,7 @@ class Select {
           // textContent would then be the translated label rather than the option itself
           let target = e.target.closest(".Select__option") ;
           if(!target) return closeFrame() ;
-          if(this.target) this.target.style.background = "none" ;
-          this.target = target ;
-          this.target.style.background = "color-mix(in srgb, var(--select-option-text) 22%, transparent)" ; // readable in every theme
+          this.markCurrent(target) ;
           closeFrame();
           return selectOption(target.dataset.option) ;
         }
@@ -264,9 +269,7 @@ class Select {
           if(opt) {
             selectOption(opt, keyBuf) ;
             sashTop = frame.offsetHeight/2 - sash.offsetHeight * (lineNumber / options.length) ;
-            if(this.target) this.target.style.background = "none" ;
-            this.target = sash.children[lineNumber-1] ;
-            this.target.style.background = "color-mix(in srgb, var(--select-option-text) 22%, transparent)" ; // readable in every theme
+            this.markCurrent(sash.children[lineNumber-1]) ;
           }
           else if (e.key != "Backspace" && e.key != "Delete") keyBuf = keyBuf.slice(0,-1) ;
       }
@@ -289,9 +292,7 @@ class Select {
       if(opt) {
         selectOption(opt, keyBuf) ;
         sash.style.top = clamp(frame.offsetHeight/2 - sash.offsetHeight * (lineNumber / options.length), frame.offsetHeight - sash.offsetHeight, 0) + "px" ;
-        if(this.target) this.target.style.background = "none" ;
-        this.target = sash.children[lineNumber-1] ;
-        this.target.style.background = "color-mix(in srgb, var(--select-option-text) 22%, transparent)" ; // readable in every theme
+        this.markCurrent(sash.children[lineNumber-1]) ;
       }
     }
 
@@ -306,9 +307,14 @@ class Select {
     this.toggle.textContent = option;
     this.toggle.translate = this.translatable(option);
     if (this.optionStyle) Object.assign(this.toggle.style, this.optionStyle(option));
-    if (this.target) this.target.style.background = "none";
+    this.markCurrent(elm);
+  }
+
+  markCurrent(elm) {
+    // Check @elm as the current option
+    this.target?.classList.remove("Select__option-current");
     this.target = elm;
-    elm.style.background = "#aaa";
+    elm.classList.add("Select__option-current");
   }
 }
 

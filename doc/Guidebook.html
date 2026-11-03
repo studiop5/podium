@@ -2538,8 +2538,7 @@ function closeVideo(event, container) {
         <p class="video-status" role="status"></p>
     </figure>
 
-    <p>Drag left ⇄ right from the |=| (<i>breve</i>) button to narrow/widen the keyboard, up to nearly the width of the screen. To make the whole Piano bigger, keys and all, pinch-zoom it as you would any panel: zoomed far enough, it can be wider than the screen.</p>
-    <p>Drag left ⇄ right from the 8va (<i>ottava</i>) button to move the visible keys within the keyboard.</p>
+    <p>The Piano opens nearly as wide as the screen. To change its width, or which keys it shows, use Settings: Size (see below). To make the whole Piano bigger, keys and all, pinch-zoom it as you would any panel: zoomed far enough, it can be wider than the screen.</p>
 
     <div class="note">Piano samples make up a significant portion of Podium's download size. For this reason, the maximum keyboard size is limited to 5 octaves, a common size for an 18th century harpsichord or pianoforte. Samples have been truncated and down-sampled, reducing size while maintaining (hopefully) acceptable audio quality.</div>
 
@@ -2551,11 +2550,11 @@ function closeVideo(event, container) {
 
     <div class="note">For traditional tuning using the "beats" method, use Autorepeat Mode with Tuning Fork timbre. For electronic tuning assistance, use the Pitch Detector described below.</div>
 
-    <p><strong>Pitch Detector:</strong> Identified by a tuning fork icon. Tap the Pitch Detector button to toggle pitch detection on/off. When on, a <a href="https://asa.scitation.org/doi/10.1121/1.1458024">YIN-based pitch detector</a> attempts to estimate the closest piano note to what it hears in the microphone. It overlays a whole note (semibreve) on the corresponding key, plus shows the number of cents deviation from that key's expected pitch. The opacity of the whole note reflects the algorithm's confidence; the symbol becomes more transparent as confidence decreases. The expected pitch is affected by the Settings Pitch setting (see below), but not by the Temperament setting, i.e., it's the deviation from equal tempered tuning regardless of Temperament setting.</p>
+    <p><strong>Pitch Detector:</strong> Identified by a tuning fork icon. Tap the Pitch Detector button to toggle pitch detection on/off. When on, a <a href="https://asa.scitation.org/doi/10.1121/1.1458024">YIN-based pitch detector</a> attempts to estimate the closest piano note to what it hears in the microphone. It overlays a whole note (semibreve) on the corresponding key, plus shows the number of cents deviation from that key's expected pitch. The opacity of the whole note reflects the algorithm's confidence; the symbol becomes more transparent as confidence decreases. If the key it marks is out of view, the keys scroll to show it. While the detector is on, each C key is labeled with its octave (C2 to C6), so you can tell which octave you're in. The expected pitch is affected by the Settings Pitch setting (see below), but not by the Temperament setting, i.e., it's the deviation from equal tempered tuning regardless of Temperament setting.</p>
 
     <div class="note">The pitch detector is monophonic: it works best with a single note at a time. When multiple pitches or unpitched sounds (such as speech or noise) are present in the microphone input, the detector will produce unreliable results. If you play the Piano while the pitch detector is active, you may experience distorted sounds and inaccurate detection.</div>
 
-    <div class="note">The Pitch Detector button is disabled (grayed out) when no microphone is present, and enables automatically the moment one is connected. If a microphone exists but can't be used — for example, when the browser has been denied microphone access — tapping the button shows a brief message explaining why.</div>
+    <div class="note">The Pitch Detector button is grayed out when no microphone is present (tapping it says so), and enables automatically the moment one is connected. When several microphones are present, it listens to the first one that isn't muted in your system's sound settings, starting with the one it used last. If a microphone exists but can't be used — it's muted, it's in use by another app, or the browser has been denied microphone access — the detector turns itself off and a message explains why.</div>
 
     <div class="note"><strong>iPhone/iPad:</strong> Due to audio system constraints on these devices, the microphone indicator will remain active after the pitch detector is turned off. This is expected behavior — the microphone is kept open in the background to prevent interruption of piano and metronome audio. The microphone is fully released when the Piano panel is closed.</div>
 
@@ -2564,9 +2563,10 @@ function closeVideo(event, container) {
         <figcaption>Pitch detector showing detected note and cents deviation</figcaption>
     </figure>
 
-    <p><strong>Settings:</strong> Tap the Settings button to open/close the Settings Panel. Once open, you can close it by flinging. This internal panel is always enclosed by the keyboard: drag horizontally to reposition. It has 3 tabs:</p>
+    <p><strong>Settings:</strong> Tap the Settings button to open/close the Settings Panel. Once open, you can close it by flinging. This internal panel is always enclosed by the keyboard: drag horizontally to reposition. A list too long for its tab scrolls when you drag it. It has 4 tabs:</p>
 
     <ul>
+        <li><strong>Size:</strong> The Width slider sets the Piano's width, counted in white keys, from one octave (7 keys) up to the whole keyboard, even wider than the screen. When not all the keys fit, the Keys slider chooses which ones show; its label names the lowest and highest visible keys. The keys show above and below the Settings Panel, so you can watch them move.</li>
         <li><strong>Pitch:</strong> Adjust the frequency of the entire keyboard by setting the frequency, in Hz, of A4. Several common options are provided as presets, with web links to explanations.</li>
         <li><strong>Temperament:</strong> Retune the piano to several historical tunings in addition to the default equal temperament.</li>
         <li><strong>Timbre:</strong> Specify the use of the included <a href="https://github.com/sfzinstruments/SalamanderGrandPiano">Salamander Grand Piano samples</a> or a synthesized sine wave (effectively a tuning fork) for tuning use. Also includes a slider to control the maximum number of notes (voices) that can be played at once (maximum 16).</li>
@@ -2574,7 +2574,7 @@ function closeVideo(event, container) {
 
     <figure>
         <img src="assets/morepianooptions.jpg" alt="Piano settings panel">
-        <figcaption>Piano settings showing Pitch, Temperament, and Timbre tabs</figcaption>
+        <figcaption>Piano settings showing Size, Pitch, Temperament, and Timbre tabs</figcaption>
     </figure>
 
     <div class="note">The tuning and pitch detection tools are provided for reference purposes and may not be suitable for professional instrument tuning.</div>
