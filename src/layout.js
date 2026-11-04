@@ -2923,6 +2923,10 @@ class Pager {
     listen(pager, "pointerup", (eup) => {
         setCursor(eup[CLIENTY], Math.abs(eup[CLIENTX] - cursorBox[X] - cursorBox[WIDTH]/2));
         unlisten(mv);
+        // A tap (no drag, no long press) on pages thinner than a finger (~40px) goes to the nearest bookmark within a finger
+        let band = pagerBox[HEIGHT] / pgCount, dist = (i) => Math.abs((i + .5) * band - center);
+        let bk = _score_.pgs.map((pg, i) => pg.bookmark ? i : -1).filter((i) => i >= 0).sort((a, b) => dist(a) - dist(b))[0];
+        if (!drag.moved && performance.now() < this.bMarkTimer.runTime && band < 40 && bk != null && dist(bk) < 40) _score_.numbers.pn = clamp(this.toPn(bk + 1), 1, pgCount);
 
 
         this.cursor.classList.remove("Pager__cursor-active");
