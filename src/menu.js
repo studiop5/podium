@@ -448,7 +448,7 @@ class Menu {
           svgPath: iconPaths["New Score"],
         },
         close: { name: "Close", gb: "score-close", svgPath: iconPaths["Close"] },
-        print: { name: "Print", gb: "score-print", svgPath: iconPaths["Print"] },
+        print: { name: "Print", gb: "score-print", svgPath: iconPaths["Print"], stash: { ink: true }, storage: "local" },
         details: { name: "Details", gb: "score-details", svgPath: iconPaths["Details"], stash: { quality: 3, pgFit: "Center", bkColorIdx: 0 }, storage: "score" },
       },
       svgPath: iconPaths["Score"],
@@ -669,7 +669,7 @@ class Menu {
         undo: { name: "Undo", gb: "page-undo", svgPath: iconPaths["Undo"] },
         export: { name: "Export", gb: "page-export-import", svgPath: iconPaths["Export Page"] },
         import: { name: "Import", gb: "page-export-import", svgPath: iconPaths["Import Page"] },
-        merge: { name: "Merge", gb: "page-merge", svgPath: iconPaths["Merge"] },
+        merge: { name: "Merge", gb: "page-merge", svgPath: iconPaths["Merge"], stash: { mark: true, ink: true }, storage: "local" },
         flatten: { name: "Flatten", gb: "page-flatten", svgPath: iconPaths["Flatten"] },
         magnify: { name: "Magnify", gb: "page-magnify", svgPath: iconPaths["Magnify"], stash: { zoom: 2 } },
       },
@@ -1296,11 +1296,8 @@ class Menu {
         ring.activeCell.locked = false;
         ring.activeCell.elm.classList.remove("Menu__cell-locked");
       }
-      // Discard loaded merge data when merge cell deactivates; reset autoOff delta
-      if (ring.activeCell.key == "merge") {
-        ring.activeCell.pdfData = null;
-        this.autoOff.delta = 4000;
-      }
+      // Reset the merge cell's autoOff delta (its file stays loaded, so a tap on the cell re-arms it)
+      if (ring.activeCell.key == "merge") this.autoOff.delta = 4000;
     }
     if (cell) {
       cell.elm.classList.add("Menu__cell-active");
@@ -1597,7 +1594,7 @@ class Menu {
     let addObj = (obj) => {
       this.newlyCreated = obj;
       canvas.add(obj);
-      obj.clampToPage(); // inserted wholly on the page: same rule as dragging, see canvas.js
+      obj.clampToPage(); // inserted wholly on the page, see canvas.js
       obj.hasControls = false; 
       // makes obj draggable until subsequent pgUpEvent:
       canvas._target = obj; 
@@ -1769,7 +1766,7 @@ class Menu {
                 canvas.selection = false;
                 let onMove = (opt) => {
                   clone.set({ left: opt.pointer.x, top: opt.pointer.y });
-                  clone.clampToPage(); // same rule as dragging, see canvas.js
+                  clone.clampToPage(); // placed wholly on the page, see canvas.js
                   canvas.requestRenderAll();
                 };
                 let onUp = () => {
@@ -1794,7 +1791,8 @@ class Menu {
     }
   }
 
-  cutCopyObject(obj, canvas, isCut) {
+  cutCopyObject(obj, canvas, isCut, at = null) {
+    // (@at: a pointer event to fly from, e.g. where an object dragged off its page was let go)
     if (this.cutting) return;
     this.cutting = true;
     // (a copy must keep Podium's custom properties, or it'd no longer be, say, a rastrum)
@@ -1805,8 +1803,8 @@ class Menu {
     let emWidth = obj.getScaledWidth() * zoom / _pxPerEm_;
     let objBox = obj.getBoundingRect();
     let canvasBox = getBox(canvas.lowerCanvasEl) ;
-    let left = canvasBox.left + objBox.left * zoom;
-    let top  = canvasBox.top  + objBox.top * zoom;
+    let left = at ? at.clientX - objBox.width * zoom / 2 : canvasBox.left + objBox.left * zoom;
+    let top  = at ? at.clientY - objBox.height * zoom / 2 : canvasBox.top  + objBox.top * zoom;
     let elm = helm(`<img src=${obj.toDataURL()} style=
        "border:1px solid red;width:${emWidth}em;height:auto;z-index:1000;left:${left}px;top:${top}px;position:absolute;"></img>`);
     _body_.append(elm);
@@ -1870,24 +1868,29 @@ class Menu {
     switch (type) {
       case "image/jpeg":
       case "image/png": {
-        fabric.Image.fromURL(
-          dataUrl,
-          (img) => {
-            // If necessary, scale image so that it will fit the Score
-            let { maxWidth, maxHeight } = _score_;
-            if (img.width > img.height && img.width > maxWidth) img.scaleToWidth(maxWidth);
-            else if (img.height > maxHeight) img.scaleToHeight(maxHeight);
-            img.set({ minScaleLimit: 1 / Math.min(img.width, img.height) });
-            this.pasteObj = img;
-            this.enableCells("ink/paste", true);
-          },
-          { crossOrigin: "anonymous" }
-        );
+        this.imageObj(dataUrl).then((img) => {
+          this.pasteObj = img;
+          this.enableCells("ink/paste", true);
+        });
         break;
       }
       default:
         throw new Error(`menu.setPasteObj: unsupported media type: ${type}`);
     }
+  }
+
+  imageObj(dataUrl, maxWidth = _score_.maxWidth, maxHeight = _score_.maxHeight) {
+    // Return a promise of a fabric.Image of @dataUrl, scaled down, if necessary, to fit
+    // within @maxWidth x @maxHeight (by default, the Score's largest page)
+    return new Promise((resolve) => fabric.Image.fromURL(
+      dataUrl,
+      (img) => {
+        img.scale(Math.min(1, maxWidth / img.width, maxHeight / img.height));
+        img.set({ minScaleLimit: 1 / Math.min(img.width, img.height) });
+        resolve(img);
+      },
+      { crossOrigin: "anonymous" }
+    ));
   }
 
 }

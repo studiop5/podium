@@ -557,6 +557,20 @@ css( // common css declarations.
   }
   /* showModal() focuses a dialog's first link, and the browser rings it as if tabbed to */
   .dialog a { outline: none; }
+  /* a dialog's settings (e.g. Merge's on/off buttons) are set off by a line from its actions,
+     and a dialog's sliders (e.g. Print's First and Last) side by side: wide enough for both */
+  .dialog__sliders {
+    display: flex;
+    gap: var(--spacing-md);
+    width: min(22em, 80vw);
+    margin: auto;
+    white-space: nowrap;
+  }
+  .dialog__sliders > * { flex: 1; }
+  .dialog__settings {
+    padding-bottom: 1em;
+    border-bottom: .1em solid #999;
+  }
   /* text input fields in dialogs: */
   .dialog__textInput {
     height: 1.2em;
@@ -2812,10 +2826,10 @@ function pnToDiv(pn, div, autoSize = true) {
   return div;
 }
 
-function pnToHtml(pn) {
+function pnToHtml(pn, numbers) {
   // pnToString(pn) as html for embedding in translatable text (e.g. "Page: iv"), with
   // the page number itself exempt from auto-translation: see pnToDiv().
-  return noTranslate(pnToString(pn));
+  return noTranslate(pnToString(pn, false, numbers));
 }
 
 function noTranslate(html) {
@@ -2823,7 +2837,7 @@ function noTranslate(html) {
   return `<span translate="no">${html}</span>`;
 }
 
-function pnToString(pn, useSMuFL = false) {
+function pnToString(pn, useSMuFL = false, numbers = _score_?.numbers) {
   //  This function implements a convention for converting a page number:
   //  @pn, into a string for displaying to the user, potentially
   //   converting the pn to a Roman Numberal.
@@ -2838,8 +2852,11 @@ function pnToString(pn, useSMuFL = false) {
   // glyphs unavailable in other fonts.  Roman numeral algo adapted,
   // with thanks, from:
   // August@https:/\/stackoverflow.com/questions/9083037/convert-a-number-into-a-roman-numeral-in-javascript
-  let prelim = _score_?.numbers?.prelim ?? 0;
-  let first = _score_?.numbers.first ?? 1;
+  //
+  // @numbers the Numbers settings ({prelim, first}) to number by: the score's, unless
+  // another's (e.g. a pdf to merge: see layout.js)
+  let prelim = numbers?.prelim ?? 0;
+  let first = numbers?.first ?? 1;
 
   pn = parseInt(pn);
   prelim = parseInt(prelim);
@@ -2911,7 +2928,11 @@ function ptrMsg(e, msgFunc, styles) {
   // ex. a...b c d e shows a a... in the slider, but as a b c d e
   // in the ptrMsg. 
   let div = helm(`<div class="ptrMsg floatingMsg" style="${styles}"></div>`);
-  _body_.append(div);
+  // (in a modal dialog, e.g. Merge's page sliders, it goes in the dialog, else the dialog hides it:
+  // fixed, s.t. its position is still the viewport's, and the dialog doesn't clip it)
+  let dlg = e.target.closest?.("dialog[open]");
+  if (dlg) div.style.position = "fixed";
+  (dlg || _body_).append(div);
 
   // Track maximum width to prevent shrinking when digit count changes
   let maxWidth = 0;

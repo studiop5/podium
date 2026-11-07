@@ -2824,7 +2824,7 @@ class Pzr extends Surface {
 
     }}}} /* close nested default / switch blocks */
     obj.set(p);
-    if (moved) obj.clampToPage(); // same rule as dragging, see canvas.js
+    if (moved) obj.clampToPage(20); // partly off the page, but never lost from it: see canvas.js
     }}
     obj.canvas?.requestRenderAll();
    _menu_.magnifier?.panel?.updateMagnifier();
@@ -3516,155 +3516,205 @@ class PianoPanel extends Panel {
   }
 }
 
-class PrintPanel extends Panel {
+let printFrame = null; // (see printInFrame)
+let printInFrame = (url) => new Promise((resolve) => {
+  // Print the pdf at @url from a hidden frame (only one: the last printed is kept until the next, since
+  // there's no telling when the browser's done printing it). @return a promise of true iff it printed.
+  if (printFrame) URL.revokeObjectURL(printFrame.src);
+  printFrame?.remove();
+  // (not display:none, which would keep the browser's pdf viewer from loading)
+  printFrame = helm(`<iframe style="position:fixed;width:0;height:0;border:0;visibility:hidden"></iframe>`);
+  let frame = printFrame, done = false;
+  let fail = () => {
+    if (done) return;
+    done = true;
+    frame.remove();
+    if (printFrame === frame) printFrame = null;
+    resolve(false);
+  };
+  listen(frame, "load", () => delayMs(500, () => {
+    if (done) return;
+    done = true; // (before print(), which may block until the browser's print dialog closes)
+    try { frame.contentWindow.print(); resolve(true); }
+    catch { done = false; fail(); }
+  }), { once: true });
+  delayMs(10000, fail); // (a browser that can't show a pdf in a frame may never load it)
+  frame.src = url;
+  _body_.append(frame);
+});
 
-  content = helm(`
-    <div data-tag="body" class="Panel__body">
-      <div data-tag="buttons"></div>
-      <b>Note:</b><br>Print larger scores<br>in small sections
-      <div data-tag="first"></div>
-      <div data-tag="last"></div>
-    </div>`);
+class PrintPanel extends Panel {
+  // Print the score, or a range of its pages, with or without its annotations (Ink): the range, then the
+  // settings, then, below a line, the actions, as in Merge's dialog (see layout.js). The range is all of
+  // the score's pages, at first: the panel's closed when another score is opened (see Score.activate).
+  static css = css(
+    "PrintPanel",
+    `.PrintPanel { width: 18em; }
+     .PrintPanel .dialog__sliders { width: 100%; }
+     .PrintPanel__name {
+       display: block;
+       overflow: hidden;
+       text-overflow: ellipsis;
+       white-space: nowrap;
+       padding-right: .15em;
+       font-weight: 600;
+     }
+     .PrintPanel__note { font-size: var(--font-size-sm); color: var(--label-color); }
+    `
+  );
+
+  static big = 100; // (pages: a larger range may fail to print on a device with little memory)
 
   constructor(cell) {
     super(cell);
-    this.body.replaceWith(this.content);
-    Object.assign(this, dataIndex("tag", this.content));
-    // PrintPanel settings are not permanent, and are reset everytime the
-    // PrintPanel is constructed, which should be the first time
-    // its opened on a new score.  BUG, todo: should also reset when
-    // pg's are added or removed
-    let scoreLength = _score_.pgs.length;
-    let props = { first: 1, last: scoreLength };
+    let stash = cell.stash, props = this.props = { first: 1, last: _score_.pgs.length };
+    // A copy protected score (that permits printing: see Score.activate) is sent to the browser to print as is,
+    // the original pdf, since PODIUM can't rebuild it with a page range or Ink
+    this.asIs = _score_.encrypted;
+    let content = helm(`<div class="Panel__body PrintPanel"><i translate="no" class="PrintPanel__name">${escapeHtml(_score_.name)}</i>` +
+      (this.asIs ? `<div class="PrintPanel__note">Copy protected: prints the original, unedited file</div>`
+        : `<div class="dialog__sliders"><div></div><div></div></div>
+           <div class="PrintPanel__note">Large range: if printing fails,<br>print it in smaller sections</div>`) + `</div>`);
+    this.body.replaceWith(content);
+    let actions = new ButtonGroup({}, { Print: { svg: "Print" }, Cancel: { svg: "Cancel" } },
+      (e, prop, tag) => tag == "Print" ? this.print() : this.close()).elm;
+    if (this.asIs) return void content.append(actions);
 
-    cell = _menu_.rings.page.cells.numbers; // for pnToString
-    let buttons = new ButtonGroup(
-      props,
-      {
-        Ink: { svg: "Ink" },
-        "No Ink": { svg: "No Ink" },
-      },
-      async (e, prop, tag) => {
-        let printWin = null;
-        let dataUrl = null;
-        let closeWatcher = null;
-        let releaseUrl = () => {
-          if(dataUrl) URL.revokeObjectURL(dataUrl);
-          dataUrl = null;
-          clearInterval(closeWatcher);
-          closeWatcher = null;
-        };
-        // The PDF tab outlives this panel. Keep its URL until that tab closes.
-        let watchPrintWindow = () => {
-          closeWatcher = setInterval(() => {
-            if(printWin.closed) releaseUrl();
-          }, 1000);
-        };
-        try {
-          _shade_.show("Preparing to print");
-          let pns = [];
-          for (let i = props.first; i <= props.last; i++)
-            pns.push(i);
+    // Ink prints the annotations too
+    let settings = new ButtonGroup({ Ink: stash.ink }, { Ink: { svg: "Ink", onOff: true } },
+      (e, prop, tag, args) => stash.ink = args.Ink).elm;
+    settings.classList.add("dialog__settings");
+    content.append(settings, actions);
 
-          let data = await _score_.toPdf(tag == "Ink" ? "pdf" : "none", false, pns);
-          if (!data || data.byteLength == 0) throw new Error("PDF data empty");
-
-          dataUrl = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
-
-          // Try to open the print window automatically. This usually works on 
-          // desktop if the PDF generation was fast enough.
-          try {
-            printWin = window.open(dataUrl, "_blank");
-          } catch (e) {
-            console.warn("window.open blocked/failed:", e);
-          }
-
-          if (!printWin || printWin.closed || typeof printWin.closed == 'undefined') {
-            // Popup blocked (especially possible on iOS Safari after await).
-            // Show a dialog to provide a fresh user gesture.
-            _shade_.hide();
-            printWin = null;
-            let readyDialog = dialog("Your PDF is ready to print.", {
-              "Open PDF": { svg: "Ink" }, Cancel: { svg: "Cancel" },
-            }, (e, prop, tag, args) => {
-              if(tag == "Cancel") {
-                releaseUrl();
-                args.close();
-                return;
-              }
-              try { printWin = window.open(dataUrl, "_blank"); }
-              catch(error) { console.warn("window.open blocked/failed:", error); }
-              if(!printWin || printWin.closed || typeof printWin.closed == "undefined") {
-                printWin = null;
-                toast("Please allow popups to open the PDF.");
-                return;
-              }
-              watchPrintWindow();
-              args.close();
-            });
-            listen(readyDialog, "close", () => {
-              if(!printWin) releaseUrl();
-              readyDialog.remove();
-            }, { once: true });
-          } else {
-            // Success! PDF opened in new tab, attempt to trigger print.
-            // Note: iOS Safari ignores window.print(); users must print via the share button.
-            watchPrintWindow();
-            delayMs(1000, () => { if (!printWin.closed) printWin.print(); });
-          }
-        }
-        catch (error) {
-          releaseUrl();
-          printWin?.close();
-          if (window.cancelPdf) toast("Print cancelled");
-          else {
-            console.error("Print failed:", error);
-            dialog(`<em>Print Failed</em><br><br><strong>${escapeHtml(error.message)}</strong>`);
-          }
-        }
-        finally {
-          _shade_.onCancel = null;
-          _shade_.hide();
-          this.close();
-        }
-      }
-    );
-    buttons.elm.style = "margin:.5em;width:12em";
-    this.buttons.replaceWith(buttons.elm);
-  
+    let [row, warn] = [...content.children].slice(1), [first, last] = row.children;
     let msgCallback = (tag, value) => {
       // don't allow first to be > last, or last to be < first
       if(tag == "first") {
         if(value > props.last) value = props.last;
         props.first = value;
-        return "First page: " + pnToHtml(value);
+        return "From: " + pnToHtml(value);
       } else if(tag == "last") {
         if(value < props.first) value = props.first;
         props.last = value;
-        return "Last page: " +  pnToHtml(value);
+        return "To: " + pnToHtml(value);
       }
-    }
-
-    // Can't combine these two sliders because of the way msgCallback works, sigh.
-    this.firstSlider = new SliderGroup(props, {
-      first: {min:1, max:props.last, step:1, value:1, msg: msgCallback},
+    };
+    // (the warning shows while the range is large)
+    let warnBig = () => warn.hidden = props.last - props.first + 1 <= PrintPanel.big;
+    // Can't combine these two sliders because of the way msgCallback works, sigh. (So they're side by side in a row.)
+    let sliders = [[first, "first", 1], [last, "last", props.last]].map(([elm, tag, value]) => {
+      let group = new SliderGroup(props, { [tag]: {min:1, max:props.last, step:1, value, msg: msgCallback} }, warnBig);
+      elm.replaceWith(group.elm);
+      return group;
     });
-    this.first.replaceWith(this.firstSlider.elm);
-    this.lastSlider = new SliderGroup(props, {
-      last: {min:1, max:props.last, step:1, value:props.last,  msg: msgCallback},
-    });
-    this.last.replaceWith(this.lastSlider.elm);
-    this.listeners.push(listen(_body_, "NUMBERS", (e) => {
-      this.firstSlider.defs.first.max = this.lastSlider.defs.last.max = _score_.pgs.length;
-      props.last  = Math.min(_score_.pgs.length, props.last);
-      props.first  = Math.min(_score_.pgs.length, props.first);
-      this.firstSlider.refresh();
-      this.lastSlider.refresh();
+    warnBig();
+    // Pages added or cut while the panel's open: the sliders' range is the score's (and their numbers, its numbering)
+    this.listeners.push(listen(_body_, "NUMBERS", () => {
+      let pgKnt = _score_?.pgs.length;
+      if (!pgKnt) return;
+      if (props.last == sliders[1].defs.last.max) props.last = pgKnt; // (all of it stays all of it)
+      sliders.forEach((group) => Object.values(group.defs)[0].max = pgKnt);
+      props.last = Math.min(pgKnt, props.last);
+      props.first = Math.min(props.last, props.first);
+      sliders.forEach((group) => group.refresh());
+      warnBig();
     }));
   }
 
-}
+  async print() {
+    let stash = this.cell.stash, props = this.props, asIs = this.asIs;
+    this.close();
+    let printWin = null;
+    let dataUrl = null;
+    let closeWatcher = null;
+    let releaseUrl = () => {
+      if(dataUrl) URL.revokeObjectURL(dataUrl);
+      dataUrl = null;
+      clearInterval(closeWatcher);
+      closeWatcher = null;
+    };
+    // The PDF tab outlives this panel. Keep its URL until that tab closes.
+    let watchPrintWindow = () => {
+      closeWatcher = setInterval(() => {
+        if(printWin.closed) releaseUrl();
+      }, 1000);
+    };
+    try {
+      _shade_.show("Preparing to print");
+      let pns = [];
+      for (let i = props.first; i <= Math.min(props.last, _score_.pgs.length); i++)
+        pns.push(i);
 
+      let data = asIs ? await _score_.mozDoc.getData() : await _score_.toPdf(stash.ink ? "pdf" : "none", false, pns);
+      if (!data || data.byteLength == 0) throw new Error("PDF data empty");
+
+      dataUrl = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
+
+      // A copy protected score is printed from a hidden frame in this tab, s.t. the browser's print dialog
+      // comes straight up: from a tab, as below, print() hung PODIUM (in Chrome, at least), leaving the user
+      // to print from its viewer. Failing that (e.g. Firefox's viewer can't be printed this way), or on iOS
+      // (where it prints the tab), it's that tab after all.
+      let iOS = /AppleWebKit/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent) && navigator.maxTouchPoints > 1;
+      if (asIs && !iOS && await printInFrame(dataUrl)) return void (dataUrl = null); // (the frame releases it)
+
+      // Try to open the print window automatically. This usually works on 
+      // desktop if the PDF generation was fast enough.
+      try {
+        printWin = window.open(dataUrl, "_blank");
+      } catch (e) {
+        console.warn("window.open blocked/failed:", e);
+      }
+
+      if (!printWin || printWin.closed || typeof printWin.closed == 'undefined') {
+        // Popup blocked (especially possible on iOS Safari after await).
+        // Show a dialog to provide a fresh user gesture.
+        _shade_.hide();
+        printWin = null;
+        let readyDialog = dialog("Your PDF is ready to print.", {
+          "Open PDF": { svg: "Ink" }, Cancel: { svg: "Cancel" },
+        }, (e, prop, tag, args) => {
+          if(tag == "Cancel") {
+            releaseUrl();
+            args.close();
+            return;
+          }
+          try { printWin = window.open(dataUrl, "_blank"); }
+          catch(error) { console.warn("window.open blocked/failed:", error); }
+          if(!printWin || printWin.closed || typeof printWin.closed == "undefined") {
+            printWin = null;
+            toast("Please allow popups to open the PDF.");
+            return;
+          }
+          watchPrintWindow();
+          args.close();
+        });
+        listen(readyDialog, "close", () => {
+          if(!printWin) releaseUrl();
+          readyDialog.remove();
+        }, { once: true });
+      } else {
+        // Success! PDF opened in new tab, attempt to trigger print.
+        // Note: iOS Safari ignores window.print(); users must print via the share button.
+        watchPrintWindow();
+        // (but not a copy protected one, printed from its tab: in Chrome, print() on it seemed to hang PODIUM's tab too)
+        if (!asIs) delayMs(1000, () => { if (!printWin.closed) printWin.print(); });
+      }
+    }
+    catch (error) {
+      releaseUrl();
+      printWin?.close();
+      if (window.cancelPdf) toast("Print cancelled");
+      else {
+        console.error("Print failed:", error);
+        dialog(`<em>Print Failed</em><br><br><strong>${escapeHtml(error.message)}</strong>`);
+      }
+    }
+    finally {
+      _shade_.onCancel = null;
+      _shade_.hide();
+    }
+  }
+}
 
 class StopwatchPanel extends Panel {
   static css = css(

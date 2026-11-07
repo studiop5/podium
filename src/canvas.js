@@ -21,7 +21,7 @@
 **/
 
 export { initFabric, Grid };
-import { clamp, getBox, helm, listen, unlisten } from "./common.js";
+import { clamp, delay, Drag, getBox, helm, listen, unlisten } from "./common.js";
 // -skip
 
 /**
@@ -124,6 +124,7 @@ function initFabric() {
       transform.downX = pt.clientX;
       transform.downY = pt.clientY;
       transform.dragThreshold = dragThreshold(e);
+      transform.drag = new Drag(e); // (to tell a fling: see __onMouseUp)
     }
   };
 
@@ -135,22 +136,40 @@ function initFabric() {
       transform.pastThreshold = true;
     }
     performTransformAction.call(this, e, transform, pointer);
-    if (transform.action == "drag") transform.target.clampToPage();
+    transform.drag?.mv(e);
+  };
+
+  // A dragged object may go partly, or wholly, off its page. Let go of it wholly
+  // off the page, or fling it, and it's cut (to the paste buffer), the way a
+  // panel is closed by flinging it.
+  let onMouseUp = fabric.Canvas.prototype.__onMouseUp;
+  fabric.Canvas.prototype.__onMouseUp = function (e) {
+    let transform = this._currentTransform;
+    onMouseUp.call(this, e);
+    if (transform?.action != "drag" || !transform.pastThreshold || !transform.drag) return;
+    let drag = transform.drag.up(e), obj = transform.target;
+    let { tl, br } = this.calcViewportBoundaries(), box = obj.getBoundingRect(true, true);
+    let off = box.left >= br.x || box.left + box.width <= tl.x || box.top >= br.y || box.top + box.height <= tl.y;
+    if (!off && !(drag.vXY > .75 && !drag.lift && !drag.jab)) return;
+    this.pg.undoStack.pop(); // (the drag's move: undo goes back to before it)
+    _menu_.cutCopyObject(obj, this, true, e);
+    delay(2, () => this.pg.pushState()); // (after the cut removes it)
   };
 
   // Keep an object (or selection) within its page: move it, if need be, so
-  // that its bounding box, rotation included, lies inside the canvas. Along an
-  // axis where it's larger than the page, it's centered instead. This is THE
-  // rule for where an object may be placed: dragging (above), the EditPanel's
-  // arrows and pasted-image placement all use it, so they behave identically.
+  // that its bounding box, rotation included, lies inside the canvas, or at least
+  // @keep of it does (in page units). Along an axis where it's larger than the
+  // page, a wholly kept object is centered instead. This is the rule for where an
+  // object is placed (pasted, inserted, dropped: wholly) and moved by the
+  // EditPanel's arrows (partly); dragging isn't limited (see __onMouseUp).
   // Only position is constrained: scaling or rotating can still push part of
   // an object past an edge, until it is next moved.
-  fabric.Object.prototype.clampToPage = function () {
+  fabric.Object.prototype.clampToPage = function (keep = Infinity) {
     if (!this.canvas) return;
     let { tl, br } = this.canvas.calcViewportBoundaries(); // the page, in object coordinates
     let box = this.getBoundingRect(true, true);
-    let shift = (pos, size, min, max) =>
-      (size > max - min ? (min + max - size) / 2 : clamp(pos, min, max - size)) - pos;
+    let shift = (pos, size, min, max, k = Math.min(size, keep)) =>
+      (k > max - min ? (min + max - size) / 2 : clamp(pos, min - size + k, max - k)) - pos;
     let dx = shift(box.left, box.width, tl.x, br.x);
     let dy = shift(box.top, box.height, tl.y, br.y);
     if (dx == 0 && dy == 0) return;

@@ -60,36 +60,36 @@ let errDialog = (error, msg) => {
 };
 
 
+let setMergeRange = (doc) => {
+  // The Merge cell's page range is all of pdf-lib PDFDocument @doc, at first, numbered as it was in
+  // PODIUM, by its Numbers settings, if it has any: see layout.js
+  let pgKnt = doc.getPageCount(), numbers = Score.podiumJson(doc)?.menu?.page?.cells?.numbers;
+  _menu_.rings.page.cells.merge.range = { from: 1, to: pgKnt, pgKnt,
+    numbers: { prelim: parseInt(numbers?.prelim) || 0, first: parseInt(numbers?.first) || 1 } };
+};
+
 let checkMergePdf = async (data) => {
   // Try loading pdfData with pdf-lib before storing it for merge.
-  // Returns data if loadable, null if rejected by user or unreadable.
+  // Returns data if loadable, null if copy protected (pdf-lib rejects any encrypted pdf) or unreadable.
   let { PDFDocument } = PDFLib;
   try {
-    await PDFDocument.load(data);
+    setMergeRange(await PDFDocument.load(data));
     return data;
   } catch (err) {
     if (!(err.message?.includes('encrypted') || err.message?.includes('Encrypt'))) throw err;
-    let readable = false;
-    try { let doc = await PDFDocument.load(data, { ignoreEncryption: true }); doc.getPages(); readable = true; } catch {}
-    if (!readable) {
-      dialog("This PDF is write-protected and cannot be merged.",
-        { OK: { svg: "Cancel" } }, (e, prop, tag, args) => args.close());
-      return null;
-    }
-    return await new Promise(resolve => {
-      let dlg = dialog(
-        "This PDF has copy protection. Merging may not preserve all content.",
-        { Merge: { svg: "Merge" }, Cancel: { svg: "Cancel" } },
-        (e, prop, tag, args) => { args.close(); resolve(tag == "Merge" ? data : null); }
-      );
-      listen(dlg, 'cancel', () => resolve(null));
-    });
+    // A copy protected pdf can't be merged: that cancels the merge (and releases any pdf already loaded for it)
+    let mergeCell = _menu_.rings.page.cells.merge;
+    mergeCell.pdfData = null;
+    if (_menu_.rings.page.activeCell === mergeCell) _menu_.activateCell(null);
+    dialog("This PDF is copy protected, so it can't be merged.", { OK: { svg: "OK" } });
+    return null;
   }
 };
 
-let activateMerge = (pdfData) => {
+let activateMerge = (pdfData, name) => {
   let mergeCell = _menu_.rings.page.cells.merge;
   mergeCell.pdfData = pdfData;
+  mergeCell.range.name = name; // (shown when merging: see layout.js)
   if (_menu_.rings.page.activeCell !== mergeCell) _menu_.activateCell(mergeCell);
   _menu_.autoOff.run(4000 + _gs_ * 3.5);
   toast("Tap score to merge");
@@ -1706,6 +1706,47 @@ class UrlSrc extends FileSrc {
   }
 }
 
+let openLocal = async (file) => {
+  // Open @file (a File) as the score, unless the user keeps unsaved changes. created: is 0,
+  // because the browser api doesn't give us a creation date on the file object
+  if (!await checkUnsaved()) return;
+  try {
+    let score = await new Score().init(Score.sources.local, null, file.name, await file.arrayBuffer());
+    Score.visit(score, { size: file.size, created: 0, modified: file.lastModified });
+    toast("File opened");
+  } catch (error) {
+    if (!error.handled) dialog(`Error opening file <i translate="no">${escapeHtml(file.name)}</i><br>${escapeHtml(error.message || error)}`);
+  }
+};
+
+// A pdf dropped anywhere in the tab opens it (or, on the Merge cell, arms it), and a png or jpeg dropped on a page is added
+// to it, centered on the drop point (the Local tab's own drop is already handled). Nothing
+// else dropped makes the browser navigate away from PODIUM.
+listen(window, "dragover", (e) => e.preventDefault());
+listen(window, "drop", async (e) => {
+  let file = e.dataTransfer.files[0];
+  if (e.defaultPrevented || !file) return e.preventDefault();
+  e.preventDefault();
+  if (file.type == "application/pdf") {
+    // (dropped on the Page ring's Merge cell, it's the pdf to merge, as if chosen in Merge's panel)
+    if (e.target.closest(".Menu__cell")?.dataset.key != "page/merge") return openLocal(file);
+    if (!_menu_.rings.page.cells.merge.enabled) return; // (as for a tap: see Score.activate)
+    let data = await checkMergePdf(await file.arrayBuffer());
+    return data && activateMerge(data, file.name);
+  }
+  // (the topmost page there: layouts stack pages, e.g. a Book keeps the pages either side under the one shown)
+  let pg = document.elementsFromPoint(e.clientX, e.clientY).find((elm) => elm.pg)?.pg;
+  if (!pg || !["image/png", "image/jpeg"].includes(file.type)) return;
+  let at = pg.canvas.getPointer(e);
+  let img = await _menu_.imageObj(await bytesToBase64DataUrl(await file.arrayBuffer(), file.type), pg.width, pg.height);
+  img.set({ left: at.x - img.getScaledWidth() / 2, top: at.y - img.getScaledHeight() / 2 });
+  pg.canvas.add(img);
+  img.clampToPage(); // placed wholly on the page, see canvas.js
+  pg.canvas.requestRenderAll();
+  pg.pushState();
+  _score_.setDirty(true);
+});
+
 // The classes LocalFileView, FileListView, FileSystemView implement the gui elements displayed
 // in the File panel's tabs:
 
@@ -1804,19 +1845,9 @@ class LocalFileView {
         else if (this.mode == "merge") {
           let data = await checkMergePdf(await file.arrayBuffer());
           if (!data) return;
-          activateMerge(data);
+          activateMerge(data, file.name);
         }
-        else {
-          if(await checkUnsaved()) {
-            try {
-              let score = await new Score().init(Score.sources.local, null, file.name, await file.arrayBuffer());
-              Score.visit(score, visitUpdate);
-              toast("File opened");
-            } catch (error) {
-              if (!error.handled) dialog(`Error opening file <i translate="no">${escapeHtml(file.name)}</i><br>${escapeHtml(error.message || error)}`);
-            }
-          }
-        }
+        else await openLocal(file);
         this.panel.hide();
       }
     });
@@ -2330,7 +2361,7 @@ class FileListView {
           let checked = await checkMergePdf(data);
           if (checked) {
             Score.visit({ source, name, path }, visitUpdate);
-            activateMerge(checked);
+            activateMerge(checked, name);
           }
         } else {
           let score = await new Score().init(source, path, name, data);

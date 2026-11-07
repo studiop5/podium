@@ -20,7 +20,8 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, clamp, clearChildren, css, cssIndex, dataIndex, delay, delayMs, dialog, Drag, getBox, helm, listen, numb, pnToDiv, ptrMsg, reflow, rotatePoint, Schedule, toast, unlisten,} from "./common.js";
+import { animate, ButtonGroup, clamp, clearChildren, css, cssIndex, dataIndex, delay, delayMs, dialog, Drag, getBox, helm, listen, numb, pnToDiv, pnToHtml, ptrMsg, reflow, rotatePoint, Schedule, SliderGroup, toast, unlisten,} from "./common.js";
+import { escapeHtml } from "./file.js";
 import {ScreenPanel } from "./panel.js";
 import { Pg } from "./score.js";
 export { Layout, BookLayout, TableLayout, ScrollLayout };
@@ -40,7 +41,7 @@ function nextBkColor(pg) {
   // either neighboring bookmark (the nearest before and after @pg), so bookmarks
   // next to each other in the pager never match when created.
   let stash = _menu_.rings.score.cells.details.stash;
-  let pgs = _score_.pgs, i = pgs.indexOf(pg);
+  let pgs = pg.score.pgs, i = pgs.indexOf(pg); // (pg's score: e.g. a merge's, before it's active)
   let before = pgs.slice(0, i).findLast((p) => p.bookmark)?.bookmark;
   let after = pgs.slice(i + 1).find((p) => p.bookmark)?.bookmark;
   let color;
@@ -601,9 +602,10 @@ class Layout {
 
         case "import": {
           // paste from  _podPb_
-          dialog(`Confirm: Import pages from shared buffer?<br>(clears undo history)`,
+          dialog(`Confirm: Import pages from shared buffer?<br>(restarts undo history)`,
             { Import: { svg: "Import Page" }, Cancel: { svg: "Cancel" } },
             async (_e, _prop, tag, args) => {
+              args.close(); // (before the Shade, which a modal dialog would hide)
               if (tag == "Import") {
                 _shade_.show("Importing...", 50);
                 _menu_.activateCell(null);
@@ -612,7 +614,6 @@ class Layout {
                 _menu_.activateRing(_menu_.rings.page);
                 _menu_.activateCell(_menu_.rings.page.cells.import);
               }
-              args.close();
             });
           break;
         }
@@ -623,15 +624,25 @@ class Layout {
           if (!mergeCell.pdfData) break;
           let pdfData = mergeCell.pdfData;
           let wasLocked = mergeCell.locked;
-          dialog(`Confirm: Merge entire PDF into score?<br>(clears undo history)`,
+          // The pages to merge, kept while the cell is armed (so they're the same for each page tapped)
+          let range = mergeCell.range ?? { from: 1, to: Infinity }, pgKnt = range.pgKnt;
+          // (the file's name on its own line, bold, and italic as in other dialogs, and the page number bold, as in the sliders)
+          let name = `<i translate="no" style="display:block;max-width:16em;margin:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:.15em;font-weight:600">${escapeHtml(range.name ?? "PDF")}</i>`;
+          let at = `${pn > score.pnOf(pg) ? "after" : "before"} page <b style="font-weight:600">${pnToHtml(score.pnOf(pg))}</b>`;
+          let dlg = dialog(`Merge:${name}${at}<br>(restarts undo history)<div class="dialog__sliders"><div></div></div>`,
             { Merge: { svg: "Merge" }, Cancel: { svg: "Cancel" } },
             async (_e, _prop, tag, args) => {
+              args.close(); // (before the Shade, which a modal dialog would hide)
               if (tag == "Merge") {
+                let { from, to } = range;
                 _shade_.show("Merging...", 50);
                 _menu_.busy = true;
                 _menu_.activateCell(null);
                 try {
-                  let mergedScore = await _score_.bindScore(pdfData, pn);
+                  let mergedScore = await _score_.bindScore(pdfData, pn, from, to, mergeCell.stash.ink);
+                  // bookmark the first merged page (unless it came with one)
+                  let first = mergedScore.pgs[pn - 1];
+                  if (mergeCell.stash.mark) first.bookmark ||= nextBkColor(first);
                   await mergedScore.activate();
                 } finally {
                   _shade_.hide();
@@ -650,8 +661,24 @@ class Layout {
                   _menu_.autoOff.run(4000 + _gs_ * 3.5);
                 }
               }
-              args.close();
             });
+          // The range, then the settings (Mark bookmarks the first merged page, Ink keeps the merged
+          // pages' annotations), then, below a line, the actions (as in Print's panel: see panel.js)
+          let { mark, ink } = mergeCell.stash, sliders = dlg.msg.lastChild.firstChild;
+          let settings = new ButtonGroup({ Mark: mark, Ink: ink },
+            { Mark: { svg: "Mark", onOff: true }, Ink: { svg: "Ink", onOff: true } },
+            (_e, _prop, tag, args) => mergeCell.stash[tag.toLowerCase()] = args[tag]).elm;
+          settings.classList.add("dialog__settings");
+          dlg.msg.append(settings);
+          if (pgKnt > 1) sliders.replaceWith(new SliderGroup(range, {
+            // (numbered as in the pdf's score: see checkMergePdf in file.js)
+            from: { min: 1, max: pgKnt, msg: (_tag, value) => "From: " + pnToHtml(value, range.numbers), col: 1 },
+            to: { min: 1, max: pgKnt, msg: (_tag, value) => "To: " + pnToHtml(value, range.numbers), col: 2 },
+          }, (_e, tag, _value, group) => {
+            // (the moved slider stops at the other: From can't pass To, nor To From, as in Print's panel)
+            if (range.from > range.to) range[tag] = range[tag == "from" ? "to" : "from"];
+            group.refresh();
+          }).elm);
           break;
         }
 

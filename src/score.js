@@ -176,6 +176,9 @@ class Pg {
     //   the inflation finishes, the div is replaced by the fabric
     //   canvas's container div.
     if(this.score.disposed) return this;
+    // A page with no pdf has nothing slow to render, but loading its annotations can still wait
+    // (e.g. for an image): it has no placeholder, so wait, s.t. a layout always gets an elm to mount
+    if(!this.mozPn) nonblocking = false;
     if(this.inflatePromise) {
       if(nonblocking) {
         // An inflation is already in flight. If it's a blocking one (e.g. toPdf's), it
@@ -382,7 +385,8 @@ class Pg {
       if(this.undoStack.length == 0) // initialize undo stack on first inflate
         this.undoStack.push(canvas.toDatalessObject(Pg.customProps));
   
-      let pushState = () => {
+      let pushState = this.pushState = () => { // (also called after a change made without a pointer, e.g. a dropped image)
+        stateChanged = false;
         let stack = this.undoStack;
         stack.push(this.canvas.toDatalessObject(Pg.customProps));
         while (stack.length > 10) stack.shift(); // prune
@@ -1043,6 +1047,23 @@ class Score {
   // maximum number of unused inflated pgs: see Score.pgUnuse()
   static MAX_INFLATED = (navigator.deviceMemory >= 8) ? 8 : 6;
 
+  static podiumJson(doc) {
+    // @return the podium attachment of pdf-lib PDFDocument @doc, parsed, or null if it has none. Note
+    // that PDFLib has no "high level" api for this, so its a bit involved. Code adapted from
+    // //github.com/Hopding/pdf-lib/issues/534.
+    let { PDFArray, PDFDict, PDFName, PDFStream } = PDFLib;
+    let Names = doc.catalog.lookupMaybe(PDFName.of("Names"), PDFDict);
+    let EmbeddedFiles = Names?.lookupMaybe(PDFName.of("EmbeddedFiles"), PDFDict);
+    let EFNames = EmbeddedFiles?.lookupMaybe(PDFName.of("Names"), PDFArray);
+    for (let idx = 0, len = EFNames?.size() ?? 0; idx < len; idx += 2) {
+      if (EFNames.lookup(idx).decodeText() != "podium") continue;
+      let stream = EFNames.lookup(idx + 1, PDFDict).lookup(PDFName.of("EF"), PDFDict).lookup(PDFName.of("F"), PDFStream);
+      try { return JSON.parse(new TextDecoder().decode(PDFLib.decodePDFRawStream(stream).decode())); }
+      catch { return null; } // (untrusted: unreadable is as good as none)
+    }
+    return null;
+  }
+
   // maximum depth of undo stack
   static MAX_UNDO = (navigator.deviceMemory >= 8) ? 8 : 6;
 
@@ -1188,7 +1209,7 @@ class Score {
   maxHeight = -1; // maxHeight among all pg's in score
   maxWidth = -1; // maxWidth among all pg's in score
   pgs = []; // array of Pg instances for all pages in a score
-  undoStack = []; // will contain pgs, tagged with undoPn whenever pgAdd(),or -undoPn whenever pgCut()
+  undoStack = []; // page operations to undo: {added: [pgs]} for pgAdd() or a merge (see bindScore), {cut: pg, pn} for pgCut()
   mozDoc = null; // reference to mozilla pdflib document, if available
   loadingTask = null;
   disposed = false;
@@ -1393,11 +1414,15 @@ class Score {
       Layout.activeLayout.destructor();
       Layout.activeLayout = null;
     }
-    if(Score.activeScore === this) Score.activeScore = null;
+    if(Score.activeScore === this) {
+      Score.activeScore = null;
+      // release the file loaded for merging (a merge itself puts it back: see layout.js)
+      _menu_.rings.page.cells.merge.pdfData = null;
+    }
     if(_score_ === this) _score_ = null;
     let paste = _menu_.rings.page.cells.paste;
     if(paste.pg?.score === this) paste.pg = null;
-    let pages = new Set([...this.pgs, ...this.undoStack]);
+    let pages = new Set([...this.pgs, ...this.undoStack.flatMap((entry) => entry.added ?? [entry.cut])]);
     for(let pg of pages) pg.deflate(true);
     await Promise.allSettled([...this.pendingInflates]);
     for(let pg of pages) pg.clearThumb();
@@ -1431,6 +1456,9 @@ class Score {
     // clear any pg from paste cell...could be left over from previous score, if any
     _menu_.rings.page.cells.paste.pg = null ;
     _menu_.enableCells("page/paste", false);
+    // nothing can be merged into a copy protected score, and it's printed only if it permits it (permission 4)
+    _menu_.enableCells("page/merge", !this.encrypted);
+    _menu_.enableCells("score/print", !this.encrypted || this.permissions.includes(4));
     this.pgRefresh();
     // Sync quality to stash so InfoPanel slider shows correct value
     _menu_.rings.score.cells.details.stash.quality = this.quality;
@@ -1448,41 +1476,22 @@ class Score {
     return this;
   }
 
-  async bindScore(pdfData, pn = null) {
+  async bindScore(pdfData, pn = null, from = 1, to = Infinity, ink = true) {
     // bind all pages from a given score to this score: i.e. given some score's
-    // @pdfData, append all of its pages to this score.
+    // @pdfData, append all of its pages (or just pages @from..@to, one-based) to this score,
+    // with their annotations iff @ink.
     // @pn one-based index of where to insert the pages from pdfData.
     //     ..when null or < 1, converted to 1 (i.e. first page).
     pn = clamp(pn, 1, this.pgs.length + 1) -1; // convert pn to 0-based in [0, this.pgs.length-1]
-    let { PDFArray, PDFDict, PDFDocument, PDFName, PDFStream } = PDFLib;
+    let { PDFDocument } = PDFLib;
     let pgCount = this.pgs.length;
     let docA = await this.toPdf("stamp", true); // this is the current document
     let docB = await PDFDocument.load(pdfData); // this document contains pages to merge
-    let copiedPages = await docA.copyPages(docB, docB.getPageIndices());
+    let copiedPages = await docA.copyPages(docB, docB.getPageIndices().slice(from - 1, to));
     copiedPages.forEach((page,idx) => docA.insertPage(pn + idx, page));
     let mergedPdfData = await docA.save();
     let mergedScore = await new Score().init(this.source, this.path, this.name, mergedPdfData, false);
-    // Get podium attachment from docB, if any. Note that PDFLib has no "high level" api for this, so
-    // its a bit involved. Code adapted from //github.com/Hopding/pdf-lib/issues/534.
-    let json = null;
-
-    do { // doesn't loop: just a break context
-      if (!docB.catalog.has(PDFName.of("Names"))) break;
-      let Names = docB.catalog.lookup(PDFName.of("Names"), PDFDict);
-      if (!Names.has(PDFName.of("EmbeddedFiles"))) break;
-      let EmbeddedFiles = Names.lookup(PDFName.of("EmbeddedFiles"), PDFDict);
-      if (!EmbeddedFiles.has(PDFName.of("Names"))) break;
-      let EFNames = EmbeddedFiles.lookup(PDFName.of("Names"), PDFArray);
-      for (let idx = 0, len = EFNames.size(); idx < len; idx += 2) {
-        let fileName = EFNames.lookup(idx);
-        if (fileName.decodeText() == "podium") {
-          let fileSpec = EFNames.lookup(idx + 1, PDFDict);
-          let stream = fileSpec.lookup(PDFName.of("EF"), PDFDict).lookup(PDFName.of("F"), PDFStream);
-          json = new TextDecoder().decode(PDFLib.decodePDFRawStream(stream).decode());
-          break;
-        }
-      }
-    } while(false);
+    let json = Score.podiumJson(docB);
 
     // add docB's json to mergedScore
     let copyKnt = copiedPages.length;
@@ -1492,13 +1501,16 @@ class Score {
 
     // clear stale docA json that Score.init assigned to docB's page slots
     for (let i = pn; i < pn + copyKnt; i++) mergedScore.pgs[i].json = null;
-    if(json) {
+    if(json && ink) {
       // insert new json from docB
-      let pageJson = JSON.parse(json).pages;
+      let pageJson = json.pages;
       for (let i = pn, j = 1; j <= copyKnt; i++, j++) { // i is 0-based, j is 1-based
-        mergedScore.pgs[i].json = pageJson[j];
+        mergedScore.pgs[i].json = pageJson[from - 1 + j];
       }
     }
+    // A new score restarts undo history (the old one's pages aren't in it), with the merge itself:
+    // undone, all its pages are cut at once (see pgUndo)
+    mergedScore.undoStack = [{ added: mergedScore.pgs.slice(pn, pn + copyKnt) }];
     mergedScore.pgRefresh();
     mergedScore.setDirty();
     return mergedScore;
@@ -1516,9 +1528,8 @@ class Score {
     // Add a new page as page pn (1-based), possibly numbered
     this.pgs.splice(pn - 1, 0, pg);
     this.setDirty();
-    pg.undoPn = pn;
     if(push) {
-      this.undoStack.push(pg);
+      this.undoStack.push({ added: [pg] });
       while(this.undoStack.length > this.maxUndo) this.undoStack.shift();
     }
     this.pgRefresh();
@@ -1532,9 +1543,8 @@ class Score {
     let cutPg = this.pgs.splice(pn - 1, 1)[0];
     this.pgRefresh(false);
     this.setDirty();
-    cutPg.undoPn = -pn;
     if(push) {
-      this.undoStack.push(cutPg);
+      this.undoStack.push({ cut: cutPg, pn });
       while(this.undoStack.length > this.maxUndo) this.undoStack.shift();
       _menu_.enableCells("page/undo");
     }
@@ -1581,9 +1591,11 @@ class Score {
 
   pgUndo() {
     if(this.undoStack.length) {
-      let pg = this.undoStack.pop();
-      if(pg.undoPn > 0) this.pgCut(pg.undoPn, false);
-      else this.pgAdd(pg, -pg.undoPn, false);
+      // (kept in the entry, not on its pgs: a cut pg may be pasted, i.e. added, too. And an added pg is cut
+      // wherever it's been moved to, as moves aren't undone: e.g. a merge's pgs, all at once)
+      let entry = this.undoStack.pop();
+      if(entry.cut) this.pgAdd(entry.cut, entry.pn, false);
+      else entry.added.forEach((pg) => this.pgCut(this.pnOf(pg), false));
     }
     _menu_.enableCells("page/undo", this.undoStack.length);
   }

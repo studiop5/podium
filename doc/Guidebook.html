@@ -1467,7 +1467,7 @@ function closeVideo(event, container) {
 
     <div class="note">Because browser security limits direct access to local files, it is not possible to pre-populate the file picker with a specific folder location.</div>
 
-    <p><strong>Drag and Drop (Desktop):</strong> On desktop browsers, you can drag a PDF file directly from your file manager onto the Local tab to open it in Podium.</p>
+    <p><strong>Drag and Drop (Desktop):</strong> On desktop browsers, you can drag a PDF file directly from your file manager onto Podium to open it: onto the Local tab, or anywhere else in Podium's browser tab. Dropped onto the Page ring's Merge cell, it's chosen for merging instead: see <a href="#page-merge" class="chapter-link">Merge</a>. A PNG or JPEG image dropped onto a score page is added to that page instead: see <a href="#ink-cut-copy-paste" class="chapter-link">Cut, Copy, Paste</a>.</p>
 
     <h4>Saving Scores</h4>
 
@@ -1538,20 +1538,21 @@ function closeVideo(event, container) {
     <p>Print the current score with or without annotations.</p>
 
     <figure>
-        <img src="assets/scoreprint.jpg" alt="Print Panel">
-        <figcaption>Print Panel showing ink options and page range settings</figcaption>
+        <img src="assets/scoreprint.jpg" alt="Print panel">
+        <figcaption>Print panel showing the page range and Ink settings</figcaption>
     </figure>
 
-    <p>In Podium, user-created annotations are called Ink. The Print Panel allows you to configure printing options:</p>
+    <p>Tap the Print cell, or drag out from it, to open the Print panel. You can keep it open while you turn pages, to find the ones to print. In Podium, user-created annotations are called Ink. The panel's range and settings come first, then, below a line, its actions:</p>
     <ul>
-        <li><strong>Ink:</strong> Print with user-created annotations included</li>
-        <li><strong>No Ink:</strong> Print without user-created annotations (original PDF only)</li>
-        <li><strong>Page Range:</strong> Specify the start and end pages to print a subset of the score</li>
+        <li><strong>From</strong> and <strong>To:</strong> the range of pages to print: all of them, at first</li>
+        <li><strong>Ink:</strong> when lit (as at first), the annotations are printed too; tap it to print the original PDF only. It stays the way you leave it.</li>
+        <li><strong>Print</strong> prints, and <strong>Cancel</strong> closes the panel</li>
     </ul>
 
-    <div class="note"><strong>iPhone/iPad:</strong> Safari does not support automatic print dialogs from web apps. After tapping Ink or No Ink, your PDF will open in a new tab. From there, tap the Share button <span style="display:inline-block;position:relative;width:.7em;height:1em;vertical-align:-.15em;">&#x2610;<span style="position:absolute;left:.1em;top:-.55em;font-size:1.2em;">&#x2191;</span></span> in the toolbar (iPhone: bottom center; iPad: beside the address bar) and choose <strong>Print</strong>.</div>
+    <div class="note"><strong>iPhone/iPad:</strong> Safari does not support automatic print dialogs from web apps. After tapping Print, your PDF will open in a new tab. From there, tap the Share button <span style="display:inline-block;position:relative;width:.7em;height:1em;vertical-align:-.15em;">&#x2610;<span style="position:absolute;left:.1em;top:-.55em;font-size:1.2em;">&#x2191;</span></span> in the toolbar (iPhone: bottom center; iPad: beside the address bar) and choose <strong>Print</strong>.</div>
 
-    <div class="note">Large scores or scores with particularly dense or poorly encoded, unoptimized PDF content can fail while printing. If you encounter printing failures, try printing the score in several smaller sections by specifying different page ranges.</div>
+    <div class="note">Large scores or scores with particularly dense or poorly encoded, unoptimized PDF content can fail while printing. If you encounter printing failures, try printing the score in several smaller sections by specifying different page ranges. The Print panel reminds you of this while its range is more than 100 pages.</div>
+    <div class="note"><strong>Copy protected scores:</strong> A copy protected PDF that permits printing is printed as it was opened: Print sends the original file straight to the browser's print dialog (where you can choose its pages), or, if the browser can't print it that way, opens it in a new tab to print from there. None of your changes are printed: no Ink, and no added, cut, or moved pages. One that doesn't permit printing can't be printed: its Print cell is disabled.</div>
 
     <h3 id="score-details">4.5 Score Ring: Details<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></h3>
 
@@ -1923,9 +1924,13 @@ function closeVideo(event, container) {
 
     <p>The Copy cell has an associated Open Panel that can be used to select an external PNG or JPEG image file from digital storage. Drag out the panel and select the desired image file. Then use the Paste cell to paste the image as an annotation object into a score page.</p>
 
+    <p><strong>Dropping an image (Desktop):</strong> You can also drag a PNG or JPEG image from your file manager and drop it onto a score page. It's added to that page as an annotation object, centered where you drop it (kept wholly on the page, and scaled down if it's larger than the page). Like a paste, it can be undone, and moved or resized with the Edit tool.</p>
+
     <div class="note">If you have a PNG or JPEG of a score page, for example a photo you've taken with your camera, you can incorporate it into your score as a permanent PDF page: open the image from the Copy cell's Open Panel, then use the Page Ring's Add cell to add a blank page. Paste the image onto that page using the Ink Ring's Paste cell, and resize or reposition it as needed using the Edit tool. Finally, use the Page Ring's Flatten command to bake the image into the PDF, giving you a new score page with your image embedded.</div>
 
-    <p><strong>Deleting annotations:</strong> To delete an annotation object, activate the Cut cell and tap the object. If you don't subsequently paste the object elsewhere, it is effectively deleted from the score.</p>
+    <p><strong>Dragging off, or flinging, to cut:</strong> When <a href="#edit-page-bounds" class="chapter-link">dragging</a> an annotation object, you can also cut it by letting go of it entirely off its page, or by flinging it (a quick flick, as you'd fling a panel closed). It flies to the Paste cell, just as with the Cut cell.</p>
+
+    <p><strong>Deleting annotations:</strong> To delete an annotation object, cut it: activate the Cut cell and tap the object, or drag it off its page, or fling it. If you don't subsequently paste the object elsewhere, it is effectively deleted from the score.</p>
 
     <h3 id="ink-undo">6.6 Ink Ring: Undo<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></h3>
 
@@ -1984,7 +1989,7 @@ function closeVideo(event, container) {
         <li><strong>Touch-drag within the object:</strong> move it.</li>
     </ul>
 
-    <p id="edit-page-bounds"><strong>Staying on the page:</strong> Annotation objects are kept within the bounds of their page. An object cannot be dragged past a page edge, and the same limit applies when it is moved with the Edit Panel's arrow buttons, and when a text box, symbol, or pasted object is first placed: one placed too close to an edge is nudged inward so that it fits. A selected group of objects is kept on the page as a whole. Only position is limited: resizing or rotating an object can still extend part of it past an edge, and an object larger than the page is centered on it in that direction.</p>
+    <p id="edit-page-bounds"><strong>Staying on the page:</strong> A new annotation object is placed wholly on its page: a text box, symbol, pasted object, or dropped image placed too close to an edge is nudged inward so that it fits (and an object larger than the page is centered on it). Once placed, an object can be dragged partly off its page, for example to bring a large image's resize handles into view; the part off the page isn't shown (nor printed), but it's kept, so you can drag it back. Let go of it entirely off the page, or fling it, and it's <a href="#ink-cut-copy-paste" class="chapter-link">cut</a>. The Edit Panel's arrow buttons can move an object partly off its page, but always leave some of it on the page. A selected group of objects is moved as a whole.</p>
 
     <figure>
         <img src="assets/inktransform2.jpg" alt="Group transformation">
@@ -2023,7 +2028,7 @@ function closeVideo(event, container) {
 
     <p><strong>Saving and persistence:</strong> All annotations are automatically saved with the score when you save the file. Annotations are preserved when switching between different layout modes.</p>
 
-    <p><strong>Page limitations:</strong> Annotation objects cannot span multiple pages, and cannot be placed or moved <a href="#edit-page-bounds" class="chapter-link">off their page</a>, but they can be easily copied between pages using the Cut/Copy/Paste tools.</p>
+    <p><strong>Page limitations:</strong> Annotation objects cannot span multiple pages, and are <a href="#edit-page-bounds" class="chapter-link">never lost off their page</a>, but they can be easily moved or copied between pages using the Cut/Copy/Paste tools.</p>
 
     <p><strong>Performance considerations:</strong> Annotations, especially free drawings with many pen/pencil strokes, can significantly increase the size of a saved score. For complex annotated pages, consider using the Flatten operation (in the <a href="#page" class="chapter-link">Page Ring</a>) to convert annotations into the PDF itself, which can improve performance.</p>
 
@@ -2165,7 +2170,7 @@ function closeVideo(event, container) {
 
     <p>To undo a page operation (cut or paste), activate the Undo cell. The most recent operation will be immediately reversed. The Page Ring maintains an undo history of the last 10 operations.</p>
 
-    <div class="note">The <strong>Import</strong> and <strong>Merge</strong> operations will clear the score's entire undo history. Because of this, you'll be prompted to confirm these operations before they are performed.</div>
+    <div class="note">The <strong>Import</strong> and <strong>Merge</strong> operations restart the score's undo history: what you did before them can't be undone. The import or merge itself can be, all of its pages at once. Because of this, you'll be prompted to confirm these operations before they are performed.</div>
 
     <div class="note">Unlike the Ink Ring's per-page undo stack, the Page Ring undo operates on page-level operations across the entire score.</div>
 
@@ -2184,7 +2189,7 @@ function closeVideo(event, container) {
 
     <p><strong>Import:</strong> Activate the Import cell, then tap a page in the score. All pages in the shared buffer are inserted at that position, before the page if you tap on the left half (top half for Vertical Layout) or after if you tap the right half (bottom half for Vertical Layout).</p>
 
-    <div class="note">Because an import operation will clear the score's undo history, you'll be prompted to confirm before the operation is performed.</div>
+    <div class="note">Because an import operation restarts the score's undo history, you'll be prompted to confirm before the operation is performed. The import itself can be undone: see <a href="#page-undo" class="chapter-link">Undo</a>.</div>
 
     <p>The Import Panel shows you a horizontally draggable view of thumbnails of the shared buffer, along with two management buttons:</p>
 
@@ -2203,18 +2208,23 @@ function closeVideo(event, container) {
 
     <h3 id="page-merge">7.6 Page Ring: Merge<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-merge"/></svg></h3>
 
-    <p>Merge an entire PDF score into the current score at a chosen page position.</p>
+    <p>Merge a PDF score, or a range of its pages, into the current score at a chosen page position.</p>
 
-    <p>Tap the Merge cell to open the file panel, then select any PDF. The cell activates and a toast message confirms the file is loaded and ready. Tap any page in the current score to insert the chosen PDF before that page. The merge preserves page order from the source file and carries over any Ink annotations saved within it.</p>
+    <p>Tap the Merge cell to open the file panel, then select any PDF. The cell activates and a toast message confirms the file is loaded and ready. On desktop browsers, you can instead open the Page ring and drag a PDF from your file manager onto the Merge cell. Tap any page in the current score to insert the chosen PDF before that page. The merge preserves page order from the source file and carries over any Ink annotations saved within it.</p>
 
-    <div class="note">Because a merge operation will clear the score's undo history, you'll be prompted to confirm before the operation is performed.</div>
+    <p>Before each merge, a dialog asks you to confirm. Its <strong>From</strong> and <strong>To</strong> sliders choose which of the PDF's pages to merge: all of them, at first. If the PDF was saved by PODIUM, they're numbered as it numbered them, by its <a href="#page-numbers" class="chapter-link">Numbers</a> settings (e.g. roman numerals for its first pages). The range is kept while the cell stays active, so each page you tap gets the same pages.</p>
+    <p>A copy protected PDF can't be merged: choosing one shows a message, and cancels the merge. Nor can anything be merged into a copy protected score: its Merge cell is disabled.</p>
+
+    <p>Below the sliders are the dialog's settings, and below a line, its actions. When lit (as at first), <strong>Mark</strong> bookmarks the first merged page, so each merged piece gets its own bookmark: in a set list, they're its index. And <strong>Ink</strong> keeps the merged pages' annotations, if the PDF has any (one saved by Podium): tap it for clean copies of the pages. Each stays the way you leave it.</p>
+
+    <div class="note">Because a merge operation restarts the score's undo history, you'll be prompted to confirm before the operation is performed. The merge itself can be undone, all of its pages at once: see <a href="#page-undo" class="chapter-link">Undo</a>.</div>
 
 
-    <p>After each merge the cell stays active, so you can tap additional pages to insert the same source PDF at multiple positions without reloading it. The cell deactivates automatically after a few seconds, or immediately when you tap it again.</p>
+    <p>After each merge the cell stays active, so you can tap additional pages to insert the same source PDF at multiple positions without reloading it. The cell deactivates automatically after a few seconds, or immediately when you tap it again. The file stays loaded, though: turn to another page, tap the Merge cell to reactivate it, and tap where the next pages go, without choosing the file again. It stays loaded until you choose another file, or open another score or close this one.</p>
 
     <h4>Locking for repeated use</h4>
 
-    <p>Long-press the Merge cell to lock it. A locked cell remains active indefinitely — useful when you need to merge the same file into many pages without the cell timing out. Long-press again, or tap the cell, to unlock and release the loaded file.</p>
+    <p>Long-press the Merge cell to lock it. A locked cell remains active indefinitely — useful when you need to merge the same file into many pages without the cell timing out. Long-press again, or tap the cell, to unlock it.</p>
 
     <h4>Common Use Cases:</h4>
 
@@ -2763,7 +2773,7 @@ function closeVideo(event, container) {
         <dt>Detached Panels</dt><dd> &mdash; <a href="#detached-panels">9.1</a></dd>
         <dt>Details<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-details"/></svg></dt><dd> &mdash; <a href="#score-details">4.5</a></dd>
         <dt>Display quality</dt><dd> &mdash; <a href="#score-details">4.5</a></dd>
-        <dt>Drag and drop</dt><dd> &mdash; <a href="#score-open-save">4.1</a></dd>
+        <dt>Drag and drop</dt><dd> &mdash; <a href="#score-open-save">4.1</a>, <a href="#ink-cut-copy-paste">6.5</a></dd>
         <dt>Dropbox</dt><dd> &mdash; <a href="#score-open-save">4.1</a></dd>
     </dl>
     <div class="idx-letter">E</div>
