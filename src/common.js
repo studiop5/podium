@@ -555,6 +555,25 @@ css( // common css declarations.
     text-align:center;
     outline:none;
   }
+  /* so in the Dark theme its buttons and sliders take the Light theme's colors (else the on/off
+     buttons' dark tiles hardly differ on the light grey, and the slider labels fade into it) */
+  [data-theme="Dark"] .dialog {
+    --color-text: #333;
+    --color-text-muted: #999;
+    --label-color: #50555b;
+    --value-weight: 600;
+    --accent: #9a4a17;
+    --slider-indicator: #777;
+    --slider-slot: #8f8f8f;
+    --slider-slot-shadow: inset 0 .05em .1em #0007, 0 .05em 0 #fff8;
+    --slider-knob-bg: #b8b8b8;
+    --slider-knob-selected-bg: #b0b0b0;
+    --slider-knob-shadow: 0.1em 0.1em 0.2em #fff2 inset, -0.1em -0.1em 0.2em #0001 inset, 0.1em 0.125em 0.2em #6668;
+    --button-bg: radial-gradient(#d2d2d2 45%, #cdcdcd 70%, #bdbdbd 100%);
+    --button-on-bg: radial-gradient(#ffffff 60%, #e6e6e6 100%);
+    --button-shadow: 0 .05em .1em #0003, inset 0 .05em 0 #fff6;
+    --button-on-shadow: inset 0 .05em .15em #0003;
+  }
   /* showModal() focuses a dialog's first link, and the browser rings it as if tabbed to */
   .dialog a { outline: none; }
   /* a dialog's settings (e.g. Merge's on/off buttons) are set off by a line from its actions,
