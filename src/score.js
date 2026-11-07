@@ -444,8 +444,13 @@ class Pg {
     if (this.inflated) {
       if(full) this.json = null;
       else this.json = this.toJson();
+      let { lowerCanvasEl, upperCanvasEl, cacheCanvasEl } = this.canvas, mozCanvas = this.mozCanvas;
       this.canvas.clear();
       this.canvas.dispose();
+      // iOS frees a canvas's memory only once it's garbage collected, s.t. a burst of deflates (e.g. a
+      // disposed score's, after a merge) can exceed its canvas memory limit, and the next pages drawn
+      // stay blank until it is: so free it now.
+      for (let c of [lowerCanvasEl, upperCanvasEl, cacheCanvasEl, mozCanvas]) if (c) c.width = c.height = 0;
       this.elm?.remove();
       this.canvas = null;
       this.mozCanvas?.remove();
