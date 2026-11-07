@@ -1546,10 +1546,11 @@ function closeVideo(event, container) {
     <ul>
         <li><strong>From</strong> and <strong>To:</strong> the range of pages to print: all of them, at first</li>
         <li><strong>Ink:</strong> when lit (as at first), the annotations are printed too; tap it to print the original PDF only. It stays the way you leave it.</li>
-        <li><strong>Print</strong> prints, and <strong>Cancel</strong> closes the panel</li>
+        <li><strong>Print</strong> brings up the browser's print dialog (or, if the browser can't print it that way, opens the PDF in a new tab to print from there), and <strong>Cancel</strong> closes the panel</li>
     </ul>
 
-    <div class="note"><strong>iPhone/iPad:</strong> Safari does not support automatic print dialogs from web apps. After tapping Print, your PDF will open in a new tab. From there, tap the Share button <span style="display:inline-block;position:relative;width:.7em;height:1em;vertical-align:-.15em;">&#x2610;<span style="position:absolute;left:.1em;top:-.55em;font-size:1.2em;">&#x2191;</span></span> in the toolbar (iPhone: bottom center; iPad: beside the address bar) and choose <strong>Print</strong>.</div>
+    <div class="note"><strong>iPhone/iPad:</strong> Safari does not support automatic print dialogs from web apps. After tapping Print, a message reminds you what to do, and its <strong>Open</strong> button opens your PDF in a new tab. From there, print with your device's own controls (in Safari, Print is in the Share menu).</div>
+    <div class="note"><strong>Android:</strong> Chrome does not support automatic print dialogs for PDFs either. After tapping Print, a message reminds you what to do, and its <strong>Open</strong> button opens your PDF in a new tab. From there, tap the <strong>&#x22EE;</strong> menu and choose <strong>Print</strong>.</div>
 
     <div class="note">Large scores or scores with particularly dense or poorly encoded, unoptimized PDF content can fail while printing. If you encounter printing failures, try printing the score in several smaller sections by specifying different page ranges. The Print panel reminds you of this while its range is more than 100 pages.</div>
     <div class="note"><strong>Copy protected scores:</strong> A copy protected PDF that permits printing is printed as it was opened: Print sends the original file straight to the browser's print dialog (where you can choose its pages), or, if the browser can't print it that way, opens it in a new tab to print from there. None of your changes are printed: no Ink, and no added, cut, or moved pages. One that doesn't permit printing can't be printed: its Print cell is disabled.</div>

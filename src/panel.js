@@ -3650,28 +3650,31 @@ class PrintPanel extends Panel {
 
       dataUrl = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
 
-      // A copy protected score is printed from a hidden frame in this tab, s.t. the browser's print dialog
-      // comes straight up: from a tab, as below, print() hung PODIUM (in Chrome, at least), leaving the user
-      // to print from its viewer. Failing that (e.g. Firefox's viewer can't be printed this way), or on iOS
-      // (where it prints the tab), it's that tab after all.
+      // The pdf is printed from a hidden frame in this tab, s.t. the browser's print dialog comes straight up,
+      // with no tab to go through (e.g. one a pdf extension takes over, ignoring print()), and for a copy
+      // protected score, print() on its tab, as below, seemed to hang PODIUM (in Chrome). Failing that (e.g. a
+      // browser that can't show a pdf in a frame), or on iOS (where it prints the tab) or Android (where Chrome
+      // opens the frame's pdf in a tab of its own), it's a tab after all.
       let iOS = /AppleWebKit/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent) && navigator.maxTouchPoints > 1;
-      if (asIs && !iOS && await printInFrame(dataUrl)) return void (dataUrl = null); // (the frame releases it)
+      let android = /Android/.test(navigator.userAgent);
+      if (!iOS && !android && await printInFrame(dataUrl)) return void (dataUrl = null); // (the frame releases it)
 
       // Try to open the print window automatically. This usually works on 
-      // desktop if the PDF generation was fast enough.
-      try {
+      // desktop if the PDF generation was fast enough. (Not on a phone or tablet, where the tab's
+      // printed by hand: the dialog below says how, before the user leaves for it)
+      if (!iOS && !android) try {
         printWin = window.open(dataUrl, "_blank");
       } catch (e) {
         console.warn("window.open blocked/failed:", e);
       }
 
       if (!printWin || printWin.closed || typeof printWin.closed == 'undefined') {
-        // Popup blocked (especially possible on iOS Safari after await).
+        // Popup blocked (especially possible on iOS Safari after await), or a phone or tablet.
         // Show a dialog to provide a fresh user gesture.
         _shade_.hide();
         printWin = null;
-        let readyDialog = dialog("Your PDF is ready to print.", {
-          "Open PDF": { svg: "Ink" }, Cancel: { svg: "Cancel" },
+        let readyDialog = dialog("Your PDF is ready to print." + (iOS || android ? "<br>Tap Open, then use your device's print controls." : ""), {
+          Open: { svg: "Ink" }, Cancel: { svg: "Cancel" },
         }, (e, prop, tag, args) => {
           if(tag == "Cancel") {
             releaseUrl();
