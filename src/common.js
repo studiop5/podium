@@ -23,6 +23,8 @@
 export {
   animate,
   animateStop,
+  animMs,
+  setAnimScale,
   css,
   cssIndex,
   dialog,
@@ -86,6 +88,7 @@ window._lastTarget_ = null; // last touched .pz element, excluding EditPanel
 window._dvPxRt_ = 1 + (devicePixelRatio - 1) * 0.3;
 window._gs_ = 618; // golden section (reciprocal) msec (.618 seconds)
 window._gsgs_ = (_gs_ * _gs_) / 1000; // shorter golden section!
+setAnimScale(matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1); // window._animScale_
 window._sliderPrecision_ = 4; // sensitivity multiplier for slider/pager precision mode
 window._zTop_ = 300; // continuously incrementing z-index counter for panels, menu, surfaces
 window._mobile_ = window.matchMedia('(pointer: coarse)').matches;
@@ -314,10 +317,10 @@ css( // common css declarations.
     --line-height-base: 1.5;
     --line-height-loose: 1.75;
 
-    /* Transitions */
-    --transition-fast: 150ms ease;
-    --transition-normal: 300ms ease;
-    --transition-slow: 500ms ease;
+    /* Transitions (--anim: see setAnimScale) */
+    --transition-fast: calc(150ms * var(--anim)) ease;
+    --transition-normal: calc(300ms * var(--anim)) ease;
+    --transition-slow: calc(500ms * var(--anim)) ease;
 
     /* Z-index layers */
     --z-base: 1;
@@ -794,7 +797,7 @@ class ButtonGroup {
           let currentToggleElm = dataIndex("property", this.elm)[property];
           if (tag == itemTag && currentToggleElm !== elm) {
             currentToggleElm.replaceWith(elm);
-            if (this.elm.isConnected) elm.animate([{ transform: "rotateY(90deg)" }, { transform: "none" }], 250); // flips over
+            if (this.elm.isConnected) elm.animate([{ transform: "rotateY(90deg)" }, { transform: "none" }], animMs(250)); // flips over
           }
         }
       }
@@ -1122,7 +1125,7 @@ class Curtain {
   level = 60 ;
 
   curtain = helm(`<div data-tag="Curtain" style=
-     "position:fixed;inset:0;pointer-events:none;opacity:0;transition: opacity 1500ms ease;z-index:var(--z-curtain)">
+     "position:fixed;inset:0;pointer-events:none;opacity:0;transition: opacity ${animMs(1500)}ms ease;z-index:var(--z-curtain)">
       </div>`) ; // singleton div
 
   constructor() {
@@ -1150,7 +1153,7 @@ class Curtain {
             }
             curtain.style.visibility = "visible" ;
             curtain.offsetHeight;
-            curtain.style.transition = "opacity 1500ms ease";
+            curtain.style.transition = `opacity ${animMs(1500)}ms ease`;
           }
         }
       } catch (err) {}
@@ -1189,7 +1192,7 @@ class Curtain {
     else curtain.style.opacity = 0 ;
     if (immediate) {
       curtain.offsetHeight ; // force reflow
-      curtain.style.transition = "opacity 1500ms ease" ;
+      curtain.style.transition = `opacity ${animMs(1500)}ms ease` ;
     }
   }
 
@@ -1614,7 +1617,7 @@ class Shade {
        font-family: Bravura;
        font-size: ${60 / _dvPxRt_}px;
        line-height: ${60 / _dvPxRt_}px;
-       animation: colors 3s linear infinite;
+       animation: colors calc(3s * var(--anim)) linear infinite;
        text-align: center;
       }
       @keyframes colors {
@@ -1657,7 +1660,7 @@ class Shade {
     _body_.append(this.elm);
     this.elm.style.opacity = 0;
     reflow();
-    this.elm.style.transition = `opacity ${fadeIn}ms ease-in`;
+    this.elm.style.transition = `opacity ${animMs(fadeIn)}ms ease-in`;
     this.scheduler.run(fadeIn, () => (this.elm.style.opacity = 1));
   }
 
@@ -1667,7 +1670,7 @@ class Shade {
 
   hide() {
    this.msgStack = [];
-    this.elm.style.transition = "opacity 5500ms ease-in";
+    this.elm.style.transition = `opacity ${animMs(5500)}ms ease-in`;
     this.elm.style.opacity = 0;
     this.scheduler.run(500, () => this.elm.remove());
   }
@@ -2016,8 +2019,8 @@ class Surface {
     let surface = this.surface;
     if (surface.parentElement != _body_ || surface.hiding) return;
     surface.hiding = true;
-    let ms = 500;
-    numb(surface, ms);
+    let ms = animMs(500);
+    numb(surface, 500);
     let onElmBox = getBox(dataIndex("tag", this.panel.cell.elm).cellIcon);
     let elmBox = getBox(surface);
     // translate the surface's CENTER onto the cell icon's CENTER, shrinking to nothing
@@ -2257,6 +2260,15 @@ function animate(elm, from, to, transition, finalize) {
   // A move and/or resize (@to holding only left, top, fontSize) is not transitioned
   // on those properties: each frame of that is a re-layout (and, for fontSize, a
   // re-raster of everything inside @elm). It "flies" instead: see fly().
+  //
+  // @transition's durations are those at normal speed: animMs() scales them.
+  transition = transition.replace(/([\d.]+)(m?s)\b/g, (t, n, unit) => animMs(n * (unit == "s" ? 1000 : 1)) + "ms");
+  if (!_animScale_) { // no animation: straight to the end state (and @finalize, as ever, afterwards)
+    animateStop(elm);
+    Object.assign(elm.style, from, to, { transition: "unset" });
+    if (finalize) queueMicrotask(finalize);
+    return;
+  }
   if (Object.keys(to).every((k) => FLY_PROPS.includes(k)) && (!elm.style.transform || elm.flight)
       && fly(elm, from, to, transition, finalize)) return;
   animateStop(elm);
@@ -2276,6 +2288,19 @@ function animate(elm, from, to, transition, finalize) {
 }
 
 let FLY_PROPS = ["left", "top", "fontSize"];
+
+function animMs(ms) {
+  // How long an animation designed to last @ms should last now.
+  // (0 when animation is off: callers must then go straight to the end state)
+  return ms * _animScale_;
+}
+
+function setAnimScale(scale) {
+  // Scale every animation's duration by @scale: 1 normal, 0 none (e.g. for an e-ink screen).
+  // The one place window._animScale_ changes: css's --anim, which scales its durations, stays in step.
+  window._animScale_ = scale;
+  document.documentElement.style.setProperty("--anim", scale);
+}
 
 function animateStop(elm) {
   // Finish a fly() now: @elm jumps to its end state.
@@ -2532,8 +2557,10 @@ function hide(elm, onElm) {
   // @elm will be moved toward
   // @onElm, and collapsed to size 0 during a 500ms annimation,
   // then elm's visibility will be set hidden, and its size restored.
-  if (elm.hiding) return;
-  else elm.hiding = true; // prevent hiding until schedule(500...) has run
+  // @return a promise of that (the one already made, while elm is still being hidden)
+  if (elm.hiding) return elm.hiding;
+  let ms = animMs(500), done;
+  let hiding = elm.hiding = new Promise((resolve) => done = () => { elm.hiding = null; resolve(); });
   numb(elm, 500);
   // The animation is a single `transform` (translate + scale to nothing, about
   // elm's transform origin): compositor-only, where left/top/font-size would
@@ -2552,7 +2579,8 @@ function hide(elm, onElm) {
     let is = getBox(probe);
     if (Math.abs(is.x - was.x) > 0.5 || Math.abs(is.y - was.y) > 0.5) {
       elm.style.transform = saved.transform;
-      return hideByLayout(elm, onElm);
+      hideByLayout(elm, onElm, ms, done);
+      return hiding;
     }
   }
   let box = getBox(elm), onElmBox = getBox(onElm);
@@ -2566,19 +2594,21 @@ function hide(elm, onElm) {
   elm.style.transition = "none";
   elm.style.transform = `translate(0px, 0px) scale(${style.transform == "none" ? 1 : new DOMMatrix(style.transform).a})`;
   reflow();
-  elm.style.transition = "transform 500ms";
+  elm.style.transition = `transform ${ms}ms`;
   elm.style.transform = `translate(${dx}px, ${dy}px) scale(0)`;
-  schedule(500, () => {
+  schedule(ms, () => {
     elm.style.visibility = "hidden";
     elm.style.top = "-9999px";
     elm.style.transition = "unset";
     elm.style.transform = saved.transform;
-    elm.hiding = false;
+    done();
   });
+  return hiding;
 }
 
-function hideByLayout(elm, onElm) {
+function hideByLayout(elm, onElm, ms, done) {
   // hide()'s animation done with left/top/font-size: for an elm that can't take a transform.
+  // (lasting @ms, after which it calls @done)
   let fontSize = elm.style.fontSize; // this MUST come from style, NOT from getComputedStyle
   let elmBox = getBox(elm); // getBox forces layout, so this is the current (source) position
   let onElmBox = getBox(onElm);
@@ -2593,18 +2623,18 @@ function hideByLayout(elm, onElm) {
   let top  = (elmBox.y - offsetParentBox.y) + "px";
   elm.style.left = left;
   elm.style.top = top;
-  elm.style.transition = "top 500ms, left 500ms, font-size 500ms, opacity 500ms";
+  elm.style.transition = `top ${ms}ms, left ${ms}ms, font-size ${ms}ms, opacity ${ms}ms`;
   reflow();
   elm.style.left = (onElmBox.x + onElmBox.width / 2 - offsetParentBox.x) + "px"; 
   elm.style.top = (onElmBox.y + onElmBox.height / 2 - offsetParentBox.y) + "px";  
   elm.style.fontSize = 0;
-  schedule(500, () => {
+  schedule(ms, () => {
     elm.style.left = left;
     elm.style.visibility = "hidden";
     elm.style.top = "-9999px";
     elm.style.transition = "unset";
     elm.style.fontSize = fontSize;
-    elm.hiding = false;
+    done();
   });
 }
 
@@ -2782,6 +2812,8 @@ function numb(elm, ms) {
   // touch on something flying across the ui neither catches it nor falls through to
   // what's underneath. The swallowing is done by main.js's onDown (the capture-phase
   // pointerdown listener on _body_, which runs ahead of every other handler) via numbed().
+  // (@ms is the flight's duration at normal speed, as given to animate(): scaled here, as there)
+  ms = animMs(ms);
   if (!(ms > 0)) return; // (NaN, a negative or no @ms: never numb forever by mistake)
   let until = performance.now() + Math.min(ms, 5000);
   _numb_.set(elm, Math.max(until, _numb_.get(elm) ?? 0));
@@ -2928,7 +2960,7 @@ css(
       width: fit-content;
       height: fit-content;
       pointer-events: none;
-      transition: opacity ease-out ${_gsgs_}ms;
+      transition: opacity ease-out calc(${_gsgs_}ms * var(--anim));
       z-index: var(--z-topmost);
       background-color: var(--bodyColor);
    }`
@@ -3004,7 +3036,7 @@ function ptrMsg(e, msgFunc, styles) {
       unlisten(done);
       put(eup);
       div.style.opacity = 0;
-      delayMs(_gsgs_, () => div.remove());
+      delayMs(animMs(_gsgs_), () => div.remove());
       unlisten(mv);
     }
   );
@@ -3065,7 +3097,7 @@ function toast(innerHtml, addClass=null, duration=null,) {
   let dur = duration ? duration: _gs_ ;
   let elm = helm(
     `<div id="toast" style="position:absolute;pointer-events:none;display:flex;justify-content:center;align-items:center;height:100vh;width:100vw;pointer-events:none">
-       <div class="floatingMsg" style="z-index:var(--z-toast);position:absolute;width:fit-content;height:fit-content;opacity:0;transition:opacity ${dur}ms ease-in">${innerHtml}</div>
+       <div class="floatingMsg" style="z-index:var(--z-toast);position:absolute;width:fit-content;height:fit-content;opacity:0;transition:opacity ${animMs(dur)}ms ease-in">${innerHtml}</div>
      </div>`
   );
   if(addClass) elm.firstElementChild.classList.add(addClass) ;

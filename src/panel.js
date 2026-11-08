@@ -22,6 +22,7 @@
 
 import {
   animate,
+  animMs,
   ButtonGroup,
   dataIndex,
   clamp,
@@ -46,7 +47,6 @@ import {
   pxToEm,
   reflow,
   SliderGroup,
-  schedule,
   Schedule,
   Surface,
   svgWrap,
@@ -148,7 +148,7 @@ class Select {
     // in the list and in the toggle (e.g. each font name in its own typeface).
     Object.assign(this, dataIndex("tag", this.elm));
     Object.assign(this, {options, option, panel, translatable, optionStyle}) ;
-    delayMs(_gs_ + 1, () => this.build()) ; // call build after we're confident panel has animated (duration _gs_) to its full size
+    delayMs(animMs(_gs_) + 1, () => this.build()) ; // call build after we're confident panel has animated (duration _gs_) to its full size
   }
 
   build() {
@@ -600,10 +600,13 @@ class Panel {
     // the dom, and its singleton is deleted.
     this.hide();
     if (this.elm.dataset.tag != "ScreenPanel" && ScreenPanel.pzTarget == this.elm) ScreenPanel.update(null) ;
-    schedule(510, () => {
+    // (forgotten at once: a tap on its cell while it flies back into it opens a new panel, rather
+    // than reshowing this one, only for it to be removed when it lands)
+    if (panels[this.cell.key] === this) delete panels[this.cell.key];
+    // (once hidden: hide() left the promise of that in elm.hiding, or none if it had no flight to make)
+    Promise.resolve(this.elm.hiding).then(() => {
       this.elm.remove();
       this.destructor();
-      delete panels[this.cell.key];
     });
   }
 
@@ -660,9 +663,8 @@ class Panel {
     elm.style.transformOrigin = `0px ${dy}px`;
     elm.style.transform = "scale(0)";
     reflow();
-    elm.style.transition = `transform ${_gs_}ms`;
+    elm.style.transition = `transform ${animMs(_gs_)}ms`;
     numb(elm, _gs_);
-    if(onShown) delayMs(_gs_, () => onShown()) ;
     elm.style.transform = "scale(1)";
     _pzTarget_ = elm;
     let clazz = this.constructor.name ;
@@ -671,6 +673,7 @@ class Panel {
       _panels_.screen?.surface.update();
     }
     if(clazz != "CurtainPanel") elm.style.zIndex = ++_zTop_;
+    if(onShown) delayMs(animMs(_gs_), () => onShown()) ; // (last: with no animation, it runs at once)
     return this;
   }
 
@@ -1697,9 +1700,9 @@ class ImportPanel extends Panel {
         let sashWidth = pxToEm(this.sash.offsetWidth, this.sash);
         this.sash.style.left = frameWidth;
         reflow();
-        this.sash.style.transition = `left ${_gs_}ms`;
+        this.sash.style.transition = `left ${animMs(_gs_)}ms`;
         this.sash.style.left = parseFloat(frameWidth) - parseFloat(sashWidth) - .8 + "em";
-        delayMs(_gs_, () => this.sash.style.transition = "unset");
+        delayMs(animMs(_gs_), () => this.sash.style.transition = "unset");
         buttons.defs.Undo.disabled = false;
         buttons.defs.Clear.disabled = false;
       }

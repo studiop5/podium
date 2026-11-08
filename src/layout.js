@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, ButtonGroup, clamp, clearChildren, css, cssIndex, dataIndex, delay, delayMs, dialog, Drag, getBox, helm, listen, numb, pnToDiv, pnToHtml, ptrMsg, reflow, rotatePoint, Schedule, SliderGroup, toast, unlisten,} from "./common.js";
+import { animate, animMs, ButtonGroup, clamp, clearChildren, css, cssIndex, dataIndex, delay, delayMs, dialog, Drag, getBox, helm, listen, numb, pnToDiv, pnToHtml, ptrMsg, reflow, rotatePoint, Schedule, SliderGroup, toast, unlisten,} from "./common.js";
 import { escapeHtml } from "./file.js";
 import {ScreenPanel } from "./panel.js";
 import { Pg } from "./score.js";
@@ -1199,7 +1199,7 @@ class BookLayout extends Layout {
     let msecPerFlip = pace == null ? this.cell.stash.pace : pxPerFlip * (1/ Math.abs(pace)) ; 
     let startFlip  = advancing ? (pgWidth - x)   / pxPerFlip : (x   + pgWidth) / pxPerFlip;           
     let targetFlip = advancing ? (pgWidth - toX)  / pxPerFlip : (toX + pgWidth) / pxPerFlip;          
-    let duration = Math.abs(targetFlip - startFlip) * msecPerFlip;       
+    let duration = animMs(Math.abs(targetFlip - startFlip) * msecPerFlip);
     this.inOp = true;                                                                             
     let start = performance.now();                                                                
     let easedStart  = startFlip  * startFlip  * (3 - 2 * startFlip);                            
@@ -1208,7 +1208,7 @@ class BookLayout extends Layout {
     let animate = (now) => {
       if (animId != this.animId) return;  // cancelled (by a newer flip, or by the destructor)
       this.flipFrame = null;
-      let t = Math.min((now - start) / duration, 1);                                              
+      let t = duration ? Math.min((now - start) / duration, 1) : 1;
       let flip = startFlip + (targetFlip - startFlip) * t;
       let easedFlip = flip * flip * (3 - 2 * flip);                                               
       let progress = t >= 1 ? 1 : (easedFlip - easedStart) / (easedTarget - easedStart);          
@@ -1495,7 +1495,7 @@ class BookLayout extends Layout {
       // one page appearing and then the other reads as loading, which a flip used to cover.
       let spread = [this.slots[2], this.slots[3]];
       for (let slot of spread) Object.assign(slot.style, { transition: "none", opacity: 0 });
-      let fadeMs = 250, fade = "";
+      let fadeMs = animMs(250), fade = "";
       try {
         for (let [slot, nonblocking] of [[2, false], [3, false], [0, true], [1, true], [4, true], [5, true]])
           await this.pgMount(pn0 + slot, slot, nonblocking);
@@ -1883,9 +1883,9 @@ class ScrollLayout extends Layout {
       Object.assign(elm.style, { transition: "none", transform: `translate(${d.x}px, ${d.y}px)` });
     reflow();
     for (let { elm } of moves)
-      Object.assign(elm.style, { transition: `transform ${_gsgs_}ms ease-in-out`, transform: "" });
+      Object.assign(elm.style, { transition: `transform ${animMs(_gsgs_)}ms ease-in-out`, transform: "" });
     // Clean up by timer, not transitionend: a pg unmounted mid-slide never gets one.
-    delayMs(_gsgs_ + 50, () => { for (let { elm } of moves) elm.style.transition = ""; });
+    delayMs(animMs(_gsgs_) + 50, () => { for (let { elm } of moves) elm.style.transition = ""; });
   }
 
   async onDown(e) {
@@ -2015,13 +2015,13 @@ class ScrollLayout extends Layout {
       return;
     }
     let startLeft = parseFloat(this.sash.style[LEFT]) || 0;
-    let duration = ((this.snapStep || 1) * _score_[MAXWIDTH]) / pace ;
+    let duration = animMs(((this.snapStep || 1) * _score_[MAXWIDTH]) / pace);
     this.spinRollers(duration);
     let start = performance.now();
     let animId = ++this.commitAnimId;
     let step = (now) => {
       if (animId !== this.commitAnimId) return;
-      let t = Math.min((now - start) / duration, 1);
+      let t = duration ? Math.min((now - start) / duration, 1) : 1;
       let eased = 1 - Math.pow(1 - t, 3); // cubic ease-out: full speed start, decelerates to rest
       this.sash.style[LEFT] = (startLeft + (target - startLeft) * eased) + "em";
       if (t < 1) requestAnimationFrame(step);
@@ -2501,7 +2501,7 @@ class TableLayout extends Layout {
             if(elm) {
               splitsStyle[i] = elm.style.cssText;
               elm.style.transform = this.splitsTransform[i];
-              elm.style.transition = "250ms ease-in-out";
+              elm.style.transition = `${animMs(250)}ms ease-in-out`;
             }
           });
           this.splits = newSplits;
@@ -2710,7 +2710,7 @@ class Pager {
       font-size: ${50 / _dvPxRt_}px;
       line-height: ${50 / _dvPxRt_}px;
       text-align:center;
-      transition: opacity 350ms ease-in-out;
+      transition: opacity calc(350ms * var(--anim)) ease-in-out;
      }
      .Pager__cursor {
        position:absolute;

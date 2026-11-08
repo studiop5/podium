@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, clamp, css, dataIndex, delay, delayMs, dialog, Drag, fontMap, getBox, helm, hide, iconSvg, listen, mergeRecent, numb, Schedule, schedule, svgWrap, toast, unlisten } from "./common.js";
+import { animate, animMs, clamp, css, dataIndex, delay, dialog, Drag, fontMap, getBox, helm, hide, iconSvg, listen, mergeRecent, numb, Schedule, schedule, svgWrap, toast, unlisten } from "./common.js";
 import { checkUnsaved, FileSrc } from "./file.js";
 import { iconPaths } from "./icon.js";
 import { Layout } from "./layout.js";
@@ -1168,6 +1168,7 @@ class Menu {
     let dur   = clamp(Math.abs(vel) / 0.00000067, 500, 1500);
     let coast = clamp(vel * dur / 2, -0.75, 0.75); // turns travelled while decelerating: at most 3/4 turn
     obj.turn += coast;
+    dur = animMs(dur); // (the spin coasts as far, however fast it's animated)
     spinElm.style.transition = `transform ${dur}ms ease-out`;
     spinElm.style.transform  = `rotate(${obj.turn}turn)`;
     [...spinElm.children].forEach((child, i) => {
@@ -1558,7 +1559,7 @@ class Menu {
     // Collapse with the independent `scale` property, not `transform`: the holder's
     // transform belongs to others (startup's spin, its class's translateZ(0)), and a
     // transform list like rotate(0) can't be interpolated with scale(0).
-    holder.style.transition = `all ${_gs_}ms ease-in`;
+    holder.style.transition = `all ${animMs(_gs_)}ms ease-in`;
     if (this.collapsed) {
       this.collapsed = false;
       holder.style.scale = "1";
@@ -1566,7 +1567,7 @@ class Menu {
       holder.style.scale = "0";
       this.collapsed = true;
     }
-    schedule(_gs_, () => holder.style.transition = "unset");
+    schedule(animMs(_gs_), () => holder.style.transition = "unset");
   }
 
   park() {
@@ -1808,8 +1809,7 @@ class Menu {
     let elm = helm(`<img src=${obj.toDataURL()} style=
        "border:1px solid red;width:${emWidth}em;height:auto;z-index:1000;left:${left}px;top:${top}px;position:absolute;"></img>`);
     _body_.append(elm);
-    hide(elm, dataIndex("tag", this.rings.ink.cells.paste.elm).cellIcon);
-    delayMs(500, () => elm.remove());
+    hide(elm, dataIndex("tag", this.rings.ink.cells.paste.elm).cellIcon).then(() => elm.remove());
 
     if (isCut) {
       // Remove object(s) and auto-select next

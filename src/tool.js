@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, Drag, helm, hide, iconSvg, listen, schedule, Schedule, SliderGroup, Surface, TabView, toast, unlisten, pxToEm, noTranslate,} from "./common.js";
+import { animMs, ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, Drag, helm, hide, iconSvg, listen, schedule, Schedule, SliderGroup, Surface, TabView, toast, unlisten, pxToEm, noTranslate,} from "./common.js";
 import { pianoSamples } from "./sample.js";
 import { panels, ScreenPanel, Select } from "./panel.js";
 import { Yin } from "./yin.js";
@@ -578,7 +578,7 @@ class Piano {
         // when tuning, we "auto repeat" the note by recusive calls to noteOn
         let repeatMs = piano ? 2500:4000;
         this.repeater.run(repeatMs, () => noteOn(midiOffset));
-        this.repeatButton.firstElementChild.animate([{ color: "black" }, { color: "white" }], repeatMs);
+        this.repeatButton.firstElementChild.animate([{ color: "black" }, { color: "white" }], animMs(repeatMs));
         // dampen the note just before it repeats
         this.damper.run(piano ? 2200:7500, () => envelope.gain.setTargetAtTime(0.0, now, 0.015));
       }

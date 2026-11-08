@@ -21,7 +21,7 @@
 **/
 
 export { checkUnsaved, escapeHtml, FileSrc, FileListView, FileSystemView, LocalFileView };
-import { css, ButtonGroup, clamp, clearChildren, dataIndex, delay, Drag, getBox, helm, iconSvg, listen, dialog, noTranslate, Schedule, strToHash, toast, unlisten } from "./common.js";
+import { animMs, css, ButtonGroup, clamp, clearChildren, dataIndex, delay, Drag, getBox, helm, iconSvg, listen, dialog, noTranslate, Schedule, strToHash, toast, unlisten } from "./common.js";
 import { Score } from "./score.js";
 import { panels } from "./panel.js";
 // -skip
@@ -2322,7 +2322,7 @@ class FileListView {
         drag.up(eup);
         unlisten(mv);
         if (drag.moved) {
-          elm.style.transition = "1000ms top ease-out";
+          elm.style.transition = `${animMs(1000)}ms top ease-out`;
           return (elm.style.top = clamp(elm.offsetTop + drag.vY * 1000, minTop, 0) + "px");
         }
         let fileElm = e.target.closest(".Flv-list__file");
