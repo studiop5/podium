@@ -1840,20 +1840,22 @@ class ScrollLayout extends Layout {
     this.pagerRight.build();
 
     let pn = parseInt(_score_.numbers.pn);
+    if (animated) {
+      // (fly out of the cell to the center, or the user's pan-zoom, for a 1-page score too)
+      let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
+      numb(this.elm, _gs_);
+      animate(this.elm,
+        { left:iconBox.x + iconBox.width / 2 + "px", top:iconBox.y + iconBox.height / 2 + "px", fontSize: 0},
+        this.userPz() ?? this.centerLT({ fontSize: "1em"}),
+        `all ${_gs_}ms`
+      );
+    }
     if (animated && score.pgs.length > 1) {
       // Instantly position the sash 1 page away to show a 1-page transition
       let startPn = (pn > 1) ? (pn - 1) : 2;
       let pgSpan = g.pg[this.props.WIDTH] + g.gap;
       let startSashStart = -(startPn - 1) * pgSpan;
       this.sash.style[this.props.LEFT] = (startSashStart / _pxPerEm_) + "em";
-
-      let iconBox = getBox(dataIndex("tag", this.cell.elm).cellIcon);
-      numb(this.elm, _gs_);
-      animate(this.elm, 
-        { left:iconBox.x + iconBox.width / 2 + "px", top:iconBox.y + iconBox.height / 2 + "px", fontSize: 0},
-        this.userPz() ?? this.centerLT({ fontSize: "1em"}),
-        `all ${_gs_}ms`
-      );
       this.pgGoTo(pn, true);
     } else {
       await this.pgGoTo(pn, false); // (awaited so the pgs are mounted when build() resolves)
