@@ -88,7 +88,9 @@ window._lastTarget_ = null; // last touched .pz element, excluding EditPanel
 window._dvPxRt_ = 1 + (devicePixelRatio - 1) * 0.3;
 window._gs_ = 618; // golden section (reciprocal) msec (.618 seconds)
 window._gsgs_ = (_gs_ * _gs_) / 1000; // shorter golden section!
-setAnimScale(matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1); // window._animScale_
+// window._animScale_: 1, unless (for testing, until there's a setting) pod.html?anim=0 (or 0.5...)
+let animParam = parseFloat(new URLSearchParams(location.search).get("anim"));
+setAnimScale(animParam >= 0 ? animParam : 1);
 window._sliderPrecision_ = 4; // sensitivity multiplier for slider/pager precision mode
 window._zTop_ = 300; // continuously incrementing z-index counter for panels, menu, surfaces
 window._mobile_ = window.matchMedia('(pointer: coarse)').matches;
