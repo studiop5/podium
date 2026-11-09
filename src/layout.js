@@ -582,9 +582,11 @@ class Layout {
 
         case "paste": {
           let pastePg = score.pgAdd(pasteCell.pg, pn);
-          Object.assign(pastePg.thumbElm?.style || pastePg.elm.style, { opacity: 0 });
+          // (the elm, not the pg: a book layout may deflate the pg during the clone)
+          let pasteElm = pastePg.thumbElm || pastePg.elm;
+          pasteElm.style.opacity = 0;
           pasteCell.pg = await pastePg.clone(true); // clone pg for any subsequent paste
-          animate(pastePg.thumbElm || pastePg.elm, null, { opacity: 1 }, 
+          animate(pasteElm, null, { opacity: 1 },
             `opacity cubic-bezier( 0.99, 0.05, 0.82, 0.35 ) ${_gs_}ms`);
           await this.build(false); 
           await this.pgGoTo(pn);;
