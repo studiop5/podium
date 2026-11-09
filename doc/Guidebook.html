@@ -953,7 +953,7 @@ function closeVideo(event, container) {
     <p><a href="#layout" class="chapter-link">See Chapter 5: Layout Ring</a> for detailed layout controls and settings</p>
 
     <h4>3. Navigate and Annotate</h4>
-    <p><strong>Navigation:</strong> Tap, swipe, or fling score pages to turn them. Long-press anywhere on the background to summon the menu. To hide the menu, fling it to any corner or edge, or long-press its center grip to park it in the upper left corner.</p>
+    <p><strong>Navigation:</strong> Tap, swipe, or fling score pages to turn them. Long-press anywhere on the score or the background to summon the menu. To hide the menu, fling it to any corner or edge, or long-press its center grip to park it in the upper left corner.</p>
 
     <p><strong>Annotations:</strong> Tap the inner ring's Ink cell to add annotations. The outer ring shows tools for:</p>
     <ul>
@@ -1054,11 +1054,11 @@ function closeVideo(event, container) {
     </ul>
     <p><strong>Note:</strong> Like Ink tools, Page tools auto-deactivate after a few seconds of inactivity.</p>
 
-    <p>The shared buffer lets you transfer pages between Podium tabs: use Export to send a page to the buffer, and Import to insert it into another score. The buffer is shared across all web app tabs and windows, and persists across sessions. Tabs of the web app (studiop5.org) share one buffer, and tabs of the browser extension share another; transferring across these boundaries is not possible.</p>
+    <p>The shared buffer lets you transfer pages between Podium tabs: use Export to append a page to the buffer, and Import to insert all exported pages into another score. The buffer is shared across all web app tabs and windows, and persists across sessions. Tabs of the web app (studiop5.org) share one buffer, and tabs of the browser extension share another; transferring across these buffers is not possible.</p>
 
     <figure>
         <div class="video-container">
-            <img src="assets/quickpage.jpg" alt="Page Ring with horizontal layout">
+            <img src="assets/quickpage.jpg" alt="Export/Import from the Page Ring">
             <button type="button" class="play-overlay" aria-label="Play silent video: Manage pages" onclick="playVideo(this.parentElement)">Watch</button>
             <button type="button" aria-label="Close video" class="close-video" onclick="closeVideo(event, this.parentElement)">&times;</button>
             <video aria-label="Manage pages (silent demonstration)" controls preload="none" tabindex="0">
@@ -1066,22 +1066,22 @@ function closeVideo(event, container) {
                 Your browser does not support the video tag.
             </video>
         </div>
-        <figcaption>Horizontal layout with Page Ring active (glass theme)</figcaption>
+        <figcaption>Export/Import from the Page Ring</figcaption>
         <p class="video-status" role="status"></p>
     </figure>
 
-    <div class="note"><strong>Quick tip:</strong> In <a href="#table-reorder" class="chapter-link">Table layout</a>, you can reorder pages by simply dragging them to a new location; other pages split apart to show where the page will be inserted. You can also cut pages by dragging them completely out of the layout. This direct manipulation is often faster than using Page Ring tools!</div>
+    <div class="note"><strong>Quick tip:</strong> In <a href="#table-reorder" class="chapter-link">Table layout</a>, you can reorder pages by simply dragging them to a new location; other pages split apart to show where the page will be inserted. You can also cut pages by dragging them completely out of the layout. These gestures are usually faster than using Page Ring tools.</div>
 
     <p><a href="#page" class="chapter-link">See Chapter 7: Page Ring</a> for complete page management features</p>
 
     <h3>Practice Tools</h3>
     <p>Tap the inner ring's More cell to access a suite of musician's practice tools. Most of these panels can be detached from their headers and positioned anywhere on screen for convenient access while practicing:</p>
     <ul>
-        <li><strong>Metronome:</strong> Animated metronome with traditional pendulum or conducting patterns. Tap to set tempo, or use the panel controls for precise BPM settings.</li>
+        <li><strong>Metronome:</strong> Animated metronome with traditional pendulum or conducting patterns. Tap to set tempo, or use the panel controls for precise tempo settings.</li>
         <li><strong>Stopwatch:</strong> Session timer with lap/split.</li>
         <li><strong>Clock:</strong> Analog wall clock display to keep track of time during practice sessions.</li>
         <li><strong>Piano:</strong> Playable 5-octave keyboard with configurable pitch (A4 frequency), historical temperaments (Equal, Meantone, etc.), tuning mode for the beats method, and a YIN-based pitch detector that displays detected notes and cents deviation for electronic tuner functionality.</li>
-        <li><strong>Review:</strong> Record audio/video with instant replay of the last 15 seconds to 10 minutes. Visualize your playing with waveform and spectrogram displays. Perfect for quick practice assessment.</li>
+        <li><strong>Review:</strong> Record audio/video with instant replay of the last 15 seconds to 10 minutes for quick practice assessment. Visualize your playing with waveform and spectrogram displays.</li>
         <li><strong>Volume:</strong> Master volume control for all Podium audio (metronome, piano, review playback).</li>
     </ul>
 
@@ -1097,7 +1097,7 @@ function closeVideo(event, container) {
     <p><a href="#page-numbers" class="chapter-link">See Chapter 7: Page Ring - Numbers</a> for keyboard shortcut configuration</p>
 
     <h3>Need Help?</h3>
-    <p>Tap the inner ring's App cell, then tap the Guide cell to access this document.</p>
+    <p>Tap the inner ring's App cell, then tap the Guide cell to access this document. Once the Guide is open, tapping on UI elements will scroll the Guide to the relevant section.</p>
 
     <p>That's it! You're ready to use Podium. Explore the chapters below for in-depth information on each feature.</p>
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
@@ -1125,12 +1125,12 @@ function closeVideo(event, container) {
     <ul>
         <li><strong>Right-click Menu (Context Menu):</strong> You can right-click any PDF link on a web page and select "Open with Podium." This is the fastest way to grab a score while you are browsing. For <a href="https://imslp.org" target="_blank" rel="noopener noreferrer">IMSLP</a> scores, it works best if you are logged in to your IMSLP account; if not, the link opens normally so you can complete the disclaimer or login process in the browser. For other sites, the first attempt will show a permission dialog asking for access to that website. This is a standard security measure that allows Podium to "see" and download the PDF for you. Once granted, the permission is remembered and not requested again.</li>
 
-        <li><strong>Import from your Browser:</strong> If you are already viewing a PDF in a regular browser tab (using your browser's built-in viewer), just tap the <strong>Podium icon in your toolbar</strong> (where you pinned it earlier). If a PDF is detected, an "Open in Podium" button appears at the top of the popup. Tap it to import the score immediately. As with the right-click menu, a one-time permission grant for that site may be required on your first use.</li>
+        <li><strong>Import from your Browser:</strong> If you are already viewing a PDF in a regular browser tab (using your browser's built-in viewer), tap the <strong>Podium icon in your toolbar</strong> (where you pinned it earlier). If a PDF is detected, an "Open in Podium" button appears at the top of the popup. Tap it to import the score immediately. As with the right-click menu, a one-time permission grant for that site may be required on your first use.</li>
     </ul>
 
     <p>Since the extension works both online and offline, it's ideal for performance situations where you can't rely on an internet connection. The extension maintains its own recent list of scores opened via "Open with Podium", allowing you to reopen them with a single tap.</p>
 
-    <p>The extension works well with online score libraries such as <a href="https://www.cpdl.org" target="_blank" rel="noopener noreferrer">CPDL (Choral Public Domain Library)</a> and <a href="https://imslp.org" target="_blank" rel="noopener noreferrer">IMSLP</a>. For IMSLP, logging in to your account provides the best experience&mdash;scores open instantly in Podium with no intermediate pages. Please support this invaluable resource for musicians by becoming an IMSLP member. CPDL provides direct PDF links to clean, modern vocal and choral engravings, which open seamlessly in Podium. For classical guitar repertoire, Jean-François Delcamp's <a href="https://classical-guitar-sheet-music.com" target="_blank" rel="noopener noreferrer">Classical Guitar Sheet Music and Tabs</a> is another excellent resource.</p>
+    <p>The extension works well with online score libraries such as <a href="https://imslp.org" target="_blank" rel="noopener noreferrer">IMSLP</a> and the <a href="https://www.mutopiaproject.org" target="_blank" rel="noopener noreferrer">Mutopia Project</a>. For IMSLP, logging in to your account provides the best experience&mdash;scores open instantly in Podium with no intermediate pages. Please support this invaluable resource for musicians by becoming an IMSLP member. Mutopia provides direct PDF links to free, finely engraved editions of public-domain music, which open seamlessly in Podium. For classical guitar repertoire, Jean-François Delcamp's <a href="https://classical-guitar-sheet-music.com" target="_blank" rel="noopener noreferrer">Classical Guitar Sheet Music and Tabs</a> is another excellent resource.</p>
 
     <figure>
         <div class="video-container">
@@ -2761,7 +2761,6 @@ function closeVideo(event, container) {
         <dt>Color chooser</dt><dd> &mdash; <a href="#ink-pen-pencil">6.1</a>, <a href="#page-add">7.2</a></dd>
         <dt>Conducting patterns</dt><dd> &mdash; <a href="#more-metronome">9.2</a></dd>
         <dt>Copy</dt><dd> &mdash; <a href="#ink-cut-copy-paste">6.5</a>, <a href="#page-cut-copy-paste">7.3</a></dd>
-        <dt>CPDL</dt><dd> &mdash; <a href="#running">Ch.2</a></dd>
         <dt>Cross-instance sharing</dt><dd> &mdash; <a href="#page-export-import">7.5</a></dd>
         <dt>CSS pixels</dt><dd> &mdash; <a href="#layout-book">5.1</a>, <a href="#layout-horizontal">5.2</a></dd>
         <dt>Curtain<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-curtain"/></svg></dt><dd> &mdash; <a href="#app-curtain">8.5</a></dd>
@@ -2842,6 +2841,7 @@ function closeVideo(event, container) {
         <dt>Microphone</dt><dd> &mdash; <a href="#more-piano">9.5</a>, <a href="#more-review">9.6</a></dd>
         <dt>More Ring</dt><dd> &mdash; <a href="#more">Ch.9</a></dd>
         <dt>Mouse controls</dt><dd> &mdash; <a href="#interface">Ch.3</a></dd>
+        <dt>Mutopia</dt><dd> &mdash; <a href="#running">Ch.2</a></dd>
     </dl>
     <div class="idx-letter">N</div>
     <dl>

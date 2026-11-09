@@ -664,7 +664,7 @@ if args.guide:
         "Metadata": ["score-details"],
         "Microphone": ["more-review", "more-piano"],
         "Mouse controls": ["interface"],
-        "CPDL": ["running"],
+        "Mutopia": ["running"],
         "Navigation": ["quick-start", "layout-book"],
         "Offline use": ["running"],
         "OneDrive": ["score-open-save"],
