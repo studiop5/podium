@@ -809,7 +809,7 @@ class Pg {
 
         case "path": {
           if (!obj.path || obj.path.length == 0) {
-            console.warn("Path object has empty path, skipping", obj);
+            console.warn("Path object has empty path, skipping"); // (not obj: a logged object stays alive, and with it its canvas, pg and score)
             break;
           }
           // Create an svg-style path string. Path points are stored in path
