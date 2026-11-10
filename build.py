@@ -122,30 +122,6 @@ if args.font:
       return this._bytes;
     }.bind({});
 
-    // Vercetti font
-    const vercettiBase64 = \"""")
-
-        with open('lib/Vercetti-Regular.otf','rb') as inFile:
-            outFile.write(base64.b64encode(inFile.read()))
-
-        outFile.write(b"""\";
-
-    let vercettiFont = new FontFace("Vercetti", "url(data:font/otf;charset=utf-8;base64," + vercettiBase64 + ")");
-    document.fonts.add(vercettiFont);
-    await vercettiFont.load();
-
-    // Store Vercetti data for PDF-lib
-    window.fontData["Vercetti"] = function() {
-      if (!this._bytes) {
-        const binary = atob(vercettiBase64);
-        this._bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-          this._bytes[i] = binary.charCodeAt(i);
-        }
-      }
-      return this._bytes;
-    }.bind({});
-
     // Inter: the interface font (not offered by the Text tool, so no PDF-lib data). One
     // variable file holds every weight. lib/Inter-LGC.woff2 is Inter 4.001 (google/fonts:
     // ofl/inter) with its optical size fixed at 14, cut down to Latin, Greek and Cyrillic:

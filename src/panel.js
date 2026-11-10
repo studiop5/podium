@@ -788,11 +788,6 @@ for more details.</p></div>
           <div>© 2012 Patrick Wagesreiter</div>
           <div><a href="https://openfontlicense.org/open-font-license-official-text/">SIL Open Font License 1.1</a></div>
         </div>
-        <div class="AboutPanel__credit" translate="no">
-          <div class="AboutPanel__name"><a href="https://filipposfragkogiannis.com/fonts/vercetti-regular">Vercetti</a><span>1.001</span></div>
-          <div>© 2022 Filippos Fragkogiannis and Richard Mandona</div>
-          <div><a href="https://amicale.li/en.html">Licence Amicale 0.2</a></div>
-        </div>
         <div class="Panel__heading">Code</div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://codepen.io/zastrow/details/kxdYdk">CSS Piano</a><span></span></div>
@@ -2498,7 +2493,6 @@ class TextPanel extends PencilPanel {
     "Times-Italic",
     "Times-BoldItalic",
     "Bravura",
-    "Vercetti",
     "Patrick Hand",
     ] ;
  

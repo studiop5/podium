@@ -2455,7 +2455,6 @@ let fontMap = {
     fontWeight: "bold",
   },
   Bravura: { fontFamily: "Bravura", fontStyle: "normal", fontWeight: "normal" },
-  Vercetti: { fontFamily: "Vercetti", fontStyle: "normal", fontWeight: "normal" },
   "Patrick Hand": { fontFamily: "Patrick Hand", fontStyle: "normal", fontWeight: "normal" },
 };
 

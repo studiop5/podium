@@ -295,6 +295,14 @@ class Pg {
       }, { cssOnly: true } );
   
       if (this.json) {
+        // Vercetti, offered by the Text tool until 2.4, is gone (its licence forbids public
+        // distribution): text saved in it becomes Helvetica
+        let unVercetti = (objs) => objs?.forEach?.((obj) => {
+          if (obj?.fontFamily == "Vercetti") obj.fontFamily = "Helvetica";
+          if (obj?.podiumStash?.font == "Vercetti") obj.podiumStash.font = "Helvetica";
+          unVercetti(obj?.objects);
+        });
+        unVercetti(this.json.objects);
         await new Promise((resolve, reject) =>
           canvas.loadFromJSON(this.json, () => resolve()));
         Pg.applyFlatten(canvas);
