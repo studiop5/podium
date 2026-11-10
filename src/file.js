@@ -2037,8 +2037,7 @@ class FileListView {
     .Flv-save__file
     { height: 2em;
       position: relative;
-      /* (flex: fill the row less its margins; width:100% plus margins ran under the
-         Upload button) */
+      /* (flex: fill the row less its margins and the Upload button) */
       flex: 1;
       min-width: 0;
       box-sizing: border-box;
@@ -2047,8 +2046,8 @@ class FileListView {
       border-radius:var(--border-radius);
       text-align: center;
       text-overflow: ellipsis;
-      padding: 0em 3em 0em 1em;
-      margin:.67em 1.33em;
+      padding: 0em 1em;
+      margin:.67em .5em .67em 1.33em;
       outline:none;
     }
    }
@@ -2485,7 +2484,7 @@ class FileSystemView extends FileListView {
          <![CDATA[currently selected file path, left-to-right]]>
          <div data-tag="fsvPath" class="Flv-path__sash"></div>
          <![CDATA[text input for save filename (plus button), void for save panel]]>
-         <div data-tag="fsvSave" class="void" style="display:flex;width:100%";justify-content:center>
+         <div data-tag="fsvSave" class="void" style="display:flex;width:100%;align-items:center">
            <input is="pod-input" type="text" data-tag="fsvSave__file" class="Flv-save__file"/>
            <div data-tag="uploadButton"></div>  
          </div>
@@ -2512,7 +2511,7 @@ class FileSystemView extends FileListView {
       this.flvList__frame.classList.add("Flv-list__frame--save-mode");
       this.fsvSave__file.value = _score_.name;
       let uploadButton = new ButtonGroup({}, { Upload: { svg: "Upload" } }, async () => await this.putFile(this.fsvSave__file.value));
-      uploadButton.elm.style = "position:absolute;right:4em;top:4.5em;";
+      uploadButton.elm.style = "margin:0 1.33em 0 0;"; // (right of the file name, in its row)
       this.uploadButton.replaceWith(uploadButton.elm);
     } else {
       this.fsvSave.classList.add("void");
