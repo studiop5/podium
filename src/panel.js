@@ -776,48 +776,48 @@ for more details.</p></div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://github.com/steinbergmedia/bravura">Bravura Text</a><span>1.392</span></div>
           <div>© 2021 Steinberg Media Technologies GmbH</div>
-          <div>SIL Open Font License 1.1</div>
+          <div><a href="https://openfontlicense.org/open-font-license-official-text/">SIL Open Font License 1.1</a></div>
         </div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://rsms.me/inter/">Inter</a><span>4.001</span></div>
           <div>© 2016 The Inter Project Authors</div>
-          <div>SIL Open Font License 1.1</div>
+          <div><a href="https://openfontlicense.org/open-font-license-official-text/">SIL Open Font License 1.1</a></div>
         </div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://fonts.google.com/specimen/Patrick+Hand">Patrick Hand</a><span>1.003</span></div>
           <div>© 2012 Patrick Wagesreiter</div>
-          <div>SIL Open Font License 1.1</div>
+          <div><a href="https://openfontlicense.org/open-font-license-official-text/">SIL Open Font License 1.1</a></div>
         </div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://filipposfragkogiannis.com/fonts/vercetti-regular">Vercetti</a><span>1.001</span></div>
           <div>© 2022 Filippos Fragkogiannis and Richard Mandona</div>
-          <div>Licence Amicale 0.2</div>
+          <div><a href="https://amicale.li/en.html">Licence Amicale 0.2</a></div>
         </div>
         <div class="Panel__heading">Code</div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://codepen.io/zastrow/details/kxdYdk">CSS Piano</a><span></span></div>
           <div>© 2026 Philip Zastrow</div>
-          <div>MIT</div>
+          <div><a href="https://opensource.org/license/mit">MIT</a></div>
         </div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://github.com/fabricjs">fabric.js</a><span>5.3.0</span></div>
           <div>© 2008–2015 Printio (Juriy Zaytsev, Maxim Chernyak)</div>
-          <div>MIT</div>
+          <div><a href="https://opensource.org/license/mit">MIT</a></div>
         </div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://github.com/foliojs/fontkit">fontkit</a><span>1.1.1</span></div>
           <div>© Devon Govett</div>
-          <div>MIT</div>
+          <div><a href="https://opensource.org/license/mit">MIT</a></div>
         </div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://github.com/mozilla/pdf.js">pdf.js</a><span>4.10.38</span></div>
           <div>© 2024 Mozilla Foundation</div>
-          <div>Apache 2.0</div>
+          <div><a href="https://www.apache.org/licenses/LICENSE-2.0">Apache 2.0</a></div>
         </div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://github.com/Hopding/pdf-lib">pdf-lib</a><span>1.17.1</span></div>
           <div>© 2019 Andrew Dillon</div>
-          <div>MIT</div>
+          <div><a href="https://opensource.org/license/mit">MIT</a></div>
         </div>
         <div class="Panel__heading">Sound</div>
         <div class="AboutPanel__credit" translate="no">
