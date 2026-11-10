@@ -154,7 +154,7 @@ class Menu {
       border-radius: 50%;
       z-index: 105;
       background: var(--menu-grip-bg);
-      background-image: var(--panTexture);
+      background-image: var(--pan-texture);
       filter: var(--menu-grip-shadow);
       box-shadow: var(--menu-grip-box-shadow);
     }

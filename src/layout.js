@@ -199,7 +199,7 @@ class Layout {
     .Layout {
       position: absolute;
       box-shadow: var(--layout-shadow);
-      border-radius: calc(var(--borderRadius) / 2);
+      border-radius: calc(var(--border-radius) / 2);
       border: 0.025em solid var(--layout-border-color, #222);
       box-sizing: border-box;
       background-image:

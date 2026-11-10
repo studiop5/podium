@@ -102,7 +102,7 @@ class Select {
       outline: none;
     }
     .Select__frame {
-      border-radius:var(--borderRadius);
+      border-radius:var(--border-radius);
       position:absolute;
       overflow:hidden;
       z-index: var(--z-modal);
@@ -394,7 +394,7 @@ class Panel {
     .Panel__elm {
       position: fixed;
       overflow: hidden;
-      border-radius: var(--borderRadius);
+      border-radius: var(--border-radius);
       border: 0.05em solid rgba(100,115,148,0.22);
       /* No drop-shadow filter on panels: a filter promotes a GPU compositing
          layer whose blurred drop-shadow leaves trails when a panel is dragged on
@@ -411,7 +411,7 @@ class Panel {
     }
     .Panel__header {
       background: var(--panel-header-bg);
-      background-image: var(--panTexture);
+      background-image: var(--pan-texture);
       height: 3em;
       width: 100%;
       color: var(--color-text);
@@ -1601,14 +1601,14 @@ class ImportPanel extends Panel {
   static css = css(
     "ImportPanel", 
      `.ImportPanel__frame {
-        background-image: var(--panTexture);
+        background-image: var(--pan-texture);
         height: 6em;
         width: 100%;
         padding:.8em 0;
         box-sizing: border-box;
         margin-bottom: 0.2em;
         overflow: hidden;
-        border-radius: var(--borderRadius);
+        border-radius: var(--border-radius);
       }
       
       .ImportPanel__sash {
@@ -2249,7 +2249,7 @@ class PencilPanel extends Panel {
        overflow: hidden;
        height: 6em;
        border: 1px solid var(--color-border);
-       border-radius: var(--borderRadius);
+       border-radius: var(--border-radius);
        background-color: #fff;
        background-image:
          linear-gradient(45deg, #e8e8e8 25%, transparent 25%),
@@ -3290,7 +3290,7 @@ class SymbolsPanel extends Panel {
       height: calc(4 * 4em + 3 * .08em + .5em); /* four whole rows (symbol 2em and gap .04em, at the grid's 2em), plus the padding */
       overflow-y: auto;
       scrollbar-width: none;
-      border-radius: var(--borderRadius);
+      border-radius: var(--border-radius);
       touch-action: none;
     }
     .SymbolsPanel__frame::-webkit-scrollbar {
@@ -3311,7 +3311,7 @@ class SymbolsPanel extends Panel {
       padding-top: 1em;
       box-sizing: border-box;
       text-align: center;
-      border-radius: calc(var(--borderRadius) / 4);
+      border-radius: calc(var(--border-radius) / 4);
       border: 0.02em solid #d0d0d0;
       overflow: hidden;
    }
@@ -3731,7 +3731,7 @@ class StopwatchPanel extends Panel {
       resize: none;
       font-family: 'Courier New', Courier, monospace;
       font-size: 0.9em;
-      border-radius: var(--borderRadius);
+      border-radius: var(--border-radius);
       padding: 0.5em;
       box-sizing: border-box;
       border: 0.1em solid #aaa;

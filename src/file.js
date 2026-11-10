@@ -1985,7 +1985,7 @@ class FileListView {
       font-size:1em;
       margin:.5em;
       padding:.5em;
-      border-radius: var(--borderRadius);
+      border-radius: var(--border-radius);
     }
     .Flv-list__file-header {
       display:flex;
@@ -2011,7 +2011,7 @@ class FileListView {
       width: max-content;
       min-width: 100%;
       height: 3em;
-      background-image: var(--panTexture);
+      background-image: var(--pan-texture);
       margin-top: .5em;
     }
     .Flv-path {
@@ -2029,7 +2029,7 @@ class FileListView {
       align-items:center;
       padding:.5em;
       margin: 0 0.25em;
-      border-radius: var(--borderRadius);
+      border-radius: var(--border-radius);
       color: #333;
       text-shadow: 1px 1px 1px #fff8;
     }
@@ -2044,7 +2044,7 @@ class FileListView {
       box-sizing: border-box;
       font-size:1.5em;
       border:none;
-      border-radius:var(--borderRadius);
+      border-radius:var(--border-radius);
       text-align: center;
       text-overflow: ellipsis;
       padding: 0em 3em 0em 1em;

@@ -11,7 +11,7 @@
        </symbol>
      Use a lowercase hyphenated id, e.g. "gb-new-score" for "New Score".
      Replace \uXXXX escapes with &#xXXXX; entities.
-     Replace var(--menu-drawer-front) with #ddd, var(--bodyShadow) with none.
+     Replace var(--menu-drawer-front) with #ddd, var(--body-shadow) with none.
      Replace ${scissorsD} and ${circlePath(...)} using the values in icon.js.
   4. Use the icon anywhere with:
        <svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-icon-name"/></svg>
@@ -1018,7 +1018,7 @@ function closeVideo(event, container) {
     <h4>Gestures:</h4>
     <ul>
         <li><strong>Swipe up:</strong> Toggle menu: reset and center menu / collapse and park it in the upper left.</li>
-        <li><strong>Swipe down:</strong> Toggle full-screen (on iPhone/iPad, entering full-screen isn't available — use the Screen button in the App Ring instead).</li>
+        <li><strong>Swipe down:</strong> Toggle full-screen (on iPhone/iPad, entering full-screen isn't available — use the <a href="#app-screen">Screen button</a> in the App Ring instead).</li>
         <li><strong>Long press:</strong> Summon menu to that location</li>
     </ul>
 
@@ -1087,7 +1087,7 @@ function closeVideo(event, container) {
 
     <figure>
         <img src="assets/quicktools.jpg" alt="Practice tools">
-        <figcaption>Screenshot showing Clock, Metronome, Stopwatch, Piano, Volume, and Review panels open simultaneously</figcaption>
+        <figcaption>Screenshot showing Review, Metronome, Stopwatch, Clock, Volume, Keyboard and Piano panels open simultaneously</figcaption>
     </figure>
 
     <p><a href="#more" class="chapter-link">See Chapter 9: More Ring</a> for detailed information on each practice tool</p>
@@ -1099,7 +1099,6 @@ function closeVideo(event, container) {
     <h3>Need Help?</h3>
     <p>Tap the inner ring's App cell, then tap the Guide cell to access this document. Once the Guide is open, tapping on UI elements will scroll the Guide to the relevant section.</p>
 
-    <p>That's it! You're ready to use Podium. Explore the chapters below for in-depth information on each feature.</p>
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
@@ -1194,7 +1193,7 @@ function closeVideo(event, container) {
             <th scope="row">Full-screen swipe gesture</th>
             <td class="yes">Full</td>
             <td class="yes">Full</td>
-            <td class="partial">Enter: use Screen button (iPhone/iPad)</td>
+            <td class="partial">Enter: use <a href="#app-screen">Screen button</a> (iPhone/iPad)</td>
         </tr>
         <tr>
             <th scope="row">Browser extension</th>
@@ -1302,7 +1301,7 @@ function closeVideo(event, container) {
     <h3>Background Gestures</h3>
     <ul>
         <li><strong>Swipe up:</strong> Toggle menu: reset and center menu / collapse and park it in the upper left</li>
-        <li><strong>Swipe down:</strong> Toggle full-screen (entering full-screen is not available on iPhone/iPad; use the Screen button instead)</li>
+        <li><strong>Swipe down:</strong> Toggle full-screen (entering full-screen is not available on iPhone/iPad; use the <a href="#app-screen">Screen button</a> instead)</li>
         <li><strong>Long press:</strong> Summon menu to that spot</li>
     </ul>
 
@@ -1331,7 +1330,7 @@ function closeVideo(event, container) {
 
     <h4 id="cell-locking">Cell Locking</h4>
 
-    <p>To prevent a cell from auto-deactivating, long-press it. A locked cell displays a circle around its outer edge and remains active indefinitely. Long-press the cell again, or select a different cell, to unlock it. Cell locking is supported by all Ink Ring cells and most Page Ring cells (except Numbers).</p>
+    <p>To prevent a cell from auto-deactivating, long-press it. A locked cell displays a circle around its outer edge and remains active indefinitely. Long-press the cell again, or select a different cell, to unlock it. Cell locking is supported by all Ink Ring cells and most Page Ring cells.</p>
 
     <figure>
         <img src="assets/interfacelocking.jpg" alt="Locked cell showing circle indicator around outer edge">

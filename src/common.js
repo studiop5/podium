@@ -203,14 +203,13 @@ css( // common css declarations.
 
   :root {
     /* Layout & Structure */
-    --borderRadius: .4em;
+    --border-radius: .4em;
     --border: .1em solid white;
-    --panelWidth: 12em;
 
     /* Light theme colors */
-    --bodyColor: #b8b8b8;
-    --panTexture: ${panSvgCool};
-    --bodyVignette: radial-gradient(ellipse at 50% 45%, transparent 30%, rgba(0,0,0,0.13) 100%);
+    --body-bg: #b8b8b8;
+    --pan-texture: ${panSvgCool};
+    --body-vignette: radial-gradient(ellipse at 50% 45%, transparent 30%, rgba(0,0,0,0.13) 100%);
 
     /* Typography */
     --body-font-family: Inter, sans-serif;
@@ -220,10 +219,8 @@ css( // common css declarations.
     --body-color: #1f2328;
 
     /* Shadows */
-    --textShadow: .5px .5px #fff6,-1px -1px #fff6,.5px -1px #fff6,-1px .5px #fff6;
-    --bodyShadow: drop-shadow(.1em .125em .2em #6668);
-    --menuShadow: 0 0 0 transparent;
-    --panelShadow: drop-shadow(.08em .1em .2em #0006);
+    --body-shadow: drop-shadow(.1em .125em .2em #6668);
+    --panel-shadow: drop-shadow(.08em .1em .2em #0006);
     --layout-shadow: .25em .25em 1.5em #888;
 
     /* Menu colors */
@@ -346,10 +343,10 @@ css( // common css declarations.
 
   /* Dark theme */
   [data-theme="Dark"] {
-    --bodyColor: #242424;
-    --panTexture: ${panSvgDark};
+    --body-bg: #242424;
+    --pan-texture: ${panSvgDark};
     --link-color: #6fa8ff; /* blue is unreadable on dark grey */
-    --bodyVignette: radial-gradient(ellipse at 50% 45%, transparent 20%, rgba(0,0,0,0.45) 100%);
+    --body-vignette: radial-gradient(ellipse at 50% 45%, transparent 20%, rgba(0,0,0,0.45) 100%);
 
     /* Typography - dark theme */
     --body-font-family: Inter, sans-serif;
@@ -369,9 +366,8 @@ css( // common css declarations.
     --color-shadow: rgba(0, 0, 0, 0.3);
     --color-shadow-strong: rgba(0, 0, 0, 0.5);
     --color-background-overlay: rgba(0, 0, 0, 0.7);
-    --textShadow: .5px .5px #0006,-1px -1px #0006,.5px -1px #0006,-1px .5px #0006;
-    --bodyShadow: drop-shadow(.1em .125em .2em #000a);
-    --panelShadow: drop-shadow(.08em .1em .2em #000c);
+    --body-shadow: drop-shadow(.1em .125em .2em #000a);
+    --panel-shadow: drop-shadow(.08em .1em .2em #000c);
     --layout-shadow: .25em .25em 1.5em #000;
 
     /* Menu colors - dark theme */
@@ -435,8 +431,8 @@ css( // common css declarations.
 
   /* Light theme (original neutral grey/amber) */
   [data-theme="Light"] {
-    --bodyColor: #efefef;
-    --panTexture: ${panSvgWarm};
+    --body-bg: #efefef;
+    --pan-texture: ${panSvgWarm};
 
     /* Menu colors - warm theme */
     --menu-cell-bg: radial-gradient(#c9c9c9 45%, #ccc 66%, #b4b4b4 72%);
@@ -477,8 +473,8 @@ css( // common css declarations.
     color: var(--body-color);
     margin: 0;
     padding: 0;
-    background-color: var(--bodyColor);
-    background-image: var(--bodyVignette);
+    background-color: var(--body-bg);
+    background-image: var(--body-vignette);
     height: 100svh; /* small (min) viewport height */
     width: 100lvw;  /* large (max) viewport width */
     position:fixed;
@@ -502,7 +498,7 @@ css( // common css declarations.
     margin-top: 2em;      
   }
   select {
-    border-radius: var(--borderRadius);
+    border-radius: var(--border-radius);
     background-color: #0000;
     color: var(--color-text);
     height:2.5em;
@@ -523,7 +519,7 @@ css( // common css declarations.
   }
   input[type=color] {
     border-color: #888;
-    border-radius:var(--borderRadius);
+    border-radius:var(--border-radius);
   }
   .void {
     display: none !important;
@@ -554,7 +550,7 @@ css( // common css declarations.
   .dialog {
     --link-color: blue; /* the dialog stays light grey in every theme */
     border: var(--border);
-    border-radius:var(--borderRadius);
+    border-radius:var(--border-radius);
     background:#ccc;
     font-size:1.2em;
     text-align:center;
@@ -602,7 +598,7 @@ css( // common css declarations.
     width:100%;
     font-size:1.2em;
     border:none;
-    border-radius:var(--borderRadius);
+    border-radius:var(--border-radius);
     text-align: center;
     margin-top: 1em;
     outline: none;
@@ -625,10 +621,10 @@ css( // common css declarations.
   }
   /* Shared styling for floating messages (toast, ptrMsg) */
   .floatingMsg {
-    border-radius: var(--borderRadius);
-    filter: var(--panelShadow);
-    background: var(--bodyColor);
-    background-image: var(--panTexture);
+    border-radius: var(--border-radius);
+    filter: var(--panel-shadow);
+    background: var(--body-bg);
+    background-image: var(--pan-texture);
     color: var(--color-text);
     font-size: var(--font-size-sm);
     padding: 0.5em 0.8em;
@@ -984,7 +980,7 @@ class ColorPicker {
      .ColorPicker__alphaSlider {
       z-index: var(--z-modal);
       background: #999; 
-      border-radius: var(--borderRadius);
+      border-radius: var(--border-radius);
       padding: var(--spacing-md);
       position: absolute;
       width:60%;
@@ -1350,7 +1346,7 @@ class PodiumSlider extends HTMLElement {
        background-image:
          repeating-linear-gradient(to right, #0000 0 .2em, #0002 .2em .25em),
          linear-gradient(to bottom, #fff6, #fff0 45%, #0001),
-         var(--panTexture);
+         var(--pan-texture);
        box-shadow: var(--slider-knob-shadow); /* drop-shadow is here, not a filter (iOS) */
      }
      .Slider__knob-selected {
@@ -1929,7 +1925,7 @@ class Surface {
     /* Some Surface subclasses need an outline */
     .Surface__outline 
     { border: 1px solid #444;
-      border-radius:var(--borderRadius);
+      border-radius:var(--border-radius);
       padding:1em;
       touch-action:none;
       box-sizing:border-box;
@@ -2084,7 +2080,7 @@ class TabView {
        font-weight: 500;
     }
     .Tab__tag-selected {
-      border-radius: var(--borderRadius);
+      border-radius: var(--border-radius);
       background-color: var(--panel-bg);
     }
     .TabView__frame {
@@ -2100,7 +2096,7 @@ class TabView {
        height: 3em;
        touch-action: none;
        background: var(--panel-header-bg);
-       background-image: var(--panTexture);
+       background-image: var(--pan-texture);
        -webkit-mask-image: linear-gradient(to right, transparent, black .8em, black calc(100% - .8em), transparent);
        mask-image: linear-gradient(to right, transparent, black .8em, black calc(100% - .8em), transparent);
     }
@@ -2964,7 +2960,7 @@ css(
       pointer-events: none;
       transition: opacity ease-out calc(${_gsgs_}ms * var(--anim));
       z-index: var(--z-topmost);
-      background-color: var(--bodyColor);
+      background-color: var(--body-bg);
    }`
 );
 

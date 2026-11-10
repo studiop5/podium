@@ -210,10 +210,10 @@ class Piano {
       top:6em; /* (centered on the keys: they show above and below it, to watch them move) */
       z-index:150;
       background: var(--panel-bg);
-      border-radius: var(--borderRadius);
+      border-radius: var(--border-radius);
       overflow:hidden;
       left: calc(50% - 13.5em);
-      filter: var(--bodyShadow);
+      filter: var(--body-shadow);
       visibility:hidden;
       text-align:center;
       box-shadow: var(--panel-inset-shadow);
@@ -226,7 +226,7 @@ class Piano {
       line-height: 1.45em;
       text-align:left;
       background: var(--color-surface-selected);
-      border-radius:var(--borderRadius);
+      border-radius:var(--border-radius);
       position:relative;
       min-height:0;
       overflow-y:auto;
@@ -1889,14 +1889,14 @@ class Review {
     .Review__video {
       top: 0;
       width: 100%;
-      border-radius: var(--borderRadius);
+      border-radius: var(--border-radius);
     }
     .Review__waveview {
        top: 0;
        width: 100%;
        position:absolute;
        background-color:#ccc;
-       border-radius: var(--borderRadius);
+       border-radius: var(--border-radius);
     }
     .Review__spectrogram {
       position:absolute;
