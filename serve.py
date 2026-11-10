@@ -2,7 +2,7 @@ import argparse, http.server, os, ssl, socketserver, sys, logging
 from urllib.parse import urlparse
 
 crossOrigin = False
-docRoots = ["build", "src", "lib", "doc"]
+docRoots = ["build", "src", "lib", "doc", "."]  # (".": licenses/, as on the site)
 
 MIME_MAP = {
    "": "text/html",
@@ -11,6 +11,7 @@ MIME_MAP = {
    ".mjs": "application/javascript",
    ".otf": "application/font-otf",
    ".pdf": "application/pdf",
+   ".txt": "text/plain",
    ".png": "image/png",
    ".jpg": "image/jpeg",
    ".webm": "video/webm",
