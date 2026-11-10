@@ -339,7 +339,7 @@ async function main() {
         let reverse = _score_?.numbers?.reverse
         let forwardBookMarks = e.ctrlKey || forward == "Marks";
         let reverseBookMarks = e.ctrlKey || reverse == "Marks";
-        switch (e.code) {
+        switch (e.key) { // (not e.code: a keypad arrow, or a synthetic key from e.g. Face control, may lack it)
           case "ArrowLeft":
           case "ArrowUp":
           case "PageUp":
