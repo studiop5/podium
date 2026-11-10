@@ -1386,7 +1386,7 @@ function closeVideo(event, container) {
                 Your browser does not support the video tag.
             </video>
         </div>
-        <figcaption>Slider with precision mode (dark theme): drag away from the slider, then drag left ⇄ right to adjust with increased sensitivity</figcaption>
+        <figcaption>Slider with precision mode: drag away from the slider, then drag left ⇄ right to adjust with increased sensitivity</figcaption>
         <p class="video-status" role="status"></p>
     </figure>
     <h3>Browser Tab Naming</h3>
@@ -1470,7 +1470,7 @@ function closeVideo(event, container) {
 
     <h4>Saving Scores</h4>
 
-    <p>The Save Panel has a widget for editing the file name. Inside the widget there is an Upload button: tap it to save the current score, with the given name, to the selected folder.</p>
+    <p>The Save Panel has a widget for editing the file name. Beside the widget there is an Upload button: tap it to save the current score, with the given name, to the selected folder.</p>
 
     <figure>
         <img src="assets/scoresave.jpg" alt="Save Panel">
@@ -1509,7 +1509,7 @@ function closeVideo(event, container) {
 
     <p>Create new, empty scores.</p>
 
-    <p>New empty scores are created by activating the New cell. The newly created score is made using the number of pages, size, and background color and opacity specified in the New Panel. Each new score is given a default name (e.g. "Opus 42"). If desired, use the <a href="#score-details">Details Panel</a> to rename it before saving.</p>
+    <p>New empty scores are created by activating the New cell. The newly created score is made using the number of pages, size, and background color and opacity specified in the New Panel. Each new score is given a default name (e.g. "Opus 42"). If desired, use the <a href="#score-details">Details Panel</a> to rename.</p>
 
     <figure>
         <img src="assets/scorenew.jpg" alt="New Panel">
@@ -1563,7 +1563,7 @@ function closeVideo(event, container) {
         <figcaption>Details Panel showing score metadata and display options</figcaption>
     </figure>
 
-    <p><strong>File Name:</strong> At the top of the panel is an editable field showing the score's file name. Edit this field to rename the score before saving. The .pdf extension is shown at the end of the field but isn't part of what you edit&mdash;it's always kept. This is especially useful on platforms where you cannot specify a file name during save (such as Firefox or Android).</p>
+    <p><strong>File Name:</strong> At the top of the panel is an editable field showing the score's file name. Edit this field to rename the score before saving. The .pdf extension is shown at the end of the field but isn't part of what you edit&mdash;it's always kept.</p>
 
     <p><strong>Information:</strong> Below the file name, the panel lists where the score came from (its source, path and file size), its number of pages, any restrictions the PDF places on it, and its page size, in millimeters (naming common paper sizes such as A4 or Letter), points and inches. <strong>Created</strong> and <strong>Modified</strong> are Podium's own dates: when Podium first opened the score and when it last saved it.</p>
 
@@ -1599,7 +1599,7 @@ function closeVideo(event, container) {
 
     <p>By default, scores open with the last used layout on the current browser/platform or, if none, Book. The layout can be changed any time by tapping the desired cell. Whenever a score is saved, its last layout is stored as metadata in the PDF file, as well as in browser local storage.</p>
 
-    <p id="remembered-view"><strong>Remembered view:</strong> However you pan and zoom a layout — for instance, dragging and pinching the score to fill the screen on a tablet — Podium remembers that position and size. Each layout keeps its own view, so switching layouts and back restores each one as you left it. Your view is also saved with the score, so reopening the file returns to exactly where you left off.</p>
+    <p id="remembered-view"><strong>Remembered view:</strong> However you pan and zoom a layout — for instance, dragging and pinching the score to fill the screen on a tablet — Podium remembers that position and size. Each layout keeps its own view, so switching layouts, the switching back restores each one as you left it. Your view is also saved with the score, so reopening the file returns to exactly where you left off.</p>
 
     <div class="note">A remembered view is tied to the screen size it was captured on. If you reopen a score on a device with a differently sized window — or simply rotate a tablet between portrait and landscape — Podium ignores the saved position and falls back to the default fit, so the score can never end up positioned off-screen.</div>
 
@@ -1622,7 +1622,7 @@ function closeVideo(event, container) {
     <h4 id="bookmarks">Bookmarks</h4>
     <p>Bookmarks mark pages for quick navigation. In Book, Horizontal, and Vertical layouts, first navigate to the desired page, then long-press its page number to toggle a bookmark on or off. Bookmarks appear as colored tabs along the edge of the layout; press any tab to jump directly to that page. In Table layout, long-press on a page to make it current and toggle its bookmark state: a bookmarked page shows its page number on a ribbon of the bookmark's color. Bookmarks are saved with the score.</p>
     <p>The thickness of each bookmark tab corresponds to one page's position in the pager, so tabs are thinner in longer scores — giving a visual sense of how many pages the score contains. Each pager cursor sits at its own page's position, so when that page is bookmarked, its page number lines up with the tab. A new bookmark is always given a color different from its nearest neighbors', so bookmarks next to each other are easy to tell apart.</p>
-    <p>When dragging a pager cursor over a bookmarked page, the floating readout is painted in that bookmark's color — making it easy to navigate to a specific bookmark even when several adjacent tabs are too small to press directly.</p>
+    <p>When dragging a pager cursor over a bookmarked page, the floating readout is painted in that bookmark's color, making it easy to navigate to a specific bookmark even when several adjacent tabs are too small to press directly.</p>
 
     <h3 id="layout-book">5.1 Layout Ring: Book<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-book"/></svg></h3>
 
@@ -2030,8 +2030,6 @@ function closeVideo(event, container) {
 
     <p><strong>Page limitations:</strong> Annotation objects cannot span multiple pages, and are <a href="#edit-page-bounds" class="chapter-link">never lost off their page</a>, but they can be easily moved or copied between pages using the Cut/Copy/Paste tools.</p>
 
-    <p><strong>Performance considerations:</strong> Annotations, especially free drawings with many pen/pencil strokes, can significantly increase the size of a saved score. For complex annotated pages, consider using the Flatten operation (in the <a href="#page" class="chapter-link">Page Ring</a>) to convert annotations into the PDF itself, which can improve performance.</p>
-
     <p><strong>Precision workflow:</strong> For precise notation work, combine the Grid tool with Rastrum for staff placement, then use Symbols to add notation. The Edit tool allows fine-tuning of symbol positions after placement.</p>
 
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
@@ -2063,7 +2061,7 @@ function closeVideo(event, container) {
 
     <p><strong>Paste:</strong> Insert the page from the local clipboard at a new location in the current score.</p>
 
-    <p><strong>Undo:</strong> Undo the last page operation (cut or paste).</p>
+    <p><strong>Undo:</strong> Undo the last page operation (cut, paste, import, merge).</p>
 
     <p><strong>Export:</strong> Copy a page to the shared buffer, making it available to other Podium tabs.</p>
 
@@ -2168,7 +2166,7 @@ function closeVideo(event, container) {
 
     <p>Undo the last page operation.</p>
 
-    <p>To undo a page operation (cut or paste), activate the Undo cell. The most recent operation will be immediately reversed. The Page Ring maintains an undo history of the last 10 operations.</p>
+    <p>To undo a page operation (cut, paste, import, merge), activate the Undo cell. The most recent operation will be immediately reversed. The Page Ring maintains an undo history of the last 10 operations.</p>
 
     <div class="note">The <strong>Import</strong> and <strong>Merge</strong> operations restart the score's undo history: what you did before them can't be undone. The import or merge itself can be, all of its pages at once. Because of this, you'll be prompted to confirm these operations before they are performed.</div>
 
@@ -2210,7 +2208,7 @@ function closeVideo(event, container) {
 
     <p>Merge a PDF score, or a range of its pages, into the current score at a chosen page position.</p>
 
-    <p>Tap the Merge cell to open the file panel, then select any PDF. The cell activates and a toast message confirms the file is loaded and ready. On desktop browsers, you can instead open the Page ring and drag a PDF from your file manager onto the Merge cell. Tap any page in the current score to insert the chosen PDF before that page. The merge preserves page order from the source file and carries over any Ink annotations saved within it.</p>
+    <p>Tap the Merge cell to open the file panel, then select any PDF. The cell activates and a toast message confirms the file is loaded and ready. On desktop browsers, you can instead open the Page ring and drag a PDF from your file manager onto the Merge cell. Tap any page in the current score to insert the chosen PDF there: before the page if you tap its left half (top half for Vertical Layout), or after it if you tap its right half (bottom half). The merge preserves page order from the source file and carries over any Ink annotations saved within it.</p>
 
     <p>Before each merge, a dialog asks you to confirm. Its <strong>From</strong> and <strong>To</strong> sliders choose which of the PDF's pages to merge: all of them, at first. If the PDF was saved by PODIUM, they're numbered as it numbered them, by its <a href="#page-numbers" class="chapter-link">Numbers</a> settings (e.g. roman numerals for its first pages). The range is kept while the cell stays active, so each page you tap gets the same pages.</p>
     <p>A copy protected PDF can't be merged: choosing one shows a message, and cancels the merge. Nor can anything be merged into a copy protected score: its Merge cell is disabled.</p>
@@ -2226,13 +2224,17 @@ function closeVideo(event, container) {
 
     <p>Long-press the Merge cell to lock it. A locked cell remains active indefinitely — useful when you need to merge the same file into many pages without the cell timing out. Long-press again, or tap the cell, to unlock it.</p>
 
-    <h4>Common Use Cases:</h4>
+    <h4>Example: A Set List</h4>
 
-    <p><strong>Combining movements:</strong> Open the first movement of a work, then use Merge to append subsequent movements one after another, building a complete multi-movement score in a single file.</p>
+    <p>A set list is one score holding just the pieces you'll play, in the order you'll play them, so there's no opening and closing of files on stage. Open the first piece's score. Then, for each piece that follows, tap the Merge cell and choose its PDF, set <strong>From</strong> and <strong>To</strong> to the pages you'll play, and tap the right half of the score's last page. With <strong>Mark</strong> lit, each piece starts at a bookmark, so the <a href="#bookmarks" class="chapter-link">bookmarks</a> become the set list's index: jump straight to any piece. Save the result under a new name, and the whole set list is a single, self-contained PDF.</p>
 
-    <p><strong>Inserting pages from another score:</strong> Tap the page <em>after</em> which you want the new content to appear, and the source PDF is inserted before that page — giving you precise control over placement.</p>
+    <h4>Merge or Import?</h4>
 
-    <p><strong>Adding a title page or appendix:</strong> Load a cover page or supplementary material as the source PDF, then tap the first or last page of your score to insert it at either end.</p>
+    <p>Export and Import (see <a href="#page-export-import" class="chapter-link">Export, Import</a>) also bring in pages from other scores. Each suits a different job:</p>
+    <ul>
+        <li><strong>Merge</strong> takes pages straight from a PDF file, without opening it as a score: all of them, or one range. It's the quicker way to bring in whole pieces or movements, and it can bookmark each one and leave out its annotations.</li>
+        <li><strong>Import</strong> inserts the pages you've collected in the shared buffer, exported one at a time from any scores you've opened, in any order. It's the way to gather scattered pages, as in a practice score, and the buffer keeps them until you clear it, across tabs and sessions.</li>
+    </ul>
 
     <h3 id="page-flatten">7.7 Page Ring: Flatten<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-flatten"/></svg></h3>
 
