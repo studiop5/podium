@@ -2454,7 +2454,7 @@ let fontMap = {
     fontStyle: "italic",
     fontWeight: "bold",
   },
-  Bravura: { fontFamily: "Bravura", fontStyle: "normal", fontWeight: "normal" },
+  "Music Symbols": { fontFamily: "Bravura", fontStyle: "normal", fontWeight: "normal" }, // (our Bravura: see build_font.py)
   "Patrick Hand": { fontFamily: "Patrick Hand", fontStyle: "normal", fontWeight: "normal" },
 };
 

@@ -23,6 +23,7 @@ import os
 import sys
 
 PRISTINE = 'lib/BravuraText.otf'
+FAMILY, PS_NAME = 'Podium Music Symbols', 'PodiumMusicSymbols'  # (not Bravura: see build_bravura)
 SMUFL_JS = 'src/smufl.js'   # the symbol palette; defines what glyphs the app can show
 
 
@@ -231,6 +232,17 @@ def build_bravura(out_path='build/BravuraText.otf'):
     composites = 'build/bravura-composites.otf'
     build_composites(PRISTINE, composites)
     merged = Merger().merge([tmp, composites])
+    # This is a Modified Version under the SIL OFL, which reserves the name "Bravura" for
+    # the original: give it its own name, and keep the licence fields the subsetter drops
+    pristine = TTFont(PRISTINE)['name']
+    name = merged['name']; name.names = []
+    for nid, s in {0: pristine.getDebugName(0), 1: FAMILY, 2: 'Regular', 3: PS_NAME,
+                   4: FAMILY, 5: pristine.getDebugName(5), 6: PS_NAME,
+                   13: pristine.getDebugName(13), 14: pristine.getDebugName(14)}.items():
+        name.setName(s, nid, 3, 1, 0x409)
+    cff = merged['CFF '].cff
+    cff.fontNames = [PS_NAME]
+    cff.topDictIndex[0].FullName = cff.topDictIndex[0].FamilyName = FAMILY
     merged.save(out_path); os.remove(tmp)
     print(f"  built {out_path}: {len(merged.getGlyphOrder())} glyphs")
 

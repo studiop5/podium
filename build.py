@@ -98,7 +98,7 @@ if args.font:
         outFile.write(b"""
   { window.fontData = {} ;
 
-    // Bravura Text font (registered as "Bravura" for both CSS and PDF embedding)
+    // Our Bravura Text (see build_font.py): CSS family "Bravura", PDF font "Music Symbols"
     const bravuraBase64 = \"""")
 
         with open('build/BravuraText.otf','rb') as inFile:
@@ -111,7 +111,7 @@ if args.font:
     await fontFile.load();
 
     // Lazy loading: convert base64 to Uint8Array only when PDF-lib needs it
-    window.fontData["Bravura"] = function() {
+    window.fontData["Music Symbols"] = function() {
       if (!this._bytes) {
         const binary = atob(bravuraBase64);
         this._bytes = new Uint8Array(binary.length);

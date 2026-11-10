@@ -776,49 +776,50 @@ for more details.</p></div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://github.com/steinbergmedia/bravura">Bravura Text</a><span>1.392</span></div>
           <div>© 2021 Steinberg Media Technologies GmbH</div>
-          <div><a href="https://openfontlicense.org/open-font-license-official-text/">SIL Open Font License 1.1</a></div>
+          <div><a href="licenses/bravura.txt">SIL Open Font License 1.1</a></div>
         </div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://rsms.me/inter/">Inter</a><span>4.001</span></div>
           <div>© 2016 The Inter Project Authors</div>
-          <div><a href="https://openfontlicense.org/open-font-license-official-text/">SIL Open Font License 1.1</a></div>
+          <div><a href="licenses/inter.txt">SIL Open Font License 1.1</a></div>
         </div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://fonts.google.com/specimen/Patrick+Hand">Patrick Hand</a><span>1.003</span></div>
-          <div>© 2012 Patrick Wagesreiter</div>
-          <div><a href="https://openfontlicense.org/open-font-license-official-text/">SIL Open Font License 1.1</a></div>
+          <div>© 2010–2012 Patrick Wagesreiter</div>
+          <div><a href="licenses/patrick-hand.txt">SIL Open Font License 1.1</a></div>
         </div>
         <div class="Panel__heading">Code</div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://codepen.io/zastrow/details/kxdYdk">CSS Piano</a><span></span></div>
-          <div>© 2026 Philip Zastrow</div>
-          <div><a href="https://opensource.org/license/mit">MIT</a></div>
+          <div>© 2025 Philip Zastrow</div>
+          <div><a href="licenses/zastrow_css_piano.txt">MIT</a></div>
         </div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://github.com/fabricjs">fabric.js</a><span>5.3.0</span></div>
           <div>© 2008–2015 Printio (Juriy Zaytsev, Maxim Chernyak)</div>
-          <div><a href="https://opensource.org/license/mit">MIT</a></div>
+          <div><a href="licenses/fabric.txt">MIT</a></div>
         </div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://github.com/foliojs/fontkit">fontkit</a><span>1.1.1</span></div>
-          <div>© Devon Govett</div>
-          <div><a href="https://opensource.org/license/mit">MIT</a></div>
+          <div>© 2014 Devon Govett</div>
+          <div><a href="licenses/fontkit.txt">MIT</a></div>
         </div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://github.com/mozilla/pdf.js">pdf.js</a><span>4.10.38</span></div>
           <div>© 2024 Mozilla Foundation</div>
-          <div><a href="https://www.apache.org/licenses/LICENSE-2.0">Apache 2.0</a></div>
+          <div><a href="licenses/mozilla_pdf.txt">Apache 2.0</a></div>
         </div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://github.com/Hopding/pdf-lib">pdf-lib</a><span>1.17.1</span></div>
           <div>© 2019 Andrew Dillon</div>
-          <div><a href="https://opensource.org/license/mit">MIT</a></div>
+          <div><a href="licenses/pdf-lib.txt">MIT</a></div>
         </div>
         <div class="Panel__heading">Sound</div>
         <div class="AboutPanel__credit" translate="no">
           <div class="AboutPanel__name"><a href="https://github.com/sfzinstruments/SalamanderGrandPiano">Salamander Grand Piano</a><span>V2 Yamaha C5</span></div>
           <div>© Alexander Holm</div>
-          <div><a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a></div>
+          <div>Selected samples, shortened and converted to MP3</div>
+          <div><a href="licenses/salamander-grand-piano.txt">CC BY 3.0</a></div>
         </div>
       </div>`);
 
@@ -2492,7 +2493,7 @@ class TextPanel extends PencilPanel {
     "Times-Bold",
     "Times-Italic",
     "Times-BoldItalic",
-    "Bravura",
+    "Music Symbols",
     "Patrick Hand",
     ] ;
  

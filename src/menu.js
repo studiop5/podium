@@ -605,7 +605,7 @@ class Menu {
         symbols: {
           name: "Symbols", gb: "ink-symbols",
           svgPath: iconPaths["Symbols"],
-          stash: {alpha:"1", rgb:"#000000", font: "Bravura", size: 5, group: "Basic", codePoint: "\ue050", recent: {}},
+          stash: {alpha:"1", rgb:"#000000", font: "Music Symbols", size: 5, group: "Basic", codePoint: "\ue050", recent: {}},
         },
         cut: {
           name: "Cut", gb: "ink-cut-copy-paste",
@@ -1729,7 +1729,7 @@ class Menu {
           top: opts.absolutePointer.y,
           hasControls: false,
         };
-        Object.assign(config, fontMap["Bravura"]);
+        Object.assign(config, fontMap["Music Symbols"]);
         activeCell.stash.recent = mergeRecent(activeCell.stash.recent || {}, { [codePoint]: _recentInsertPts_ });
         return addObj(new fabric.Text(codePoint, config));
       }
