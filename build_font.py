@@ -23,7 +23,7 @@ import os
 import sys
 
 PRISTINE = 'lib/BravuraText.otf'
-FAMILY, PS_NAME = 'Podium Music Symbols', 'PodiumMusicSymbols'  # (not Bravura: see build_bravura)
+FAMILY, PS_NAME = 'Brava', 'Brava'  # (not Bravura: see build_bravura)
 SMUFL_JS = 'src/smufl.js'   # the symbol palette; defines what glyphs the app can show
 
 

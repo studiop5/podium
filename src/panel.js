@@ -2493,7 +2493,6 @@ class TextPanel extends PencilPanel {
     "Times-Bold",
     "Times-Italic",
     "Times-BoldItalic",
-    "Music Symbols",
     "Patrick Hand",
     ] ;
  
