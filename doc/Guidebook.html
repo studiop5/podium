@@ -859,7 +859,15 @@ function closeVideo(event, container) {
                 <li><a href="#more-volume">9.8 Volume</a> — <span style="color:#666">Master volume control</span></li>
             </ul>
         </li>
-        <li><a href="#author">Chapter 10: About the Author</a></li>
+        <li><a href="#howto">Chapter 10: How Do I...</a> — <span style="color:#666">Step-by-step guides to common jobs</span>
+            <ul>
+                <li><a href="#howto-practice">10.1 Practice with Podium</a> — <span style="color:#666">Tune, mark up, keep tempo, and review yourself</span></li>
+                <li><a href="#howto-setlists">10.2 Create a Set List</a> — <span style="color:#666">Combine pieces into one score for performance</span></li>
+                <li><a href="#howto-tablet">10.3 Set Up a Tablet for Performance</a> — <span style="color:#666">Install, layout, screen, and pedal settings</span></li>
+                <li><a href="#howto-study">10.4 Study and Compare Scores</a> — <span style="color:#666">Editions side by side, with analysis annotations</span></li>
+            </ul>
+        </li>
+        <li><a href="#author">Chapter 11: About the Author</a></li>
         <li><a href="#keyword-index">Index</a></li>
     </ul>
 </nav>
@@ -1124,7 +1132,7 @@ function closeVideo(event, container) {
     <p>Podium can be installed as a browser extension in supported desktop browsers (Chrome, Edge, and other Chromium-based browsers like Brave or Opera). After installation, the Podium icon will be available under the browser's extensions menu (the puzzle piece icon in the toolbar). We recommend pinning it straight away for easy access: tap the puzzle piece, find Podium in the list, and tap the pin icon next to it. Once pinned, tap the Podium icon in the toolbar and tap "Launch Podium" to open the app directly. Scores can then be loaded in the usual way. The extension also provides two fast ways to open scores while you are browsing the web:</p>
 
     <ul>
-        <li><strong>Right-click Menu (Context Menu):</strong> You can right-click any PDF link on a web page and select "Open with Podium." This is the fastest way to grab a score while you are browsing. For <a href="https://imslp.org" target="_blank" rel="noopener noreferrer">IMSLP</a> scores, it works best if you are logged in to your IMSLP account; if not, the link opens normally so you can complete the disclaimer or login process in the browser. For other sites, the first attempt will show a permission dialog asking for access to that website. This is a standard security measure that allows Podium to "see" and download the PDF for you. Once granted, the permission is remembered and not requested again.</li>
+        <li><strong>Right-click Menu (Context Menu):</strong> You can right-click any PDF link on a web page and select "Open with Podium," under "PODIUM: Sheet Music Studio." This is the fastest way to grab a score while you are browsing. "Open with Podium" opens the score in the Podium tab you already have open, if any, replacing its score; "Open with Podium (New Tab)" always opens a new tab, keeping the scores you have open. For <a href="https://imslp.org" target="_blank" rel="noopener noreferrer">IMSLP</a> scores, it works best if you are logged in to your IMSLP account; if not, the link opens normally so you can complete the disclaimer or login process in the browser. For other sites, the first attempt will show a permission dialog asking for access to that website. This is a standard security measure that allows Podium to "see" and download the PDF for you. Once granted, the permission is remembered and not requested again.</li>
 
         <li><strong>Import from your Browser:</strong> If you are already viewing a PDF in a regular browser tab (using your browser's built-in viewer), tap the <strong>Podium icon in your toolbar</strong> (where you pinned it earlier). If a PDF is detected, an "Open in Podium" button appears at the top of the popup. Tap it to import the score immediately. As with the right-click menu, a one-time permission grant for that site may be required on your first use.</li>
     </ul>
@@ -2228,7 +2236,7 @@ function closeVideo(event, container) {
 
     <h4>Example: A Set List</h4>
 
-    <p>A set list is one score holding just the pieces you'll play, in the order you'll play them, so there's no opening and closing of files on stage. Open the first piece's score. Then, for each piece that follows, tap the Merge cell and choose its PDF, set <strong>From</strong> and <strong>To</strong> to the pages you'll play, and tap the right half of the score's last page. With <strong>Mark</strong> lit, each piece starts at a bookmark, so the <a href="#bookmarks" class="chapter-link">bookmarks</a> become the set list's index: jump straight to any piece. Save the result under a new name, and the whole set list is a single, self-contained PDF.</p>
+    <p>A set list is one score holding just the pieces you'll play, in the order you'll play them. Merge each piece onto the end of the first, with Mark lit, so each starts at a bookmark. For a complete walk-through, see <a href="#howto-setlists" class="chapter-link">Create a Set List</a>.</p>
 
     <h4>Merge or Import?</h4>
 
@@ -2704,8 +2712,88 @@ function closeVideo(event, container) {
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
 
+<section id="howto">
+    <h2>Chapter 10: How Do I...</h2>
+
+    <p>The ring chapters describe each cell on its own. This chapter shows how to combine them for some common jobs.</p>
+
+    <h3 id="howto-practice">10.1 Practice with Podium</h3>
+
+    <p>Podium can be your whole practice room: score, tuner, metronome, and a recorder that lets you hear and see yourself as others do.</p>
+    <ol>
+        <li><strong>Tune up.</strong> Open the <a href="#more-piano" class="chapter-link">Piano</a> from the More Ring and turn on its Pitch Detector (the tuning fork icon); it needs a microphone, built in or plugged in. Play a note on your instrument: the Piano marks the nearest note and shows how many cents (hundredths of a semitone) sharp or flat you are. If your ensemble tunes to something other than A4 = 440 Hz, change it in Settings: Pitch. To tune by ear instead, turn on Autorepeat with the Tuning Fork timbre, and listen for beats.</li>
+        <li><strong>Open the score in Book layout.</strong> <a href="#layout-book" class="chapter-link">Book layout</a> looks and turns like a printed score, so you practise your page turns along with the notes.</li>
+        <li><strong>Mark it up.</strong> The <a href="#ink-pen-pencil" class="chapter-link">Pen and Pencil</a> are configured separately, so set them up for two jobs: for instance, the Pencil in a bright color at low opacity, as a highlighter for difficult passages, and the Pen in a dark color for notes to yourself. For fingerings, use the <a href="#ink-symbols" class="chapter-link">Symbols</a> tool's Fingering group (to jump to it, open the group list and type <em>fing</em> on a physical keyboard or Podium's <a href="#more-keyboard" class="chapter-link">Keyboard</a> panel), or <a href="#ink-text" class="chapter-link">Text</a>. <a href="#bookmarks" class="chapter-link">Bookmark</a> the pages with the hardest passages, to jump back to them quickly.</li>
+        <li><strong>Keep practice notes.</strong> Add a blank page anywhere in the score with the Page Ring's <a href="#page-add" class="chapter-link">Add</a> cell: activate it, then tap the right half of a page to add the new page after it (the left half, before it). On it, keep notes about your progress, handwritten with the Pen or Pencil, or typed with Text. The page is saved with the score, so your notes are there at the next practice session.</li>
+        <li><strong>Use the metronome.</strong> Drag the <a href="#more-metronome" class="chapter-link">Metronome</a> out of the More Ring and set the tempo, starting slowly. Drag its graphic onto the background to <a href="#detached-panels" class="chapter-link">detach</a> it beside the score: there, a long-press starts and stops it, and tapping it at the speed you want sets the tempo.</li>
+        <li><strong>Record and review.</strong> If your device has a camera and microphone, open <a href="#more-review" class="chapter-link">Review</a>. It records you continuously, keeping only the most recent part of your session: set how much, from 15 seconds to 10 minutes, with Review Length in its Options tab. After a passage, drag the scrubber to the left to watch and hear it again, then drag it back to the right to carry on. Recording uses a lot of battery, so plug the device in.</li>
+    </ol>
+
+    <h3 id="howto-setlists">10.2 Create a Set List</h3>
+
+    <p>A set list is one score holding just the pieces you'll play, in the order you'll play them, so there's no opening and closing of files on stage.</p>
+
+    <p>Most sheet music readers keep a library of your scores, and their set lists are lists of references into that library. A Podium set list is different: it's a new PDF score, made of copies of the pages you'll play. That has advantages:</p>
+    <ul>
+        <li>It's a single, self-contained file. It opens in Podium on any device, and in any other PDF reader, so you can send it to a bandmate or print it.</li>
+        <li>There's no library to maintain, back up, or lose: if you have the file, you have the set list.</li>
+        <li>Annotations for this performance (cuts, cues, a changed key) go in the set list, leaving your copies of the original scores untouched.</li>
+    </ul>
+    <p>And disadvantages:</p>
+    <ul>
+        <li>Because the pages are copies, changes you later make to an original score don't appear in set lists already made from it.</li>
+        <li>Each set list takes as much storage as the pages it holds.</li>
+        <li>Copying PDF pages is slow work, so building a long set list can take a while.</li>
+    </ul>
+
+    <h4>Example</h4>
+
+    <p>Suppose you plan to open an upcoming performance with your own chart of a tune, a single-page PDF. Then come two standards from a fake book PDF, on its pages 45&ndash;46 and 112. The set closes with a lead sheet you've been learning in another Podium tab.</p>
+    <ol>
+        <li><strong>Start with the first tune.</strong> Open your chart. Before changing anything, open the <a href="#score-open-save" class="chapter-link">Save Panel</a>, type a name for the set list (say, <em>Friday Gig</em>), and tap Upload. From now on, saving updates the set list, not your chart.</li>
+        <li><strong>Bookmark it.</strong> Long-press the first page's number to <a href="#bookmarks" class="chapter-link">bookmark</a> it.</li>
+        <li><strong>Merge the first standard.</strong> Tap the <a href="#page-merge" class="chapter-link">Merge</a> cell and choose the fake book's PDF. Go to the last page and tap its right half. In the dialog, set From: to 45 and To: to 46, leave Mark lit so the tune gets its own bookmark, and tap Merge. (From: and To: count the PDF's pages, which may not match the numbers printed in the book.)</li>
+        <li><strong>Merge the second standard.</strong> The fake book stays loaded. Go to the new last page, tap the Merge cell to reactivate it, and tap the page's right half. Set From: and To: to 112, and tap Merge.</li>
+        <li><strong>Collect the closer.</strong> In the other tab, tap the Page Ring's <a href="#page-export-import" class="chapter-link">Export</a> cell, then the lead sheet's page. (If the shared buffer already holds pages from earlier, first clear it in the Import Panel: Import inserts everything in the buffer.)</li>
+        <li><strong>Import the closer.</strong> Back in the set list's tab, tap the Import cell, then the right half of the last page, and confirm. Long-press the new page's number to bookmark it too.</li>
+        <li><strong>Check the order.</strong> Switch to <a href="#layout-table" class="chapter-link">Table layout</a> to see every page at once. Drag a page to move it, or drag it out of the table to remove it.</li>
+        <li><strong>Save.</strong> Tap the Save cell.</li>
+    </ol>
+    <p>On stage, the bookmark tabs are the set list's index: press one to jump straight to that piece. To jump between pieces with a foot pedal instead, see <a href="#page-numbers" class="chapter-link">Numbers</a>. For the tablet you'll read it on, see <a href="#howto-tablet" class="chapter-link">Set Up a Tablet for Performance</a>.</p>
+
+    <h3 id="howto-tablet">10.3 Set Up a Tablet for Performance</h3>
+
+    <p>A tablet on a music stand is a good home for Podium. A few minutes of setup make it a reliable one for performance, especially with a <a href="#howto-setlists" class="chapter-link">set list</a> holding everything you'll play.</p>
+    <ol>
+        <li><strong>Install it.</strong> Install Podium as a <a href="#pwa" class="chapter-link">Progressive Web App</a>. On an Android tablet, open Podium in Chrome, tap the menu (three dots), then Add to Home Screen, and choose Install. On iPad, open Podium in Safari (or any browser), tap the Share button, then Add to Home Screen. Installed, Podium opens from the home screen, works offline, and uses the whole screen, with no browser toolbars taking space. On iPad, it also stops Safari's edge swipes from navigating away by accident.</li>
+        <li><strong>Keep your scores on the tablet.</strong> Scores in cloud storage need an internet connection to open. For performance, save them to the tablet itself, using the Local tab: its file picker offers the tablet's own storage (<em>On My iPad</em> on iPad, internal storage on Android).</li>
+        <li><strong>Pick a layout.</strong> Try <a href="#layout-vertical" class="chapter-link">Vertical layout</a>, and in its panel set Fit: to Auto, so the whole page is visible, Show: to 1 page, so one page fills the screen, and Snap: to 1 page, so each turn moves exactly one page. Keep Pace: small (0.35 seconds/snap or less), so page turns by tapping are quick. Pinch to zoom and drag to position the score: Podium remembers the view for each layout, though rotating the tablet returns it to the default fit. To make the score bigger still, turn off Page numbers in the layout's panel: that frees the margins they occupy.</li>
+        <li><strong>Keep the screen on.</strong> Turn on <a href="#app-wakelock" class="chapter-link">Wakelock</a>, so the screen doesn't dim or lock mid-piece. (On iPad, this needs iPadOS 16.4 or later.)</li>
+        <li><strong>Add a foot pedal</strong> (optional). Pair a Bluetooth page-turner pedal in the tablet's Bluetooth settings, then choose what its keys do in <a href="#page-numbers" class="chapter-link">Numbers</a>. See <a href="#foot-pedal" class="chapter-link">Foot Pedal</a>.</li>
+        <li><strong>Match the room.</strong> In a dark hall or pit, the Dark <a href="#app-theme" class="chapter-link">Theme</a> and a black or red <a href="#app-curtain" class="chapter-link">Curtain</a> keep the screen from glaring.</li>
+    </ol>
+    <div class="note">On Android, an installed Podium keeps working offline. On iPad, one that goes unused for weeks may need an internet connection to start again: open it every so often, and always once before a performance.</div>
+
+    <h3 id="howto-study">10.4 Study and Compare Scores</h3>
+
+    <p>For analysis and musicology, a desktop computer with a large monitor is the place to be: there's room for several pages, or several editions, at once. And with the <a href="#extension" class="chapter-link">browser extension</a>, IMSLP's library of scores is a click away.</p>
+    <ol>
+        <li><strong>Install the extension.</strong> Install Podium's extension in Chrome or Edge, and pin it to the toolbar. Log in to your IMSLP account, so scores open without disclaimer pages.</li>
+        <li><strong>Find a work.</strong> Start with a simple web search, such as <em>imslp brahms</em>. Its results include the composer's IMSLP page: open it, and choose a work from its list, "Compositions by: Brahms, Johannes".</li>
+        <li><strong>Open a score.</strong> On the work's page, choose an edition in its Sheet Music section. Right-click the edition's download icon (the downward arrow, which turns yellow when the mouse is over it) and choose <em>PODIUM: Sheet Music Studio</em> &rarr; <em>Open with Podium</em>. The score opens in a Podium tab, replacing any score already open there.</li>
+        <li><strong>Show several pages.</strong> Choose <a href="#layout-horizontal" class="chapter-link">Horizontal layout</a>, and in its panel set Show: to 3 pages, or more if your monitor is big enough, and Fit: to Height, so whole pages fit. Set Snap: to 1 page to step through the score a page at a time, or turn it off to scroll freely. To examine a detail, use <a href="#page-magnify" class="chapter-link">Magnify</a>.</li>
+        <li><strong>Annotate.</strong> The <a href="#ink-symbols" class="chapter-link">Symbols</a> tool offers nearly 3,000 symbols from the SMuFL standard, organized in groups. Groups useful for analysis include Analytics, Figured bass, Function theory symbols, and Chord symbols. To jump to a group, open the group list and type a few letters of its name (such as <em>ana</em>), on your computer's keyboard or Podium's on-screen <a href="#more-keyboard" class="chapter-link">Keyboard</a>. Use <a href="#ink-text" class="chapter-link">Text</a> for labels such as harmonic analysis, and the <a href="#ink-pen-pencil" class="chapter-link">Pen</a> for brackets, boxes, and arrows.</li>
+        <li><strong>Open other editions.</strong> For each other edition you want to compare, right-click its download icon and choose <em>PODIUM: Sheet Music Studio</em> &rarr; <em>Open with Podium (New Tab)</em>, so each opens in a tab of its own.</li>
+        <li><strong>Compare side by side.</strong> Drag each edition's tab out of the browser's tab strip, so it becomes a window of its own. Then arrange the windows side by side, using your system's window tiling or by hand. Each window is a complete Podium, with its own layout: show fewer pages in each, so the editions stay readable.</li>
+        <li><strong>Collect passages</strong> (optional). To gather corresponding passages from several editions into one score, <a href="#page-export-import" class="chapter-link">Export</a> their pages from each window, then Import them all into one score, such as a new one made with <a href="#score-new" class="chapter-link">New</a>.</li>
+        <li><strong>Save your work.</strong> A score opened from IMSLP has no file of yours yet: save it in the <a href="#score-open-save" class="chapter-link">Save Panel</a>, under a name of your choosing, locally or in cloud storage.</li>
+    </ol>
+
+    <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
+</section>
+
 <section id="author">
-    <h2>Chapter 10: About the Author</h2>
+    <h2>Chapter 11: About the Author</h2>
 
     <p>I'm a Canadian software engineer living in Colorado. Originally a classical guitar wannabe, I studied music theory / computer music at McGill U (<a href="https://www.mcgill.ca/music/" target="_blank">EMS</a>) and Stanford U (<a href="https://ccrma.stanford.edu/" target="_blank">CCRMA</a>). After ~30 years in the software industry, I now devote way too much of my free time to various music projects.</p>
 
@@ -2739,8 +2827,9 @@ function closeVideo(event, container) {
     <div class="idx-letter">A</div>
     <dl>
         <dt>About<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-about"/></svg></dt><dd> &mdash; <a href="#app-about">8.1</a></dd>
-        <dt>About the Author</dt><dd> &mdash; <a href="#author">Ch.10</a></dd>
+        <dt>About the Author</dt><dd> &mdash; <a href="#author">Ch.11</a></dd>
         <dt>Add<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-new-page"/></svg></dt><dd> &mdash; <a href="#page-add">7.2</a></dd>
+        <dt>Analysis</dt><dd> &mdash; <a href="#howto-study">10.4</a></dd>
         <dt>Annotations</dt><dd> &mdash; <a href="#quick-start">Ch.1</a>, <a href="#ink">Ch.6</a></dd>
         <dt>App Ring</dt><dd> &mdash; <a href="#app">Ch.8</a></dd>
         <dt>Aspect ratio</dt><dd> &mdash; <a href="#ink-edit">6.8</a></dd>
@@ -2783,6 +2872,7 @@ function closeVideo(event, container) {
     <dl>
         <dt>E-reader</dt><dd> &mdash; <a href="#overture">Overture</a></dd>
         <dt>Edit<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-edit"/></svg></dt><dd> &mdash; <a href="#ink-edit">6.8</a></dd>
+        <dt>Editions, comparing</dt><dd> &mdash; <a href="#howto-study">10.4</a></dd>
         <dt>Equal temperament</dt><dd> &mdash; <a href="#more-piano">9.5</a></dd>
         <dt>Expand mode</dt><dd> &mdash; <a href="#score-details">4.5</a></dd>
         <dt>Export</dt><dd> &mdash; <a href="#page-export-import">7.5</a></dd>
@@ -2790,6 +2880,7 @@ function closeVideo(event, container) {
     <div class="idx-letter">F</div>
     <dl>
         <dt>File System Access API</dt><dd> &mdash; <a href="#score-open-save">4.1</a></dd>
+        <dt>Fingerings</dt><dd> &mdash; <a href="#howto-practice">10.1</a></dd>
         <dt>Firefox settings</dt><dd> &mdash; <a href="#firefox-settings">4.1</a></dd>
         <dt>Flatten<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-flatten"/></svg></dt><dd> &mdash; <a href="#page-flatten">7.7</a></dd>
         <dt>Fling gesture</dt><dd> &mdash; <a href="#interface">Ch.3</a>, <a href="#turning-pages">Ch.5</a></dd>
@@ -2808,12 +2899,13 @@ function closeVideo(event, container) {
     <div class="idx-letter">H</div>
     <dl>
         <dt>Horizontal<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-horizontal-scroll"/></svg></dt><dd> &mdash; <a href="#layout-horizontal">5.2</a></dd>
+        <dt>How Do I...</dt><dd> &mdash; <a href="#howto">Ch.10</a></dd>
     </dl>
     <div class="idx-letter">I</div>
     <dl>
         <dt>Images, importing</dt><dd> &mdash; <a href="#ink-cut-copy-paste">6.5</a></dd>
         <dt>Import<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-export-page"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-import-page"/></svg></dt><dd> &mdash; <a href="#page-export-import">7.5</a></dd>
-        <dt>IMSLP</dt><dd> &mdash; <a href="#running">Ch.2</a></dd>
+        <dt>IMSLP</dt><dd> &mdash; <a href="#running">Ch.2</a>, <a href="#howto-study">10.4</a></dd>
         <dt>Ink Ring</dt><dd> &mdash; <a href="#ink">Ch.6</a></dd>
         <dt>Inner ring</dt><dd> &mdash; <a href="#menu">Ch.3</a></dd>
         <dt>Installation</dt><dd> &mdash; <a href="#running">Ch.2</a></dd>
@@ -2844,6 +2936,7 @@ function closeVideo(event, container) {
         <dt>Microphone</dt><dd> &mdash; <a href="#more-piano">9.5</a>, <a href="#more-review">9.6</a></dd>
         <dt>More Ring</dt><dd> &mdash; <a href="#more">Ch.9</a></dd>
         <dt>Mouse controls</dt><dd> &mdash; <a href="#interface">Ch.3</a></dd>
+        <dt>Musicology</dt><dd> &mdash; <a href="#howto-study">10.4</a></dd>
         <dt>Mutopia</dt><dd> &mdash; <a href="#running">Ch.2</a></dd>
     </dl>
     <div class="idx-letter">N</div>
@@ -2881,6 +2974,7 @@ function closeVideo(event, container) {
         <dt>Pinch-zoom</dt><dd> &mdash; <a href="#layout-book">5.1</a>, <a href="#interface">Ch.3</a></dd>
         <dt>Pitch detector</dt><dd> &mdash; <a href="#more-piano">9.5</a></dd>
         <dt>Playback</dt><dd> &mdash; <a href="#more-review">9.6</a></dd>
+        <dt>Practice</dt><dd> &mdash; <a href="#howto-practice">10.1</a></dd>
         <dt>Practice scores</dt><dd> &mdash; <a href="#page-export-import">7.5</a></dd>
         <dt>Precision sliders</dt><dd> &mdash; <a href="#ink-edit">6.8</a></dd>
         <dt>Print<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-print"/></svg></dt><dd> &mdash; <a href="#score-print">4.4</a></dd>
@@ -2911,6 +3005,7 @@ function closeVideo(event, container) {
         <dt>Score Ring</dt><dd> &mdash; <a href="#score">Ch.4</a></dd>
         <dt>Screen<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-full-screen"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-normal-screen"/></svg></dt><dd> &mdash; <a href="#app-screen">8.7</a></dd>
         <dt>Scrubber</dt><dd> &mdash; <a href="#more-review">9.6</a></dd>
+        <dt>Set lists</dt><dd> &mdash; <a href="#howto-setlists">10.2</a>, <a href="#page-merge">7.6</a></dd>
         <dt>Shared buffer</dt><dd> &mdash; <a href="#page-export-import">7.5</a></dd>
         <dt>Sliders</dt><dd> &mdash; <a href="#interface">Ch.3</a></dd>
         <dt>SMuFL</dt><dd> &mdash; <a href="#ink-symbols">6.4</a></dd>
@@ -2929,12 +3024,14 @@ function closeVideo(event, container) {
     <dl>
         <dt>Tablature</dt><dd> &mdash; <a href="#ink-rastrum">6.2</a></dd>
         <dt>Table<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-table"/></svg></dt><dd> &mdash; <a href="#layout-table">5.4</a></dd>
+        <dt>Tablets</dt><dd> &mdash; <a href="#howto-tablet">10.3</a>, <a href="#pwa">2.2</a></dd>
         <dt>Temperament</dt><dd> &mdash; <a href="#more-piano">9.5</a></dd>
         <dt>Text<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-text"/></svg></dt><dd> &mdash; <a href="#ink-text">6.3</a></dd>
         <dt>Theme<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-light"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-glass"/></svg><svg aria-hidden="true" focusable="false" class="gb-icon"><use href="#gb-dark"/></svg></dt><dd> &mdash; <a href="#app-theme">8.2</a></dd>
         <dt>Timbre</dt><dd> &mdash; <a href="#more-piano">9.5</a></dd>
         <dt>Transform handles</dt><dd> &mdash; <a href="#ink-edit">6.8</a></dd>
         <dt>Tuner</dt><dd> &mdash; <a href="#more-piano">9.5</a></dd>
+        <dt>Tuning</dt><dd> &mdash; <a href="#howto-practice">10.1</a>, <a href="#more-piano">9.5</a></dd>
     </dl>
     <div class="idx-letter">U</div>
     <dl>
