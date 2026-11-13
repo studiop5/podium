@@ -615,6 +615,8 @@ class Pg {
     let c = this.crop;
     let transform = c ? `scale(${c.s}) translate(${-100 * c.x / this.width}%,${-100 * c.y / this.height}%)` : "";
     this.elm.style.overflow = c ? "hidden" : "";
+    // (a transform puts the mozCanvas, last in the dom, above fabric's canvases: keep it below)
+    this.canvas.lowerCanvasEl.style.zIndex = this.canvas.upperCanvasEl.style.zIndex = c ? 1 : "";
     for (let el of [this.mozCanvas, this.canvas.lowerCanvasEl, this.canvas.upperCanvasEl]) {
       if (!el) continue;
       el.style.transformOrigin = "0 0";
