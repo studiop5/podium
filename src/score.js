@@ -590,6 +590,13 @@ class Pg {
     }
   }
 
+  cropBy(ratio, dx, dy, x, y) {
+    // Crop gesture (from class Gestures): scale this pg's content by @ratio about
+    // the client point @x,@y, then translate it by @dx,@dy client px.
+    // (first step: just report it)
+    console.log("crop me", this.score.pnOf(this), ratio, dx, dy, x, y);
+  }
+
   toJson() {
     // @return string, the JSON representation of the fabricjs canvas encapsulation.
     if (!this.inflated) return null; // only call this on inflated pg's

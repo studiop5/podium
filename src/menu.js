@@ -672,6 +672,7 @@ class Menu {
         merge: { name: "Merge", gb: "page-merge", svgPath: iconPaths["Merge"], stash: { mark: true, ink: true }, storage: "local" },
         flatten: { name: "Flatten", gb: "page-flatten", svgPath: iconPaths["Flatten"] },
         magnify: { name: "Magnify", gb: "page-magnify", svgPath: iconPaths["Magnify"], stash: { zoom: 2 } },
+        crop: { name: "Crop", gb: "page-crop", svgPath: iconPaths["Crop"] },
       },
       name: "Page", gb: "page",
       stash: {},

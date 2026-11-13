@@ -308,6 +308,9 @@ Local:
 "L-R":
   `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M4 12h21M8 8l-4 4l4 4M19 8l4 4l-4 4"/>`,
 
+Crop:
+  `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M6 2v16h16M2 6h16v16"/>`,
+
 Magnify:
   `<defs><mask id="glass">
     <rect x="0" y="0" width="24" height="24" fill="white"/>
