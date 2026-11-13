@@ -85,6 +85,7 @@ class Pg {
     this.canvas = null; // fabricjs canvas
     this.isCut = false; // marker for pgs that are "cut" in the gui
     this.bookmark = null; // Color string if this pg is bookmarked, else null
+    this.crop = null; // { x, y, s } iff cropped: see cropBy()
     this.deferred = false; // true while pdf rendering deferred for non-blocking
     this.editable = false;
     this.elm = null; // shortcut for this.canvas.wrapperEl: the base element of the fabric canvas dom
@@ -586,15 +587,39 @@ class Pg {
         this.mozCanvas.style.width = emWidth;
         this.mozCanvas.style.height = emHeight;
       }
+      this.applyCrop();
       return this.canvas.requestRenderAll();
     }
   }
 
   cropBy(ratio, dx, dy, x, y) {
-    // Crop gesture (from class Gestures): scale this pg's content by @ratio about
-    // the client point @x,@y, then translate it by @dx,@dy client px.
-    // (first step: just report it)
-    console.log("crop me", this.score.pnOf(this), ratio, dx, dy, x, y);
+    // Crop gesture (from class Gestures): translate this pg's content by @dx,@dy client
+    // px, then scale it by @ratio about the client point @x,@y. The pg keeps its frame:
+    // this.crop is the visible area's top left @x,@y (in page units) and its zoom @s,
+    // i.e. it shows width/s x height/s of the page, never zoomed out past, or panned
+    // past the edges of, the whole page. null when uncropped.
+    if (!this.inflated) return;
+    let r = this.elm.getBoundingClientRect();
+    let u = r.width / this.width; // client px per page unit, at zoom 1
+    let { x: cx, y: cy, s } = this.crop ?? { x: 0, y: 0, s: 1 };
+    let s1 = Math.min(8, Math.max(1, s * ratio));
+    let clamp = (v, size) => Math.min(size - size / s1, Math.max(0, v));
+    cx = clamp(cx - dx / (u * s) + (x - r.left) / u * (1 / s - 1 / s1), this.width);
+    cy = clamp(cy - dy / (u * s) + (y - r.top) / u * (1 / s - 1 / s1), this.height);
+    this.crop = s1 == 1 ? null : { x: cx, y: cy, s: s1 };
+    this.applyCrop();
+  }
+
+  applyCrop() {
+    // Show this.crop (see cropBy) by a css transform of the pg's canvases, clipped to its frame
+    let c = this.crop;
+    let transform = c ? `scale(${c.s}) translate(${-100 * c.x / this.width}%,${-100 * c.y / this.height}%)` : "";
+    this.elm.style.overflow = c ? "hidden" : "";
+    for (let el of [this.mozCanvas, this.canvas.lowerCanvasEl, this.canvas.upperCanvasEl]) {
+      if (!el) continue;
+      el.style.transformOrigin = "0 0";
+      el.style.transform = transform;
+    }
   }
 
   toJson() {
