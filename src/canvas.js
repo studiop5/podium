@@ -391,7 +391,7 @@ function initFabric() {
       this.canvas = canvas;
       Object.assign(this, options);
       this.color = color;
-      this.zoom = canvas.getZoom(); // rem grd...tmp exp
+      this.zoom = 1; // (onMouseMove previews in page units, by the canvas's viewport transform: see Pg.cropBy)
     },
   
     onMouseDown: function (ptr, options) {
@@ -404,6 +404,8 @@ function initFabric() {
       let { canvas, color, gap, lines, width, origin, style, zoom } = this;
       let ctx = canvas.contextTop;
       canvas.clearContext(ctx);
+      ctx.save();
+      ctx.transform(...canvas.viewportTransform);
       if (style == "L-R") origin.y = ptr.y;
       else origin.x = ptr.x;
       // Preview what paths() will build: same "Auto" width, and each line
@@ -425,6 +427,7 @@ function initFabric() {
         }
         ctx.stroke();
       }
+      ctx.restore();
     },
   
     onMouseUp: function (e) {
@@ -515,6 +518,8 @@ function initFabric() {
       else if (style == "T-B") ptr.x = origin.x;
       // else (style == "Straight")
       canvas.clearContext(ctx);
+      ctx.save();
+      ctx.transform(...canvas.viewportTransform);
       ctx.beginPath();
       ctx.lineWidth = width * zoom;
       ctx.strokeStyle = color;
@@ -522,6 +527,7 @@ function initFabric() {
       ctx.moveTo(origin.x * zoom, origin.y * zoom);
       ctx.lineTo(ptr.x * zoom, ptr.y * zoom);
       ctx.stroke();
+      ctx.restore();
     },
   
     onMouseUp: function (e) {

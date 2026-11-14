@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { clamp, clearChildren, delay, dialog, fontUnmap, helm, inflate, listen, rotatePoint, toast, unlisten } from "./common.js";
+import { clamp, clearChildren, delay, dialog, fontUnmap, getBox, helm, inflate, listen, rotatePoint, Schedule, toast, unlisten } from "./common.js";
 import { Grid } from "./canvas.js";
 import { Layout } from "./layout.js";
 import { Panel, panels, EditPanel } from "./panel.js";
@@ -70,6 +70,9 @@ class Pg {
   static paddingColor = "#fff";
   // Max size (width OR height) of Pg thumbnails, in px  
   static thumbSize = 192;
+  // Max crop zoom (see cropBy): a generous cap, showing an eighth of the page's
+  // width, far past any useful crop. Also bounds a saved crop (see cropOf).
+  static maxCrop = 8;
 
   constructor(score, width, height, json, mozPn = null, background = null) {
     //  @score: reference to Score instance this Pg is part of
@@ -124,14 +127,19 @@ class Pg {
     let mozPg = await this.score.mozDoc.getPage(this.mozPn);
     if(this.score.disposed || signal?.aborted)
       throw new DOMException("Inflation aborted", "AbortError");
-    let viewport = mozPg.getViewport({ scale: this.score.quality});
-    let w = viewport.width / this.score.quality;
-    let h = viewport.height / this.score.quality;
-    let mozCanvas = helm(`<canvas width="${viewport.width}" height="${viewport.height}"
-      style="width:${w / _pxPerEm_}em;height:${h / _pxPerEm_}em;font-size:1em"></canvas>`);
-    if (this.mozCanvas) this.mozCanvas.replaceWith(mozCanvas);
-    else canvas.wrapperEl.append(mozCanvas);
-    this.mozCanvas = mozCanvas;
+    let q = this.score.quality;
+    let viewport = mozPg.getViewport({ scale: q});
+    let w = viewport.width / q;
+    let h = viewport.height / q;
+    // (adopted: a canvas left in helm's template document draws no text, lacking the pdf's fonts)
+    let mozCanvas = document.adoptNode(helm(`<canvas width="${viewport.width}" height="${viewport.height}"
+      style="width:${w / _pxPerEm_}em;height:${h / _pxPerEm_}em;font-size:1em"></canvas>`));
+    // A cropped pg draws just its visible area, at the same canvas size (see cropBy)
+    let { x, y, s } = mozCanvas.crop = this.crop ?? { x: 0, y: 0, s: 1 };
+    if (this.crop) viewport = mozPg.getViewport({ scale: q * s, offsetX: -x * q * s, offsetY: -y * q * s });
+    // (a re-render, e.g. of a new crop, swaps canvases only once drawn, so it doesn't flash)
+    let old = this.mozCanvas;
+    if (!old) canvas.wrapperEl.append(this.mozCanvas = mozCanvas);
     let ctx = mozCanvas.getContext("2d", { willReadFrequently: true });
     let renderTask = this.renderTask = mozPg.render({
       annotationMode: pdfjsLib.AnnotationMode.DISABLE,
@@ -148,6 +156,14 @@ class Pg {
     } finally {
       if(this.renderTask === renderTask) this.renderTask = null;
     }
+    if (old) {
+      if (this.mozCanvas !== old) return; // deflated meanwhile
+      old.replaceWith(this.mozCanvas = mozCanvas);
+      old.width = old.height = 0;
+    }
+    // The ink switches to this crop together with the pdf (setZoom drops their previews)
+    this.setCropVpt(canvas, mozCanvas.crop);
+    canvas.renderAll();
 
     // Detect silently-broken PDFs (e.g. non-standard compression or missing fonts).
     // These trigger the onUnsupportedFeature callback during loading or rendering.
@@ -416,6 +432,7 @@ class Pg {
         if(!this.suppressStateChange)  stateChanged = true;
       });
   
+      this.setCropVpt(canvas);
       this.inflated = true;
       this.setEditable(this.editable); // indicate pg is editable. note: called AFTER setting this.inflated
       this.setZoom(this.zoom);
@@ -549,6 +566,7 @@ class Pg {
     // @return a clone of this page.
     // @inflate when true, the clone is inflated, otherwise not.
     let theClone = new Pg(this.score, this.width, this.height, this.toJson() || this.json, this.mozPn, null);
+    theClone.crop = this.crop && { ...this.crop };
     if (this.thumbElm) { 
       theClone.thumbElm = this.thumbElm.cloneNode();
     }
@@ -599,25 +617,70 @@ class Pg {
     // i.e. it shows width/s x height/s of the page, never zoomed out past, or panned
     // past the edges of, the whole page. null when uncropped.
     if (!this.inflated) return;
-    let r = this.elm.getBoundingClientRect();
+    let r = getBox(this.elm);
     let u = r.width / this.width; // client px per page unit, at zoom 1
     let { x: cx, y: cy, s } = this.crop ?? { x: 0, y: 0, s: 1 };
-    let s1 = Math.min(8, Math.max(1, s * ratio));
+    let s1 = Math.min(Pg.maxCrop, Math.max(1, s * ratio));
     let clamp = (v, size) => Math.min(size - size / s1, Math.max(0, v));
     cx = clamp(cx - dx / (u * s) + (x - r.left) / u * (1 / s - 1 / s1), this.width);
     cy = clamp(cy - dy / (u * s) + (y - r.top) / u * (1 / s - 1 / s1), this.height);
     this.crop = s1 == 1 ? null : { x: cx, y: cy, s: s1 };
     this.applyCrop();
+    // Once the gesture pauses or ends, draw the crop sharp
+    (this.cropSettle ??= new Schedule()).run(250, () => this.renderCrop());
+  }
+
+  static bookmarkOf(json) {
+    // The bookmark saved in page @json, or null. PDF attachments are untrusted: red if invalid.
+    let bk = json?.bookmark;
+    return !bk ? null : typeof bk == "string" && CSS.supports("color", bk) ? bk : "#ff0000";
+  }
+
+  static cropOf(json, width, height) {
+    // The crop saved in page @json (see toPdfAux), or null if none or invalid (PDF
+    // attachments are untrusted): within cropBy's limits for a @width x @height page.
+    let c = json?.crop;
+    if (![c?.x, c?.y, c?.s].every(Number.isFinite) || c.s <= 1 || c.s > Pg.maxCrop) return null;
+    // (exact: cropBy clamps with this same expression, and json numbers round trip exactly)
+    let ok = (v, size) => v >= 0 && v <= size - size / c.s;
+    return ok(c.x, width) && ok(c.y, height) ? { x: c.x, y: c.y, s: c.s } : null;
+  }
+
+  setCropVpt(canvas = this.canvas, crop = this.crop) {
+    // Draw the ink (kept in uncropped page units) cropped, by fabric's viewport transform
+    let { x, y, s } = crop ?? { x: 0, y: 0, s: 1 };
+    canvas.setViewportTransform([s, 0, 0, s, -x * s, -y * s]);
+  }
+
+  renderCrop() {
+    // Redraw this pg's ink and pdf at its current crop (cropBy's preview only magnifies them)
+    if (!this.inflated) return;
+    if (!this.mozCanvas) { // no pdf drawn (yet: if there's to be one, it will be, cropped)
+      this.setCropVpt();
+      this.canvas.renderAll();
+      return this.applyCrop();
+    }
+    this.cropRender = (this.cropRender ?? Promise.resolve()).then(() => {
+      let { x, y, s } = this.crop ?? { x: 0, y: 0, s: 1 }, r = this.mozCanvas?.crop;
+      if (this.inflated && r && (r.x != x || r.y != y || r.s != s)) return this.renderPdf(this.canvas);
+    }).catch(err => {
+      if (err.name != "AbortError") console.warn(`Failed to render crop of page ${this.mozPn}:`, err);
+    });
   }
 
   applyCrop() {
-    // Show this.crop (see cropBy) by a css transform of the pg's canvases, clipped to its frame
-    let c = this.crop;
-    let transform = c ? `scale(${c.s}) translate(${-100 * c.x / this.width}%,${-100 * c.y / this.height}%)` : "";
-    this.elm.style.overflow = c ? "hidden" : "";
+    // Preview this.crop (see cropBy) on canvases drawn at another crop (the mozCanvas's,
+    // and fabric's viewport transform's) by a css transform, clipped to the pg's frame
+    let c = this.crop ?? { x: 0, y: 0, s: 1 };
+    let v = this.canvas.viewportTransform;
+    let css = (r) => !r || (r.x == c.x && r.y == c.y && r.s == c.s) ? "" :
+      `translate(${100 * (r.x - c.x) * c.s / this.width}%,${100 * (r.y - c.y) * c.s / this.height}%) scale(${c.s / r.s})`;
+    let moz = css(this.mozCanvas?.crop), ink = css({ x: -v[4] / v[0], y: -v[5] / v[0], s: v[0] });
+    this.elm.style.overflow = this.crop || moz || ink ? "hidden" : "";
+    this.elm.style.background = this.crop || moz || ink ? Pg.paddingColor : ""; // (not the layout's, while zooming out)
     // (a transform puts the mozCanvas, last in the dom, above fabric's canvases: keep it below)
-    this.canvas.lowerCanvasEl.style.zIndex = this.canvas.upperCanvasEl.style.zIndex = c ? 1 : "";
-    for (let el of [this.mozCanvas, this.canvas.lowerCanvasEl, this.canvas.upperCanvasEl]) {
+    this.canvas.lowerCanvasEl.style.zIndex = this.canvas.upperCanvasEl.style.zIndex = moz ? 1 : "";
+    for (let [el, transform] of [[this.mozCanvas, moz], [this.canvas.lowerCanvasEl, ink], [this.canvas.upperCanvasEl, ink]]) {
       if (!el) continue;
       el.style.transformOrigin = "0 0";
       el.style.transform = transform;
@@ -991,6 +1054,7 @@ class Pg {
     // every object was painted in; otherwise only the flattened ones were.
     json.objects = ink == "pdf" ? [] : json.objects.filter((obj) => !obj.flatten);
     json.bookmark = this.bookmark;
+    json.crop = this.crop;
     return json;
   }
 
@@ -1427,11 +1491,8 @@ class Score {
         let { width, height } = mozPage.getViewport({ scale: 1 });
         let pgJson = scoreJson?.pages ? scoreJson.pages[i]:null;
         this.pgs.push(new Pg(this, width, height, pgJson, i));
-        // PDF attachments are untrusted; use red for invalid bookmark colors.
-        if(pgJson?.bookmark)
-          this.pgs[this.pgs.length -1].bookmark =
-            typeof pgJson.bookmark == "string" && CSS.supports("color", pgJson.bookmark)
-              ? pgJson.bookmark : "#ff0000";
+        this.pgs.at(-1).crop = Pg.cropOf(pgJson, width, height);
+        this.pgs.at(-1).bookmark = Pg.bookmarkOf(pgJson);
         this.maxWidth = Math.max(width, this.maxWidth);
         this.maxHeight = Math.max(height, this.maxHeight);
       }
@@ -1544,17 +1605,20 @@ class Score {
     // add docB's json to mergedScore
     let copyKnt = copiedPages.length;
     // existing json at pn needs to be shifted forward to its pg
-    for (let i = pgCount - 1; i >= pn; i--) // need highest->lowest
-      mergedScore.pgs[i + copyKnt].json = mergedScore.pgs[i].json;
+    // (with its bookmark and crop, which Score.init also read by position)
+    let pgs = mergedScore.pgs;
+    for (let i = pgCount - 1; i >= pn; i--) { // need highest->lowest
+      let [dst, src] = [pgs[i + copyKnt], pgs[i]];
+      [dst.json, dst.bookmark, dst.crop] = [src.json, src.bookmark, src.crop];
+    }
 
-    // clear stale docA json that Score.init assigned to docB's page slots
-    for (let i = pn; i < pn + copyKnt; i++) mergedScore.pgs[i].json = null;
-    if(json && ink) {
-      // insert new json from docB
-      let pageJson = json.pages;
-      for (let i = pn, j = 1; j <= copyKnt; i++, j++) { // i is 0-based, j is 1-based
-        mergedScore.pgs[i].json = pageJson[from - 1 + j];
-      }
+    // replace the stale docA json, bookmarks and crops that Score.init assigned to docB's page
+    // slots. docB's pages keep their bookmarks and crops even without their ink (Ink is the ink)
+    for (let i = pn, j = 1; j <= copyKnt; i++, j++) {
+      let pgJson = json?.pages?.[from - 1 + j];
+      pgs[i].json = ink ? pgJson ?? null : null;
+      pgs[i].bookmark = Pg.bookmarkOf(pgJson);
+      pgs[i].crop = Pg.cropOf(pgJson, pgs[i].width, pgs[i].height);
     }
     // A new score restarts undo history (the old one's pages aren't in it), with the merge itself:
     // undone, all its pages are cut at once (see pgUndo)
