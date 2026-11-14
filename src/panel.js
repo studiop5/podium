@@ -3577,9 +3577,10 @@ class PrintPanel extends Panel {
       (e, prop, tag) => tag == "Print" ? this.print() : this.close()).elm;
     if (this.asIs) return void content.append(actions);
 
-    // Ink prints the annotations too
-    let settings = new ButtonGroup({ Ink: stash.ink }, { Ink: { svg: "Ink", onOff: true } },
-      (e, prop, tag, args) => stash.ink = args.Ink).elm;
+    // Ink prints the annotations too, and Crop the pages' crops (else, their full pages)
+    let settings = new ButtonGroup({ Ink: stash.ink, Crop: stash.crop ?? true },
+      { Ink: { svg: "Ink", onOff: true }, Crop: { svg: "Crop", onOff: true } },
+      (e, prop, tag, args) => stash[tag.toLowerCase()] = args[tag]).elm;
     settings.classList.add("dialog__settings");
     content.append(settings, actions);
 
@@ -3642,7 +3643,7 @@ class PrintPanel extends Panel {
       for (let i = props.first; i <= Math.min(props.last, _score_.pgs.length); i++)
         pns.push(i);
 
-      let data = asIs ? await _score_.mozDoc.getData() : await _score_.toPdf(stash.ink ? "pdf" : "none", false, pns);
+      let data = asIs ? await _score_.mozDoc.getData() : await _score_.toPdf(stash.ink ? "pdf" : "none", false, pns, (stash.crop ?? true) ? "crop" : "full");
       if (!data || data.byteLength == 0) throw new Error("PDF data empty");
 
       dataUrl = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));

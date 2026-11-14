@@ -88,6 +88,7 @@ class Pg {
     this.canvas = null; // fabricjs canvas
     this.isCut = false; // marker for pgs that are "cut" in the gui
     this.bookmark = null; // Color string if this pg is bookmarked, else null
+    this.box = null; // iff backed by a pdf page: its own box, [x0, y0, x1, y1] (see Pg.viewport)
     this.crop = null; // { x, y, s } iff cropped: see cropBy()
     this.deferred = false; // true while pdf rendering deferred for non-blocking
     this.editable = false;
@@ -128,7 +129,8 @@ class Pg {
     if(this.score.disposed || signal?.aborted)
       throw new DOMException("Inflation aborted", "AbortError");
     let q = this.score.quality;
-    let viewport = mozPg.getViewport({ scale: q});
+    let box = this.box ?? mozPg.view;
+    let viewport = Pg.viewport(mozPg, box, { scale: q });
     let w = viewport.width / q;
     let h = viewport.height / q;
     // (adopted: a canvas left in helm's template document draws no text, lacking the pdf's fonts)
@@ -136,7 +138,7 @@ class Pg {
       style="width:${w / _pxPerEm_}em;height:${h / _pxPerEm_}em;font-size:1em"></canvas>`));
     // A cropped pg draws just its visible area, at the same canvas size (see cropBy)
     let { x, y, s } = mozCanvas.crop = this.crop ?? { x: 0, y: 0, s: 1 };
-    if (this.crop) viewport = mozPg.getViewport({ scale: q * s, offsetX: -x * q * s, offsetY: -y * q * s });
+    if (this.crop) viewport = Pg.viewport(mozPg, box, { scale: q * s, offsetX: -x * q * s, offsetY: -y * q * s });
     // (a re-render, e.g. of a new crop, swaps canvases only once drawn, so it doesn't flash)
     let old = this.mozCanvas;
     if (!old) canvas.wrapperEl.append(this.mozCanvas = mozCanvas);
@@ -567,6 +569,7 @@ class Pg {
     // @inflate when true, the clone is inflated, otherwise not.
     let theClone = new Pg(this.score, this.width, this.height, this.toJson() || this.json, this.mozPn, null);
     theClone.crop = this.crop && { ...this.crop };
+    theClone.box = this.box;
     if (this.thumbElm) { 
       theClone.thumbElm = this.thumbElm.cloneNode();
     }
@@ -628,6 +631,19 @@ class Pg {
     this.applyCrop();
     // Once the gesture pauses or ends, draw the crop sharp
     (this.cropSettle ??= new Schedule()).run(250, () => this.renderCrop());
+  }
+
+  static boxOf(json) {
+    // The pdf page's own box saved in page @json (see toPdfAux), or null if none or invalid
+    let b = json?.box;
+    return Array.isArray(b) && b.length == 4 && b.every(Number.isFinite) && b[2] > b[0] && b[3] > b[1] ? [...b] : null;
+  }
+
+  static viewport(mozPg, box, params) {
+    // PDF.js's mozPg.getViewport(@params), but of @box, the pdf page's own box: a crop is
+    // saved as its CropBox (see toPdfAux), which PDF.js's own viewports would show instead
+    return new (mozPg.getViewport({ scale: 1 }).constructor)(
+      { viewBox: box, userUnit: mozPg.userUnit, rotation: mozPg.rotate, ...params });
   }
 
   static bookmarkOf(json) {
@@ -780,16 +796,17 @@ class Pg {
     for (let obj of canvas.getObjects()) if (obj.flatten) Pg.freeze(obj);
   }
 
-  async toPdf(ink, pLibPg) {
+  async toPdf(ink, pLibPg, crop = true) {
     // Incorporate all fabricjs objects on this pg's fabricjs canvas into the given PDFLib page.
     // @ink determines "how" the objects will be incorprated, see objToPdf below for details.
     // @pLibPg the PDFLib page that will be modified.
+    // @crop if false, the page isn't cropped (see toPdfAux), as if this pg weren't.
     // @return the json-serializion of the fabricjs canvas.
     let wasInflated = this.inflated;
     ++this.tempHolds;
     try {
       if (!wasInflated) await this.inflate(false, false); // temporarily re-inflate, but skip unnecessary rendering
-      return await this.toPdfAux(ink, pLibPg);
+      return await this.toPdfAux(ink, pLibPg, crop);
     } finally {
       // deflate in a finally so a failed save can't leak an inflated pg
       --this.tempHolds;
@@ -797,7 +814,7 @@ class Pg {
     }
   }
 
-  async toPdfAux(ink, pLibPg) {
+  async toPdfAux(ink, pLibPg, crop) {
     // toPdf's body: requires this pg to be inflated.
 
     let toPDFColor = (fabricColor) => {
@@ -824,6 +841,10 @@ class Pg {
     // unrotated page user space, so build the display-to-page mapping that
     // objToPdf will apply (an identity mapping for the typical unrotated,
     // zero-origin page).
+    // A crop is saved as the page's CropBox (below), so first put back the page's own box
+    // (a CropBox from an earlier save), which is the display space the ink is placed in.
+    let [x0, y0, x1, y1] = this.box ?? [0, 0, this.width, this.height];
+    pLibPg.setCropBox(x0, y0, x1 - x0, y1 - y0);
     let rot = ((pLibPg.getRotation().angle % 360) + 360) % 360;
     let box = pLibPg.getCropBox();
     let xform = {
@@ -1048,6 +1069,16 @@ class Pg {
       await processObj(obj);
     }
 
+    if (crop && this.crop) {
+      // Save the crop as the CropBox: its visible area (see cropBy) in display space,
+      // which is y-up and (for a /UserUnit) not quite in pg units, mapped to the page's
+      let k = xform.width / this.width, { x, y, s } = this.crop;
+      let [w, h] = [xform.width / s, xform.height / s], [l, b] = [x * k, xform.height - y * k - h];
+      let [ma, mb, mc, md, me, mf] = xform.matrix;
+      let [[px0, py0], [px1, py1]] = [[l, b], [l + w, b + h]].map(([dx, dy]) => [ma * dx + mc * dy + me, mb * dx + md * dy + mf]);
+      pLibPg.setCropBox(Math.min(px0, px1), Math.min(py0, py1), Math.abs(px1 - px0), Math.abs(py1 - py0));
+    }
+
     let json = this.toJson();
     // Objects baked into the page content must not also be saved as fabric json,
     // or they'd reappear as editable duplicates on reopen. With ink == "pdf"
@@ -1055,6 +1086,7 @@ class Pg {
     json.objects = ink == "pdf" ? [] : json.objects.filter((obj) => !obj.flatten);
     json.bookmark = this.bookmark;
     json.crop = this.crop;
+    if (this.crop) json.box = [x0, y0, x1, y1]; // (else the CropBox is it)
     return json;
   }
 
@@ -1174,6 +1206,18 @@ class Score {
       catch { return null; } // (untrusted: unreadable is as good as none)
     }
     return null;
+  }
+
+  static checkVersion(json) {
+    // Warn if podium @json (of a pdf being opened or merged) was saved by a newer PODIUM (its
+    // menu stash's version, see Menu.stashToJsonObj): this one may misread it (e.g. 2.3 shows
+    // 2.4's crops as small pages, with misplaced ink). Compared part by part: 2.10 > 2.9.
+    let [a, b] = [json?.menu?.version, _podiumVersion_].map((v) => String(v ?? "").split(".").map(Number));
+    let i = a.findIndex((n, i) => n != (b[i] ?? 0));
+    if (i >= 0 && a[i] > (b[i] ?? 0))
+      dialog("This file was saved by a newer version of PODIUM, which this one may show wrongly: "
+        + "saving it here could spoil it. To update PODIUM, reload it (in an installed app, close and reopen it).",
+        { OK: { svg: "OK" } });
   }
 
   // maximum depth of undo stack
@@ -1343,16 +1387,16 @@ class Score {
     // @clear if true (default), pasteBuffer is cleared.
   }
 
-  async init(source, path, name, pdfData=null, activate=true) {
+  async init(source, path, name, pdfData=null, activate=true, pages=null) {
     try {
-      return await this.initAux(source, path, name, pdfData, activate);
+      return await this.initAux(source, path, name, pdfData, activate, pages);
     } catch(error) {
       await this.dispose();
       throw error;
     }
   }
 
-  async initAux(source, path, name, pdfData, activate) {
+  async initAux(source, path, name, pdfData, activate, pages) {
     // Initialize a new Score, always called as part of the constructor, ex. await new Score().init(...)
     // @source one of Score.sources, identifies the data source that provides the score's data.
     //  For new scores (no external data sources), this is just null.
@@ -1360,6 +1404,7 @@ class Score {
     // @name identifies the file name of the data source (not including path)
     // @pdfData bytearray containing pdf file, or null for new scores. 
     // @activate make this score the "active" score
+    // @pages optional page json by (1-based) page number, instead of the pdf's attachment's (see bindScore)
 
     Object.assign(this, { source, path, name });
     // Reset quality to default; will be overridden by scoreJson if stored in the PDF
@@ -1465,6 +1510,7 @@ class Score {
       if (podiumAttachment) {
         // scoreJson, if it exists
         scoreJson = JSON.parse(new TextDecoder().decode(podiumAttachment.content));
+        if (activate) Score.checkVersion(scoreJson);
         this.created = scoreJson.created || this.created;
         this.modified = scoreJson.modified || this.modified;
         if ("pdfInfo" in scoreJson) this.pdfInfo = scoreJson.pdfInfo;
@@ -1488,9 +1534,12 @@ class Score {
         // Use the viewport, not mozPage.view: the viewport applies the page's
         // /Rotate, so pg dimensions match what renderPdf will actually draw
         // (a 90/270-rotated page swaps width and height).
-        let { width, height } = mozPage.getViewport({ scale: 1 });
-        let pgJson = scoreJson?.pages ? scoreJson.pages[i]:null;
+        // (and of the page's own box, not a CropBox that Podium saved for a crop: see Pg.viewport)
+        let pgJson = (pages ?? scoreJson?.pages)?.[i] ?? null;
+        let box = Pg.boxOf(pgJson) ?? [...mozPage.view];
+        let { width, height } = Pg.viewport(mozPage, box, { scale: 1 });
         this.pgs.push(new Pg(this, width, height, pgJson, i));
+        this.pgs.at(-1).box = box;
         this.pgs.at(-1).crop = Pg.cropOf(pgJson, width, height);
         this.pgs.at(-1).bookmark = Pg.bookmarkOf(pgJson);
         this.maxWidth = Math.max(width, this.maxWidth);
@@ -1594,32 +1643,25 @@ class Score {
     pn = clamp(pn, 1, this.pgs.length + 1) -1; // convert pn to 0-based in [0, this.pgs.length-1]
     let { PDFDocument } = PDFLib;
     let pgCount = this.pgs.length;
-    let docA = await this.toPdf("stamp", true); // this is the current document
+    let { doc: docA, json: jsonA } = await this.toPdf("stamp", true); // this is the current document
     let docB = await PDFDocument.load(pdfData); // this document contains pages to merge
     let copiedPages = await docA.copyPages(docB, docB.getPageIndices().slice(from - 1, to));
     copiedPages.forEach((page,idx) => docA.insertPage(pn + idx, page));
     let mergedPdfData = await docA.save();
-    let mergedScore = await new Score().init(this.source, this.path, this.name, mergedPdfData, false);
-    let json = Score.podiumJson(docB);
-
-    // add docB's json to mergedScore
     let copyKnt = copiedPages.length;
-    // existing json at pn needs to be shifted forward to its pg
-    // (with its bookmark and crop, which Score.init also read by position)
-    let pgs = mergedScore.pgs;
-    for (let i = pgCount - 1; i >= pn; i--) { // need highest->lowest
-      let [dst, src] = [pgs[i + copyKnt], pgs[i]];
-      [dst.json, dst.bookmark, dst.crop] = [src.json, src.bookmark, src.crop];
-    }
 
-    // replace the stale docA json, bookmarks and crops that Score.init assigned to docB's page
-    // slots. docB's pages keep their bookmarks and crops even without their ink (Ink is the ink)
-    for (let i = pn, j = 1; j <= copyKnt; i++, j++) {
-      let pgJson = json?.pages?.[from - 1 + j];
-      pgs[i].json = ink ? pgJson ?? null : null;
-      pgs[i].bookmark = Pg.bookmarkOf(pgJson);
-      pgs[i].crop = Pg.cropOf(pgJson, pgs[i].width, pgs[i].height);
+    // The merged score's page json, in its page order: docB's (without @ink, just its pages'
+    // bookmarks, crops and boxes: how they look) among docA's, which follow them shifted
+    let jsonB = Score.podiumJson(docB);
+    Score.checkVersion(jsonB);
+    let [a, b, pages] = [jsonA.pages, jsonB?.pages ?? {}, {}];
+    for (let i = 1; i <= pgCount + copyKnt; i++) {
+      let pgJson = i <= pn ? a[i] : i > pn + copyKnt ? a[i - copyKnt] : b[from - 1 + i - pn];
+      if (i > pn && i <= pn + copyKnt && !ink)
+        pgJson = pgJson && { objects: [], bookmark: pgJson.bookmark, crop: pgJson.crop, box: pgJson.box };
+      pages[i] = pgJson ?? null;
     }
+    let mergedScore = await new Score().init(this.source, this.path, this.name, mergedPdfData, false, pages);
     // A new score restarts undo history (the old one's pages aren't in it), with the merge itself:
     // undone, all its pages are cut at once (see pgUndo)
     mergedScore.undoStack = [{ added: mergedScore.pgs.slice(pn, pn + copyKnt) }];
@@ -1779,9 +1821,9 @@ class Score {
     document.title = name;
   }
 
-  async toPdf(ink = "stamp", doc = false, pns = null) {
+  async toPdf(ink = "stamp", doc = false, pns = null, print = false) {
     if(this.disposePromise) throw new Error("Cannot export a disposed score");
-    let pending = this.toPdfAux(ink, doc, pns);
+    let pending = this.toPdfAux(ink, doc, pns, print);
     this.pendingExports.add(pending);
     try {
       return await pending;
@@ -1790,14 +1832,16 @@ class Score {
     }
   }
 
-  async toPdfAux(ink, doc, pns) {
+  async toPdfAux(ink, doc, pns, print) {
     // Use PDFLib to create PDF representation of this score.
     // @ink === none, skip fabric objects entirely (even as attachment??)
     //      === "stamp" add fabric object as stamp annotation
     //      === "pdf" add fabric object as pdf object
-    // @doc if true, the PDF-LIB doc object is returned, otherwise the
-    //    pdf bytes that it produces is returned.
+    // @doc if true, { doc, json } is returned: the PDF-LIB doc object, and the podium json
+    //    attached to it (readable only once it's saved); otherwise the pdf bytes it produces.
     // @pns array of page numbers (1-based) to include, or null for all pgs
+    // @print if the pdf is for printing: "crop", a cropped pg's crop fills its page, as in Podium;
+    //   "full", a cropped pg prints its full page. Else false.
     try {
       // When shade is cancelled, set cancelPdf. This will interrupt lib-pdf when
       // it next calls waitForTick by calling our monkey-patched setTimeout
@@ -1883,8 +1927,22 @@ class Score {
         }
         setTimeout(_voidFunc_, 0);
         // add fabric objects to the page
-        let pgJson = await pg.toPdf(ink, pLibPg);
+        let pgJson = await pg.toPdf(ink, pLibPg, print != "full");
         attachment.pages[j+1] = pgJson;
+        if (print == "crop" && pg.crop) {
+          // Its CropBox alone would print the crop at its original size, on a smaller page: instead,
+          // draw just the crop's area (ink and all: printed ink is baked in), scaled up to fill a
+          // page of the pg's own size (unrotated: the new page takes the pg's /Rotate)
+          let crop = pLibPg.getCropBox(), [x0, y0, x1, y1] = pg.box ?? [0, 0, pg.width, pg.height];
+          let embedded = await dstPLibDoc.embedPage(pLibPg,
+            { left: crop.x, bottom: crop.y, right: crop.x + crop.width, top: crop.y + crop.height });
+          dstPLibDoc.removePage(dstPLibDoc.getPageCount() - 1);
+          let page = dstPLibDoc.addPage([x1 - x0, y1 - y0]);
+          page.setRotation(pLibPg.getRotation());
+          page.drawPage(embedded, { x: 0, y: 0, xScale: (x1 - x0) / crop.width, yScale: (y1 - y0) / crop.height });
+          // (it's a new, uncropped page: reopened in Podium, it mustn't be cropped again)
+          Object.assign(pgJson, { crop: null, box: undefined });
+        }
         if(window.gc) window.gc();
       }
 
@@ -1918,7 +1976,7 @@ class Score {
         dstPLibDoc.setCreator("Podium vers." + _podiumVersion_);
         dstPLibDoc.setProducer("pdf-lib v1.17.1");
       }
-      if (doc) return dstPLibDoc;
+      if (doc) return { doc: dstPLibDoc, json: attachment };
       _shade_.update("Generating Pdf document");
       let bytes = await dstPLibDoc.save({objectsPerTick: 250});
       _shade_.update("PDF Generated");

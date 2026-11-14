@@ -448,7 +448,7 @@ class Menu {
           svgPath: iconPaths["New Score"],
         },
         close: { name: "Close", gb: "score-close", svgPath: iconPaths["Close"] },
-        print: { name: "Print", gb: "score-print", svgPath: iconPaths["Print"], stash: { ink: true }, storage: "local" },
+        print: { name: "Print", gb: "score-print", svgPath: iconPaths["Print"], stash: { ink: true, crop: true }, storage: "local" },
         details: { name: "Details", gb: "score-details", svgPath: iconPaths["Details"], stash: { quality: 3, pgFit: "Center", bkColorIdx: 0 }, storage: "score" },
       },
       svgPath: iconPaths["Score"],
