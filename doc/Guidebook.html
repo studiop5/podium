@@ -571,6 +571,11 @@ try { document.documentElement.style.fontSize = (localStorage.getItem("guidebook
   <symbol id="gb-undo" viewBox="0 0 24 24">
     <text font-size="20px" y="16" x="6" fill="currentColor" font-family="Bravura">&#xEDF0;</text>
   </symbol>
+  <symbol id="gb-undo-page" viewBox="0 0 24 24">
+    <path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+    <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M4.5 4.5h14M4.5 8h1M17.5 8h1M4.5 11h1M17.5 11h1M4.5 14h1M17.5 14h1M4.5 17h1M17.5 17h1M4.5 20h14"/>
+    <text transform="translate(11.5 12.25) scale(1) translate(-10.6 -11.1)" font-size="20px" y="16" x="6" fill="currentColor" font-family="Bravura">&#xEDF0;</text>
+  </symbol>
   <symbol id="gb-grid" viewBox="0 0 24 24">
     <text font-size="25px" y="12" x="-12" font-family="Bravura" fill="currentColor">&#xEE37;</text>
   </symbol>
@@ -647,9 +652,13 @@ try { document.documentElement.style.fontSize = (localStorage.getItem("guidebook
         <circle cx="9" cy="9" r="5.2" fill="black"/>
       </mask>
     </defs>
-    <path stroke="currentColor" stroke-width=".3" fill="#aaa" d="M12.1 14.4L20 20L21 18.9L14.4 12.2Z"/>
-    <circle mask="url(#gb-magnify-mask)" cx="9" cy="9" r="6.1" fill="#aaa" stroke="currentColor" stroke-width=".3"/>
-    <circle mask="url(#gb-magnify-mask)" cx="9" cy="9" r="5.3" fill="#aaa" stroke="currentColor" stroke-width=".3"/>
+    <path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+    <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M4.5 4.5h14M4.5 8h1M17.5 8h1M4.5 11h1M17.5 11h1M4.5 14h1M17.5 14h1M4.5 17h1M17.5 17h1M4.5 20h14"/>
+    <g transform="translate(11.5 12.25) scale(.65) translate(-12 -11.5)">
+      <path stroke="currentColor" stroke-width=".3" fill="currentColor" d="M12.1 14.4L20 20L21 18.9L14.4 12.2Z"/>
+      <circle mask="url(#gb-magnify-mask)" cx="9" cy="9" r="6.1" fill="currentColor" stroke="currentColor" stroke-width=".3"/>
+      <circle mask="url(#gb-magnify-mask)" cx="9" cy="9" r="5.3" fill="currentColor" stroke="currentColor" stroke-width=".3"/>
+    </g>
   </symbol>
   <symbol id="gb-about" viewBox="0 0 24 24">
     <text font-size="42px" y="20" x="7" font-family="Bravura" fill="currentColor">&#xED19;</text>
@@ -2172,7 +2181,7 @@ function closeVideo(event, container) {
 
     <div class="note">Cut and Paste operations can be undone using the Undo cell. Copy cannot be undone.</div>
 
-    <h3 id="page-undo">7.4 Page Ring: Undo<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo"/></svg></h3>
+    <h3 id="page-undo">7.4 Page Ring: Undo<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-undo-page"/></svg></h3>
 
     <p>Undo the last page operation.</p>
 

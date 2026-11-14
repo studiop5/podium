@@ -666,7 +666,7 @@ class Menu {
         cut: { name: "Cut", gb: "page-cut-copy-paste", svgPath: iconPaths["Cut Page"] },
         copy: { name: "Copy", gb: "page-cut-copy-paste", svgPath: iconPaths["Copy Page"] },
         paste: { name: "Paste", gb: "page-cut-copy-paste", svgPath: iconPaths["Paste Page"] },
-        undo: { name: "Undo", gb: "page-undo", svgPath: iconPaths["Undo"] },
+        undo: { name: "Undo", gb: "page-undo", svgPath: iconPaths["Undo Page"] },
         export: { name: "Export", gb: "page-export-import", svgPath: iconPaths["Export Page"] },
         import: { name: "Import", gb: "page-export-import", svgPath: iconPaths["Import Page"] },
         merge: { name: "Merge", gb: "page-merge", svgPath: iconPaths["Merge"], stash: { mark: true, ink: true }, storage: "local" },
