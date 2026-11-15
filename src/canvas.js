@@ -639,7 +639,7 @@ class Grid {
     this.offsetX = inLeftHalf ? -offset : offset;
     this.offsetY = inTopHalf ? -offset : offset;
 
-    if(this.numbers == "On") {
+    if(this.numbers) {
       // put a small circle at the origin (0,0) grid point
       this.origin = helm(`<div style="position:absolute;width:.5em;height:.5em;border:1px solid rgb(100,150,255);border-radius:100%;pointer-events:none;"></div>`);
       pg.canvas.wrapperEl.append(this.origin);
@@ -689,7 +689,7 @@ class Grid {
   draw(ptr) {
     // Compute drawing coordinates:
     //  this.x: leftmost vertical grid line
-    //  this.labelX: label for this grid line (used only if numbers cache value is "On")
+    //  this.labelX: label for this grid line (used only if numbers is true)
     //  ...same for y
     let box = getBox(this.gridCanvas);
     let xx = ptr.x - box.x;
@@ -733,7 +733,7 @@ class Grid {
       ctx.moveTo(x, 0);
       ctx.lineTo(x, height);
       ctx.stroke();
-      if (this.numbers == "On" && idx == 0) {
+      if (this.numbers && idx == 0) {
         let label = Math.round(labelX++) * this.stepsPerLabel;
         xLabels.push({ label, x });
       }
@@ -751,7 +751,7 @@ class Grid {
       ctx.moveTo(0, y);
       ctx.lineTo(width, y);
       ctx.stroke();
-      if (this.numbers == "On" && idx == 0) {
+      if (this.numbers && idx == 0) {
         let label = Math.round(labelY++) * this.stepsPerLabel;
         yLabels.push({ label, y });
       }
@@ -762,7 +762,7 @@ class Grid {
     // - Horizontal numbers: above origin when cursor in bottom half, below otherwise
     // - Vertical numbers: before (left) when cursor in right half, after (right) otherwise
     // Labels are clamped to stay within canvas bounds when origin is off-page
-    if (this.numbers == "On") {
+    if (this.numbers) {
       ctx.fillStyle = "rgb(100,150,255)";
       // Use originPosY/X for label positioning (always set), clamped to canvas bounds
       let xLabelY = clamp(this.cursorInBottomHalf ? this.originPosY - 2 : this.originPosY + 12, 12, height - 2);

@@ -975,10 +975,10 @@ class BookLayout extends Layout {
     // top/bottom gap and left/right gap, for a border-radius of .8em
     g.tbGap = .2 * _pxPerEm_; 
     g.borderPx = 0.025 * _pxPerEm_ * 2; // top+bottom border included in box-sizing:border-box height
-    g.lrGap = this.pnShow ==  "On"? 0: g.tbGap ;
+    g.lrGap = this.pnShow ? 0: g.tbGap ;
     // Pager always occupies its own strip (hidden or not), lrGap=0 when pager is present.
     // Hidden pager gets Layout.margin width — narrow but non-overlapping with pages.
-    g.pagerWidth = this.pnShow == "On" ? Pager.width : Layout.margin;
+    g.pagerWidth = this.pnShow ? Pager.width : Layout.margin;
     g.pgCount = this.score.pgs.length;
     let spineT = Math.min(g.pgCount / 100, 1);
     g.bindingWidth = (0.5 + spineT) * _pxPerEm_;
@@ -1062,7 +1062,7 @@ class BookLayout extends Layout {
     // pagers
     this.layout.append(this.pagerLeft.elm);
     this.layout.append(this.pagerRight.elm);
-    let pagerHidden = this.pnShow != "On";
+    let pagerHidden = !this.pnShow;
     this.pagerLeft.setHidden(pagerHidden, Layout.margin);
     this.pagerRight.setHidden(pagerHidden, Layout.margin);
     this.pagerLeft.build();
@@ -1721,7 +1721,7 @@ class ScrollLayout extends Layout {
     gap /= 100; // gap % as fraction
 
 
-    g.rollGirth = this.pnShow == "On" ? Pager.width : Layout.margin;
+    g.rollGirth = this.pnShow ? Pager.width : Layout.margin;
     g.pgCount = this.score.pgs.length;
     g.pgShow = Math.min(pgShow, g.pgCount); // g.pgShow must be <= total page count
     g.pgSnap = Math.min(pgSnap, g.pgCount); // g.pgSnap must be <= total page count
@@ -1823,7 +1823,7 @@ class ScrollLayout extends Layout {
 
     this.leftRoll.append(this.pagerLeft.elm);
     this.rightRoll.append(this.pagerRight.elm);
-    let pagerHidden = this.pnShow != "On";
+    let pagerHidden = !this.pnShow;
     this.pagerLeft.setHidden(pagerHidden, Layout.margin);
     this.pagerRight.setHidden(pagerHidden, Layout.margin);
     this.pagerLeft.build();
@@ -2279,10 +2279,13 @@ class TableLayout extends Layout {
     this.gridCoords = [];
     let xStep = pgWidth * hStep;
     let yStep = pgHeight * vStep;
-    let pgCount = score.pgs.length;
-    for (let pn = 1, top = 0; pn <= pgCount; top += yStep) {
-      for (let col = 0, left = 0; col < pages && pn <= pgCount; pn++, col++, left += xStep)
-          this.gridCoords.push({pn, top,  left});
+    // the pns shown: every pg, or (Marked) the bookmarked ones, and pn 1, each standing
+    // for its section: its pgs up to the next one shown
+    let shown = score.pgs.map((_pg, i) => i + 1).filter((pn) => !this.marked || pn == 1 || score.pgs[pn - 1].bookmark);
+    let pgCount = shown.length;
+    for (let i = 0, top = 0; i < pgCount; top += yStep) {
+      for (let col = 0, left = 0; col < pages && i < pgCount; i++, col++, left += xStep)
+          this.gridCoords.push({pn: shown[i], top,  left});
     }
 
     // position layout for start of pg generation animation (a noop if this.animated == false)
@@ -2362,9 +2365,19 @@ class TableLayout extends Layout {
     }
   }
 
+  coords(pn) {
+    // pn's place in the grid, if shown
+    return this.gridCoords.find((c) => c.pn == pn);
+  }
+
+  section(pn) {
+    // the shown pn standing for @pn: pn itself, or (Marked) the bookmark (or pn 1) before it
+    return this.gridCoords.findLast((c) => c.pn <= pn)?.pn ?? 1;
+  }
+
   async buildPg(pn)
   {  // build elm to hold thumbnail
-    let {left, top} = this.gridCoords[pn-1];
+    let {left, top} = this.coords(pn);
     let pg = this.score.pgs[pn - 1];
     let elm = await this.whileAlive(pg.getThumbElm(false, () => this.destroyed));
     if(!elm) return;
@@ -2378,7 +2391,7 @@ class TableLayout extends Layout {
        left:toEm(left),
        top:toEm(top),
     });  
-    if(this.pnShow == "On") {
+    if(this.pnShow) {
       // add a page number elm (or refresh, it elm already has a page number elm) to upper left corner of elm
       let pnElm = elm.getElementsByClassName("TableLayout__pn").item(0) || helm(`<div class="TableLayout__pn"></div>`);
       pnElm.pg = pg; // Pn div is clickable
@@ -2390,7 +2403,7 @@ class TableLayout extends Layout {
     }
     else
       clearChildren(elm);
-    if (pn == _score_.numbers.pn) 
+    if (pn == this.section(_score_.numbers.pn))
        await this.buildPgActive(pn, elm) 
     else this.score.pgUnuse(pg);
     return elm;
@@ -2410,7 +2423,7 @@ class TableLayout extends Layout {
       if(pnElm) inactive.append(pnElm);
       this.score.pgUnuse(inactive.pg);
       // give inactive correct coords, then en-dom it:
-      let {left, top} = this.gridCoords[inactive.pn-1];
+      let {left, top} = this.coords(inactive.pn);
       Object.assign(inactive.style,{
          position:"absolute",
          height:toEm(this.pgHeight),
@@ -2568,8 +2581,9 @@ e.taken = true ;
       this.bMarkTimer.run(_gs_, () => {
         // toggle bookmark for this pg
         setBookmark(pnElm, pg.bookmark = pg.bookmark ? null : nextBkColor(pg));
+        _body_.dispatchEvent(new CustomEvent("BOOKMARK"));
+        if (this.marked && !pg.bookmark && pn != 1) this.build(false); // (its section joins the one before)
       });
-      _body_.dispatchEvent(new CustomEvent("BOOKMARK"));
     };
 
     // Note: code works around a race condition...if await this.pgGoTo(pn) takes
@@ -2607,6 +2621,7 @@ e.taken = true ;
     this.navMv = listen(this.layout, "pointermove", (emv) => {
       drag.mv(emv) ;
        if(drag.moved) {
+         if (this.marked) return; // (moving sections: to come)
          if(this.score.pgs.length == 1) {  // can't drag/cut the only page out of the table
            toast("Can't cut last page.");
            return;
@@ -2628,10 +2643,11 @@ e.taken = true ;
   }
 
   async pgGoTo(pn) {
-    if (this.active?.pn == pn) return; // active page was reselected, noop
+    // active page was reselected: noop, but (Marked) the current pn may be later in its section
+    if (this.active?.pn == pn) return this.pnPost(pn);
     // After a cancelled build, thumbnails beyond the cancel point don't
     // exist; navigating to one (e.g. End key) is a noop rather than a crash.
-    let elm = this.grid.children.item(pn - 1);
+    let elm = [...this.grid.children].find((elm) => elm.pn == pn);
     if (!elm) return;
     this.inOp = true;
     this.pnPost(pn);
@@ -2645,29 +2661,16 @@ e.taken = true ;
     // Ignore rapid page turn requests while operation is in progress
     if (this.inOp) return;
 
-    let pn = _score_.numbers.pn;
-    let pgCount = this.score.pgs.length;
-
+    // step through the shown pgs (Marked: the sections), stopping at either end (no wrap)
+    let shown = this.gridCoords.map((c) => c.pn), i = shown.indexOf(this.section(_score_.numbers.pn));
     switch (how) {
-      case "next":
-        // Don't wrap - stop at end
-        if (pn + 1 > pgCount) return;
-        ++pn;
-        break;
-      case "prev":
-        // Don't wrap - stop at beginning
-        if (pn - 1 <= 0) return;
-        --pn;
-        break;
-      case "first":
-        pn = 1;
-        break;
-      case "last":
-        pn = pgCount;
-        break;
+      case "next":  i++; break;
+      case "prev":  i--; break;
+      case "first": i = 0; break;
+      case "last":  i = shown.length - 1; break;
     }
-
-    await this.pgGoTo(pn);
+    if (i < 0 || i >= shown.length) return;
+    await this.pgGoTo(shown[i]);
   }
 
   renumber() {

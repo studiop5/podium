@@ -508,7 +508,7 @@ class Menu {
           storage: "score", // layout settings (incl. pz pan-zoom) persist per-score, not as a global localStorage default
           stash: {
             fit: "Auto", // "Auto","Width","Height","None",
-            pnShow: "On", // "On" or "Off"
+            pnShow: true, // page numbers (and the pager) shown
             pace: 350, // pace: animation speed in msecs/flip
             pz: null, // user pan-zoom saved with the score. When set: { left, top, fontSize, w, h }; applied only when w/h match the current viewport (see Layout.userPz)
           },
@@ -520,7 +520,7 @@ class Menu {
           stash: {
             fit: "Auto", // "Auto", "Width","Height","None"
             gap: 0.2, // [0,10]% of fit dimension
-            pnShow: "On",
+            pnShow: true,
             pgShow: 2,
             pgSnap: 2, // -4:none, -3:visible, -2:1/4pg, -1:1/3 pg, 0:1/2 pg
             pace: 350, // msec/snap
@@ -534,7 +534,7 @@ class Menu {
           stash: {
             fit: "Auto", // "Auto", "Width","Height","None"
             gap: 0.2, // [0,10]% of fit dimension
-            pnShow: "On",
+            pnShow: true,
             pgShow: 1, // [1,_score_.pages.length)
             pgSnap: 0,  // i.e. 1/2 pg
             pace: 350, // msec/snap
@@ -550,7 +550,8 @@ class Menu {
             pages: 15, // [2,_score_.pages.length)
             horizontalGap: 0, // [-100,100]%
             verticalGap: 0, // [-100,100]%
-            pnShow: "On",
+            pnShow: true,
+            marked: false, // only bookmarked pgs (and pn 1) shown, each standing for its section
             pz: null, // see book cell
           },
           svgPath: iconPaths["Table"],
@@ -630,7 +631,7 @@ class Menu {
           // units are Inch or Metric, while xStep and yStep are values in
           // [0-3] that are interpreted as 1",1/2",1/4",1/8" (units == Inch)
           // or 4em, 2cm, 1cm 1/2cm [units == Metric]
-          stash: {units:"Inch", xStep: 2, yStep:2, snap:"Snap", numbers:"On"},
+          stash: {units:"Inch", xStep: 2, yStep:2, snap:"Snap", numbers:true},
         },
       },
       name: "Ink", gb: "ink",
