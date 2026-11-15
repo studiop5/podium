@@ -2199,7 +2199,7 @@ function closeVideo(event, container) {
 
     <p><strong>Import:</strong> Activate the Import cell, then tap a page in the score. The shared buffer's pages are inserted at that position, before the page if you tap on the left half (top half for Vertical Layout) or after if you tap the right half (bottom half for Vertical Layout).</p>
 
-    <p>Before each import, the same dialog as <a href="#page-merge" class="chapter-link">Merge</a>'s asks you to confirm, with the same choices: its <strong>From</strong> and <strong>To</strong> sliders choose which of the buffer's pages to import (all of them, at first), and its <strong>Mark</strong> and <strong>Ink</strong> settings bookmark the first imported page and keep the pages' annotations. Import keeps its own Mark and Ink settings, apart from Merge's.</p>
+    <p>Before each import, the same dialog as <a href="#page-merge" class="chapter-link">Merge</a>'s asks you to confirm, with the same choices: its <strong>From</strong> and <strong>To</strong> sliders choose which of the buffer's pages to import (all of them, at first), and its <strong>Mark</strong> and <strong>Ink</strong> settings bookmark the first imported page (and the page after them, if it's not page 1) and keep the pages' annotations. Import keeps its own Mark and Ink settings, apart from Merge's.</p>
 
     <div class="note">Because an import operation restarts the score's undo history, you'll be prompted to confirm before the operation is performed. The import itself can be undone, all of its pages at once: see <a href="#page-undo" class="chapter-link">Undo</a>.</div>
 
@@ -2227,7 +2227,7 @@ function closeVideo(event, container) {
     <p>Before each merge, a dialog asks you to confirm. Its <strong>From</strong> and <strong>To</strong> sliders choose which of the PDF's pages to merge: all of them, at first. If the PDF was saved by PODIUM, they're numbered as it numbered them, by its <a href="#page-numbers" class="chapter-link">Numbers</a> settings (e.g. roman numerals for its first pages). The range is kept while the cell stays active, so each page you tap gets the same pages.</p>
     <p>A copy protected PDF can't be merged: choosing one shows a message, and cancels the merge. Nor can anything be merged into a copy protected score: its Merge cell is disabled.</p>
 
-    <p>Below the sliders are the dialog's settings, and below a line, its actions. When lit (as at first), <strong>Mark</strong> bookmarks the first merged page, so each merged piece gets its own bookmark: in a set list, they're its index. And <strong>Ink</strong> keeps the merged pages' annotations, if the PDF has any (one saved by Podium): tap it for clean copies of the pages. Each stays the way you leave it.</p>
+    <p>Below the sliders are the dialog's settings, and below a line, its actions. When lit (as at first), <strong>Mark</strong> bookmarks the first merged page, and the page after them, so each merged piece, and what follows it, gets its own bookmark: in a set list, they're its index. And <strong>Ink</strong> keeps the merged pages' annotations, if the PDF has any (one saved by Podium): tap it for clean copies of the pages. Each stays the way you leave it.</p>
 
     <div class="note">Because a merge operation restarts the score's undo history, you'll be prompted to confirm before the operation is performed. The merge itself can be undone, all of its pages at once: see <a href="#page-undo" class="chapter-link">Undo</a>.</div>
 

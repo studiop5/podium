@@ -374,10 +374,10 @@ class Layout {
     return 1;
   }
 
-  markInserted(score, pn, count) {
-    // (Table's Marked) @count pgs inserted at @pn in @score are a section of their own, and the
+  markInserted(score, pn, count, force) {
+    // (Table's Marked, or @force) @count pgs inserted at @pn in @score are a section of their own, and the
     // section after them keeps its own: each starts at a bookmark (pn 1 needs none)
-    if (!this.marked) return;
+    if (!this.marked && !force) return;
     for (let pg of [score.pgs[pn - 1], score.pgs[pn - 1 + count]])
       if (pg && score.pnOf(pg) > 1) pg.bookmark ||= nextBkColor(pg);
   }
@@ -657,7 +657,7 @@ class Layout {
                   // bookmark the first merged page (unless it came with one)
                   let first = mergedScore.pgs[pn - 1];
                   if (mergeCell.stash.mark) first.bookmark ||= nextBkColor(first);
-                  this.markInserted(mergedScore, pn, mergedScore.pgs.length - _score_.pgs.length);
+                  this.markInserted(mergedScore, pn, mergedScore.pgs.length - _score_.pgs.length, mergeCell.stash.mark);
                   await mergedScore.activate();
                 } finally {
                   _shade_.hide();
