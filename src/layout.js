@@ -50,6 +50,14 @@ function nextBkColor(pg) {
   return color;
 }
 
+function setPaste(pgs) {
+  // Give the Paste cell @pgs (clones, pasted in order), releasing any it held
+  let pasteCell = _menu_.rings.page.cells.paste;
+  pasteCell.pgs?.forEach((pg) => pg.deflate(true));
+  pasteCell.pgs = pgs;
+  _menu_.enableCells("page/paste");
+}
+
 function setBookmark(pnElm, color) {
   // Show the Table layout page number @pnElm on a ribbon of bookmark @color, or plain when none.
   pnElm.style.setProperty("--bk", color);
@@ -562,9 +570,7 @@ class Layout {
             await this.animateToCell(pg, srcBox, false, pasteCell, layoutKey, () => this.build(false));
           else // as with copy, fly a snapshot, but rebuild the layout (sans pg) beneath it as it flies
             await this.animateToCell(pg, srcBox, true, pasteCell, layoutKey, null, () => this.pgCutBuild(pn));
-          if (pasteCell.pg) pasteCell.pg.deflate(true);
-          pasteCell.pg = await cloning;
-          _menu_.enableCells("page/paste") ;
+          setPaste([await cloning]);
           break;
         }
 
@@ -574,20 +580,19 @@ class Layout {
           // Start the animation first: cloning (which renders the pdf) would delay it.
           let cloning = pg.clone(true);
           await this.animateToCell(pg, srcBox, true, _menu_.rings.page.cells.paste, layoutKey);
-          if (pasteCell.pg) pasteCell.pg.deflate(true);
-          pasteCell.pg = await cloning;
-          _menu_.enableCells("page/paste") ;
+          setPaste([await cloning]);
           break;
         }
 
         case "paste": {
-          let pastePg = score.pgAdd(pasteCell.pg, pn);
-          // (the elm, not the pg: a book layout may deflate the pg during the clone)
-          let pasteElm = pastePg.thumbElm || pastePg.elm;
-          pasteElm.style.opacity = 0;
-          pasteCell.pg = await pastePg.clone(true); // clone pg for any subsequent paste
-          animate(pasteElm, null, { opacity: 1 },
-            `opacity cubic-bezier( 0.99, 0.05, 0.82, 0.35 ) ${_gs_}ms`);
+          let pastePgs = pasteCell.pgs;
+          score.pgAdd(pastePgs, pn);
+          // (the elms, not the pgs: a book layout may deflate a pg during the clone)
+          let pasteElms = pastePgs.map((pg) => pg.thumbElm || pg.elm).filter((elm) => elm);
+          pasteElms.forEach((elm) => elm.style.opacity = 0);
+          pasteCell.pgs = await Promise.all(pastePgs.map((pg) => pg.clone(true))); // clone pgs for any subsequent paste
+          pasteElms.forEach((elm) => animate(elm, null, { opacity: 1 },
+            `opacity cubic-bezier( 0.99, 0.05, 0.82, 0.35 ) ${_gs_}ms`));
           await this.build(false); 
           await this.pgGoTo(pn);;
           break;
@@ -2531,14 +2536,11 @@ class TableLayout extends Layout {
         this.layout.pasting = true ;
         let active = this.active;
         score.pgCut(active.pn);
-        let pasteCell = _menu_.rings.page.cells.paste ;
-        if (pasteCell.pg) pasteCell.pg.deflate(true);
-        pasteCell.pg = await active.pg.clone(true);
+        setPaste([await active.pg.clone(true)]);
         // Restore styles before animating so they are captured cleanly for undo
         Object.assign(active.style, { pointerEvents: "auto", opacity: "1", zIndex: 2, fontSize: ""});
         this.layout.animateToCell(active.pg, getBox(active.pg.elm), false, _menu_.rings.page.cells.paste, "table",
           () => this.layout.build(false));  // build() wrapper clears layout.pasting
-        _menu_.enableCells("page/paste") ;
         return;
       }        
       if(this.active.pn > this.toPn) this.toPn++;

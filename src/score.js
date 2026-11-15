@@ -1365,7 +1365,7 @@ class Score {
   maxHeight = -1; // maxHeight among all pg's in score
   maxWidth = -1; // maxWidth among all pg's in score
   pgs = []; // array of Pg instances for all pages in a score
-  undoStack = []; // page operations to undo: {added: [pgs]} for pgAdd() or a merge (see bindScore), {cut: pg, pn} for pgCut()
+  undoStack = []; // page operations to undo: {added: [pgs]} for pgAdd() or a merge (see bindScore), {cut: [pgs], pn} for pgCut()
   mozDoc = null; // reference to mozilla pdflib document, if available
   loadingTask = null;
   disposed = false;
@@ -1579,8 +1579,8 @@ class Score {
     }
     if(_score_ === this) _score_ = null;
     let paste = _menu_.rings.page.cells.paste;
-    if(paste.pg?.score === this) paste.pg = null;
-    let pages = new Set([...this.pgs, ...this.undoStack.flatMap((entry) => entry.added ?? [entry.cut])]);
+    if(paste.pgs?.[0]?.score === this) paste.pgs = null;
+    let pages = new Set([...this.pgs, ...this.undoStack.flatMap((entry) => entry.added ?? entry.cut)]);
     for(let pg of pages) pg.deflate(true);
     await Promise.allSettled([...this.pendingInflates]);
     for(let pg of pages) pg.clearThumb();
@@ -1611,8 +1611,8 @@ class Score {
     _menu_.closePanels();
     document.dispatchEvent(new CustomEvent("scoreOpened"));
     _menu_.enableCells("page/undo", this.undoStack.length > 0);
-    // clear any pg from paste cell...could be left over from previous score, if any
-    _menu_.rings.page.cells.paste.pg = null ;
+    // clear any pgs from paste cell...could be left over from previous score, if any
+    _menu_.rings.page.cells.paste.pgs = null ;
     _menu_.enableCells("page/paste", false);
     // nothing can be merged into a copy protected score, and it's printed only if it permits it (permission 4)
     _menu_.enableCells("page/merge", !this.encrypted);
@@ -1679,40 +1679,41 @@ class Score {
   }
 
   pgAdd(pg, pn, push=true) {
-    // Add a new page as page pn (1-based), possibly numbered
-    this.pgs.splice(pn - 1, 0, pg);
+    // Add a new page (or an array of them, in order) as page pn (1-based), possibly numbered
+    let pgs = [pg].flat();
+    this.pgs.splice(pn - 1, 0, ...pgs);
     this.setDirty();
     if(push) {
-      this.undoStack.push({ added: [pg] });
+      this.undoStack.push({ added: pgs });
       while(this.undoStack.length > this.maxUndo) this.undoStack.shift();
     }
     this.pgRefresh();
     return pg;
   }
 
-  pgCut(pn, push=true) {
-    // cut page at
-    // @pn (1-based)
-    // @return the cut page for possible pasting as part of cut/paste operation
-    let cutPg = this.pgs.splice(pn - 1, 1)[0];
+  pgCut(pn, push=true, count=1) {
+    // cut @count pages starting at
+    // @pn (1-based), as one undo entry
+    // @return the cut pages for possible pasting as part of cut/paste operation
+    let cutPgs = this.pgs.splice(pn - 1, count);
     this.pgRefresh(false);
     this.setDirty();
     if(push) {
-      this.undoStack.push({ cut: cutPg, pn });
+      this.undoStack.push({ cut: cutPgs, pn });
       while(this.undoStack.length > this.maxUndo) this.undoStack.shift();
       _menu_.enableCells("page/undo");
     }
-    return cutPg;
+    return cutPgs;
   }
 
-  pgMv(fromPn, toPn) {
-    // move pg at fromPn to toPn (1-based)
-    fromPn = clamp(fromPn, 1, this.pgs.length);
-    toPn = clamp(toPn, 1, this.pgs.length);
+  pgMv(fromPn, toPn, count=1) {
+    // move the @count pgs at fromPn s.t. the first is at toPn (1-based)
+    fromPn = clamp(fromPn, 1, this.pgs.length - count + 1);
+    toPn = clamp(toPn, 1, this.pgs.length - count + 1);
     if(fromPn != toPn) {
       this.setDirty();
-      let pg = this.pgs.splice(fromPn - 1, 1)[0];
-      this.pgs.splice(toPn - 1, 0, pg);    
+      let pgs = this.pgs.splice(fromPn - 1, count);
+      this.pgs.splice(toPn - 1, 0, ...pgs);
     }
   }
 
