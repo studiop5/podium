@@ -1030,6 +1030,15 @@ class DetailsPanel extends Panel {
     }
     .DetailsPanel__info > :nth-child(odd) { color: var(--label-color); }
     .DetailsPanel__sub { color: var(--label-color); font-size: .9em; }
+    .DetailsPanel__clear {
+      display: inline-block;
+      margin-left: .8em;
+      padding: 0 .6em;
+      border-radius: .35em;
+      color: var(--color-text);
+      background-image: var(--button-bg);
+      box-shadow: var(--button-shadow);
+    }
     .DetailsPanel__section {
       display: flex;
       flex-direction: column;
@@ -1154,18 +1163,30 @@ class DetailsPanel extends Panel {
           ? "All allowed"
           : `<span style="color:#c44">Restricted: ${denied.join(", ")}</span>`;
       }
-      this.content.append(
-        helm(`<div class="DetailsPanel__info">
+      let bookmarks = score.pgs.filter((pg) => pg.bookmark).length;
+      let info = helm(`<div class="DetailsPanel__info">
           ${score.source ? row("Source", noTranslate(escapeHtml(score.source))) : ""}
           ${score.path ? row("Path", noTranslate(escapeHtml(score.path))) : ""}
           ${score.size ? row("Size", noTranslate(DetailsPanel.fileSize(score.size))) : ""}
           ${row("Pages", score.pgs.length)}
+          ${row("Bookmarks", bookmarks + (bookmarks ? `<div data-tag="clear" class="DetailsPanel__clear">Clear</div>` : ""))}
           ${row("Permissions", permVal)}
           ${row("Created", when(score.created))}
           ${row("Modified", when(score.modified))}
           ${row("Page size", DetailsPanel.pageSize(score.maxWidth, score.maxHeight))}
-          </div>`)
-      );
+          </div>`);
+      if (bookmarks) listen(info.querySelector('[data-tag="clear"]'), "click", () =>
+        dialog(`Confirm: Clear ${bookmarks == 1 ? "the bookmark" : `all ${bookmarks} bookmarks`}?<br>(cannot be undone)`,
+          { Clear: { svg: "Cancel" }, Cancel: { svg: "Cancel" } },
+          async (_e, _prop, tag, args) => {
+            args.close();
+            if (tag != "Clear") return;
+            score.pgs.forEach((pg) => pg.bookmark = null);
+            score.setDirty();
+            this.refresh();
+            await Layout.activeLayout.build(false);
+          }));
+      this.content.append(info);
 
       let fit = helm(`<div class="DetailsPanel__section"><div class="Panel__heading">Page fit</div></div>`);
       fit.append(this.fitGroup.elm);

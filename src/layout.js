@@ -602,42 +602,30 @@ class Layout {
           break;
         }
 
-        case "import": {
-          // paste from  _podPb_
-          dialog(`Confirm: Import pages from shared buffer?<br>(restarts undo history)`,
-            { Import: { svg: "Import Page" }, Cancel: { svg: "Cancel" } },
-            async (_e, _prop, tag, args) => {
-              args.close(); // (before the Shade, which a modal dialog would hide)
-              if (tag == "Import") {
-                _shade_.show("Importing...", 50);
-                _menu_.activateCell(null);
-                await _podPb_.pgPaste(pn);
-                _shade_.hide();
-                _menu_.activateRing(_menu_.rings.page);
-                _menu_.activateCell(_menu_.rings.page.cells.import);
-              }
-            });
-          break;
-        }
-
+        case "import":
         case "merge": {
-          // splice an entire pdf directly into the current score at pn
-          let mergeCell = _menu_.rings.page.cells.merge;
+          // splice an entire pdf (Import: the shared buffer's) directly into the current score at pn
+          let mergeCell = _menu_.rings.page.cells[pageKey], verb = pageKey == "merge" ? "Merge" : "Import";
+          if (pageKey == "import") {
+            let pbScore = await _podPb_.getScore(), pgKnt = pbScore.pgs.length;
+            mergeCell.pdfData = await pbScore.toPdf();
+            mergeCell.range = { from: 1, to: pgKnt, pgKnt, numbers: { prelim: 0, first: 1 }, name: "Shared buffer" };
+          }
           if (!mergeCell.pdfData) break;
           let pdfData = mergeCell.pdfData;
           let wasLocked = mergeCell.locked;
           // The pages to merge, kept while the cell is armed (so they're the same for each page tapped)
           let range = mergeCell.range ?? { from: 1, to: Infinity }, pgKnt = range.pgKnt;
           // (the file's name on its own line, bold, and italic as in other dialogs, and the page number bold, as in the sliders)
-          let name = `<i translate="no" style="display:block;max-width:16em;margin:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:.15em;font-weight:600">${escapeHtml(range.name ?? "PDF")}</i>`;
+          let name = `<i${pageKey == "merge" ? ' translate="no"' : ""} style="display:block;max-width:16em;margin:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:.15em;font-weight:600">${escapeHtml(range.name ?? "PDF")}</i>`;
           let at = `${pn > score.pnOf(pg) ? "after" : "before"} page <b style="font-weight:600">${pnToHtml(score.pnOf(pg))}</b>`;
-          let dlg = dialog(`Merge:${name}${at}<br>(restarts undo history)<div class="dialog__sliders"><div></div></div>`,
-            { Merge: { svg: "Merge" }, Cancel: { svg: "Cancel" } },
+          let dlg = dialog(`${verb}:${name}${at}<br>(restarts undo history)<div class="dialog__sliders"><div></div></div>`,
+            { [verb]: { svg: verb == "Merge" ? "Merge" : "Import Page" }, Cancel: { svg: "Cancel" } },
             async (_e, _prop, tag, args) => {
               args.close(); // (before the Shade, which a modal dialog would hide)
-              if (tag == "Merge") {
+              if (tag == verb) {
                 let { from, to } = range;
-                _shade_.show("Merging...", 50);
+                _shade_.show(verb == "Merge" ? "Merging..." : "Importing...", 50);
                 _menu_.busy = true;
                 _menu_.activateCell(null);
                 try {

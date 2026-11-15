@@ -1571,7 +1571,7 @@ function closeVideo(event, container) {
 
     <p><strong>File Name:</strong> At the top of the panel is an editable field showing the score's file name. Edit this field to rename the score before saving. The .pdf extension is shown at the end of the field but isn't part of what you edit&mdash;it's always kept.</p>
 
-    <p><strong>Information:</strong> Below the file name, the panel lists where the score came from (its source, path and file size), its number of pages, any restrictions the PDF places on it, and its page size, in millimeters (naming common paper sizes such as A4 or Letter), points and inches. <strong>Created</strong> and <strong>Modified</strong> are Podium's own dates: when Podium first opened the score and when it last saved it.</p>
+    <p><strong>Information:</strong> Below the file name, the panel lists where the score came from (its source, path and file size), its number of pages and of <a href="#bookmarks" class="chapter-link">bookmarks</a>, any restrictions the PDF places on it, and its page size, in millimeters (naming common paper sizes such as A4 or Letter), points and inches. <strong>Created</strong> and <strong>Modified</strong> are Podium's own dates: when Podium first opened the score and when it last saved it. When the score has bookmarks, a <strong>Clear</strong> button beside their number removes them all, after asking you to confirm: it can't be undone.</p>
 
     <p><strong>Original PDF:</strong> If the score came from a PDF file, the last section of the panel shows that PDF's own metadata, such as its title, author, the program that created it, and its creation and modification dates. This is a record of the score's provenance: Podium keeps it unchanged when it saves the score, and shows each field under the name the PDF itself uses (for example, <em>CreationDate</em> and <em>ModDate</em>), so there's no doubt about which field is which.</p>
 
@@ -1630,6 +1630,7 @@ function closeVideo(event, container) {
     <p>Bookmarks mark pages for quick navigation. In Book, Horizontal, and Vertical layouts, first navigate to the desired page, then long-press its page number to toggle a bookmark on or off. Bookmarks appear as colored tabs along the edge of the layout; press any tab to jump directly to that page. In Table layout, long-press on a page to make it current and toggle its bookmark state: a bookmarked page shows its page number on a ribbon of the bookmark's color. Bookmarks are saved with the score.</p>
     <p>The thickness of each bookmark tab corresponds to one page's position in the pager, so tabs are thinner in longer scores — giving a visual sense of how many pages the score contains. Each pager cursor sits at its own page's position, so when that page is bookmarked, its page number lines up with the tab. A new bookmark is always given a color different from its nearest neighbors', so bookmarks next to each other are easy to tell apart.</p>
     <p>When dragging a pager cursor over a bookmarked page, the floating readout is painted in that bookmark's color, making it easy to navigate to a specific bookmark even when several adjacent tabs are too small to press directly.</p>
+    <p>To remove every bookmark at once, use the Clear button beside the number of bookmarks in <a href="#score-details" class="chapter-link">Details</a>.</p>
 
     <h3 id="layout-book">5.1 Layout Ring: Book<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-book"/></svg></h3>
 
@@ -2194,9 +2195,11 @@ function closeVideo(event, container) {
 
     <p><strong>Export:</strong> Activate the Export cell, then tap a page. The page is appended to the shared buffer. The original page remains in the score.</p>
 
-    <p><strong>Import:</strong> Activate the Import cell, then tap a page in the score. All pages in the shared buffer are inserted at that position, before the page if you tap on the left half (top half for Vertical Layout) or after if you tap the right half (bottom half for Vertical Layout).</p>
+    <p><strong>Import:</strong> Activate the Import cell, then tap a page in the score. The shared buffer's pages are inserted at that position, before the page if you tap on the left half (top half for Vertical Layout) or after if you tap the right half (bottom half for Vertical Layout).</p>
 
-    <div class="note">Because an import operation restarts the score's undo history, you'll be prompted to confirm before the operation is performed. The import itself can be undone: see <a href="#page-undo" class="chapter-link">Undo</a>.</div>
+    <p>Before each import, the same dialog as <a href="#page-merge" class="chapter-link">Merge</a>'s asks you to confirm, with the same choices: its <strong>From</strong> and <strong>To</strong> sliders choose which of the buffer's pages to import (all of them, at first), and its <strong>Mark</strong> and <strong>Ink</strong> settings bookmark the first imported page and keep the pages' annotations. Import keeps its own Mark and Ink settings, apart from Merge's.</p>
+
+    <div class="note">Because an import operation restarts the score's undo history, you'll be prompted to confirm before the operation is performed. The import itself can be undone, all of its pages at once: see <a href="#page-undo" class="chapter-link">Undo</a>.</div>
 
     <p>The Import Panel shows you a horizontally draggable view of thumbnails of the shared buffer, along with two management buttons:</p>
 

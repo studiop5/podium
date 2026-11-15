@@ -668,7 +668,7 @@ class Menu {
         paste: { name: "Paste", gb: "page-cut-copy-paste", svgPath: iconPaths["Paste Page"] },
         undo: { name: "Undo", gb: "page-undo", svgPath: iconPaths["Undo Page"] },
         export: { name: "Export", gb: "page-export-import", svgPath: iconPaths["Export Page"] },
-        import: { name: "Import", gb: "page-export-import", svgPath: iconPaths["Import Page"] },
+        import: { name: "Import", gb: "page-export-import", svgPath: iconPaths["Import Page"], stash: { mark: true, ink: true }, storage: "local" },
         merge: { name: "Merge", gb: "page-merge", svgPath: iconPaths["Merge"], stash: { mark: true, ink: true }, storage: "local" },
         flatten: { name: "Flatten", gb: "page-flatten", svgPath: iconPaths["Flatten"] },
         magnify: { name: "Magnify", gb: "page-magnify", svgPath: iconPaths["Magnify"], stash: { zoom: 2 } },
