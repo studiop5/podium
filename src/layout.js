@@ -2560,6 +2560,7 @@ class TableLayout extends Layout {
     async up() {
       this.splits.forEach((elm, i) => elm && (elm.style.cssText = this.splitsStyle[i]));
       let score = this.layout.score;
+      if (this.layout.marked) return this.upMarked();
       if(this.toPn == null) {
         // Then this is a cut operation
         this.layout.pasting = true ;
@@ -2595,6 +2596,37 @@ class TableLayout extends Layout {
         Object.assign(elm.style, { left:toEm(left), top:toEm(top) });
       }
       this.layout.pnPost(this.toPn); 
+    }
+
+    async upMarked() {
+      // Marked: the dragged card's whole section is cut (dropped off the table) or moved (to
+      // the gap between two others), then the layout is rebuilt
+      let { layout, active } = this, score = layout.score, from = active.pn, count = layout.sectionCount(from);
+      Object.assign(active.style, { pointerEvents: "auto", opacity: "1", zIndex: 2, fontSize: ""});
+      if (this.toPn == null) {
+        if (count == score.pgs.length) {
+          toast("Can't cut last section.");
+          layout.grid.append(active); // (off the body, s.t. the rebuild clears it)
+          return layout.build(false);
+        }
+        layout.pasting = true;
+        let cloning = Promise.all(score.pgs.slice(from - 1, from - 1 + count).map((pg) => pg.clone(true)));
+        score.pgCut(from, true, count);
+        if (count > 1) toast(`Cut ${count} pages`);
+        setPaste(await cloning);
+        layout.animateToCell(active.pg, getBox(active.pg.elm), false, _menu_.rings.page.cells.paste, "table",
+          () => layout.build(false));  // build() wrapper clears layout.pasting
+        return;
+      }
+      // the gap: after the section of the card left of it (toPn), or at the start (toPn 0)
+      let gap = this.toPn == 0 ? 1 : this.toPn + layout.sectionCount(this.toPn), first = gap > from ? gap - count : gap;
+      if (this.toPn != from && first != from) {
+        score.pgMv(from, first, count);
+        layout.markInserted(score, first, count);
+        layout.pnPost(first);
+      }
+      layout.grid.append(active); // (off the body, s.t. the rebuild clears it)
+      await layout.build(false);
     }
   }
 
@@ -2652,7 +2684,6 @@ e.taken = true ;
     this.navMv = listen(this.layout, "pointermove", (emv) => {
       drag.mv(emv) ;
        if(drag.moved) {
-         if (this.marked) return; // (moving sections: to come)
          if(this.score.pgs.length == 1) {  // can't drag/cut the only page out of the table
            toast("Can't cut last page.");
            return;
