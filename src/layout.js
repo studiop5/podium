@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, animMs, ButtonGroup, clamp, clearChildren, css, cssIndex, dataIndex, delay, delayMs, dialog, Drag, getBox, helm, listen, numb, pnToDiv, pnToHtml, ptrMsg, reflow, rotatePoint, Schedule, SliderGroup, toast, unlisten,} from "./common.js";
+import { animate, animMs, ButtonGroup, clamp, clearChildren, css, cssIndex, dataIndex, delay, delayMs, dialog, Drag, getBox, helm, iconSvg, listen, numb, pnToDiv, pnToHtml, ptrMsg, reflow, rotatePoint, Schedule, SliderGroup, toast, unlisten,} from "./common.js";
 import { escapeHtml } from "./file.js";
 import {ScreenPanel } from "./panel.js";
 import { Pg } from "./score.js";
@@ -2228,6 +2228,21 @@ class TableLayout extends Layout {
           pointer-events: none;
           z-index: 2;
         }
+        /* (Marked) the number of pages in a card's section, across from its page number */
+        .TableLayout__count {
+          position: absolute;
+          right: .3em;
+          top: .1em;
+          font-size: ${.7 / _dvPxRt_}em;
+          line-height: 1.2;
+          display: flex;
+          align-items: center;
+          gap: .1em;
+          color: #000;
+          text-shadow: .075em 0 .2em #bbb, -.075em 0 .2em #bbb, 0 .075em .2em #bbb, 0 -.075em .2em #bbb;
+          pointer-events: none;
+          z-index: 2;
+        }
         /* A bookmarked page's number is on a ribbon (of color --bk), notched at its foot,
            with a hairline edge so even a white one shows on the page. (The ribbon is a
            clipped ::before, as clip-path would clip away an edge drawn on the element.) */
@@ -2437,6 +2452,15 @@ class TableLayout extends Layout {
     }
     else
       clearChildren(elm);
+    // (Marked) the number of pgs in the card's section
+    let countElm = elm.querySelector(".TableLayout__count");
+    if (this.marked) {
+      let count = this.sectionCount(pn);
+      countElm ??= helm(`<div class="TableLayout__count"></div>`);
+      countElm.innerHTML = `${count}${iconSvg("Page", { size: "1.2em" })}`; // (a number and the pages icon: no words to translate)
+      elm.append(countElm);
+    }
+    else countElm?.remove();
     if (pn == this.section(_score_.numbers.pn))
        await this.buildPgActive(pn, elm) 
     else this.score.pgUnuse(pg);
@@ -2455,6 +2479,8 @@ class TableLayout extends Layout {
       inactive.pn = this.active.pn;
       let pnElm = this.active.querySelector(".TableLayout__pn");
       if(pnElm) inactive.append(pnElm);
+      let countElm = this.active.querySelector(".TableLayout__count");
+      if(countElm) inactive.append(countElm);
       this.score.pgUnuse(inactive.pg);
       // give inactive correct coords, then en-dom it:
       let {left, top} = this.coords(inactive.pn);
