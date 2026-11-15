@@ -51,6 +51,13 @@ let circlePath = (r, cx, cy) =>
 
 let scissorsD = "M244 518Q244 499 236.5 479.5Q229 460 229 457Q229 439 267 439Q288 439 335.5 424.5Q383 410 421 393L733 511Q793 533 834 533Q861 533 880.0 524.5Q899 516 926 492L549 348L927 206Q888 166 832 166Q787 166 730 187L421 301Q321 262 251 251Q240 249 236.5 248.0Q233 247 231.5 244.5Q230 242 230.0 236.0Q230 230 238.0 212.5Q246 195 246 175Q246 135 216.0 108.0Q186 81 141.0 81.0Q96 81 67.0 107.5Q38 134 38 175Q38 222 73.5 251.5Q109 281 165 281L233 280Q277 280 310.0 298.5Q343 317 354 348Q325 413 230 413L160 411Q105 411 70.0 439.5Q35 468 35.0 512.0Q35 556 64.0 583.5Q93 611 139 611Q183 611 213.5 584.0Q244 557 244 518ZM146 443Q174 443 192.5 462.0Q211 481 211.0 510.0Q211 539 190.0 559.0Q169 579 138.0 579.0Q107 579 87.5 561.0Q68 543 68.0 514.0Q68 485 91.0 464.0Q114 443 146 443ZM148 249Q117 249 94.0 226.5Q71 204 71 175Q71 148 90.0 130.5Q109 113 138 113Q172 113 192.5 132.5Q213 152 213 185Q213 213 194.5 231.0Q176 249 148 249Z";
 
+// A page icon's page, with its lines clear of a symbol drawn inside it by inPage()
+let pageFrame =
+  `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
+   <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M4.5 4.5h14M4.5 8h1M17.5 8h1M4.5 11h1M17.5 11h1M4.5 14h1M17.5 14h1M4.5 17h1M17.5 17h1M4.5 20h14"/>`;
+let inPage = (svg, cx = 12, cy = 12, scale = .55) =>
+  `${pageFrame}<g transform="translate(11.5 12.25) scale(${scale}) translate(${-cx} ${-cy})">${svg}</g>`;
+
 let iconPaths = {
 
 "Curtain Black":
@@ -121,18 +128,11 @@ Curtain:
   `<path fill="#aaa" stroke-width="0.6" stroke="currentColor" d="${circlePath(2,12,3)} ${circlePath(2,4,10)} ${circlePath(2,20,10)} ${circlePath(2,4,20)} ${circlePath(2,20,20)} M4,10h16v10h-16zM12,10v-6.5" />`,
 
 "Export Page":
-  `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 5h17v17.5h-17Z"/>
-   <path style="fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
-   <rect x="9.75" y="5.5" width="3.5" height="15" fill="#aaa" stroke="none"/> -->
-   <text x="10.5" y="21.5" style="fill:currentColor;font-family:Bravura;font-size:12">\uE634</text>`,
+  inPage(`<text x="10.5" y="21.5" style="fill:currentColor;font-family:Bravura;font-size:12">\uE634</text>`, 11.6, 14.22, .83),
 
 "Import Page":
-  `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 5h17v17.5h-17Z"/>
-   <path style="fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
-   <rect x="6.75" y="5.5" width="3.5" height="15" fill="#aaa" stroke="none"/>
-   <rect x="13" y="5.5" width="3.5" height="15" fill="#aaa" stroke="none"/>
-   <text x="7.5" y="21" style="fill:currentColor;font-family:Bravura;font-size:12">\uE635</text>,
-   <text x="14" y="21" style="fill:currentColor;font-family:Bravura;font-size:12">\uE635</text>`,
+  inPage(`<text x="7.5" y="21" style="fill:currentColor;font-family:Bravura;font-size:12">\uE635</text>
+    <text x="14" y="21" style="fill:currentColor;font-family:Bravura;font-size:12">\uE635</text>`, 11.85, 13.82, .83),
 
 "Copy Page":
   `<g style="transform:scale(.85)">
@@ -147,21 +147,11 @@ Curtain:
 
 
 "Cut Page":
-  `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
-  <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 17h12M5.5 20h12"/>
-  <path fill="currentColor" transform="translate(5.5,16) scale(0.013,-0.013) translate(-35,-81)" d="${scissorsD}"/>`,
+  inPage(`<path fill="currentColor" transform="translate(5.5,16) scale(0.013,-0.013) translate(-35,-81)" d="${scissorsD}"/>`, 11.3, 12.55, .95),
 
 "Copy":
   `<text y="12" x="6" font-size="11px" font-family="Bravura" fill="#888">\ue050</text>
    <text y="16" x="10" font-size="11px" font-family="Bravura" fill="#currentColor">\ue050</text>`,
-
- "Delete Page":
-    `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
-     <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
-     <rect x="8" y="8" width="8" height="8" fill="#aaa" stroke="none"/>
-     <path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.32) translate(23.5,26.5)" fill="#bbb" stroke-linecap="round" stroke="currentColor" stroke-width="1.0" d="M-4-2h32l-4 32h-24l-4-32l1-2h30l1 2M8-4v-3h8v3"/>,
-     <path fill-rule="evenodd" style="pointer-events:none;" transform="scale(.42) translate(14.5,18.5)" fill="#aaa" stroke-linecap="round" stroke="currentColor" stroke-width="0.8" d="m13.7,7.93-1.5,0.6h4.4l1.8,-3.2-1.2,0.5-1.2,-1.1c-0.3,-0.3-0.6,-0.6-0.8,-0.6l-4.4,-0.3 0.9,0.9zM6.97,7.33 8.65,4.77C9.82,3.57 11.2,4.62 11.4,5L12,6.14 10,9.33ZM8.67,12.4 10,12.9 7.87,9.33h-3.9l1.5,0.97-0.9,1.8c-0.3,0.3-0.3,0.8-0.3,1.1l2.1,3.9 0.3,-1.2zm3.03,6.1-3.33,0.3c-1.7,-0.6-1.7,-2.3-1.4,-2.6l0.8,-1.5h3.93zm3.2,-3.8v-1.5l-2.1,3.6 2.1,3.4v-1.4h2c0.6,0 0.6,-0.3 0.9,-0.6l2.1,-3.8-0.9,0.3zm3.8,-5.87 1.8,2.97c0.5,1.7-0.9,2.6-1.5,2.6h-1.5l-2.3,-3.8z"/>`,
-
 
 Details:
   `<defs><mask id="details">
@@ -308,14 +298,17 @@ Local:
 "L-R":
   `<path fill="none" stroke="currentColor" stroke-width="1.8" d="M4 12h21M8 8l-4 4l4 4M19 8l4 4l-4 4"/>`,
 
+Crop:
+  inPage(`<path fill="none" stroke="currentColor" stroke-width="1.8" d="M6 2v16h16M2 6h16v16"/>`),
+
 Magnify:
-  `<defs><mask id="glass">
+  inPage(`<defs><mask id="glass">
     <rect x="0" y="0" width="24" height="24" fill="white"/>
     <circle cx="9" cy="9" r="5.2" fill="black"/>
     </mask></defs>
-    <path stroke="currentColor" stroke-width=".3" fill="#aaa" d="M12.1 14.4L20 20L21 18.9L14.4 12.2Z"/>
-    <circle  mask="url(#glass)" cx="9" cy="9" r="6.1" fill="#aaa" stroke="currentColor" stroke-width=".3"/>
-    <circle  mask="url(#glass)" cx="9" cy="9" r="5.3" fill="#aaa" stroke="currentColor" stroke-width=".3"/>`,
+    <path stroke="currentColor" stroke-width=".3" fill="currentColor" d="M12.1 14.4L20 20L21 18.9L14.4 12.2Z"/>
+    <circle  mask="url(#glass)" cx="9" cy="9" r="6.1" fill="currentColor" stroke="currentColor" stroke-width=".3"/>
+    <circle  mask="url(#glass)" cx="9" cy="9" r="5.3" fill="currentColor" stroke="currentColor" stroke-width=".3"/>`, 12, 11.5, .65),
 
 Mark:
   `<path style="fill:currentColor;stroke:currentColor;stroke-width:0.8;" d="M8,3L8,21L12,17L16,21L16,3Z"/>`,
@@ -333,12 +326,10 @@ Menu:
 //   <path style="fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
 
 Merge:
-  `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 5h17v17.5h-17Z"/>
-   <path style="fill:#ccc;stroke:currentColor;stroke-width:0.3" d="M5.5 8h12M5.5 14h12 M5.5 20h12"/>
-   <g transform-origin="center" transform="rotate(-90)">
-     <text x="5.5" y="19" style="fill:currentColor;font-family:Bravura;font-size:12">\uE635</text>,
-     <text x="12" y="19" style="fill:currentColor;font-family:Bravura;font-size:12">\uE635</text> 
-   </g>`,
+  inPage(`<g transform-origin="center" transform="rotate(-90)">
+    <text x="5.5" y="19" style="fill:currentColor;font-family:Bravura;font-size:12">\uE635</text>
+    <text x="12" y="19" style="fill:currentColor;font-family:Bravura;font-size:12">\uE635</text>
+  </g>`, 11.82, 14.15, .76),
 
 Metric:
   `<path stroke="currentColor" stroke-width="1.0" d="M1 1h22M1 1v24M5 1v6M9 1v6M13 1v6M17 1v6M21 1v12">`,
@@ -371,10 +362,7 @@ More:
   `<path fill="#aaa" stroke="currentColor" stroke-width="1.0" d="M15.3,12.7A4.42,4.06 0 0 1 10.9,16.8 4.42,4.06 0 0 1 6.48,12.7 4.42,4.06 0 0 1 10.9,8.64 4.42,4.06 0 0 1 15.3,12.7ZM10.9,9.73V15.7M7.98,12.6H14M2.2,18.9V5.14h5.89c2.11,0 1.19,1.42 1.84,1.46l9.97,0.1v12.1z" />`,
 
 "New Page":
-  `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
-   <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
-   <rect x="7" y="9" width="9" height="6.5" fill="#aaa" stroke="none"/>
-   <text x="7.5" y="15.5" style="font-size:11">\u2295</text>`,
+  inPage(`<text x="7.5" y="15.5" style="fill:currentColor;font-size:11">\u2295</text>`, 11.57, 12.43, 1.4),
 
 "New Score":
   `<path fill="none" stroke="currentColor" stroke-width=".4" stroke-linecap="square" d="m8.45,15.1v0.2m0,0.8v0.2M6.12,15.7c-0.68,0.4-0.68,-1.1 0.48,-0.9 0.83,0 0.96,0.4 1.04,0.9 0.13,1-0.9,2-2.1,2.6v0M6.79,9.67c0.8,-0.2 1.3,-0.8 0.9,-1.6-0.5,-0.8-1.1,-0.7-1.6,-0.3-0.7,0.6-0.1,1.3 0.2,1.3v0M5.69,11c0.3,1.3 1.3,0.8 1.3,0-0.2,-2.03-0.4,-3.93-0.4,-5.93 0,-0.4 0.3,-0.9 0.5,-1 0.9,0.2 0.4,1.9-0.5,2.3-2.3,1-2.2,3.2 0.3,3.3M2.82,18.7c19.98,0 19.98,0 19.98,0v-0.1 0M2.82,17.7c19.98,0 19.98,0 19.98,0v-0.1 0M2.82,16.8c19.98,0 19.98,0 19.98,0v-0.2 0M2.82,15.7c19.98,0 19.98,0 19.98,0v-0.2 0M2.82,14.7c19.98,0 19.98,0 19.98,0v-0.2 0M3.04,9.57c19.76,0 19.76,0 19.76,0v-0.11 0M3.03,8.75c19.77,0 19.77,0 19.77,0v-0.29 0M3.03,7.65c19.77,0 19.77,0 19.77,0v-0.21 0M3.03,6.6c19.77,0 19.77,0 19.77,0v-0.21 0M3.03,5.51c19.77,0 19.77,0 19.77,0v-0.19 0m-19.71,0c0,13.38 0,13.38 0,13.38H2.97v0M2.12,4.72c-1.795,2.14 0.76,3.34-0.86,7.68 1.6,4.5-0.859,6.3 1.03,7.5" />`,
@@ -406,10 +394,7 @@ Mute:
 
 
 Numbers:
-  `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
-   <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
-   <rect x="7" y="6" width="9" height="13.5" fill="#aaa" stroke="none"/>
-   <text style="fill:currentColor;font-family:Bravura;" font-size="22" x="9.50" y="21">\uE262</text>`,
+  inPage(`<text style="fill:currentColor;font-family:Bravura;" font-size="22" x="9.50" y="21">\uE262</text>`, 11.7, 12.18, .97),
 
 OK:
   `<circle cx="12" cy="12" r="9.5" fill="none" stroke="#000" stroke-width="1.2"/>
@@ -437,12 +422,8 @@ Paste:
 
 
 "Paste Page":
-  `<path style="fill:#aaa;stroke:currentColor;stroke-width:.6" d="M3 2h17v20.5h-17Z"/>
-  <path style="fill:none;stroke:currentColor;stroke-width:0.3" d="M5.5 5h12M5.5 8h12M5.5 8h12M5.5 11h12M5.5 14h12M5.5 17h12M5.5 20h12"/>
-  <rect x="7" y="7" width="9" height="12.5" fill="#aaa" stroke="none"/>
-  <g style="transform:translate(-2px,.5px) scale(1.1,1.1);">
-  <path style="fill:#bbb;stroke:currentColor;stroke-width:.6;"
-  d="m10.5,10.2h3.2v4.9H10.5ZM11,8.62C10.5,8.75 9.93,8.6 9.56,9.22V16.4H14.6V9.24C14.3,8.66 13.7,8.69 13.1,8.61ZM11,7.4h2.1V8.63H11Zm1.1,-2.22c0.3,-0.1 0.7,2.11 0.6,2.22H11.5C11.4,7.24 11.8,5.07 12.1,5.18Z" /></g>`,
+  inPage(`<g style="transform:translate(-2px,.5px) scale(1.1,1.1);"><path style="fill:#bbb;stroke:currentColor;stroke-width:.6;"
+    d="m10.5,10.2h3.2v4.9H10.5ZM11,8.62C10.5,8.75 9.93,8.6 9.56,9.22V16.4H14.6V9.24C14.3,8.66 13.7,8.69 13.1,8.61ZM11,7.4h2.1V8.63H11Zm1.1,-2.22c0.3,-0.1 0.7,2.11 0.6,2.22H11.5C11.4,7.24 11.8,5.07 12.1,5.18Z" /></g>`, 11.28, 12.38, .92),
 
 
 Pause:
@@ -586,6 +567,9 @@ TuningFork:
 
 Undo:
   `<text font-size="20px" y="16" x="6" fill="currentColor" stroke="currentColor" font-family="Bravura">\uedf0</text>`,
+
+"Undo Page":
+  inPage(`<text font-size="20px" y="16" x="6" fill="currentColor" font-family="Bravura">\uedf0</text>`, 10.6, 11.1, 1),
 
 Unmute:
    `<text y="16" x="6" stroke="black" stroke-width=".4" paint-order="stroke fill" font-size="16px" font-family="Bravura" fill="currentColor">\ueb27</text>`,

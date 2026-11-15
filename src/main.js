@@ -87,6 +87,21 @@ class Gestures {
     listen(_body_, "pointerdown", e => this.onDown(e), { capture: true });
   }
 
+  cropping() {
+    // true iff the page ring's Crop cell is active: then crop is the only pan/zoom
+    return _menu_.activeRing?.key == "page" && _menu_.activeRing.activeCell?.key == "crop";
+  }
+
+  pgAt(x, y) {
+    // the pg under client point @x,@y, if any (by position: a layout may hold pointer capture)
+    return document.elementFromPoint(x, y)?.closest(".canvas-container")?.pg;
+  }
+
+  crop(pg, ratio, dx, dy, x, y) {
+    _menu_.autoOff.run(); // keep the Crop cell active
+    pg.cropBy(ratio, dx, dy, x, y);
+  }
+
   pzTargets() {
     return _pzTarget_ === _body_
       ? [..._body_.getElementsByClassName("pz")]
@@ -107,6 +122,11 @@ class Gestures {
     if (!e.ctrlKey) return;
     let dXY = -Math.sign(e.deltaY) / 100;
     if (e.shiftKey) dXY /= 10;
+    if (this.cropping()) {
+      let pg = this.pgAt(e.clientX, e.clientY);
+      if (pg) this.crop(pg, 1 + dXY, 0, 0, e.clientX, e.clientY);
+      return;
+    }
     for (let target of this.pzTargets()) {
       target.style.fontSize = Math.max((parseFloat(target.style.fontSize) || 1) + dXY, this.minEmSize) + "em";
       target.classList.add("pz-set");
@@ -190,11 +210,18 @@ class Gestures {
     // then translate by the pointer delta, clamping each 0x0 anchor on-screen.
     let startX = e.clientX, startY = e.clientY;
     let starts = new Map();
-    for (let target of this.pzTargets())
+    let pg = this.cropping() && this.pgAt(startX, startY);
+    if (this.cropping() && !pg) return; // when cropping, nothing else pans
+    if (!pg) for (let target of this.pzTargets())
       if (target !== _body_)
         starts.set(target, { left: parseFloat(target.style.left) || 0, top: parseFloat(target.style.top) || 0 });
     let mv = listen(_body_, "pointermove", emv => {
       emv.stopImmediatePropagation();
+      if (pg) {
+        this.crop(pg, 1, emv.clientX - startX, emv.clientY - startY, emv.clientX, emv.clientY);
+        [startX, startY] = [emv.clientX, emv.clientY]; // (crop deltas are incremental)
+        return;
+      }
       let dx = emv.clientX - startX, dy = emv.clientY - startY;
       for (let [target, { left, top }] of starts) {
         target.style.left = left + dx + "px";
@@ -215,8 +242,13 @@ class Gestures {
     let mid0X = (this.tr1.e.clientX + this.tr2.e.clientX) / 2;
     let mid0Y = (this.tr1.e.clientY + this.tr2.e.clientY) / 2;
     let hypot = Math.hypot(this.tr1.e.clientX - this.tr2.e.clientX, this.tr1.e.clientY - this.tr2.e.clientY);
+    let damp = _pzTarget_ === _body_; // only a background pinch (which zooms everything) is dampened
+    // When cropping, a pinch crops the pg under both fingers, and nothing else zooms
+    let pg = this.cropping() ? this.pgAt(this.tr1.e.clientX, this.tr1.e.clientY) : null;
+    if (pg && pg !== this.pgAt(this.tr2.e.clientX, this.tr2.e.clientY)) pg = null;
+    let last = { ratio: 1, midX: mid0X, midY: mid0Y }; // (crop deltas are incremental)
     let targets = new Map();
-    for (let target of this.pzTargets())
+    if (!this.cropping()) for (let target of this.pzTargets())
       targets.set(target, {
         fontSize: parseFloat(target.style.fontSize) || 1,
         left: parseFloat(target.style.left) || 0,
@@ -228,9 +260,13 @@ class Gestures {
       if (emv.pointerId === this.tr1.e.pointerId) this.tr1.e = emv;
       else this.tr2.e = emv;
       let ratio = Math.hypot(this.tr1.e.clientX - this.tr2.e.clientX, this.tr1.e.clientY - this.tr2.e.clientY) / hypot;
-      ratio = 1 + (ratio - 1) / 3;  // dampen zoom ratio
+      if (damp) ratio = 1 + (ratio - 1) / 3;  // dampen zoom ratio
       let midX = (this.tr1.e.clientX + this.tr2.e.clientX) / 2;
       let midY = (this.tr1.e.clientY + this.tr2.e.clientY) / 2;
+      if (pg) {
+        this.crop(pg, ratio / last.ratio, midX - last.midX, midY - last.midY, midX, midY);
+        last = { ratio, midX, midY };
+      }
       for (let [target, { fontSize, left, top }] of targets) {
         target.style.fontSize = Math.max(fontSize * ratio, this.minEmSize) + "em";
         if (target !== _body_) {

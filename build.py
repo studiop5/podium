@@ -592,6 +592,7 @@ if args.guide:
     # Curated keywords: body-text terms not found in headings.
     # Maps keyword -> list of anchor IDs.
     CURATED_KEYWORDS = {
+        "Analysis": ["howto-study"],
         "Annotations": ["ink", "quick-start"],
         "Aspect ratio": ["ink-edit"],
         "Bookmarks": ["bookmarks"],
@@ -608,13 +609,15 @@ if args.guide:
         "Dark theme": ["app-theme"],
         "Delcamp": ["running"],
         "Display quality": ["score-details"],
-        "Drag and drop": ["score-open-save"],
+        "Drag and drop": ["score-open-save", "ink-cut-copy-paste"],
         "Dropbox": ["score-open-save"],
         "E-reader": ["overture"],
+        "Editions, comparing": ["howto-study"],
         "Equal temperament": ["more-piano"],
         "Expand mode": ["score-details"],
         "Export": ["page-export-import"],
         "File System Access API": ["score-open-save"],
+        "Fingerings": ["howto-practice"],
         "Firefox settings": ["firefox-settings"],
         "Fling gesture": ["interface", "turning-pages"],
         "Foot pedal": ["foot-pedal", "page-numbers"],
@@ -624,7 +627,7 @@ if args.guide:
         "Grip": ["grip"],
         "Group selection": ["ink-edit"],
         "Images, importing": ["ink-cut-copy-paste"],
-        "IMSLP": ["running"],
+        "IMSLP": ["running", "howto-study"],
         "Import": ["page-export-import"],
         "Inner ring": ["menu"],
         "Installation": ["running"],
@@ -636,10 +639,12 @@ if args.guide:
         "Long press": ["interface"],
         "Magnify": ["page-magnify"],
         "Manuscript paper": ["page-flatten", "ink-rastrum"],
+        "Margins, trimming": ["page-crop"],
         "Merge": ["page-merge"],
         "Metadata": ["score-details"],
         "Microphone": ["more-review", "more-piano"],
         "Mouse controls": ["interface"],
+        "Musicology": ["howto-study"],
         "Mutopia": ["running"],
         "Navigation": ["quick-start", "layout-book"],
         "Offline use": ["running"],
@@ -659,6 +664,7 @@ if args.guide:
         "Pinch-zoom": ["interface", "layout-book"],
         "Pitch detector": ["more-piano"],
         "Playback": ["more-review"],
+        "Practice": ["howto-practice"],
         "Practice scores": ["page-export-import"],
         "Precision sliders": ["ink-edit"],
         "Print": ["score-print"],
@@ -672,6 +678,7 @@ if args.guide:
         "Roman numerals": ["page-numbers"],
         "Rotating rings": ["interface"],
         "Salamander Grand Piano": ["more-piano"],
+        "Set lists": ["howto-setlists", "page-merge"],
         "Scrubber": ["more-review"],
         "Shared buffer": ["page-export-import"],
         "Sliders": ["interface"],
@@ -684,10 +691,12 @@ if args.guide:
         "Sustain mode": ["more-piano"],
         "Symbol library": ["ink-symbols"],
         "Tablature": ["ink-rastrum"],
+        "Tablets": ["howto-tablet", "pwa"],
         "Temperament": ["more-piano"],
         "Timbre": ["more-piano"],
         "Transform handles": ["ink-edit"],
         "Tuner": ["more-piano"],
+        "Tuning": ["howto-practice", "more-piano"],
         "Undo history": ["ink-undo", "page-undo"],
         "Waveform": ["more-review"],
         "YIN pitch detection": ["more-piano"],
@@ -717,7 +726,7 @@ if args.guide:
             if aid == 'overture':
                 label = 'Overture'
             elif aid == 'author':
-                label = 'Ch.10'
+                label = 'Ch.11'
             else:
                 ch = _re.match(r'Chapter (\d+)', clean_text)
                 label = f'Ch.{ch.group(1)}' if ch else 'Ch.1'
