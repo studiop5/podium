@@ -155,8 +155,9 @@ class SharedBuffer {
   }
  
   async pgCopy(pn) {
+    // copy page @pn (or an array of pns) of _score_ to the end of the buffer
     try {
-      let pgPdf = await _score_.toPdf("stamp", false, [pn]);
+      let pgPdf = await _score_.toPdf("stamp", false, [pn].flat());
       let pbScore = await this.getScore();
       this.score = await pbScore.bindScore(pgPdf, pbScore.pgs.length + 1);
       await pbScore.dispose();

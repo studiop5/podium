@@ -369,6 +369,19 @@ class Layout {
     }
   }
 
+  sectionCount(pn) {
+    // the number of pgs a page ring cell acts on at @pn (see TableLayout: its Marked sections)
+    return 1;
+  }
+
+  markInserted(score, pn, count) {
+    // (Table's Marked) @count pgs inserted at @pn in @score are a section of their own, and the
+    // section after them keeps its own: each starts at a bookmark (pn 1 needs none)
+    if (!this.marked) return;
+    for (let pg of [score.pgs[pn - 1], score.pgs[pn - 1 + count]])
+      if (pg && score.pnOf(pg) > 1) pg.bookmark ||= nextBkColor(pg);
+  }
+
   pgCutBuild(cutPn) {
     // Rebuild after pg @cutPn was cut from the score. Subclasses can animate the change.
     return this.build(false);
@@ -523,10 +536,12 @@ class Layout {
       let srcBox = layoutKey == "table" ? (pg.thumbElm ? getBox(pg.thumbElm) : null)
          : pg.elm ? getBox(pg.elm) : null ; 
       pn = score.pnOf(pg);
+      // the pgs acted on: pg, or (Table's Marked) its card's whole section, and inserts go before or after it
+      let count = this.sectionCount(pn), section = score.pgs.slice(pn - 1, pn - 1 + count);
       if (["add", "paste", "import", "merge"].includes(pageKey)) {
         let box = getBox(e.target);
-        if (layoutKey == "vertical" && e.clientY - box.top > box.height / 2) pn++;
-        else if (e.clientX - box.x > box.width / 2) pn++;
+        if (layoutKey == "vertical" && e.clientY - box.top > box.height / 2) pn += count;
+        else if (e.clientX - box.x > box.width / 2) pn += count;
       }
       _menu_.autoOff.run();
 
@@ -540,6 +555,7 @@ class Layout {
           while (alpha.length < 2) alpha = "0" + alpha;
           let pg = new Pg(score, stash.Width, stash.Height, null, null, stash.rgb + alpha);
           await score.pgAdd(pg, pn);
+          this.markInserted(score, pn, 1);
           _score_.numbers.pn = pn; 
           _body_.dispatchEvent(new CustomEvent("NUMBERS", { detail: {sender:this} }));
           if(layoutKey == "table") {
@@ -553,24 +569,26 @@ class Layout {
         }
 
         case "cut": {
-          if(this.score.pgs.length == 1) {  // a score must keep at least one page
-            toast("Can't cut last page.");
+          if(this.score.pgs.length == count) {  // a score must keep at least one page
+            toast(count == 1 ? "Can't cut last page." : "Can't cut last section.");
             break;
           }
-          score.pgCut(pn);
-          if(pn == _score_.numbers.pn) // deleting active pg?
-            _score_.numbers.pn = Math.max(1, _score_.numbers.pn - 1) // choose different one
-          else if(pn < _score_.numbers.pn) // active pg must decrement
-            --_score_.numbers.pn;
+          score.pgCut(pn, true, count);
+          if (count > 1) toast(`Cut ${count} pages`);
+          let current = _score_.numbers.pn;
+          if(current >= pn && current < pn + count) // deleting active pg?
+            _score_.numbers.pn = Math.max(1, pn - 1) // choose different one
+          else if(pn < current) // active pg must decrement
+            _score_.numbers.pn -= count;
           // The model has been mutated, but the DOM not yet rebuilt: block new
           // gestures until build() (run by the animation) rebuilds.
           this.pasting = true;
-          let cloning = pg.clone(true); // (clone captures pg's state synchronously, before any rebuild)
+          let cloning = Promise.all(section.map((pg) => pg.clone(true))); // (clone captures pg's state synchronously, before any rebuild)
           if(layoutKey == "table")
             await this.animateToCell(pg, srcBox, false, pasteCell, layoutKey, () => this.build(false));
           else // as with copy, fly a snapshot, but rebuild the layout (sans pg) beneath it as it flies
             await this.animateToCell(pg, srcBox, true, pasteCell, layoutKey, null, () => this.pgCutBuild(pn));
-          setPaste([await cloning]);
+          setPaste(await cloning);
           break;
         }
 
@@ -578,15 +596,16 @@ class Layout {
           // Copying leaves the score, and so the layout, untouched: only a clone of
           // the pg flies to the paste cell.
           // Start the animation first: cloning (which renders the pdf) would delay it.
-          let cloning = pg.clone(true);
+          let cloning = Promise.all(section.map((pg) => pg.clone(true)));
           await this.animateToCell(pg, srcBox, true, _menu_.rings.page.cells.paste, layoutKey);
-          setPaste([await cloning]);
+          setPaste(await cloning);
           break;
         }
 
         case "paste": {
           let pastePgs = pasteCell.pgs;
           score.pgAdd(pastePgs, pn);
+          this.markInserted(score, pn, pastePgs.length);
           // (the elms, not the pgs: a book layout may deflate a pg during the clone)
           let pasteElms = pastePgs.map((pg) => pg.thumbElm || pg.elm).filter((elm) => elm);
           pasteElms.forEach((elm) => elm.style.opacity = 0);
@@ -601,7 +620,7 @@ class Layout {
         case "export": { 
           // copy to _podPb_
           _shade_.show("Copying...", 250);
-          await _podPb_.pgCopy(pn);
+          await _podPb_.pgCopy(section.map((pg) => score.pnOf(pg)));
           _shade_.hide();
           await this.animateToCell(pg, srcBox, true, _menu_.rings.page.cells.import,layoutKey); 
           break;
@@ -623,7 +642,7 @@ class Layout {
           let range = mergeCell.range ?? { from: 1, to: Infinity }, pgKnt = range.pgKnt;
           // (the file's name on its own line, bold, and italic as in other dialogs, and the page number bold, as in the sliders)
           let name = `<i${pageKey == "merge" ? ' translate="no"' : ""} style="display:block;max-width:16em;margin:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:.15em;font-weight:600">${escapeHtml(range.name ?? "PDF")}</i>`;
-          let at = `${pn > score.pnOf(pg) ? "after" : "before"} page <b style="font-weight:600">${pnToHtml(score.pnOf(pg))}</b>`;
+          let at = `${pn > score.pnOf(pg) ? "after" : "before"} page <b style="font-weight:600">${pnToHtml(pn > score.pnOf(pg) ? pn - 1 : pn)}</b>`;
           let dlg = dialog(`${verb}:${name}${at}<br>(restarts undo history)<div class="dialog__sliders"><div></div></div>`,
             { [verb]: { svg: verb == "Merge" ? "Merge" : "Import Page" }, Cancel: { svg: "Cancel" } },
             async (_e, _prop, tag, args) => {
@@ -638,6 +657,7 @@ class Layout {
                   // bookmark the first merged page (unless it came with one)
                   let first = mergedScore.pgs[pn - 1];
                   if (mergeCell.stash.mark) first.bookmark ||= nextBkColor(first);
+                  this.markInserted(mergedScore, pn, mergedScore.pgs.length - _score_.pgs.length);
                   await mergedScore.activate();
                 } finally {
                   _shade_.hide();
@@ -678,11 +698,14 @@ class Layout {
         }
 
         case "flatten": {
-          dialog(`Confirm: Flatten all annotations on this page?<br>(cannot be undone)`,
+          dialog(`Confirm: Flatten all annotations on ${count == 1 ? "this page" : `these ${count} pages`}?<br>(cannot be undone)`,
             { Flatten: { svg: "Flatten" }, Cancel: { svg: "Cancel" } },
-            (_e, _prop, tag, args) => {
-              if(tag == "Flatten") pg.flattenObjects();
+            async (_e, _prop, tag, args) => {
               args.close();
+              if(tag == "Flatten") for (let pg of section) {
+                await pg.inflate(false, false); // (a section's other pgs may not be)
+                pg.flattenObjects();
+              }
             });
           break;
         }
@@ -2373,6 +2396,12 @@ class TableLayout extends Layout {
   coords(pn) {
     // pn's place in the grid, if shown
     return this.gridCoords.find((c) => c.pn == pn);
+  }
+
+  sectionCount(pn) {
+    // Marked: the number of pgs in @pn's section (pn is shown: up to the next shown pn)
+    if (!this.marked) return 1;
+    return (this.gridCoords.find((c) => c.pn > pn)?.pn ?? this.score.pgs.length + 1) - pn;
   }
 
   section(pn) {
