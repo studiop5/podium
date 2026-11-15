@@ -2413,7 +2413,8 @@ class TableLayout extends Layout {
       // Turn current active elm into a normal, "inactive" elm. 
       // ...rebuild thumbnail, as elm could have been ink'ed.
       let inactive = await this.whileAlive(this.active.pg.getThumbElm(true, () => this.destroyed));
-      if(!inactive) return;
+      // A rebuild (doBuild) during the await clears this.active; it mounts the active pg itself.
+      if(!inactive || !this.active) return;
       // copy pg, pn, and, if existing, move pagenumber to inactive
       inactive.pg = this.active.pg;
       inactive.pn = this.active.pn;
