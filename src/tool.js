@@ -23,6 +23,7 @@
 import { animMs, ButtonGroup, clamp, clearChildren, css, dataIndex, delay, delayMs, dialog, Drag, helm, hide, iconSvg, listen, schedule, Schedule, SliderGroup, Surface, TabView, toast, unlisten, pxToEm, noTranslate,} from "./common.js";
 import { pianoSamples } from "./sample.js";
 import { panels, ScreenPanel, Select } from "./panel.js";
+import { escapeHtml } from "./file.js";
 import { Yin } from "./yin.js";
 export { Review, Metronome, Clock, Stopwatch, Piano, Volume };
 
@@ -164,7 +165,7 @@ class Piano {
     }
     .Piano__key-black:active, .Piano__key-black.pressed {
       box-shadow:-.06em -.06em .18em rgba(255,255,255,0.2) inset,0 -.18em .18em 3px rgba(0,0,0,0.6) inset,0 .06em .18em rgba(0,0,0,0.5);
-      background:linear-gradient(to right,#444 0%,#222 100%)
+      background:linear-gradient(to right,#444 0%,#222 100%);
       touch-action: manipulation;
     }
     .a,.b,.d,.e,.g {
@@ -334,7 +335,7 @@ class Piano {
 
     this.panel.listeners.push(
       listen(document, ["keydown", "keyup"], (e) => {
-        if (e.code == "Space" && !e.repeat) {
+        if (e.code == "Space" && !e.repeat && !e.target.closest?.("input, textarea, [contenteditable]")) {
           let e2 = new PointerEvent("spacebar");
           if (e.type == "keydown") pedalDownButton.dispatchEvent(e2);
           else pedalUpButton.dispatchEvent(e2); // keyup
@@ -554,6 +555,7 @@ class Piano {
 
       // define the source node: oscillator or audio buffer:
       if (piano) {
+       if (!(pianoSamples[midiNum] instanceof AudioBuffer)) return; // (still decoding: see buildAudio)
        source = new AudioBufferSourceNode(actx);
        source.buffer = pianoSamples[midiNum];
       }
@@ -690,7 +692,7 @@ class Piano {
       keyHtml += `<div data-sample="${midiOffset}" data-midi=${"" + midi}${name} class="${clazz}"></div>\n`;
     }
     // last high f taken from lower d2 + 200 cents
-    keyHtml += `<div data-sample="87/200" class="Piano__key-white f"></div>`;
+    keyHtml += `<div data-sample="87/200" data-midi="89" class="Piano__key-white f"></div>`;
     return keyHtml;
   }
 
@@ -908,8 +910,8 @@ class Piano {
       optionsView.tabs.Size.face.append(tags.size);
 
       let whites = [...this.keyboard.querySelectorAll(".Piano__key-white")];
-      let keyName = (i) => { // (the top key, with no data-midi, is a semitone above the one before it)
-        let midi = Number(whites[i].dataset.midi ?? Number(whites[i - 1].dataset.midi) + 1);
+      let keyName = (i) => {
+        let midi = Number(whites[i].dataset.midi);
         return noTranslate("C D EF G A B"[midi % 12] + (Math.floor(midi / 12) - 1));
       };
       let size = { width: 0, range: 0 };
@@ -1142,6 +1144,15 @@ class Clock extends Surface {
     this.clockSchedule.run((60 - date.getSeconds()) * 1000);
   }
 
+  show() {
+    super.show();
+    // (a flung panel is only hidden, and its cell shows it again: restart the clock hide() stopped)
+    if (this.clockSchedule.cancelled && this.hourHand) {
+      this.clockSchedule.cancelled = false;
+      this.refreshClock();
+    }
+  }
+
   hide() {
     this.clockSchedule.cancel();
     super.hide(); // run the Surface fly-to-cell + hide animation (don't just stop ticking)
@@ -1203,6 +1214,7 @@ class Stopwatch extends Surface {
             <linearGradient id="stemGradient" >
               <stop offset="0" stop-color="darkgrey" />
               <stop offset="1" stop-color="grey" />
+            </linearGradient>
             <linearGradient id="crownGradient" spreadMethod="repeat" x1="0" x2="0.05">
               <stop offset="0" stop-color="darkgrey" />
               <stop offset="1" stop-color="grey" />
@@ -1296,7 +1308,7 @@ class Stopwatch extends Surface {
       });
 
     let hours = formatNumber(Math.floor(split / (60 * 60)));
-    let minutes = formatNumber(Math.floor(split / 60));
+    let minutes = formatNumber(Math.floor(split / 60) % 60);
     let seconds = formatNumber(split % 60);
     this.panel.splits.value = `${++this.splitCount}. ${hours}:${minutes}:${seconds}\r\n` + this.panel.splits.value;
   }
@@ -1734,7 +1746,7 @@ class Clip and class Recorder
       this.recorder.start();
       this.listener = listen(this.recorder, "dataavailable", (e) => {
          if(this.resolve) 
-           this.resolve(new Blob([e.data], { type: this.recorder.mimeType})), {once:true};
+           this.resolve(new Blob([e.data], { type: this.recorder.mimeType}));
       });
     }
 
@@ -2129,7 +2141,7 @@ class Review {
     try {
        this.live();
     } catch(error) {
-      dialog(`Can't record video because:<br>"${error}"<br>
+      dialog(`Can't record video because:<br>"${escapeHtml(String(error))}"<br>
             <br>Disabling this tool.`);
       _menu_.enableCells(["more/review"], false);
       return this.panel.close();

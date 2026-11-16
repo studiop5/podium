@@ -87,7 +87,7 @@ class SharedBuffer {
               // id should process it...
               if(data.podId != _podId_) break; // then this is not the tab trying to get an id...
               if(ids.length == 0) // No return from this dialog...need to enforce this.
-                dialog(`<em>Error: only ${this.podIds.length} Podium tabs can be open at the same time.<em><br>`, {});
+                dialog(`<em>Error: only ${this.podIds.length} PODIUM tabs can be open at the same time.</em><br>`, {});
               else {
                 window._podId_ = ids.pop();
                 this.signal("pod-id-check");
