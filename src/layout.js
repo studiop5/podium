@@ -2673,6 +2673,11 @@ class TableLayout extends Layout {
 
 
   async onDown(e) {
+    // With an Ink cell active, a press on a thumbnail starts annotating it: see inkThumb
+    if (_menu_.activeRing?.key == "ink" && _menu_.activeRing.activeCell && e.isPrimary && !e.ctrlKey && !this.pasting) {
+      let elm = e.target.closest?.(".TableLayout__pg");
+      if (elm && elm != this.active) return this.inkThumb(e, elm);
+    }
     // The pasting guard (set during an in-flight cut/copy) is checked in super.onDown().
     if (await this.whileAlive(super.onDown(e))) return;
     this.layout.setPointerCapture(e.pointerId);
@@ -2736,6 +2741,27 @@ e.taken = true ;
          cursor.mv(emv);
        }
     });
+  }
+
+  // An Ink cell's gesture @e begun on thumbnail @elm: make its pg current, then hand the gesture
+  // to the pg's canvas, as if it had begun there. The pg grows about the pointer (not its center),
+  // s.t. the point under the pointer stays put; and the pointer's moves while the pg inflates are
+  // replayed, s.t. a stroke begun at once isn't cut short.
+  async inkThumb(e, elm) {
+    e.taken = true;
+    let box = getBox(elm), seen = [];
+    elm.style.transformOrigin = `${(e.clientX - box.x) / box.width * 100}% ${(e.clientY - box.y) / box.height * 100}%`;
+    let rec = listen(window, ["pointermove", "pointerup", "pointercancel"],
+      (ev) => { if (ev.pointerId == e.pointerId) seen.push(ev); }, { capture: true });
+    try {
+      await this.whileAlive(this.pgGoTo(elm.pn));
+    } finally {
+      unlisten(rec);
+    }
+    let upper = this.active == elm && elm.pg?.canvas?.upperCanvasEl;
+    if (!upper) return;
+    // (an event's own fields initialize its copy)
+    for (let ev of [e, ...seen]) upper.dispatchEvent(new PointerEvent(ev.type, ev));
   }
 
   cancelNav() {

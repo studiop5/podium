@@ -625,7 +625,7 @@ class Grid {
     this.stepsPerLabel = this.units == "Inch" ? 1 : 4;
 
     // Capture pointer to prevent selection while grid is active
-    pg.canvas.upperCanvasEl.setPointerCapture(options.e.pointerId);
+    try { pg.canvas.upperCanvasEl.setPointerCapture(options.e.pointerId); } catch {} // (a replayed press's pointer may be up already: see TableLayout.inkThumb)
 
     // Determine offset direction based on quadrant of pointerdown
     // Origin offset pushes toward the quadrant corner (away from center)
