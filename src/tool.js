@@ -1903,6 +1903,18 @@ class Review {
       width:100%;
       height:100%;
     }
+    .Review__guide {
+      position:absolute;
+      bottom: 0;
+      height: 2.2em;
+      border-left: 1px solid #fff8;
+      padding-left: .2em;
+      font-size: .7em;
+      line-height: 1;
+      color: #fffc;
+      text-shadow: 0 0 .2em #000a;
+      white-space: nowrap;
+    }
     .Review__waveform {
       position:absolute;
       width:100%;
@@ -2350,6 +2362,8 @@ class Review {
     let lineCount = 60;
     let lineHeight = parseFloat(this.waveview.style.height) / lineCount;
     for (let i = 0; i < lineCount; i++) this.spectrogram.append(helm(`<div style="height:${lineHeight}em;"></div>`));
+    // short guidelines at the bottom, at 1, 4 and 8 kHz (the spectrogram spans 0 to a quarter of the sample rate)
+    for (let k of [1, 4, 8]) this.spectrogram.after(helm(`<div class="Review__guide" style="left:${400000 * k / this.actx.sampleRate}%">${k} kHz</div>`));
     // set gradient steps to create a colorful waveform
     this.waveformCtx = this.waveform.getContext("2d");
     let gradient = this.waveformCtx.createLinearGradient(0, 0, 0, 256);
