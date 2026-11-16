@@ -70,6 +70,7 @@ class Pg {
   static paddingColor = "#fff";
   // Max size (width OR height) of Pg thumbnails, in px  
   static thumbSize = 192;
+  static thumbTurn = Promise.resolve(); // see renderThumb
   // Max crop zoom (see cropBy): a generous cap, showing an eighth of the page's
   // width, far past any useful crop. Also bounds a saved crop (see cropOf).
   static maxCrop = 8;
@@ -507,6 +508,9 @@ class Pg {
       let version = ++this.thumbVersion;
       let cancelled = () => this.score.disposed || version !== this.thumbVersion || isCancelled();
       let deflated = !this.inflated;
+      // A deflated pdf pg without ink is drawn straight at thumbnail size, with no inflation
+      if (deflated && this.mozPn && !this.json?.objects?.length && !this.json?.backgroundImage)
+        return await this.makeThumbElm(cancelled, true);
       ++this.tempHolds;
       try {
         if (deflated) await this.inflate(true, false);
@@ -527,10 +531,10 @@ class Pg {
     if (!this.inUse && !this.magnifierHold && this.tempHolds == 0) this.deflate();
   }
 
-  async makeThumbElm(cancelled) {
-    // getThumbElm's body: requires this pg to be inflated.
+  async makeThumbElm(cancelled, direct = false) {
+    // getThumbElm's body: requires this pg to be inflated, unless @direct (no ink: only its pdf is drawn).
     let score = this.score;
-    if(cancelled() || !this.inflated) return null;
+    if(cancelled() || !this.inflated && !direct) return null;
 
     let scale = Pg.thumbSize / Math.max(score.maxWidth, score.maxHeight);
     let maxW = score.maxWidth * scale, maxH = score.maxHeight * scale;
@@ -540,13 +544,17 @@ class Pg {
     if(score.details?.pgFit == "Center")
       thumbElm.style.backgroundSize = this.width * 100 / score.maxWidth + "%";
 
-    let fabCanvas = this.canvas.toCanvasElement(scale * this.stretch);
-    let fabBlob = await new Promise(res => fabCanvas.toBlob(res));
-    if(cancelled() || !fabBlob) return null;
+    let fabBlob = direct ? null : await new Promise(res => this.canvas.toCanvasElement(scale * this.stretch).toBlob(res));
+    if(cancelled() || !fabBlob && !direct) return null;
     let pdfBlob = null;
-    if(this.mozCanvas) {
-      let pdfCanvas = helm(`<canvas width="${maxW}" height="${maxH}"></canvas>`);
-      pdfCanvas.getContext("2d").drawImage(this.mozCanvas, 0, 0, maxW, maxH);
+    if(this.mozCanvas || direct) {
+      // (adopted: see renderPdf)
+      let pdfCanvas = document.adoptNode(helm(`<canvas width="${maxW}" height="${maxH}"></canvas>`));
+      if (direct) {
+        try { await this.renderThumb(pdfCanvas); }
+        catch(err) { if(cancelled()) return null; throw err; }
+      }
+      else pdfCanvas.getContext("2d").drawImage(this.mozCanvas, 0, 0, maxW, maxH);
       pdfBlob = await new Promise(res => pdfCanvas.toBlob(res));
       if(cancelled() || !pdfBlob) return null;
     }
@@ -555,13 +563,36 @@ class Pg {
     // The page owns them until replacement or full deflation/disposal.
     if(this.fabUrl) URL.revokeObjectURL(this.fabUrl);
     if(this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
-    this.fabUrl = URL.createObjectURL(fabBlob);
+    this.fabUrl = fabBlob ? URL.createObjectURL(fabBlob) : null;
     this.pdfUrl = pdfBlob ? URL.createObjectURL(pdfBlob) : null;
-    thumbElm.style.backgroundImage = `url('${this.fabUrl}')` +
-      (this.pdfUrl ? `, url('${this.pdfUrl}')` : "");
+    thumbElm.style.backgroundImage = [this.fabUrl, this.pdfUrl].filter((url) => url).map((url) => `url('${url}')`).join(", ");
     this.thumbElm = thumbElm;
     this.thumbDirty = false;
     return thumbElm;
+  }
+
+  async renderThumb(canvas, k = 8) {
+    // Draw this deflated pg's pdf (and crop) onto thumbnail @canvas, stretched to fill it as
+    // makeThumbElm's drawImage of an inflated pg's mozCanvas does. It's drawn at @k times the
+    // thumbnail's size, then shrunk: drawn at thumbnail size, pdf.js's 1px minimum line width
+    // turns staves solid black.
+    let mozPg = await this.score.mozDoc.getPage(this.mozPn);
+    let box = this.box ?? mozPg.view, { x, y, s } = this.crop ?? { x: 0, y: 0, s: 1 };
+    let full = Pg.viewport(mozPg, box, { scale: 1 });
+    let big = document.adoptNode(helm(`<canvas width="${canvas.width * k}" height="${canvas.height * k}"></canvas>`));
+    let task = mozPg.render({
+      annotationMode: pdfjsLib.AnnotationMode.DISABLE,
+      canvasContext: big.getContext("2d"),
+      viewport: Pg.viewport(mozPg, box, { scale: s, offsetX: -x * s, offsetY: -y * s }),
+      transform: [big.width / full.width, 0, 0, big.height / full.height, 0, 0],
+    });
+    // Thumbnails rendering in parallel (see TableLayout.build) take turns, a step every other frame:
+    // else their steps (e.g. drawing a large scan) run back to back, and those shown paint in bunches
+    task.onContinue = (cont) => Pg.thumbTurn = Pg.thumbTurn.then(() => new Promise((res) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => { try { cont(); } finally { res(); } }))));
+    await task.promise;
+    canvas.getContext("2d").drawImage(big, 0, 0, canvas.width, canvas.height);
+    big.width = big.height = 0;
   }
 
   async clone(inflate = false) {
