@@ -257,8 +257,8 @@
             <li><strong>Page ranges:</strong> the dialog's From: and To: sliders choose the
             pages to merge, such as one tune from a fake book. If the PDF was saved by PODIUM,
             they're numbered the way it numbers its pages.</li>
-            <li><strong>Mark:</strong> bookmarks the first merged page, so each piece gets a
-            bookmark, and the bookmarks become the set list's index.</li>
+            <li><strong>Mark:</strong> bookmarks the first merged page and the page after them, so
+            each piece gets a bookmark, and the bookmarks become the set list's index.</li>
             <li><strong>Ink:</strong> keeps the merged pages' annotations; turn it off for
             clean copies.</li>
             <li><strong>Before or after:</strong> tap the left half of a page to merge before
@@ -269,6 +269,8 @@
             <li><strong>Undo:</strong> a merge can now be undone, all of its pages at once.
             The same goes for Import.</li>
             <li><strong>Copy protected PDFs</strong> can't be merged, or merged into.</li>
+            <li><strong>Import works the same way:</strong> it confirms with the same dialog,
+            with From: and To: for the shared buffer's pages, and its own Mark and Ink.</li>
         </ul>
         <p class="guidebook-link">
             See the Guidebook: <a href="Guidebook.html#page-merge">&sect;7.6 Merge</a>,
@@ -297,6 +299,28 @@
         </ul>
         <p class="guidebook-link">
             See the Guidebook: <a href="Guidebook.html#page-crop">&sect;7.9 Crop</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Table: Marked, a Set List at a Glance</h3>
+        <p class="location">Layout Ring &rarr; Table &rarr; Show: Marked</p>
+        <p>The Table layout's new Marked button shows just the bookmarked pages, and page 1.
+        Each stands for its section, from its page up to the next bookmark: in a set list built
+        with Merge's Mark, that's one card per piece.</p>
+        <ul>
+            <li><strong>See the whole set:</strong> each card shows its section's number of
+            pages. Tap a card to go to it; Page Down, the arrow keys and pedals step from one
+            section to the next.</li>
+            <li><strong>Reorder by dragging:</strong> drag a card to move its whole section,
+            or drag it off the table to cut it.</li>
+            <li><strong>The Page ring works on sections:</strong> Cut, Copy, Export and Flatten
+            take the whole section, and Add, Paste, Import and Merge put their pages before or
+            after it, as a section of their own. A cut section comes back with one Undo.</li>
+            <li><strong>Unmark a card</strong> to join its pages to the section before it.</li>
+        </ul>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#layout-table">&sect;5.4 Table</a>
         </p>
     </div>
 
@@ -358,7 +382,8 @@
         <p>The Details panel is easier to read: dates are shown in your own date format, the
         file size reads like "3.4 MB", and the page size is shown once, in millimeters (with
         common paper sizes such as A4 or Letter named), points and inches. A section headed
-        Original PDF shows the metadata of the PDF the score came from.</p>
+        Original PDF shows the metadata of the PDF the score came from. It also counts the
+        score's bookmarks, with a Clear button that removes them all at once.</p>
         <p class="guidebook-link">
             See the Guidebook: <a href="Guidebook.html#score-details">§4.5 Details</a>
         </p>
@@ -457,6 +482,11 @@
             <li>The Keyboard's key names are no longer changed by your browser's translation
             feature.</li>
             <li>The Page ring's icons share one look: each shows a page with its symbol inside.</li>
+            <li>The layout panels and the Grid panel show page numbers with a single Numbers
+            button, lit when they're on, in place of On and Off buttons.</li>
+            <li>Buttons with longer names, such as Numbers, widen to fit them.</li>
+            <li>Copy and Paste in the Page ring carry several pages at once (a Marked section),
+            and Paste puts them all in, in order.</li>
             <li>Merging into the middle of a score no longer leaves bookmarks on the wrong pages,
             and merged pages keep their own bookmarks.</li>
         </ul>

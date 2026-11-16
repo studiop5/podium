@@ -316,6 +316,13 @@ async function main() {
     // on mobile, the menu opens bigger to fill more of the screen
     let dim = (Math.min(innerWidth, innerHeight) / _menu_.menuHolder.offsetWidth) *
          (_mobile_ ? _gs_/1000 : _gsgs_/1000) ;
+    // first draw it full size but all but invisible: on a cold start, the gpu's first
+    // raster of it (shader compiles, texture uploads) would otherwise stall the spin
+    Object.assign(_menu_.elm.style, { left: innerWidth/2+"px", top: innerHeight/2+"px", fontSize: dim + "em", opacity: .01 });
+    // (wait till frames come on time again: 3 in a row, at most a second)
+    for (let t = performance.now(), t0 = t, n = 0, t1; n < 3 && t - t0 < 1000; t = t1)
+      n = (t1 = await new Promise(requestAnimationFrame)) - t < 25 ? n + 1 : 0;
+    _menu_.elm.style.opacity = "";
     numb(_menu_.elm, 1000000 / _gs_);
     animate(_menu_.elm, { left: innerWidth/2+"px", top: innerHeight/2+"px", fontSize: 0 },
        { fontSize: dim + "em" }, `font-size ${1000000 / _gs_}ms`);

@@ -1903,6 +1903,18 @@ class Review {
       width:100%;
       height:100%;
     }
+    .Review__guide {
+      position:absolute;
+      bottom: 0;
+      height: 2.2em;
+      border-left: 1px solid #fff8;
+      padding-left: .2em;
+      font-size: .7em;
+      line-height: 1;
+      color: #fffc;
+      text-shadow: 0 0 .2em #000a;
+      white-space: nowrap;
+    }
     .Review__waveform {
       position:absolute;
       width:100%;
@@ -2013,7 +2025,7 @@ class Review {
          <video crossorigin="anonymous" data-tag="video" class="Review__video Review__video__reflect" autoplay playsinline webkit-playsinline></video>
          <div data-tag="waveview" class="Review__waveview hidden">
            <div data-tag="spectrogram" class="Review__spectrogram"></div>
-           <canvas height="256" width="${this.bufSize}" data-tag="waveform" class="Review__waveform"></canvas>
+           <canvas height="256" width="${this.audioBuf.length}" data-tag="waveform" class="Review__waveform"></canvas>
          </div>
 
          <div data-tag="videoControls" class="Review__videoControls">
@@ -2094,7 +2106,7 @@ class Review {
 
     [this.actx, this.bus] = Actx.get();
     this.analyser = this.actx.createAnalyser();
-    this.analyser.fftSize = this.audioBuf.length;
+    this.analyser.fftSize = 8192; // (fine enough bins for the spectrogram's low octaves: ~6 Hz at 48 kHz)
     this.analyser.minDecibels = -90;
     this.analyser.minDecibels = -120;
     this.analyser.maxDecibels = -10;
@@ -2350,6 +2362,9 @@ class Review {
     let lineCount = 60;
     let lineHeight = parseFloat(this.waveview.style.height) / lineCount;
     for (let i = 0; i < lineCount; i++) this.spectrogram.append(helm(`<div style="height:${lineHeight}em;"></div>`));
+    // short guidelines at the bottom
+    for (let [hz, label] of [[100, "100 Hz"], [1000, "1 kHz"], [4000, "4 kHz"]])
+      this.spectrogram.after(helm(`<div class="Review__guide" style="left:${Review.logX(hz) * 100}%">${label}</div>`));
     // set gradient steps to create a colorful waveform
     this.waveformCtx = this.waveform.getContext("2d");
     let gradient = this.waveformCtx.createLinearGradient(0, 0, 0, 256);
@@ -2427,19 +2442,25 @@ class Review {
     if(this.stash.mode == "Wave" && !this.video.paused) {
       let buf = this.audioBuf;
       let bufLen = buf.length;
-      let width = this.analyser.frequencyBinCount / 4;
       // Update waterfall spectrogram. The spectrogram consists of
       // a bunch of narrow divs arranged top-to-bottom. Every time runWave
       // is run, it:
       // 1. removes the bottommost div
       // 2. repaints it using frequency data, left-to-right, converting
-      //    power to color through this.h2rgba.
+      //    power to color through this.h2rgba. The frequency scale is logarithmic
+      //    (see hzAt): each gradient stop shows the loudest bin it spans.
       // 3. re-inserts div at top
-      this.analyser.getByteFrequencyData(buf);
+      let freq = this.freqBuf ??= new Uint8Array(this.analyser.frequencyBinCount);
+      this.analyser.getByteFrequencyData(freq);
       let line = this.spectrogram.lastElementChild;
       line.remove();
-      let grad = "linear-gradient(to right," + this.h2rgba(buf[0] * buf[0]) + " 0%";
-      for (let i = 0; i < width; i++) grad += "," + this.h2rgba(buf[i + i] * buf[i + i]) + (i / width) * 100 + "%";
+      let binHz = this.actx.sampleRate / this.analyser.fftSize, stops = 256, grad = "linear-gradient(to right";
+      let bin = (x) => Math.round(Review.hzAt(x) / binHz);
+      for (let i = 0; i <= stops; i++) {
+        let lo = bin((i - .5) / stops), hi = Math.max(lo, bin((i + .5) / stops));
+        let v = Math.max(...freq.subarray(lo, hi + 1));
+        grad += "," + this.h2rgba(v * v) + " " + (i / stops) * 100 + "%";
+      }
       line.style.background = grad;
       this.spectrogram.prepend(line);
       // update waveform
@@ -2474,6 +2495,12 @@ class Review {
     // set the @text of the mediaControls play button: this will be either "Live" or "Replay"
     this.mediaControls.elms.Replay.firstChild.replaceWith(document.createTextNode(text));
   }
+
+  // The spectrogram's frequency scale: logarithmic, from loHz to hiHz
+  static loHz = 50;
+  static hiHz = 8000;
+  static hzAt(x) { return Review.loHz * (Review.hiHz / Review.loHz) ** x; } // the frequency at @x (0 to 1) across it
+  static logX(hz) { return Math.log(hz / Review.loHz) / Math.log(Review.hiHz / Review.loHz); } // and where @hz is
 
   h2rgba(h) {
     // Creates an "rgba(r,g,b,a)" string from a 16-bit

@@ -20,7 +20,7 @@
   <https://www.gnu.org/licenses/>.
 **/
 
-import { animate, animMs, ButtonGroup, clamp, clearChildren, css, cssIndex, dataIndex, delay, delayMs, dialog, Drag, getBox, helm, listen, numb, pnToDiv, pnToHtml, ptrMsg, reflow, rotatePoint, Schedule, SliderGroup, toast, unlisten,} from "./common.js";
+import { animate, animMs, ButtonGroup, clamp, clearChildren, css, cssIndex, dataIndex, delay, delayMs, dialog, Drag, getBox, helm, iconSvg, listen, numb, pnToDiv, pnToHtml, ptrMsg, reflow, rotatePoint, Schedule, SliderGroup, toast, unlisten,} from "./common.js";
 import { escapeHtml } from "./file.js";
 import {ScreenPanel } from "./panel.js";
 import { Pg } from "./score.js";
@@ -48,6 +48,14 @@ function nextBkColor(pg) {
   do color = bkColors[stash.bkColorIdx++ % bkColors.length];
   while (color == before || color == after); // (ends: 10 colors, at most 2 excluded)
   return color;
+}
+
+function setPaste(pgs) {
+  // Give the Paste cell @pgs (clones, pasted in order), releasing any it held
+  let pasteCell = _menu_.rings.page.cells.paste;
+  pasteCell.pgs?.forEach((pg) => pg.deflate(true));
+  pasteCell.pgs = pgs;
+  _menu_.enableCells("page/paste");
 }
 
 function setBookmark(pnElm, color) {
@@ -361,6 +369,19 @@ class Layout {
     }
   }
 
+  sectionCount(pn) {
+    // the number of pgs a page ring cell acts on at @pn (see TableLayout: its Marked sections)
+    return 1;
+  }
+
+  markInserted(score, pn, count, force) {
+    // (Table's Marked, or @force) @count pgs inserted at @pn in @score are a section of their own, and the
+    // section after them keeps its own: each starts at a bookmark (pn 1 needs none)
+    if (!this.marked && !force) return;
+    for (let pg of [score.pgs[pn - 1], score.pgs[pn - 1 + count]])
+      if (pg && score.pnOf(pg) > 1) pg.bookmark ||= nextBkColor(pg);
+  }
+
   pgCutBuild(cutPn) {
     // Rebuild after pg @cutPn was cut from the score. Subclasses can animate the change.
     return this.build(false);
@@ -515,10 +536,12 @@ class Layout {
       let srcBox = layoutKey == "table" ? (pg.thumbElm ? getBox(pg.thumbElm) : null)
          : pg.elm ? getBox(pg.elm) : null ; 
       pn = score.pnOf(pg);
+      // the pgs acted on: pg, or (Table's Marked) its card's whole section, and inserts go before or after it
+      let count = this.sectionCount(pn), section = score.pgs.slice(pn - 1, pn - 1 + count);
       if (["add", "paste", "import", "merge"].includes(pageKey)) {
         let box = getBox(e.target);
-        if (layoutKey == "vertical" && e.clientY - box.top > box.height / 2) pn++;
-        else if (e.clientX - box.x > box.width / 2) pn++;
+        if (layoutKey == "vertical" && e.clientY - box.top > box.height / 2) pn += count;
+        else if (e.clientX - box.x > box.width / 2) pn += count;
       }
       _menu_.autoOff.run();
 
@@ -532,6 +555,7 @@ class Layout {
           while (alpha.length < 2) alpha = "0" + alpha;
           let pg = new Pg(score, stash.Width, stash.Height, null, null, stash.rgb + alpha);
           await score.pgAdd(pg, pn);
+          this.markInserted(score, pn, 1);
           _score_.numbers.pn = pn; 
           _body_.dispatchEvent(new CustomEvent("NUMBERS", { detail: {sender:this} }));
           if(layoutKey == "table") {
@@ -545,26 +569,26 @@ class Layout {
         }
 
         case "cut": {
-          if(this.score.pgs.length == 1) {  // a score must keep at least one page
-            toast("Can't cut last page.");
+          if(this.score.pgs.length == count) {  // a score must keep at least one page
+            toast(count == 1 ? "Can't cut last page." : "Can't cut last section.");
             break;
           }
-          score.pgCut(pn);
-          if(pn == _score_.numbers.pn) // deleting active pg?
-            _score_.numbers.pn = Math.max(1, _score_.numbers.pn - 1) // choose different one
-          else if(pn < _score_.numbers.pn) // active pg must decrement
-            --_score_.numbers.pn;
+          score.pgCut(pn, true, count);
+          if (count > 1) toast(`Cut ${count} pages`);
+          let current = _score_.numbers.pn;
+          if(current >= pn && current < pn + count) // deleting active pg?
+            _score_.numbers.pn = Math.max(1, pn - 1) // choose different one
+          else if(pn < current) // active pg must decrement
+            _score_.numbers.pn -= count;
           // The model has been mutated, but the DOM not yet rebuilt: block new
           // gestures until build() (run by the animation) rebuilds.
           this.pasting = true;
-          let cloning = pg.clone(true); // (clone captures pg's state synchronously, before any rebuild)
+          let cloning = Promise.all(section.map((pg) => pg.clone(true))); // (clone captures pg's state synchronously, before any rebuild)
           if(layoutKey == "table")
             await this.animateToCell(pg, srcBox, false, pasteCell, layoutKey, () => this.build(false));
           else // as with copy, fly a snapshot, but rebuild the layout (sans pg) beneath it as it flies
             await this.animateToCell(pg, srcBox, true, pasteCell, layoutKey, null, () => this.pgCutBuild(pn));
-          if (pasteCell.pg) pasteCell.pg.deflate(true);
-          pasteCell.pg = await cloning;
-          _menu_.enableCells("page/paste") ;
+          setPaste(await cloning);
           break;
         }
 
@@ -572,22 +596,22 @@ class Layout {
           // Copying leaves the score, and so the layout, untouched: only a clone of
           // the pg flies to the paste cell.
           // Start the animation first: cloning (which renders the pdf) would delay it.
-          let cloning = pg.clone(true);
+          let cloning = Promise.all(section.map((pg) => pg.clone(true)));
           await this.animateToCell(pg, srcBox, true, _menu_.rings.page.cells.paste, layoutKey);
-          if (pasteCell.pg) pasteCell.pg.deflate(true);
-          pasteCell.pg = await cloning;
-          _menu_.enableCells("page/paste") ;
+          setPaste(await cloning);
           break;
         }
 
         case "paste": {
-          let pastePg = score.pgAdd(pasteCell.pg, pn);
-          // (the elm, not the pg: a book layout may deflate the pg during the clone)
-          let pasteElm = pastePg.thumbElm || pastePg.elm;
-          pasteElm.style.opacity = 0;
-          pasteCell.pg = await pastePg.clone(true); // clone pg for any subsequent paste
-          animate(pasteElm, null, { opacity: 1 },
-            `opacity cubic-bezier( 0.99, 0.05, 0.82, 0.35 ) ${_gs_}ms`);
+          let pastePgs = pasteCell.pgs;
+          score.pgAdd(pastePgs, pn);
+          this.markInserted(score, pn, pastePgs.length);
+          // (the elms, not the pgs: a book layout may deflate a pg during the clone)
+          let pasteElms = pastePgs.map((pg) => pg.thumbElm || pg.elm).filter((elm) => elm);
+          pasteElms.forEach((elm) => elm.style.opacity = 0);
+          pasteCell.pgs = await Promise.all(pastePgs.map((pg) => pg.clone(true))); // clone pgs for any subsequent paste
+          pasteElms.forEach((elm) => animate(elm, null, { opacity: 1 },
+            `opacity cubic-bezier( 0.99, 0.05, 0.82, 0.35 ) ${_gs_}ms`));
           await this.build(false); 
           await this.pgGoTo(pn);;
           break;
@@ -596,48 +620,36 @@ class Layout {
         case "export": { 
           // copy to _podPb_
           _shade_.show("Copying...", 250);
-          await _podPb_.pgCopy(pn);
+          await _podPb_.pgCopy(section.map((pg) => score.pnOf(pg)));
           _shade_.hide();
           await this.animateToCell(pg, srcBox, true, _menu_.rings.page.cells.import,layoutKey); 
           break;
         }
 
-        case "import": {
-          // paste from  _podPb_
-          dialog(`Confirm: Import pages from shared buffer?<br>(restarts undo history)`,
-            { Import: { svg: "Import Page" }, Cancel: { svg: "Cancel" } },
-            async (_e, _prop, tag, args) => {
-              args.close(); // (before the Shade, which a modal dialog would hide)
-              if (tag == "Import") {
-                _shade_.show("Importing...", 50);
-                _menu_.activateCell(null);
-                await _podPb_.pgPaste(pn);
-                _shade_.hide();
-                _menu_.activateRing(_menu_.rings.page);
-                _menu_.activateCell(_menu_.rings.page.cells.import);
-              }
-            });
-          break;
-        }
-
+        case "import":
         case "merge": {
-          // splice an entire pdf directly into the current score at pn
-          let mergeCell = _menu_.rings.page.cells.merge;
+          // splice an entire pdf (Import: the shared buffer's) directly into the current score at pn
+          let mergeCell = _menu_.rings.page.cells[pageKey], verb = pageKey == "merge" ? "Merge" : "Import";
+          if (pageKey == "import") {
+            let pbScore = await _podPb_.getScore(), pgKnt = pbScore.pgs.length;
+            mergeCell.pdfData = await pbScore.toPdf();
+            mergeCell.range = { from: 1, to: pgKnt, pgKnt, numbers: { prelim: 0, first: 1 }, name: "Shared buffer" };
+          }
           if (!mergeCell.pdfData) break;
           let pdfData = mergeCell.pdfData;
           let wasLocked = mergeCell.locked;
           // The pages to merge, kept while the cell is armed (so they're the same for each page tapped)
           let range = mergeCell.range ?? { from: 1, to: Infinity }, pgKnt = range.pgKnt;
           // (the file's name on its own line, bold, and italic as in other dialogs, and the page number bold, as in the sliders)
-          let name = `<i translate="no" style="display:block;max-width:16em;margin:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:.15em;font-weight:600">${escapeHtml(range.name ?? "PDF")}</i>`;
-          let at = `${pn > score.pnOf(pg) ? "after" : "before"} page <b style="font-weight:600">${pnToHtml(score.pnOf(pg))}</b>`;
-          let dlg = dialog(`Merge:${name}${at}<br>(restarts undo history)<div class="dialog__sliders"><div></div></div>`,
-            { Merge: { svg: "Merge" }, Cancel: { svg: "Cancel" } },
+          let name = `<i${pageKey == "merge" ? ' translate="no"' : ""} style="display:block;max-width:16em;margin:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:.15em;font-weight:600">${escapeHtml(range.name ?? "PDF")}</i>`;
+          let at = `${pn > score.pnOf(pg) ? "after" : "before"} page <b style="font-weight:600">${pnToHtml(pn > score.pnOf(pg) ? pn - 1 : pn)}</b>`;
+          let dlg = dialog(`${verb}:${name}${at}<br>(restarts undo history)<div class="dialog__sliders"><div></div></div>`,
+            { [verb]: { svg: verb == "Merge" ? "Merge" : "Import Page" }, Cancel: { svg: "Cancel" } },
             async (_e, _prop, tag, args) => {
               args.close(); // (before the Shade, which a modal dialog would hide)
-              if (tag == "Merge") {
+              if (tag == verb) {
                 let { from, to } = range;
-                _shade_.show("Merging...", 50);
+                _shade_.show(verb == "Merge" ? "Merging..." : "Importing...", 50);
                 _menu_.busy = true;
                 _menu_.activateCell(null);
                 try {
@@ -645,6 +657,7 @@ class Layout {
                   // bookmark the first merged page (unless it came with one)
                   let first = mergedScore.pgs[pn - 1];
                   if (mergeCell.stash.mark) first.bookmark ||= nextBkColor(first);
+                  this.markInserted(mergedScore, pn, mergedScore.pgs.length - _score_.pgs.length, mergeCell.stash.mark);
                   await mergedScore.activate();
                 } finally {
                   _shade_.hide();
@@ -685,11 +698,14 @@ class Layout {
         }
 
         case "flatten": {
-          dialog(`Confirm: Flatten all annotations on this page?<br>(cannot be undone)`,
+          dialog(`Confirm: Flatten all annotations on ${count == 1 ? "this page" : `these ${count} pages`}?<br>(cannot be undone)`,
             { Flatten: { svg: "Flatten" }, Cancel: { svg: "Cancel" } },
-            (_e, _prop, tag, args) => {
-              if(tag == "Flatten") pg.flattenObjects();
+            async (_e, _prop, tag, args) => {
               args.close();
+              if(tag == "Flatten") for (let pg of section) {
+                await pg.inflate(false, false); // (a section's other pgs may not be)
+                pg.flattenObjects();
+              }
             });
           break;
         }
@@ -987,10 +1003,10 @@ class BookLayout extends Layout {
     // top/bottom gap and left/right gap, for a border-radius of .8em
     g.tbGap = .2 * _pxPerEm_; 
     g.borderPx = 0.025 * _pxPerEm_ * 2; // top+bottom border included in box-sizing:border-box height
-    g.lrGap = this.pnShow ==  "On"? 0: g.tbGap ;
+    g.lrGap = this.pnShow ? 0: g.tbGap ;
     // Pager always occupies its own strip (hidden or not), lrGap=0 when pager is present.
     // Hidden pager gets Layout.margin width — narrow but non-overlapping with pages.
-    g.pagerWidth = this.pnShow == "On" ? Pager.width : Layout.margin;
+    g.pagerWidth = this.pnShow ? Pager.width : Layout.margin;
     g.pgCount = this.score.pgs.length;
     let spineT = Math.min(g.pgCount / 100, 1);
     g.bindingWidth = (0.5 + spineT) * _pxPerEm_;
@@ -1074,7 +1090,7 @@ class BookLayout extends Layout {
     // pagers
     this.layout.append(this.pagerLeft.elm);
     this.layout.append(this.pagerRight.elm);
-    let pagerHidden = this.pnShow != "On";
+    let pagerHidden = !this.pnShow;
     this.pagerLeft.setHidden(pagerHidden, Layout.margin);
     this.pagerRight.setHidden(pagerHidden, Layout.margin);
     this.pagerLeft.build();
@@ -1733,7 +1749,7 @@ class ScrollLayout extends Layout {
     gap /= 100; // gap % as fraction
 
 
-    g.rollGirth = this.pnShow == "On" ? Pager.width : Layout.margin;
+    g.rollGirth = this.pnShow ? Pager.width : Layout.margin;
     g.pgCount = this.score.pgs.length;
     g.pgShow = Math.min(pgShow, g.pgCount); // g.pgShow must be <= total page count
     g.pgSnap = Math.min(pgSnap, g.pgCount); // g.pgSnap must be <= total page count
@@ -1835,7 +1851,7 @@ class ScrollLayout extends Layout {
 
     this.leftRoll.append(this.pagerLeft.elm);
     this.rightRoll.append(this.pagerRight.elm);
-    let pagerHidden = this.pnShow != "On";
+    let pagerHidden = !this.pnShow;
     this.pagerLeft.setHidden(pagerHidden, Layout.margin);
     this.pagerRight.setHidden(pagerHidden, Layout.margin);
     this.pagerLeft.build();
@@ -2212,6 +2228,21 @@ class TableLayout extends Layout {
           pointer-events: none;
           z-index: 2;
         }
+        /* (Marked) the number of pages in a card's section, across from its page number */
+        .TableLayout__count {
+          position: absolute;
+          right: .3em;
+          top: .1em;
+          font-size: ${.7 / _dvPxRt_}em;
+          line-height: 1.2;
+          display: flex;
+          align-items: center;
+          gap: .1em;
+          color: #000;
+          text-shadow: .075em 0 .2em #bbb, -.075em 0 .2em #bbb, 0 .075em .2em #bbb, 0 -.075em .2em #bbb;
+          pointer-events: none;
+          z-index: 2;
+        }
         /* A bookmarked page's number is on a ribbon (of color --bk), notched at its foot,
            with a hairline edge so even a white one shows on the page. (The ribbon is a
            clipped ::before, as clip-path would clip away an edge drawn on the element.) */
@@ -2291,10 +2322,13 @@ class TableLayout extends Layout {
     this.gridCoords = [];
     let xStep = pgWidth * hStep;
     let yStep = pgHeight * vStep;
-    let pgCount = score.pgs.length;
-    for (let pn = 1, top = 0; pn <= pgCount; top += yStep) {
-      for (let col = 0, left = 0; col < pages && pn <= pgCount; pn++, col++, left += xStep)
-          this.gridCoords.push({pn, top,  left});
+    // the pns shown: every pg, or (Marked) the bookmarked ones, and pn 1, each standing
+    // for its section: its pgs up to the next one shown
+    let shown = score.pgs.map((_pg, i) => i + 1).filter((pn) => !this.marked || pn == 1 || score.pgs[pn - 1].bookmark);
+    let pgCount = shown.length;
+    for (let i = 0, top = 0; i < pgCount; top += yStep) {
+      for (let col = 0, left = 0; col < pages && i < pgCount; i++, col++, left += xStep)
+          this.gridCoords.push({pn: shown[i], top,  left});
     }
 
     // position layout for start of pg generation animation (a noop if this.animated == false)
@@ -2374,9 +2408,25 @@ class TableLayout extends Layout {
     }
   }
 
+  coords(pn) {
+    // pn's place in the grid, if shown
+    return this.gridCoords.find((c) => c.pn == pn);
+  }
+
+  sectionCount(pn) {
+    // Marked: the number of pgs in @pn's section (pn is shown: up to the next shown pn)
+    if (!this.marked) return 1;
+    return (this.gridCoords.find((c) => c.pn > pn)?.pn ?? this.score.pgs.length + 1) - pn;
+  }
+
+  section(pn) {
+    // the shown pn standing for @pn: pn itself, or (Marked) the bookmark (or pn 1) before it
+    return this.gridCoords.findLast((c) => c.pn <= pn)?.pn ?? 1;
+  }
+
   async buildPg(pn)
   {  // build elm to hold thumbnail
-    let {left, top} = this.gridCoords[pn-1];
+    let {left, top} = this.coords(pn);
     let pg = this.score.pgs[pn - 1];
     let elm = await this.whileAlive(pg.getThumbElm(false, () => this.destroyed));
     if(!elm) return;
@@ -2390,7 +2440,7 @@ class TableLayout extends Layout {
        left:toEm(left),
        top:toEm(top),
     });  
-    if(this.pnShow == "On") {
+    if(this.pnShow) {
       // add a page number elm (or refresh, it elm already has a page number elm) to upper left corner of elm
       let pnElm = elm.getElementsByClassName("TableLayout__pn").item(0) || helm(`<div class="TableLayout__pn"></div>`);
       pnElm.pg = pg; // Pn div is clickable
@@ -2402,7 +2452,16 @@ class TableLayout extends Layout {
     }
     else
       clearChildren(elm);
-    if (pn == _score_.numbers.pn) 
+    // (Marked) the number of pgs in the card's section
+    let countElm = elm.querySelector(".TableLayout__count");
+    if (this.marked) {
+      let count = this.sectionCount(pn);
+      countElm ??= helm(`<div class="TableLayout__count"></div>`);
+      countElm.innerHTML = `${count}${iconSvg("Page", { size: "1.2em" })}`; // (a number and the pages icon: no words to translate)
+      elm.append(countElm);
+    }
+    else countElm?.remove();
+    if (pn == this.section(_score_.numbers.pn))
        await this.buildPgActive(pn, elm) 
     else this.score.pgUnuse(pg);
     return elm;
@@ -2420,9 +2479,11 @@ class TableLayout extends Layout {
       inactive.pn = this.active.pn;
       let pnElm = this.active.querySelector(".TableLayout__pn");
       if(pnElm) inactive.append(pnElm);
+      let countElm = this.active.querySelector(".TableLayout__count");
+      if(countElm) inactive.append(countElm);
       this.score.pgUnuse(inactive.pg);
       // give inactive correct coords, then en-dom it:
-      let {left, top} = this.gridCoords[inactive.pn-1];
+      let {left, top} = this.coords(inactive.pn);
       Object.assign(inactive.style,{
          position:"absolute",
          height:toEm(this.pgHeight),
@@ -2525,19 +2586,17 @@ class TableLayout extends Layout {
     async up() {
       this.splits.forEach((elm, i) => elm && (elm.style.cssText = this.splitsStyle[i]));
       let score = this.layout.score;
+      if (this.layout.marked) return this.upMarked();
       if(this.toPn == null) {
         // Then this is a cut operation
         this.layout.pasting = true ;
         let active = this.active;
         score.pgCut(active.pn);
-        let pasteCell = _menu_.rings.page.cells.paste ;
-        if (pasteCell.pg) pasteCell.pg.deflate(true);
-        pasteCell.pg = await active.pg.clone(true);
+        setPaste([await active.pg.clone(true)]);
         // Restore styles before animating so they are captured cleanly for undo
         Object.assign(active.style, { pointerEvents: "auto", opacity: "1", zIndex: 2, fontSize: ""});
         this.layout.animateToCell(active.pg, getBox(active.pg.elm), false, _menu_.rings.page.cells.paste, "table",
           () => this.layout.build(false));  // build() wrapper clears layout.pasting
-        _menu_.enableCells("page/paste") ;
         return;
       }        
       if(this.active.pn > this.toPn) this.toPn++;
@@ -2564,6 +2623,37 @@ class TableLayout extends Layout {
       }
       this.layout.pnPost(this.toPn); 
     }
+
+    async upMarked() {
+      // Marked: the dragged card's whole section is cut (dropped off the table) or moved (to
+      // the gap between two others), then the layout is rebuilt
+      let { layout, active } = this, score = layout.score, from = active.pn, count = layout.sectionCount(from);
+      Object.assign(active.style, { pointerEvents: "auto", opacity: "1", zIndex: 2, fontSize: ""});
+      if (this.toPn == null) {
+        if (count == score.pgs.length) {
+          toast("Can't cut last section.");
+          layout.grid.append(active); // (off the body, s.t. the rebuild clears it)
+          return layout.build(false);
+        }
+        layout.pasting = true;
+        let cloning = Promise.all(score.pgs.slice(from - 1, from - 1 + count).map((pg) => pg.clone(true)));
+        score.pgCut(from, true, count);
+        if (count > 1) toast(`Cut ${count} pages`);
+        setPaste(await cloning);
+        layout.animateToCell(active.pg, getBox(active.pg.elm), false, _menu_.rings.page.cells.paste, "table",
+          () => layout.build(false));  // build() wrapper clears layout.pasting
+        return;
+      }
+      // the gap: after the section of the card left of it (toPn), or at the start (toPn 0)
+      let gap = this.toPn == 0 ? 1 : this.toPn + layout.sectionCount(this.toPn), first = gap > from ? gap - count : gap;
+      if (this.toPn != from && first != from) {
+        score.pgMv(from, first, count);
+        layout.markInserted(score, first, count);
+        layout.pnPost(first);
+      }
+      layout.grid.append(active); // (off the body, s.t. the rebuild clears it)
+      await layout.build(false);
+    }
   }
 
 
@@ -2580,8 +2670,9 @@ e.taken = true ;
       this.bMarkTimer.run(_gs_, () => {
         // toggle bookmark for this pg
         setBookmark(pnElm, pg.bookmark = pg.bookmark ? null : nextBkColor(pg));
+        _body_.dispatchEvent(new CustomEvent("BOOKMARK"));
+        if (this.marked && !pg.bookmark && pn != 1) this.build(false); // (its section joins the one before)
       });
-      _body_.dispatchEvent(new CustomEvent("BOOKMARK"));
     };
 
     // Note: code works around a race condition...if await this.pgGoTo(pn) takes
@@ -2640,10 +2731,11 @@ e.taken = true ;
   }
 
   async pgGoTo(pn) {
-    if (this.active?.pn == pn) return; // active page was reselected, noop
+    // active page was reselected: noop, but (Marked) the current pn may be later in its section
+    if (this.active?.pn == pn) return this.pnPost(pn);
     // After a cancelled build, thumbnails beyond the cancel point don't
     // exist; navigating to one (e.g. End key) is a noop rather than a crash.
-    let elm = this.grid.children.item(pn - 1);
+    let elm = [...this.grid.children].find((elm) => elm.pn == pn);
     if (!elm) return;
     this.inOp = true;
     this.pnPost(pn);
@@ -2657,29 +2749,16 @@ e.taken = true ;
     // Ignore rapid page turn requests while operation is in progress
     if (this.inOp) return;
 
-    let pn = _score_.numbers.pn;
-    let pgCount = this.score.pgs.length;
-
+    // step through the shown pgs (Marked: the sections), stopping at either end (no wrap)
+    let shown = this.gridCoords.map((c) => c.pn), i = shown.indexOf(this.section(_score_.numbers.pn));
     switch (how) {
-      case "next":
-        // Don't wrap - stop at end
-        if (pn + 1 > pgCount) return;
-        ++pn;
-        break;
-      case "prev":
-        // Don't wrap - stop at beginning
-        if (pn - 1 <= 0) return;
-        --pn;
-        break;
-      case "first":
-        pn = 1;
-        break;
-      case "last":
-        pn = pgCount;
-        break;
+      case "next":  i++; break;
+      case "prev":  i--; break;
+      case "first": i = 0; break;
+      case "last":  i = shown.length - 1; break;
     }
-
-    await this.pgGoTo(pn);
+    if (i < 0 || i >= shown.length) return;
+    await this.pgGoTo(shown[i]);
   }
 
   renumber() {

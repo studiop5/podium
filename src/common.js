@@ -677,8 +677,8 @@ class ButtonGroup {
       text-align: center;
       font-size: var(--font-size-sm);
       color: var(--color-text);
-      flex: 0 1 4.5em;
-      min-width: 3.5em;
+      flex: 0 1 auto; /* 4.5em, or wider if its label needs it */
+      min-width: 4.5em;
       min-height: 3.5em;
       padding: var(--spacing-xs) var(--spacing-xs) .2em;
       box-sizing: border-box;

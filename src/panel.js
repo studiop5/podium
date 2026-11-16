@@ -1030,6 +1030,15 @@ class DetailsPanel extends Panel {
     }
     .DetailsPanel__info > :nth-child(odd) { color: var(--label-color); }
     .DetailsPanel__sub { color: var(--label-color); font-size: .9em; }
+    .DetailsPanel__clear {
+      display: inline-block;
+      margin-left: .8em;
+      padding: 0 .6em;
+      border-radius: .35em;
+      color: var(--color-text);
+      background-image: var(--button-bg);
+      box-shadow: var(--button-shadow);
+    }
     .DetailsPanel__section {
       display: flex;
       flex-direction: column;
@@ -1106,6 +1115,7 @@ class DetailsPanel extends Panel {
       }
     );
 
+    this.listeners.push(listen(_body_, "BOOKMARK", () => this.refresh())); // (the Bookmarks count)
     this.refresh();
   }
 
@@ -1154,18 +1164,30 @@ class DetailsPanel extends Panel {
           ? "All allowed"
           : `<span style="color:#c44">Restricted: ${denied.join(", ")}</span>`;
       }
-      this.content.append(
-        helm(`<div class="DetailsPanel__info">
+      let bookmarks = score.pgs.filter((pg) => pg.bookmark).length;
+      let info = helm(`<div class="DetailsPanel__info">
           ${score.source ? row("Source", noTranslate(escapeHtml(score.source))) : ""}
           ${score.path ? row("Path", noTranslate(escapeHtml(score.path))) : ""}
           ${score.size ? row("Size", noTranslate(DetailsPanel.fileSize(score.size))) : ""}
           ${row("Pages", score.pgs.length)}
+          ${row("Bookmarks", bookmarks + (bookmarks ? `<div data-tag="clear" class="DetailsPanel__clear">Clear</div>` : ""))}
           ${row("Permissions", permVal)}
           ${row("Created", when(score.created))}
           ${row("Modified", when(score.modified))}
           ${row("Page size", DetailsPanel.pageSize(score.maxWidth, score.maxHeight))}
-          </div>`)
-      );
+          </div>`);
+      if (bookmarks) listen(info.querySelector('[data-tag="clear"]'), "click", () =>
+        dialog(`Confirm: Clear ${bookmarks == 1 ? "the bookmark" : `all ${bookmarks} bookmarks`}?<br>(cannot be undone)`,
+          { Clear: { svg: "Cancel" }, Cancel: { svg: "Cancel" } },
+          async (_e, _prop, tag, args) => {
+            args.close();
+            if (tag != "Clear") return;
+            score.pgs.forEach((pg) => pg.bookmark = null);
+            score.setDirty();
+            _body_.dispatchEvent(new CustomEvent("BOOKMARK"));
+            await Layout.activeLayout.build(false);
+          }));
+      this.content.append(info);
 
       let fit = helm(`<div class="DetailsPanel__section"><div class="Panel__heading">Page fit</div></div>`);
       fit.append(this.fitGroup.elm);
@@ -1350,12 +1372,22 @@ class SavePanel extends FilePanel {
   }
 }
 
+function showGroup(stash, keys, handler = () => {}) {
+  // A Show row of on/off toggles, @keys {tag: stash key}, e.g. Numbers: "pnShow". The group's props
+  // read and write the stash, s.t. the buttons follow it, as radio groups do. @handler(e, key, value)
+  let props = {};
+  for (let [tag, key] of Object.entries(keys))
+    Object.defineProperty(props, tag, { get: () => stash[key], set: (value) => stash[key] = value });
+  let defs = Object.fromEntries(Object.keys(keys).map((tag) => [tag, { svg: tag == "Marked" ? "Mark" : tag, onOff: true }]));
+  return new ButtonGroup(props, defs, (e, _prop, tag) => handler(e, keys[tag], stash[keys[tag]])).elm;
+}
+
 class GridPanel extends Panel {
   content = helm(`
     <div class="Panel__body">
       <div data-tag="options"></div>
       <div data-tag="sliders"></div>
-      <div class="Panel__heading">Numbers</div>
+      <div class="Panel__heading">Show</div>
       <div data-tag="numbers"></div>
     </div>`);
 
@@ -1416,11 +1448,7 @@ class GridPanel extends Panel {
       this.metricSliders.elm.classList.add("GridPanel__sliders");
     }
 
-    let numbers = new ButtonGroup(this.cell.stash, {
-      On: { svg: "Numbers", radio: "numbers" },
-      Off: { svg: "Close", radio: "numbers" },
-    });
-    this.numbers.replaceWith(numbers.elm);
+    this.numbers.replaceWith(showGroup(this.cell.stash, { Numbers: "numbers" }));
 
     setUnits(this.cell.stash.units); // current units from prefs
   }
@@ -1732,7 +1760,7 @@ class LayoutPanel extends Panel {
         <div class="Panel__heading Panel__heading-first">Page Fit</div>
         <div data-tag="fitBook"></div>
         <div data-tag="bookSliders"></div>
-        <div class="Panel__heading">Numbers</div>
+        <div class="Panel__heading">Show</div>
         <div data-tag="pnBook"></div>
        </div>
 
@@ -1740,7 +1768,7 @@ class LayoutPanel extends Panel {
         <div class="Panel__heading Panel__heading-first">Page Fit</div>
         <div data-tag="fitHorizontal"></div>
         <div data-tag="fitHorizontalSliders"></div>
-        <div class="Panel__heading">Numbers</div>
+        <div class="Panel__heading">Show</div>
         <div data-tag="pnHorizontal"></div>
       </div>
 
@@ -1748,7 +1776,7 @@ class LayoutPanel extends Panel {
         <div class="Panel__heading Panel__heading-first">Page Fit</div>
         <div data-tag="fitVertical"></div>
         <div data-tag="fitVerticalSliders"></div>
-        <div class="Panel__heading">Numbers</div>
+        <div class="Panel__heading">Show</div>
         <div data-tag="pnVertical"></div>
       </div>
 
@@ -1756,7 +1784,7 @@ class LayoutPanel extends Panel {
         <div class="Panel__heading Panel__heading-first">Page Fit</div>
         <div data-tag="fitTable"></div>
         <div data-tag="tableFlowSliders"></div>
-        <div class="Panel__heading">Numbers</div>
+        <div class="Panel__heading">Show</div>
         <div data-tag="pnTable"></div>
       </div>
     </div>
@@ -1836,10 +1864,6 @@ class LayoutPanel extends Panel {
       pace:   { min: 0,  max: 10000, step: 1,   curve: 2,      col: 2, row: 2, msg: msgCallback},
     };
 
-    let pnGroupDef = {
-      On:  { svg: "Numbers", radio: "pnShow" },
-      Off: { svg: "Close",   radio: "pnShow" },
-    };
 
     let tableSlidersGroupDef = {
       pages:         { min: 1,    max: 50,  step: 1, throttle: 750, fullWidth:true, msg: "Pages per row: {value}"},
@@ -1858,7 +1882,7 @@ class LayoutPanel extends Panel {
     let stash = _menu_.rings.layout.cells.book.stash;
     tags.fitBook.replaceWith(new ButtonGroup(stash, fitGroupDef, handler).elm);
     tags.bookSliders.replaceWith(ruled(new SliderGroup(stash, bookSlidersGroupDef, handler).elm));
-    tags.pnBook.replaceWith(new ButtonGroup(stash, pnGroupDef, handler).elm);
+    tags.pnBook.replaceWith(showGroup(stash, { Numbers: "pnShow" }, handler));
 
     // build horizontal face
     stash = _menu_.rings.layout.cells.horizontal.stash;
@@ -1866,9 +1890,7 @@ class LayoutPanel extends Panel {
       new ButtonGroup(stash, fitGroupDef, handler).elm
     );
     tags.fitHorizontalSliders.replaceWith(ruled(new SliderGroup(stash, horzSlidersGroupDef, handler).elm));
-    tags.pnHorizontal.replaceWith(
-      new ButtonGroup(stash, pnGroupDef, handler).elm
-    );
+    tags.pnHorizontal.replaceWith(showGroup(stash, { Numbers: "pnShow" }, handler));
 
     // build vertical face
     stash = _menu_.rings.layout.cells.vertical.stash;
@@ -1876,16 +1898,14 @@ class LayoutPanel extends Panel {
       new ButtonGroup(stash, fitGroupDef, handler).elm
     );
     tags.fitVerticalSliders.replaceWith(ruled(new SliderGroup(stash, vertSlidersGroupDef, handler).elm));
-    tags.pnVertical.replaceWith(
-      new ButtonGroup(stash, pnGroupDef, handler).elm
-    );
+    tags.pnVertical.replaceWith(showGroup(stash, { Numbers: "pnShow" }, handler));
 
     // build table face
     stash = _menu_.rings.layout.cells.table.stash;
     let def = { Width: fitGroupDef.Width, Height: fitGroupDef.Height };
     tags.fitTable.replaceWith(new ButtonGroup(stash, def, handler).elm);
     tags.tableFlowSliders.replaceWith(ruled(new SliderGroup(stash, tableSlidersGroupDef, handler).elm));
-    tags.pnTable.replaceWith(new ButtonGroup(stash, pnGroupDef, handler).elm);
+    tags.pnTable.replaceWith(showGroup(stash, { Numbers: "pnShow", Marked: "marked" }, handler));
   }
 
   show() {

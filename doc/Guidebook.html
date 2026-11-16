@@ -1059,7 +1059,7 @@ function closeVideo(event, container) {
     </ul>
     <p><strong>Note:</strong> Like Ink tools, Page tools auto-deactivate after a few seconds of inactivity.</p>
 
-    <p>The shared buffer lets you transfer pages between Podium tabs: use Export to append a page to the buffer, and Import to insert all exported pages into another score. The buffer is shared across all web app tabs and windows, and persists across sessions. Tabs of the web app (studiop5.org) share one buffer, and tabs of the browser extension share another; transferring across these buffers is not possible.</p>
+    <p>The shared buffer lets you transfer pages between Podium tabs.  Use Export to append a page to the buffer, and Import to insert all exported pages into another score. The buffer is shared across all web app tabs and windows, and persists across sessions. Tabs of the web app (<a href="https://studiop5.org/podium" target="_blank">studiop5.org/podium</a>) share one buffer, and tabs of the browser extension share another; transferring across these buffers is not possible.</p>
 
     <figure>
         <div class="video-container">
@@ -1396,7 +1396,7 @@ function closeVideo(event, container) {
     </figure>
     <h3>Browser Tab Naming</h3>
 
-    <p>Podium can run in multiple browser tabs simultaneously, sharing a common <a href="#page-export-import">shared buffer</a> between them. Tabs of the web app (studiop5.org) share one buffer, and tabs of the browser extension share another; transferring across these boundaries is not possible. To distinguish tabs, each is assigned a short musical identifier drawn from dynamics and solfege: <em>do, re, mi, fa, so, la, ti, ff, mf, mp, pp, sf</em>. When a score is loaded, the browser tab displays the score's file name; otherwise it shows <em>Podium</em> followed by the tab's identifier in parentheses, for example <em>Podium (do)</em>. Extension tabs use square brackets instead, like <em>Podium [do]</em>, so you can tell at a glance whether a tab is running the web app or the browser extension. In theory, up to 12 Podium tabs can be open at the same time. Keep in mind that each tab consumes additional browser memory and processing resources, so opening more than two or three can be impractical.</p>
+    <p>Podium can run in multiple browser tabs simultaneously, sharing a common <a href="#page-export-import">shared buffer</a> between them. Tabs of the web app (<a href="https://studiop5.org/podium" target="_blank">studiop5.org/podium</a>) share one buffer, and tabs of the browser extension share another; transferring across these boundaries is not possible. To distinguish tabs, each is assigned a short musical identifier drawn from dynamics and solfege: <em>do, re, mi, fa, so, la, ti, ff, mf, mp, pp, sf</em>. When a score is loaded, the browser tab displays the score's file name; otherwise it shows <em>Podium</em> followed by the tab's identifier in parentheses, for example <em>Podium (do)</em>. Extension tabs use square brackets instead, like <em>Podium [do]</em>, so you can tell at a glance whether a tab is running the web app or the browser extension. In theory, up to 12 Podium tabs can be open at the same time. Keep in mind that each tab consumes additional browser memory and processing resources, so opening more than two or three can be impractical.</p>
 
     <a href="#toc" class="back-to-toc">↑ Back to Table of Contents</a>
 </section>
@@ -1571,7 +1571,7 @@ function closeVideo(event, container) {
 
     <p><strong>File Name:</strong> At the top of the panel is an editable field showing the score's file name. Edit this field to rename the score before saving. The .pdf extension is shown at the end of the field but isn't part of what you edit&mdash;it's always kept.</p>
 
-    <p><strong>Information:</strong> Below the file name, the panel lists where the score came from (its source, path and file size), its number of pages, any restrictions the PDF places on it, and its page size, in millimeters (naming common paper sizes such as A4 or Letter), points and inches. <strong>Created</strong> and <strong>Modified</strong> are Podium's own dates: when Podium first opened the score and when it last saved it.</p>
+    <p><strong>Information:</strong> Below the file name, the panel lists where the score came from (its source, path and file size), its number of pages and of <a href="#bookmarks" class="chapter-link">bookmarks</a>, any restrictions the PDF places on it, and its page size, in millimeters (naming common paper sizes such as A4 or Letter), points and inches. <strong>Created</strong> and <strong>Modified</strong> are Podium's own dates: when Podium first opened the score and when it last saved it. When the score has bookmarks, a <strong>Clear</strong> button beside their number removes them all, after asking you to confirm: it can't be undone.</p>
 
     <p><strong>Original PDF:</strong> If the score came from a PDF file, the last section of the panel shows that PDF's own metadata, such as its title, author, the program that created it, and its creation and modification dates. This is a record of the score's provenance: Podium keeps it unchanged when it saves the score, and shows each field under the name the PDF itself uses (for example, <em>CreationDate</em> and <em>ModDate</em>), so there's no doubt about which field is which.</p>
 
@@ -1630,6 +1630,7 @@ function closeVideo(event, container) {
     <p>Bookmarks mark pages for quick navigation. In Book, Horizontal, and Vertical layouts, first navigate to the desired page, then long-press its page number to toggle a bookmark on or off. Bookmarks appear as colored tabs along the edge of the layout; press any tab to jump directly to that page. In Table layout, long-press on a page to make it current and toggle its bookmark state: a bookmarked page shows its page number on a ribbon of the bookmark's color. Bookmarks are saved with the score.</p>
     <p>The thickness of each bookmark tab corresponds to one page's position in the pager, so tabs are thinner in longer scores — giving a visual sense of how many pages the score contains. Each pager cursor sits at its own page's position, so when that page is bookmarked, its page number lines up with the tab. A new bookmark is always given a color different from its nearest neighbors', so bookmarks next to each other are easy to tell apart.</p>
     <p>When dragging a pager cursor over a bookmarked page, the floating readout is painted in that bookmark's color, making it easy to navigate to a specific bookmark even when several adjacent tabs are too small to press directly.</p>
+    <p>To remove every bookmark at once, use the Clear button beside the number of bookmarks in <a href="#score-details" class="chapter-link">Details</a>.</p>
 
     <h3 id="layout-book">5.1 Layout Ring: Book<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-book"/></svg></h3>
 
@@ -1663,7 +1664,7 @@ function closeVideo(event, container) {
 
     <p>The Panel's <strong>Pace:</strong> slider determines how quickly pages turn when tapped or dragged.</p>
 
-    <p>Page numbers can be turned on or off in the Book Panel. Current page numbers are shown at the left and right sides of the layout: drag the page number to quickly flip to other pages.</p>
+    <p>The Book Panel's <strong>Numbers</strong> toggle, under Show, turns page numbers on or off. Current page numbers are shown at the left and right sides of the layout: drag the page number to quickly flip to other pages.</p>
 
     <div class="note">Physical books must have an even number of pages, as each page has 2 sides. If the PDF score file contains an odd number of pages, the last page is displayed on the right (back inside cover position) and cannot be flipped to the left.</div>
 
@@ -1697,13 +1698,13 @@ function closeVideo(event, container) {
 
     <p>The Panel's <strong>Show:</strong> slider determines how many pages are visible at a time (from 1-8)</p>
 
-    <p>The Panel's <strong>Snap:</strong> slider determines how many pages the scroll advances when a page is tapped, dragged, or flung, ensuring that after a scroll, the leftmost and rightmost pages align with the left and right scrollers. Move the Snap: slider all the way to the left to completely disable page snapping. You can also set the slider to snap to 1/2, 1/3, or 1/4 page boundaries.</p>
+    <p>The Panel's <strong>Snap:</strong> slider determines how many pages the scroll advances when a page is tapped, dragged, or flung, ensuring that after a scroll, the leftmost and rightmost pages align with the left and right scrollers. Move the Snap: slider all the way to the left to completely disable page snapping. One step to the right is <strong>visible</strong>: each scroll advances by the part of the score visible on screen, whatever its size, so if you've zoomed in until a page is bigger than the screen, each turn brings the next unseen part into view. You can also set the slider to snap to 1/2, 1/3, or 1/4 page boundaries.</p>
 
     <p>The Panel's <strong>Gap:</strong> slider determines how much space to leave around each page, as a percentage of the page's width.</p>
 
     <p>The Panel's <strong>Pace:</strong> slider determines how quickly pages turn when tapped or dragged.</p>
 
-    <p>Page numbers can be turned on or off in the Panel. Current page numbers are shown at the left and right sides of the layout: drag the page number to quickly scroll to other pages.</p>
+    <p>The Panel's <strong>Numbers</strong> toggle, under Show, turns page numbers on or off. Current page numbers are shown at the left and right sides of the layout: drag the page number to quickly scroll to other pages.</p>
 
     <h3 id="layout-vertical">5.3 Layout Ring: Vertical<svg aria-hidden="true" focusable="false" class="gb-icon" style="margin-left:0.3em"><use href="#gb-vertical-scroll"/></svg></h3>
 
@@ -1770,7 +1771,9 @@ function closeVideo(event, container) {
 
     <p>The Panel's <strong>Vertical Gap</strong> slider determines the vertical gap between neighboring pages, as a percentage of the page's height. Setting this to a negative value causes the pages to be displayed overlapping each other, much like playing cards.</p>
 
-    <p>Page numbers can be turned on or off in the Panel.</p>
+    <p>The Panel's <strong>Numbers</strong> toggle, under Show, turns page numbers on or off.</p>
+    <p>Its <strong>Marked</strong> toggle shows only the <a href="#bookmarks" class="chapter-link">bookmarked</a> pages, and page 1. Each stands for its section: its own page and the ones after it, up to the next bookmark, and shows, in its top right corner, the number of pages in the section. Tap one to go to it; a Page Down or a pedal goes on to the next. Unmark one, and its pages join the section before it.</p>
+    <p>In Marked, a card stands for its whole section when you edit: drag it to move the section between two others, or off the table to cut it. The <a href="#page" class="chapter-link">Page Ring</a>'s Cut, Copy, Export and Flatten take all of its pages, and Add, Paste, Import and Merge put their pages before the section or after it. Pages put in this way start a section of their own, with a bookmark (and so does the section after them). The last section can't be cut, and a cut section comes back with one Undo.</p>
 
     <p id="table-current-page"><strong>Current Page:</strong> At any time, there is always a current page, drawn in higher resolution, slightly larger, and on top of all other pages. Tap on any page to make it current. If you change to another layout, that layout will open at the current page.</p>
 
@@ -1971,7 +1974,7 @@ function closeVideo(event, container) {
 
     <p>To precisely position the Grid, first activate the Grid cell, then touch any page in the score. Before releasing this touch, the position of the grid will follow your touch. Use this to align the grid with current features of the score page. The grid can be repositioned by first tapping the page to remove the grid, then tap-hold and drag to reposition.</p>
 
-    <p>When Numbers is On, labels on the grid lines show the distance from the origin, marked with a small circle.</p>
+    <p>When the Panel's <strong>Numbers</strong> toggle, under Show, is lit, labels on the grid lines show the distance from the origin, marked with a small circle.</p>
 
     <p>The Grid is not itself an annotation object: it does not interfere with any other Ink actions and is not present when a score is saved or printed.</p>
 
@@ -2194,9 +2197,11 @@ function closeVideo(event, container) {
 
     <p><strong>Export:</strong> Activate the Export cell, then tap a page. The page is appended to the shared buffer. The original page remains in the score.</p>
 
-    <p><strong>Import:</strong> Activate the Import cell, then tap a page in the score. All pages in the shared buffer are inserted at that position, before the page if you tap on the left half (top half for Vertical Layout) or after if you tap the right half (bottom half for Vertical Layout).</p>
+    <p><strong>Import:</strong> Activate the Import cell, then tap a page in the score. The shared buffer's pages are inserted at that position, before the page if you tap on the left half (top half for Vertical Layout) or after if you tap the right half (bottom half for Vertical Layout).</p>
 
-    <div class="note">Because an import operation restarts the score's undo history, you'll be prompted to confirm before the operation is performed. The import itself can be undone: see <a href="#page-undo" class="chapter-link">Undo</a>.</div>
+    <p>Before each import, the same dialog as <a href="#page-merge" class="chapter-link">Merge</a>'s asks you to confirm, with the same choices: its <strong>From</strong> and <strong>To</strong> sliders choose which of the buffer's pages to import (all of them, at first), and its <strong>Mark</strong> and <strong>Ink</strong> settings bookmark the first imported page (and the page after them, if it's not page 1) and keep the pages' annotations. Import keeps its own Mark and Ink settings, apart from Merge's.</p>
+
+    <div class="note">Because an import operation restarts the score's undo history, you'll be prompted to confirm before the operation is performed. The import itself can be undone, all of its pages at once: see <a href="#page-undo" class="chapter-link">Undo</a>.</div>
 
     <p>The Import Panel shows you a horizontally draggable view of thumbnails of the shared buffer, along with two management buttons:</p>
 
@@ -2222,7 +2227,7 @@ function closeVideo(event, container) {
     <p>Before each merge, a dialog asks you to confirm. Its <strong>From</strong> and <strong>To</strong> sliders choose which of the PDF's pages to merge: all of them, at first. If the PDF was saved by PODIUM, they're numbered as it numbered them, by its <a href="#page-numbers" class="chapter-link">Numbers</a> settings (e.g. roman numerals for its first pages). The range is kept while the cell stays active, so each page you tap gets the same pages.</p>
     <p>A copy protected PDF can't be merged: choosing one shows a message, and cancels the merge. Nor can anything be merged into a copy protected score: its Merge cell is disabled.</p>
 
-    <p>Below the sliders are the dialog's settings, and below a line, its actions. When lit (as at first), <strong>Mark</strong> bookmarks the first merged page, so each merged piece gets its own bookmark: in a set list, they're its index. And <strong>Ink</strong> keeps the merged pages' annotations, if the PDF has any (one saved by Podium): tap it for clean copies of the pages. Each stays the way you leave it.</p>
+    <p>Below the sliders are the dialog's settings, and below a line, its actions. When lit (as at first), <strong>Mark</strong> bookmarks the first merged page, and the page after them, so each merged piece, and what follows it, gets its own bookmark: in a set list, they're its index. And <strong>Ink</strong> keeps the merged pages' annotations, if the PDF has any (one saved by Podium): tap it for clean copies of the pages. Each stays the way you leave it.</p>
 
     <div class="note">Because a merge operation restarts the score's undo history, you'll be prompted to confirm before the operation is performed. The merge itself can be undone, all of its pages at once: see <a href="#page-undo" class="chapter-link">Undo</a>.</div>
 
