@@ -607,7 +607,7 @@ class CachedSrc extends FileSrc {
             });
 
             if (response.ok) {
-                let now = performance.now() / 1000;
+                let now = Date.now() / 1000;
                 let newTokens = await response.json();
 
                 if (!newTokens.refresh_token) {
@@ -625,7 +625,7 @@ class CachedSrc extends FileSrc {
 
         // Sync check: if access token is still valid, nothing to do
         if(this.tokens) {
-            let now = performance.now() / 1000;
+            let now = Date.now() / 1000;
             if(this.tokens.expiry > now) return Promise.resolve();
         }
 
@@ -639,7 +639,7 @@ class CachedSrc extends FileSrc {
 
         // Try refresh token if available; close popup if it succeeds
         if(this.tokens?.refresh_token) {
-            let now = performance.now() / 1000;
+            let now = Date.now() / 1000;
             if(this.tokens.refresh_expiry > now) {
                 try {
                     await refreshAccessToken();
@@ -712,7 +712,7 @@ class CachedSrc extends FileSrc {
 
                         this.tokens = await exchange(code, extRedirectUri);
 
-                        let now = performance.now() / 1000;
+                        let now = Date.now() / 1000;
                         this.tokens.expiry = now + this.tokens.expires_in;
                         if(this.tokens.refresh_token)
                             this.tokens.refresh_expiry = now  + (this.tokens.refresh_token_expires_in || this.refreshExpiry);
@@ -743,7 +743,7 @@ class CachedSrc extends FileSrc {
                         if(this.getQuery(href, "state=") != state)
                             throw new Error("Possible Cross Site Request Forgery attempt blocked.", {cause:"security"});
                         this.tokens = await exchange(code, this.redirectUri);
-                        let now = performance.now() / 1000;
+                        let now = Date.now() / 1000;
                         this.tokens.expiry = now + this.tokens.expires_in;
                         if(this.tokens.refresh_token) 
                             this.tokens.refresh_expiry = now  + (this.tokens.refresh_token_expires_in || this.refreshExpiry);
