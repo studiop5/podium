@@ -2,7 +2,14 @@ import argparse, http.server, os, ssl, socketserver, sys, logging
 from urllib.parse import urlparse
 
 crossOrigin = False
-docRoots = ["build", "src", "lib", "doc", "."]  # (".": licenses/, as on the site)
+docRoots = ["build", "src", "lib", "doc", "."]  # (".": only licenses/, as on the site: see inRoot)
+
+def inRoot(root, path):
+    # @path (relative) as served from @root, or None if it may not be: outside the root,
+    # or in "." but not licenses/ (keeping keys, .git, ... off the network)
+    if root == "." and not path.startswith("licenses/"): return None
+    rootPath, fullPath = os.path.abspath(root), os.path.abspath(os.path.join(root, path))
+    return fullPath if fullPath.startswith(rootPath + os.sep) else None
 
 MIME_MAP = {
    "": "text/html",
@@ -66,21 +73,8 @@ class PodiumHandler(http.server.SimpleHTTPRequestHandler):
         path = self._normalize_path(path)[1:]
 
         for root in docRoots:
-            fullPath = os.path.abspath(os.path.join(root, path))
-
-            # Security: prevent path traversal
-            rootPath = os.path.abspath(root)
-            if not fullPath.startswith(rootPath):
-                logger.warning(f"Path traversal attempt blocked: {self.path}")
-                self.send_response(403)
-                # HTTP/1.1 keep-alive: a bodyless response must declare zero length
-                # and close, or the browser hangs waiting for a body that never comes.
-                self.send_header("Content-Length", "0")
-                self.send_header("Connection", "close")
-                self.end_headers()
-                return
-
-            if os.path.exists(fullPath):
+            fullPath = inRoot(root, path)
+            if fullPath and os.path.exists(fullPath):
                 self.send_response(200)
                 filename, extension = os.path.splitext(path)
                 mime_type = MIME_MAP.get(extension, "application/octet-stream")
@@ -104,21 +98,8 @@ class PodiumHandler(http.server.SimpleHTTPRequestHandler):
         path = self._normalize_path(path)
 
         for root in docRoots:
-            fullPath = os.path.abspath(os.path.join(root, path[1:]))
-
-            # Security: prevent path traversal
-            rootPath = os.path.abspath(root)
-            if not fullPath.startswith(rootPath):
-                logger.warning(f"Path traversal attempt blocked: {self.path}")
-                self.send_response(403)
-                # HTTP/1.1 keep-alive: a bodyless response must declare zero length
-                # and close, or the browser hangs waiting for a body that never comes.
-                self.send_header("Content-Length", "0")
-                self.send_header("Connection", "close")
-                self.end_headers()
-                return
-
-            if os.path.exists(fullPath):
+            fullPath = inRoot(root, path[1:])
+            if fullPath and os.path.exists(fullPath):
               logger.debug(f"GET: {fullPath}")
               self.send_response(200)
               filename, extension = os.path.splitext(path)
@@ -143,23 +124,6 @@ class PodiumHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Content-Length", "0")
         self.send_header("Connection", "close")
         self.end_headers()
-
-    def do_PUT(self):
-        # this is just sample code stolen from someone's post,
-        # not yet tried.
-        path = self.translate_path(self.path)
-        if path.endswith('/'):
-            self.send_response(405, "Method Not Allowed")
-            self.wfile.write("PUT not allowed on a directory\n".encode())
-            return
-        else:
-            try:
-                os.makedirs(os.path.dirname(path))
-            except FileExistsError: pass
-            length = int(self.headers['Content-Length'])
-            with open(path, 'wb') as f:
-                f.write(self.rfile.read(length))
-            self.send_response(201, "Created")
 
 
 parser = argparse.ArgumentParser()

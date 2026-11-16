@@ -3724,7 +3724,7 @@ class PrintPanel extends Panel {
     catch (error) {
       releaseUrl();
       printWin?.close();
-      if (window.cancelPdf) toast("Print cancelled");
+      if (error?.cause == "cancelled") toast("Print cancelled"); // (see score.js's setTimeout)
       else {
         console.error("Print failed:", error);
         dialog(`<em>Print Failed</em><br><br><strong>${escapeHtml(error.message)}</strong>`);
@@ -3922,7 +3922,10 @@ class MagnifyPanel extends Panel {
   destructor() {
     super.destructor();
     // Release magnifier hold on the page
-    if (this.lastPg) this.lastPg.magnifierHold = false;
+    if (this.lastPg) {
+      this.lastPg.magnifierHold = false;
+      this.lastPg.tempDeflate(); // (unless on screen: see Pg.tempDeflate)
+    }
     _menu_.magnifier.panel = null;
   }
 }

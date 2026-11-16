@@ -551,7 +551,7 @@ class Pg {
       // (adopted: see renderPdf)
       let pdfCanvas = document.adoptNode(helm(`<canvas width="${maxW}" height="${maxH}"></canvas>`));
       if (direct) {
-        try { await this.renderThumb(pdfCanvas); }
+        try { await this.renderThumb(pdfCanvas, cancelled); }
         catch(err) { if(cancelled()) return null; throw err; }
       }
       else pdfCanvas.getContext("2d").drawImage(this.mozCanvas, 0, 0, maxW, maxH);
@@ -571,7 +571,7 @@ class Pg {
     return thumbElm;
   }
 
-  async renderThumb(canvas, k = 8) {
+  async renderThumb(canvas, cancelled = () => false, k = 8) {
     // Draw this deflated pg's pdf (and crop) onto thumbnail @canvas, stretched to fill it as
     // makeThumbElm's drawImage of an inflated pg's mozCanvas does. It's drawn at @k times the
     // thumbnail's size, then shrunk: drawn at thumbnail size, pdf.js's 1px minimum line width
@@ -587,12 +587,17 @@ class Pg {
       transform: [big.width / full.width, 0, 0, big.height / full.height, 0, 0],
     });
     // Thumbnails rendering in parallel (see TableLayout.build) take turns, a step every other frame:
-    // else their steps (e.g. drawing a large scan) run back to back, and those shown paint in bunches
+    // else their steps (e.g. drawing a large scan) run back to back, and those shown paint in bunches.
+    // Once @cancelled (e.g. the Table build is), the render is too.
     task.onContinue = (cont) => Pg.thumbTurn = Pg.thumbTurn.then(() => new Promise((res) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => { try { cont(); } finally { res(); } }))));
-    await task.promise;
-    canvas.getContext("2d").drawImage(big, 0, 0, canvas.width, canvas.height);
-    big.width = big.height = 0;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        try { cancelled() ? task.cancel() : cont(); } finally { res(); }
+      }))));
+    try {
+      await task.promise;
+      canvas.getContext("2d").drawImage(big, 0, 0, canvas.width, canvas.height);
+    }
+    finally { big.width = big.height = 0; }
   }
 
   async clone(inflate = false) {
@@ -1609,6 +1614,7 @@ class Score {
       _menu_.rings.page.cells.merge.pdfData = null;
     }
     if(_score_ === this) _score_ = null;
+    if(EditPanel.pzrTarget?.canvas?.pg?.score === this) EditPanel.update(null); // (else it keeps this score alive)
     let paste = _menu_.rings.page.cells.paste;
     if(paste.pgs?.[0]?.score === this) paste.pgs = null;
     let pages = new Set([...this.pgs, ...this.undoStack.flatMap((entry) => entry.added ?? entry.cut)]);
@@ -2016,6 +2022,7 @@ class Score {
     } 
     finally {
       _shade_.onCancel = null;
+      window.cancelPdf = false; // (a cancel after pdf-lib's last setTimeout would throw from the app's next one)
     }
   }
 
