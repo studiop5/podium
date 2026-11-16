@@ -2344,6 +2344,16 @@ class TableLayout extends Layout {
         args.close();
       });
 
+      // Keep 3 thumbnails rendering (in parallel: pdf.js's worker parses one while another is
+      // drawn), each starting the one 3 ahead as it finishes, while gen appends them in order
+      let thumbs = [], done = [], shown = 0, start = performance.now();
+      let ahead = (k) => {
+        if (k >= this.gridCoords.length || cancelled || this.destroyed) return;
+        let next = () => { done[k] = performance.now(); ahead(k + 3); };
+        // (buildPg awaits it and sees any error: next() also quiets one a cancel leaves unawaited)
+        (thumbs[k] = this.score.pgs[this.gridCoords[k].pn - 1].getThumbElm(false, () => this.destroyed || cancelled)).then(next, next);
+      };
+      [0, 1, 2].forEach(ahead);
       let gen = async(i) => {
         if(this.destroyed) return; // (runs from delay(): may outlive the layout)
         dialogElm.firstChild.innerHTML = `Building: ${Math.round((i/pgCount)* 100)}%<hr>`;
@@ -2353,8 +2363,13 @@ class TableLayout extends Layout {
         grid.style.height = toEm(gridHeight);
         let nextTop = innerHeight - gridHeight - Layout.margin;
         if (nextTop < Layout.margin) this.toXY(Layout.margin, nextTop);
-        let elm = await this.buildPg(pn);
+        let elm = await this.buildPg(pn, thumbs[i]);
         if(!elm) return;
+        // Parallel renders finish in bunches: space their appends by the recent mean interval
+        // (the first 3: by the mean since the build began)
+        await new Promise((res) => delayMs(shown + (done[i] - (done[i - 3] ?? start)) / Math.min(i + 1, 3) - performance.now(), res));
+        if(this.destroyed) return;
+        shown = performance.now();
         grid.append(elm);
         if(++i < this.gridCoords.length && !cancelled)  {
             this.animated ? delay(1, async () => await gen(i)): await(gen(i));
@@ -2424,11 +2439,11 @@ class TableLayout extends Layout {
     return this.gridCoords.findLast((c) => c.pn <= pn)?.pn ?? 1;
   }
 
-  async buildPg(pn)
-  {  // build elm to hold thumbnail
+  async buildPg(pn, thumb)
+  {  // build elm to hold thumbnail (@thumb: pg's getThumbElm() already in flight, if any)
     let {left, top} = this.coords(pn);
     let pg = this.score.pgs[pn - 1];
-    let elm = await this.whileAlive(pg.getThumbElm(false, () => this.destroyed));
+    let elm = await this.whileAlive(thumb ?? pg.getThumbElm(false, () => this.destroyed));
     if(!elm) return;
     elm.classList.remove("TableLayout__pg-active");
     elm.pn = pn;
