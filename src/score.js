@@ -315,7 +315,7 @@ class Pg {
       }, { cssOnly: true } );
   
       if (this.json) {
-        // Fonts renamed or dropped in 2.4 (licences): Vercetti (no public distribution) becomes
+        // Fonts renamed or dropped in 3.0 (licences): Vercetti (no public distribution) becomes
         // Helvetica, and the Text tool's Bravura (a reserved name) is now Music Symbols
         let renamed = { Vercetti: "Helvetica", Bravura: "Music Symbols" };
         let rename = (objs) => objs?.forEach?.((obj) => {
@@ -1247,7 +1247,7 @@ class Score {
   static checkVersion(json) {
     // Warn if podium @json (of a pdf being opened or merged) was saved by a newer PODIUM (its
     // menu stash's version, see Menu.stashToJsonObj): this one may misread it (e.g. 2.3 shows
-    // 2.4's crops as small pages, with misplaced ink). Compared part by part: 2.10 > 2.9.
+    // 3.0's crops as small pages, with misplaced ink). Compared part by part: 2.10 > 2.9.
     let [a, b] = [json?.menu?.version, _podiumVersion_].map((v) => String(v ?? "").split(".").map(Number));
     let i = a.findIndex((n, i) => n != (b[i] ?? 0));
     if (i >= 0 && a[i] > (b[i] ?? 0))

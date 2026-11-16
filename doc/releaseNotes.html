@@ -178,7 +178,7 @@
 <nav>
     <h2>Versions</h2>
     <ul>
-        <li><a href="#v2.4.0">Version 2.4.0</a> <span class="version-date">— coming soon</span></li>
+        <li><a href="#v3.0.0">Version 3.0.0</a> <span class="version-date">— coming soon</span></li>
         <li><a href="#v2.3.1">Version 2.3.1</a> <span class="version-date">— October 2026</span></li>
         <li><a href="#v2.3.0">Version 2.3.0</a> <span class="version-date">— October 2026</span></li>
         <li><a href="#v2.2.0">Version 2.2.0</a> <span class="version-date">— August 2026</span></li>
@@ -194,10 +194,87 @@
 </nav>
 
 
-<!-- ═══════════════════════════════════════════════════════════ V2.4 -->
+<!-- ═══════════════════════════════════════════════════════════ V3.0 -->
 <!-- (date to be set at release) -->
-<section id="v2.4.0">
-    <h2>Version 2.4.0 <span class="version-tag">— coming soon</span></h2>
+<section id="v3.0.0">
+    <h2>Version 3.0.0 <span class="version-tag">— coming soon</span></h2>
+
+    <div class="entry">
+        <h3>Merge: Page Ranges, for Set Lists</h3>
+        <p class="location">Page Ring &rarr; Merge</p>
+        <p>Merge now builds set lists: one score holding just the pieces you'll play, in the
+        order you'll play them. Choose a PDF, tap where its pages go, and a dialog lets you
+        pick which of them to merge.</p>
+        <ul>
+            <li><strong>Page ranges:</strong> the dialog's From: and To: sliders choose the
+            pages to merge, such as one tune from a fake book. If the PDF was saved by PODIUM,
+            they're numbered the way it numbers its pages.</li>
+            <li><strong>Mark:</strong> bookmarks the first merged page and the page after them, so
+            each piece gets a bookmark, and the bookmarks become the set list's index.</li>
+            <li><strong>Ink:</strong> keeps the merged pages' annotations; turn it off for
+            clean copies.</li>
+            <li><strong>Before or after:</strong> tap the left half of a page to merge before
+            it, the right half to merge after it, so pieces can be added at the end.</li>
+            <li><strong>Stays loaded:</strong> the chosen PDF stays loaded until you choose
+            another or change scores, so you can merge several ranges from it without choosing
+            it again. On desktop, you can also drop a PDF on the Merge cell.</li>
+            <li><strong>Undo:</strong> a merge can now be undone, all of its pages at once.
+            The same goes for Import.</li>
+            <li><strong>Copy protected PDFs</strong> can't be merged, or merged into.</li>
+            <li><strong>Import works the same way:</strong> it confirms with the same dialog,
+            with From: and To: for the shared buffer's pages, and its own Mark and Ink.</li>
+        </ul>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#page-merge">&sect;7.6 Merge</a>,
+            <a href="Guidebook.html#howto-setlists">&sect;10.2 Create a Set List</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Table: Marked, an Index of the Score</h3>
+        <p class="location">Layout Ring &rarr; Table &rarr; Show: Marked</p>
+        <p>The Table layout's new Marked button shows just the bookmarked pages, and page 1.
+        Each stands for its section, from its page up to the next bookmark: in a set list built
+        with Merge's Mark, that's one page per piece.</p>
+        <ul>
+            <li><strong>See the whole set:</strong> each page shows its section's number of
+            pages. Tap a page to go to it; Page Down, the arrow keys and pedals step from one
+            section to the next.</li>
+            <li><strong>Reorder by dragging:</strong> drag a page to move its whole section,
+            or drag it off the table to cut it.</li>
+            <li><strong>The Page ring works on sections:</strong> Cut, Copy, Export and Flatten
+            take the whole section, and Add, Paste, Import and Merge put their pages before or
+            after it, as a section of their own. A cut section comes back with one Undo.</li>
+            <li><strong>Unmark a page</strong> to join its section to the one before it.</li>
+        </ul>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#layout-table">&sect;5.4 Table</a>
+        </p>
+    </div>
+
+    <div class="entry">
+        <h3>Crop: Trim Page Margins</h3>
+        <p class="location">Page Ring &rarr; Crop</p>
+        <p>A new Crop cell trims a page's margins, so its music fills more of the screen: useful
+        for scans with wide borders, and for set lists built from different sources.</p>
+        <ul>
+            <li><strong>Pinch to crop:</strong> with the cell active, pinch on a page to zoom into
+            it, and move your fingers to choose the part that shows. With a mouse, Ctrl+wheel zooms
+            and Ctrl+drag moves. The page is redrawn sharp a moment after you stop.</li>
+            <li><strong>Pages keep their size:</strong> cropping enlarges the music inside the page.
+            Set Page Sizing to Expand in the Details panel, and every cropped page can fill the
+            screen.</li>
+            <li><strong>Per page, and saved:</strong> each page has its own crop, saved with the
+            score, and kept by Cut, Copy, Paste and Merge. Annotations move and scale with it.</li>
+            <li><strong>Nothing is lost:</strong> PODIUM keeps the whole page in the file, so a crop
+            can be changed or removed later. Other PDF readers show just the cropped part.</li>
+            <li><strong>Printing:</strong> cropped pages print as PODIUM shows them, enlarged to fill
+            the page.</li>
+        </ul>
+        <p class="guidebook-link">
+            See the Guidebook: <a href="Guidebook.html#page-crop">&sect;7.9 Crop</a>
+        </p>
+    </div>
 
     <div class="entry">
         <h3>A Cleaner Look for Panels</h3>
@@ -244,83 +321,6 @@
         </ul>
         <p class="guidebook-link">
             See the Guidebook: <a href="Guidebook.html#app-guide">§8.3 Guide</a>
-        </p>
-    </div>
-
-    <div class="entry">
-        <h3>Merge: Page Ranges, for Set Lists</h3>
-        <p class="location">Page Ring &rarr; Merge</p>
-        <p>Merge now builds set lists: one score holding just the pieces you'll play, in the
-        order you'll play them. Choose a PDF, tap where its pages go, and a dialog lets you
-        pick which of them to merge.</p>
-        <ul>
-            <li><strong>Page ranges:</strong> the dialog's From: and To: sliders choose the
-            pages to merge, such as one tune from a fake book. If the PDF was saved by PODIUM,
-            they're numbered the way it numbers its pages.</li>
-            <li><strong>Mark:</strong> bookmarks the first merged page and the page after them, so
-            each piece gets a bookmark, and the bookmarks become the set list's index.</li>
-            <li><strong>Ink:</strong> keeps the merged pages' annotations; turn it off for
-            clean copies.</li>
-            <li><strong>Before or after:</strong> tap the left half of a page to merge before
-            it, the right half to merge after it, so pieces can be added at the end.</li>
-            <li><strong>Stays loaded:</strong> the chosen PDF stays loaded until you choose
-            another or change scores, so you can merge several ranges from it without choosing
-            it again. On desktop, you can also drop a PDF on the Merge cell.</li>
-            <li><strong>Undo:</strong> a merge can now be undone, all of its pages at once.
-            The same goes for Import.</li>
-            <li><strong>Copy protected PDFs</strong> can't be merged, or merged into.</li>
-            <li><strong>Import works the same way:</strong> it confirms with the same dialog,
-            with From: and To: for the shared buffer's pages, and its own Mark and Ink.</li>
-        </ul>
-        <p class="guidebook-link">
-            See the Guidebook: <a href="Guidebook.html#page-merge">&sect;7.6 Merge</a>,
-            <a href="Guidebook.html#howto-setlists">&sect;10.2 Create a Set List</a>
-        </p>
-    </div>
-
-    <div class="entry">
-        <h3>Crop: Trim Page Margins</h3>
-        <p class="location">Page Ring &rarr; Crop</p>
-        <p>A new Crop cell trims a page's margins, so its music fills more of the screen: useful
-        for scans with wide borders, and for set lists built from different sources.</p>
-        <ul>
-            <li><strong>Pinch to crop:</strong> with the cell active, pinch on a page to zoom into
-            it, and move your fingers to choose the part that shows. With a mouse, Ctrl+wheel zooms
-            and Ctrl+drag moves. The page is redrawn sharp a moment after you stop.</li>
-            <li><strong>Pages keep their size:</strong> cropping enlarges the music inside the page.
-            Set Page Sizing to Expand in the Details panel, and every cropped page can fill the
-            screen.</li>
-            <li><strong>Per page, and saved:</strong> each page has its own crop, saved with the
-            score, and kept by Cut, Copy, Paste and Merge. Annotations move and scale with it.</li>
-            <li><strong>Nothing is lost:</strong> PODIUM keeps the whole page in the file, so a crop
-            can be changed or removed later. Other PDF readers show just the cropped part.</li>
-            <li><strong>Printing:</strong> cropped pages print as PODIUM shows them, enlarged to fill
-            the page.</li>
-        </ul>
-        <p class="guidebook-link">
-            See the Guidebook: <a href="Guidebook.html#page-crop">&sect;7.9 Crop</a>
-        </p>
-    </div>
-
-    <div class="entry">
-        <h3>Table: Marked, an Index of the Score</h3>
-        <p class="location">Layout Ring &rarr; Table &rarr; Show: Marked</p>
-        <p>The Table layout's new Marked button shows just the bookmarked pages, and page 1.
-        Each stands for its section, from its page up to the next bookmark: in a set list built
-        with Merge's Mark, that's one page per piece.</p>
-        <ul>
-            <li><strong>See the whole set:</strong> each page shows its section's number of
-            pages. Tap a page to go to it; Page Down, the arrow keys and pedals step from one
-            section to the next.</li>
-            <li><strong>Reorder by dragging:</strong> drag a page to move its whole section,
-            or drag it off the table to cut it.</li>
-            <li><strong>The Page ring works on sections:</strong> Cut, Copy, Export and Flatten
-            take the whole section, and Add, Paste, Import and Merge put their pages before or
-            after it, as a section of their own. A cut section comes back with one Undo.</li>
-            <li><strong>Unmark a page</strong> to join its section to the one before it.</li>
-        </ul>
-        <p class="guidebook-link">
-            See the Guidebook: <a href="Guidebook.html#layout-table">&sect;5.4 Table</a>
         </p>
     </div>
 
